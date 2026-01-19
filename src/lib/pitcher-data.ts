@@ -30,6 +30,7 @@ export function calculatePitcherStats(pitcher: Pitcher, allOutings: Outing[]): P
       restStatus: { type: 'no-data' },
       notes: '',
       outings: [],
+      focus: undefined,
     };
   }
 
@@ -56,6 +57,9 @@ export function calculatePitcherStats(pitcher: Pitcher, allOutings: Outing[]): P
   const lastPitchCount = lastOutingData?.pitchCount || 0;
   const notes = lastOutingData?.notes || '';
 
+  // Get the most recent focus (find the most recent outing that has a focus set)
+  const mostRecentFocus = sortedOutings.find(o => o.focus)?.focus;
+
   // Calculate rest status based on arm care rules
   const restStatus = calculateRestStatus(lastOuting, lastPitchCount);
 
@@ -69,5 +73,6 @@ export function calculatePitcherStats(pitcher: Pitcher, allOutings: Outing[]): P
     restStatus,
     notes,
     outings: pitcherOutings,
+    focus: mostRecentFocus,
   };
 }

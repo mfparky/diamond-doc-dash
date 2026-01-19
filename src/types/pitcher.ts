@@ -9,6 +9,7 @@ export interface Outing {
   maxVelo: number;
   notes: string;
   videoUrl?: string;
+  focus?: string;
 }
 
 export interface Pitcher {
@@ -22,6 +23,7 @@ export interface Pitcher {
   restStatus: RestStatus;
   notes: string;
   outings: Outing[];
+  focus?: string;
 }
 
 export type RestStatus = 

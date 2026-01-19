@@ -30,6 +30,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
     maxVelo: '',
     notes: '',
     videoUrl: '',
+    focus: '',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -48,6 +49,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
       maxVelo: parseInt(formData.maxVelo) || 0,
       notes: formData.notes,
       videoUrl: formData.videoUrl,
+      focus: formData.focus || undefined,
     });
 
     // Reset form
@@ -60,6 +62,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
       maxVelo: '',
       notes: '',
       videoUrl: '',
+      focus: '',
     });
   };
 
@@ -166,6 +169,21 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
               placeholder="0"
               value={formData.maxVelo}
               onChange={(e) => setFormData(prev => ({ ...prev, maxVelo: e.target.value }))}
+              className="mobile-input"
+            />
+          </div>
+
+          {/* Focus */}
+          <div className="space-y-2">
+            <Label htmlFor="focus" className="text-sm font-medium">
+              Focus (mechanical cue - optional)
+            </Label>
+            <Input
+              id="focus"
+              type="text"
+              placeholder="e.g., Stay tall, drive through..."
+              value={formData.focus}
+              onChange={(e) => setFormData(prev => ({ ...prev, focus: e.target.value }))}
               className="mobile-input"
             />
           </div>

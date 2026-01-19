@@ -30,6 +30,7 @@ export function useOutings() {
         maxVelo: row.max_velocity ?? 0,
         notes: row.notes ?? '',
         videoUrl: row.video_url ?? undefined,
+        focus: row.focus ?? undefined,
       }));
 
       setOutings(mappedOutings);
@@ -63,6 +64,7 @@ export function useOutings() {
           max_velocity: outingData.maxVelo || null,
           notes: outingData.notes || null,
           video_url: outingData.videoUrl || null,
+          focus: outingData.focus || null,
         })
         .select()
         .single();
@@ -80,6 +82,7 @@ export function useOutings() {
         maxVelo: data.max_velocity ?? 0,
         notes: data.notes ?? '',
         videoUrl: data.video_url ?? undefined,
+        focus: data.focus ?? undefined,
       };
 
       setOutings((prev) => [newOuting, ...prev]);
