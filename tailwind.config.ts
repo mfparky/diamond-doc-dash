@@ -54,6 +54,7 @@ export default {
         status: {
           active: "hsl(var(--status-active))",
           warning: "hsl(var(--status-warning))",
+          caution: "hsl(var(--status-caution))",
           danger: "hsl(var(--status-danger))",
           neutral: "hsl(var(--status-neutral))",
         },
