@@ -17,13 +17,11 @@ export function Header({
         <div className="flex items-center justify-between">
           {/* Logo & Title */}
           <div className="flex items-center gap-3">
-            <img 
-              src={hawksLogo} 
-              alt="Newmarket Hawks Logo" 
-              className="h-10 w-auto sm:h-12 object-contain"
-            />
+            <img src={hawksLogo} alt="Newmarket Hawks Logo" className="h-10 w-auto sm:h-12 object-contain" />
             <div>
-              <h1 className="font-display font-bold text-lg sm:text-xl text-foreground">Newmarket Hawks</h1>
+              <h1 className="font-display font-bold text-lg sm:text-xl text-foreground">Newmarket Hawks Arm Care Tracker
+
+            </h1>
               <p className="text-xs text-muted-foreground hidden sm:block">Pitching Dashboard</p>
             </div>
           </div>
