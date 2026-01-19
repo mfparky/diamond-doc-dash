@@ -1,5 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Plus, LayoutGrid, List } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import hawksLogo from '@/assets/hawks-logo.png';
 interface HeaderProps {
   viewMode: 'cards' | 'table';
   onViewModeChange: (mode: 'cards' | 'table') => void;
@@ -15,17 +17,22 @@ export function Header({
         <div className="flex items-center justify-between">
           {/* Logo & Title */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <span className="text-xl">⚾</span>
-            </div>
+            <img 
+              src={hawksLogo} 
+              alt="Newmarket Hawks Logo" 
+              className="h-10 w-auto sm:h-12 object-contain"
+            />
             <div>
-              <h1 className="font-display font-bold text-xl text-foreground">Newmarket Hawks Pitching Dashboard</h1>
-              <p className="text-xs text-muted-foreground hidden sm:block">Team Dashboard</p>
+              <h1 className="font-display font-bold text-lg sm:text-xl text-foreground">Newmarket Hawks</h1>
+              <p className="text-xs text-muted-foreground hidden sm:block">Pitching Dashboard</p>
             </div>
           </div>
 
           {/* Actions */}
           <div className="flex items-center gap-2">
+            {/* Theme Toggle */}
+            <ThemeToggle />
+            
             {/* View Toggle - Hidden on mobile */}
             <div className="hidden md:flex items-center bg-secondary rounded-lg p-1">
               <Button variant="ghost" size="sm" className={viewMode === 'cards' ? 'bg-card shadow-sm' : ''} onClick={() => onViewModeChange('cards')}>

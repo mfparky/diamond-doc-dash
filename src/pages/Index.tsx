@@ -24,9 +24,11 @@ const Index = () => {
   const [showOutingForm, setShowOutingForm] = useState(false);
   const { toast } = useToast();
 
-  // Calculate updated pitcher stats based on all outings
+  // Calculate updated pitcher stats based on all outings, sorted alphabetically
   const pitchers = useMemo(() => {
-    return initialPitchers.map(pitcher => calculatePitcherStats(pitcher, outings));
+    return initialPitchers
+      .map(pitcher => calculatePitcherStats(pitcher, outings))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [outings]);
 
   const handleAddOuting = async (outingData: Omit<Outing, 'id' | 'timestamp'>) => {
