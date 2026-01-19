@@ -31,7 +31,7 @@ export function Header({
             />
             <div>
               <h1 className="font-display font-bold text-lg sm:text-xl text-foreground">
-                Newmarket Hawks Arm Care Tracker
+                Hawks Arm Care
               </h1>
               <p className="text-xs text-muted-foreground hidden sm:block">
                 Pitching Dashboard
