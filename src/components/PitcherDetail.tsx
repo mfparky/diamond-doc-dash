@@ -1,8 +1,8 @@
-import { Pitcher } from '@/types/pitcher';
+import { Pitcher, getDaysRestNeeded } from '@/types/pitcher';
 import { StatusBadge } from './StatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield } from 'lucide-react';
 
 interface PitcherDetailProps {
   pitcher: Pitcher;
@@ -21,6 +21,8 @@ export function PitcherDetail({ pitcher, onBack }: PitcherDetailProps) {
     });
   };
 
+  const daysRestNeeded = pitcher.lastPitchCount > 0 ? getDaysRestNeeded(pitcher.lastPitchCount) : 0;
+
   return (
     <div className="space-y-6 animate-slide-up">
       {/* Header */}
@@ -33,6 +35,37 @@ export function PitcherDetail({ pitcher, onBack }: PitcherDetailProps) {
           <StatusBadge status={pitcher.restStatus} className="mt-1" />
         </div>
       </div>
+
+      {/* Arm Care Status Card */}
+      {pitcher.lastPitchCount > 0 && (
+        <Card className="glass-card border-primary/30 bg-primary/5">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Shield className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h4 className="font-display font-semibold text-foreground">Arm Care Status</h4>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Last outing: <span className="text-foreground font-medium">{pitcher.lastPitchCount} pitches</span>
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Rest required: <span className="text-foreground font-medium">{daysRestNeeded} day{daysRestNeeded !== 1 ? 's' : ''}</span>
+                </p>
+                <div className="mt-2 text-xs text-muted-foreground">
+                  <p className="font-medium mb-1">Pitch Count Rules:</p>
+                  <div className="grid grid-cols-2 gap-1">
+                    <span>76+ pitches → 4 days</span>
+                    <span>61-75 pitches → 3 days</span>
+                    <span>46-60 pitches → 2 days</span>
+                    <span>31-45 pitches → 1 day</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -135,10 +168,16 @@ export function PitcherDetail({ pitcher, onBack }: PitcherDetailProps) {
                       <div>
                         <span className="text-muted-foreground">Pitches: </span>
                         <span className="font-medium text-foreground">{outing.pitchCount}</span>
+                        <span className="text-xs text-muted-foreground ml-1">
+                          ({getDaysRestNeeded(outing.pitchCount)}d rest)
+                        </span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Strikes: </span>
                         <span className="font-medium text-foreground">{outing.strikes}</span>
+                        <span className="text-xs text-muted-foreground ml-1">
+                          ({outing.pitchCount > 0 ? ((outing.strikes / outing.pitchCount) * 100).toFixed(0) : 0}%)
+                        </span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Velo: </span>

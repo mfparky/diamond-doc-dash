@@ -11,14 +11,12 @@ import {
   SheetContent,
 } from '@/components/ui/sheet';
 import { useToast } from '@/hooks/use-toast';
+import { getDaysRestNeeded } from '@/types/pitcher';
 
 type View = 'dashboard' | 'detail';
 
 const Index = () => {
-  const [outings, setOutings] = useState<Outing[]>(() => {
-    // Initialize with existing outings from initial data
-    return initialPitchers.flatMap(p => p.outings);
-  });
+  const [outings, setOutings] = useState<Outing[]>([]);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [selectedPitcher, setSelectedPitcher] = useState<Pitcher | null>(null);
@@ -40,9 +38,11 @@ const Index = () => {
     setOutings(prev => [...prev, newOuting]);
     setShowOutingForm(false);
 
+    const daysRest = getDaysRestNeeded(outingData.pitchCount);
+
     toast({
       title: 'Outing Logged',
-      description: `${outingData.pitcherName}'s ${outingData.eventType} session has been recorded.`,
+      description: `${outingData.pitcherName}: ${outingData.pitchCount} pitches → ${daysRest} day${daysRest !== 1 ? 's' : ''} rest required.`,
     });
   };
 
@@ -75,7 +75,7 @@ const Index = () => {
                 Pitcher Roster
               </h2>
               <p className="text-muted-foreground">
-                {pitchers.length} pitchers • {pitchers.filter(p => p.restStatus === 'Active').length} active
+                {pitchers.length} pitchers • {pitchers.filter(p => p.restStatus.type === 'active').length} active • {pitchers.filter(p => p.restStatus.type === 'resting').length} resting
               </p>
             </div>
 

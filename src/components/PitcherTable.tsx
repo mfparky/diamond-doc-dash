@@ -1,4 +1,4 @@
-import { Pitcher } from '@/types/pitcher';
+import { Pitcher, getDaysRestNeeded } from '@/types/pitcher';
 import { StatusBadge } from './StatusBadge';
 import {
   Table,
@@ -31,6 +31,7 @@ export function PitcherTable({ pitchers, onPitcherClick }: PitcherTableProps) {
             <TableHead className="text-primary font-display font-semibold text-center">Strike %</TableHead>
             <TableHead className="text-primary font-display font-semibold text-center">Max Velo</TableHead>
             <TableHead className="text-primary font-display font-semibold text-center">Last Outing</TableHead>
+            <TableHead className="text-primary font-display font-semibold text-center">Last Pitches</TableHead>
             <TableHead className="text-primary font-display font-semibold text-center">Rest Status</TableHead>
             <TableHead className="text-primary font-display font-semibold">Notes</TableHead>
           </TableRow>
@@ -47,6 +48,13 @@ export function PitcherTable({ pitchers, onPitcherClick }: PitcherTableProps) {
               <TableCell className="text-center">{pitcher.strikePercentage.toFixed(2)}%</TableCell>
               <TableCell className="text-center">{pitcher.maxVelo || 0}</TableCell>
               <TableCell className="text-center">{formatDate(pitcher.lastOuting)}</TableCell>
+              <TableCell className="text-center">
+                {pitcher.lastPitchCount > 0 ? (
+                  <span className="text-muted-foreground">
+                    {pitcher.lastPitchCount} <span className="text-xs">({getDaysRestNeeded(pitcher.lastPitchCount)}d rest)</span>
+                  </span>
+                ) : '-'}
+              </TableCell>
               <TableCell className="text-center">
                 <StatusBadge status={pitcher.restStatus} />
               </TableCell>
