@@ -14,7 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      outings: {
+        Row: {
+          created_at: string
+          date: string
+          event_type: string
+          id: string
+          max_velocity: number | null
+          notes: string | null
+          pitch_count: number
+          pitcher_id: string
+          pitcher_name: string
+          strikes: number | null
+          video_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          event_type: string
+          id?: string
+          max_velocity?: number | null
+          notes?: string | null
+          pitch_count: number
+          pitcher_id: string
+          pitcher_name: string
+          strikes?: number | null
+          video_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          event_type?: string
+          id?: string
+          max_velocity?: number | null
+          notes?: string | null
+          pitch_count?: number
+          pitcher_id?: string
+          pitcher_name?: string
+          strikes?: number | null
+          video_url?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
