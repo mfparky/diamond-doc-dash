@@ -27,6 +27,7 @@ export function PitcherTable({ pitchers, onPitcherClick }: PitcherTableProps) {
         <TableHeader>
           <TableRow className="border-border/50 hover:bg-transparent">
             <TableHead className="text-primary font-display font-semibold">Pitcher Name</TableHead>
+            <TableHead className="text-primary font-display font-semibold">Focus</TableHead>
             <TableHead className="text-primary font-display font-semibold text-center">7-Day Pulse</TableHead>
             <TableHead className="text-primary font-display font-semibold text-center">Strike %</TableHead>
             <TableHead className="text-primary font-display font-semibold text-center">Max Velo</TableHead>
@@ -44,6 +45,9 @@ export function PitcherTable({ pitchers, onPitcherClick }: PitcherTableProps) {
               onClick={() => onPitcherClick?.(pitcher)}
             >
               <TableCell className="font-medium">{pitcher.name}</TableCell>
+              <TableCell className="max-w-[150px] truncate text-muted-foreground">
+                {pitcher.focus || '-'}
+              </TableCell>
               <TableCell className="text-center">{pitcher.sevenDayPulse}</TableCell>
               <TableCell className="text-center">{pitcher.strikePercentage.toFixed(2)}%</TableCell>
               <TableCell className="text-center">{pitcher.maxVelo || 0}</TableCell>
