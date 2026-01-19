@@ -42,7 +42,7 @@ export function getDaysRestNeeded(pitchCount: number): number {
 }
 
 export function calculateRestStatus(lastOutingDate: string | null, lastPitchCount: number): RestStatus {
-  if (!lastOutingDate) {
+  if (!lastOutingDate || lastOutingDate === '') {
     return { type: 'no-data' };
   }
 
@@ -59,10 +59,12 @@ export function calculateRestStatus(lastOutingDate: string | null, lastPitchCoun
     return { type: 'threw-today' };
   }
 
-  if (daysSinceLast > daysRestNeeded) {
+  // If no rest needed (< 31 pitches) or rest period is complete, pitcher is active
+  if (daysRestNeeded === 0 || daysSinceLast > daysRestNeeded) {
     return { type: 'active' };
   }
 
+  // Still within rest period
   return { 
     type: 'resting', 
     daysNeeded: daysRestNeeded, 
