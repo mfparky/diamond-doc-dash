@@ -12,11 +12,12 @@ import {
 } from '@/components/ui/sheet';
 import { useToast } from '@/hooks/use-toast';
 import { getDaysRestNeeded } from '@/types/pitcher';
+import { useOutings } from '@/hooks/use-outings';
 
 type View = 'dashboard' | 'detail';
 
 const Index = () => {
-  const [outings, setOutings] = useState<Outing[]>([]);
+  const { outings, isLoading, addOuting } = useOutings();
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [selectedPitcher, setSelectedPitcher] = useState<Pitcher | null>(null);
@@ -28,22 +29,18 @@ const Index = () => {
     return initialPitchers.map(pitcher => calculatePitcherStats(pitcher, outings));
   }, [outings]);
 
-  const handleAddOuting = (outingData: Omit<Outing, 'id' | 'timestamp'>) => {
-    const newOuting: Outing = {
-      ...outingData,
-      id: crypto.randomUUID(),
-      timestamp: new Date().toISOString(),
-    };
+  const handleAddOuting = async (outingData: Omit<Outing, 'id' | 'timestamp'>) => {
+    const newOuting = await addOuting(outingData);
+    
+    if (newOuting) {
+      setShowOutingForm(false);
+      const daysRest = getDaysRestNeeded(outingData.pitchCount);
 
-    setOutings(prev => [...prev, newOuting]);
-    setShowOutingForm(false);
-
-    const daysRest = getDaysRestNeeded(outingData.pitchCount);
-
-    toast({
-      title: 'Outing Logged',
-      description: `${outingData.pitcherName}: ${outingData.pitchCount} pitches → ${daysRest} day${daysRest !== 1 ? 's' : ''} rest required.`,
-    });
+      toast({
+        title: 'Outing Logged',
+        description: `${outingData.pitcherName}: ${outingData.pitchCount} pitches → ${daysRest} day${daysRest !== 1 ? 's' : ''} rest required.`,
+      });
+    }
   };
 
   const handlePitcherClick = (pitcher: Pitcher) => {
