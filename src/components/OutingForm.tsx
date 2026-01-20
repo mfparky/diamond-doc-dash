@@ -124,7 +124,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
               </SelectTrigger>
               <SelectContent className="bg-card border-border">
                 <SelectItem value="Bullpen">Bullpen</SelectItem>
-                <SelectItem value="Live ABs">Live ABs</SelectItem>
+                <SelectItem value="Live">Live</SelectItem>
                 <SelectItem value="Game">Game</SelectItem>
                 <SelectItem value="Practice">Practice</SelectItem>
               </SelectContent>
