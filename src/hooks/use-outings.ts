@@ -98,6 +98,69 @@ export function useOutings() {
     }
   }, [toast]);
 
+  // Update an existing outing
+  const updateOuting = useCallback(async (id: string, outingData: Partial<Omit<Outing, 'id' | 'timestamp'>>): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('outings')
+        .update({
+          date: outingData.date,
+          event_type: outingData.eventType,
+          pitch_count: outingData.pitchCount,
+          strikes: outingData.strikes || null,
+          max_velocity: outingData.maxVelo || null,
+          notes: outingData.notes || null,
+          video_url: outingData.videoUrl || null,
+          focus: outingData.focus || null,
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      await fetchOutings();
+      toast({
+        title: 'Outing updated',
+        description: 'The outing has been updated successfully.',
+      });
+      return true;
+    } catch (error) {
+      console.error('Error updating outing:', error);
+      toast({
+        title: 'Error updating outing',
+        description: 'Could not update the outing.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  }, [toast, fetchOutings]);
+
+  // Delete an outing
+  const deleteOuting = useCallback(async (id: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('outings')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setOutings((prev) => prev.filter((o) => o.id !== id));
+      toast({
+        title: 'Outing deleted',
+        description: 'The outing has been removed.',
+      });
+      return true;
+    } catch (error) {
+      console.error('Error deleting outing:', error);
+      toast({
+        title: 'Error deleting outing',
+        description: 'Could not delete the outing.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  }, [toast]);
+
   // Load outings on mount
   useEffect(() => {
     fetchOutings();
@@ -107,6 +170,8 @@ export function useOutings() {
     outings,
     isLoading,
     addOuting,
+    updateOuting,
+    deleteOuting,
     refetch: fetchOutings,
   };
 }
