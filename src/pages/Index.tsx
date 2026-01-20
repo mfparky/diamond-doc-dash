@@ -16,7 +16,7 @@ type View = 'dashboard' | 'detail';
 type TimeView = '7day' | 'alltime';
 
 const Index = () => {
-  const { outings, isLoading, addOuting } = useOutings();
+  const { outings, isLoading, addOuting, updateOuting, deleteOuting } = useOutings();
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [timeView, setTimeView] = useState<TimeView>('7day');
   const [currentView, setCurrentView] = useState<View>('dashboard');
@@ -108,7 +108,12 @@ const Index = () => {
         )}
 
         {currentView === 'detail' && selectedPitcher && (
-          <PitcherDetail pitcher={selectedPitcher} onBack={handleBackToDashboard} />
+          <PitcherDetail 
+            pitcher={selectedPitcher} 
+            onBack={handleBackToDashboard}
+            onUpdateOuting={updateOuting}
+            onDeleteOuting={deleteOuting}
+          />
         )}
       </main>
 

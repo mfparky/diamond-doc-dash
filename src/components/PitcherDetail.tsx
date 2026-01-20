@@ -1,15 +1,23 @@
-import { Pitcher, getDaysRestNeeded } from '@/types/pitcher';
+import { useState } from 'react';
+import { Pitcher, Outing, getDaysRestNeeded } from '@/types/pitcher';
 import { StatusBadge } from './StatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, Pencil, Trash2 } from 'lucide-react';
+import { EditOutingDialog } from './EditOutingDialog';
+import { DeleteOutingDialog } from './DeleteOutingDialog';
 
 interface PitcherDetailProps {
   pitcher: Pitcher;
   onBack: () => void;
+  onUpdateOuting: (id: string, data: Partial<Omit<Outing, 'id' | 'timestamp'>>) => Promise<boolean>;
+  onDeleteOuting: (id: string) => Promise<boolean>;
 }
 
-export function PitcherDetail({ pitcher, onBack }: PitcherDetailProps) {
+export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting }: PitcherDetailProps) {
+  const [editingOuting, setEditingOuting] = useState<Outing | null>(null);
+  const [deletingOuting, setDeletingOuting] = useState<Outing | null>(null);
+
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';
     const date = new Date(dateStr);
@@ -152,17 +160,35 @@ export function PitcherDetail({ pitcher, onBack }: PitcherDetailProps) {
                         <p className="font-semibold text-foreground">{formatDate(outing.date)}</p>
                         <p className="text-sm text-accent">{outing.eventType}</p>
                       </div>
-                      {outing.videoUrl && (
-                        <a 
-                          href={outing.videoUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors"
+                      <div className="flex items-center gap-2">
+                        {outing.videoUrl && (
+                          <a 
+                            href={outing.videoUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors"
+                          >
+                            <Video className="w-4 h-4" />
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => setEditingOuting(outing)}
                         >
-                          <Video className="w-4 h-4" />
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => setDeletingOuting(outing)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                     <div className="grid grid-cols-3 gap-4 text-sm">
                       <div>
@@ -184,6 +210,11 @@ export function PitcherDetail({ pitcher, onBack }: PitcherDetailProps) {
                         <span className="font-medium text-foreground">{outing.maxVelo}</span>
                       </div>
                     </div>
+                    {outing.focus && (
+                      <p className="mt-2 text-sm text-primary border-t border-border/30 pt-2">
+                        <span className="font-medium">Focus:</span> {outing.focus}
+                      </p>
+                    )}
                     {outing.notes && (
                       <p className="mt-2 text-sm text-muted-foreground border-t border-border/30 pt-2">
                         {outing.notes}
@@ -195,6 +226,22 @@ export function PitcherDetail({ pitcher, onBack }: PitcherDetailProps) {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Dialog */}
+      <EditOutingDialog
+        outing={editingOuting}
+        open={!!editingOuting}
+        onOpenChange={(open) => !open && setEditingOuting(null)}
+        onSave={onUpdateOuting}
+      />
+
+      {/* Delete Dialog */}
+      <DeleteOutingDialog
+        open={!!deletingOuting}
+        onOpenChange={(open) => !open && setDeletingOuting(null)}
+        onConfirm={() => deletingOuting ? onDeleteOuting(deletingOuting.id) : Promise.resolve(false)}
+        outingDate={deletingOuting ? formatDate(deletingOuting.date) : undefined}
+      />
     </div>
   );
 }
