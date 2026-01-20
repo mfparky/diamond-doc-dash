@@ -22,6 +22,16 @@ export function PitcherCard({ pitcher, onClick }: PitcherCardProps) {
       onClick={onClick}
     >
       <CardContent className="p-4">
+        {/* Focus Badge at Top */}
+        {pitcher.focus && (
+          <div className="mb-3 -mt-1">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/15 text-primary text-xs font-medium">
+              <Target className="w-3 h-3" />
+              {pitcher.focus}
+            </span>
+          </div>
+        )}
+
         <div className="flex items-start justify-between mb-4">
           <div className="min-w-0 flex-1">
             <h3 className="font-display font-semibold text-lg text-foreground truncate">{pitcher.name}</h3>
@@ -72,13 +82,6 @@ export function PitcherCard({ pitcher, onClick }: PitcherCardProps) {
             </div>
           </div>
         </div>
-
-        {pitcher.focus && (
-          <div className="mt-3 border-t border-border/50 pt-3">
-            <p className="text-xs text-muted-foreground font-medium">Focus:</p>
-            <p className="text-sm text-foreground">{pitcher.focus}</p>
-          </div>
-        )}
 
         {pitcher.notes && (
           <p className="mt-3 text-sm text-muted-foreground line-clamp-2 border-t border-border/50 pt-3">
