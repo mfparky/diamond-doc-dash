@@ -65,7 +65,7 @@ export function AllTimeStats({ outings }: AllTimeStatsProps) {
         case 'Game':
           existing.games += 1;
           break;
-        case 'Live':
+        case 'Live ABs':
           existing.liveABs += 1;
           break;
         case 'Practice':

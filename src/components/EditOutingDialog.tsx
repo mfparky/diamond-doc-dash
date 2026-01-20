@@ -84,7 +84,7 @@ export function EditOutingDialog({ outing, open, onOpenChange, onSave }: EditOut
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Bullpen">Bullpen</SelectItem>
-                <SelectItem value="Live">Live</SelectItem>
+                <SelectItem value="Live ABs">Live ABs</SelectItem>
                 <SelectItem value="Game">Game</SelectItem>
                 <SelectItem value="Practice">Practice</SelectItem>
               </SelectContent>
