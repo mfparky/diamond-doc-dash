@@ -3,18 +3,23 @@ import { StatusBadge } from './StatusBadge';
 import { Card, CardContent } from '@/components/ui/card';
 import { TrendingUp, Target, Gauge, Calendar } from 'lucide-react';
 import { getDaysRestNeeded } from '@/types/pitcher';
+import { getPulseLevel, getPulseColorClasses, DEFAULT_MAX_WEEKLY_PITCHES } from '@/lib/pulse-status';
 
 interface PitcherCardProps {
   pitcher: Pitcher;
   onClick?: () => void;
+  maxWeeklyPitches?: number;
 }
 
-export function PitcherCard({ pitcher, onClick }: PitcherCardProps) {
+export function PitcherCard({ pitcher, onClick, maxWeeklyPitches = DEFAULT_MAX_WEEKLY_PITCHES }: PitcherCardProps) {
   const formatDate = (dateStr: string) => {
     if (!dateStr) return 'No outings';
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
+
+  const pulseLevel = getPulseLevel(pitcher.sevenDayPulse, maxWeeklyPitches);
+  const pulseColors = getPulseColorClasses(pulseLevel);
 
   return (
     <Card 
@@ -33,12 +38,15 @@ export function PitcherCard({ pitcher, onClick }: PitcherCardProps) {
 
         <div className="grid grid-cols-2 gap-3">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-md bg-primary/10">
-              <TrendingUp className="w-3.5 h-3.5 text-primary" />
+            <div className={`p-1.5 rounded-md ${pulseColors.bg}`}>
+              <TrendingUp className={`w-3.5 h-3.5 ${pulseColors.icon}`} />
             </div>
             <div>
               <p className="text-xs text-muted-foreground">7-Day Pulse</p>
-              <p className="font-semibold text-foreground">{pitcher.sevenDayPulse}</p>
+              <p className={`font-semibold ${pulseColors.text}`}>
+                {pitcher.sevenDayPulse}
+                {pulseLevel !== 'normal' && <span className="text-xs ml-1">/ {maxWeeklyPitches}</span>}
+              </p>
             </div>
           </div>
 

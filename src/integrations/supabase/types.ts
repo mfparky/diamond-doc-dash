@@ -59,6 +59,30 @@ export type Database = {
         }
         Relationships: []
       }
+      pitchers: {
+        Row: {
+          created_at: string
+          id: string
+          max_weekly_pitches: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          max_weekly_pitches?: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          max_weekly_pitches?: number
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
