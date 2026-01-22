@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, Pencil, Trash2 } from 'lucide-react';
 import { EditOutingDialog } from './EditOutingDialog';
 import { DeleteOutingDialog } from './DeleteOutingDialog';
+import { PitchCountChart } from './PitchCountChart';
 
 interface PitcherDetailProps {
   pitcher: Pitcher;
@@ -125,6 +126,9 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting 
           </CardContent>
         </Card>
       </div>
+
+      {/* Season Pitch Count Chart */}
+      <PitchCountChart outings={pitcher.outings} />
 
       {/* Recent Notes */}
       {pitcher.notes && (
