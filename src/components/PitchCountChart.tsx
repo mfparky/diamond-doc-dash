@@ -10,14 +10,14 @@ interface PitchCountChartProps {
 const EVENT_COLORS: Record<string, string> = {
   'Bullpen': 'hsl(220, 70%, 45%)',      // dark blue
   'Game': 'hsl(142, 70%, 45%)',          // green
-  'Live ABs': 'hsl(200, 80%, 60%)',      // light blue
+  'External': 'hsl(200, 80%, 60%)',      // light blue
   'Practice': 'hsl(25, 90%, 55%)',       // orange
 };
 
 const EVENT_LEGEND_COLORS: Record<string, string> = {
   'Bullpen': '220, 70%, 45%',            // dark blue
   'Game': '142, 70%, 45%',               // green
-  'Live ABs': '200, 80%, 60%',           // light blue
+  'External': '200, 80%, 60%',           // light blue
   'Practice': '25, 90%, 55%',            // orange
 };
 

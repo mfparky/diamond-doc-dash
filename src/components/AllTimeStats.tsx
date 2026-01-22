@@ -21,7 +21,7 @@ interface PitcherStats {
   maxVelocity: number;
   bullpens: number;
   games: number;
-  liveABs: number;
+  external: number;
   practices: number;
   totalOutings: number;
 }
@@ -48,7 +48,7 @@ export function AllTimeStats({ outings }: AllTimeStatsProps) {
         maxVelocity: 0,
         bullpens: 0,
         games: 0,
-        liveABs: 0,
+        external: 0,
         practices: 0,
         totalOutings: 0,
       };
@@ -65,8 +65,8 @@ export function AllTimeStats({ outings }: AllTimeStatsProps) {
         case 'Game':
           existing.games += 1;
           break;
-        case 'Live ABs':
-          existing.liveABs += 1;
+        case 'External':
+          existing.external += 1;
           break;
         case 'Practice':
           existing.practices += 1;
@@ -95,11 +95,11 @@ export function AllTimeStats({ outings }: AllTimeStatsProps) {
         totalStrikes: acc.totalStrikes + stats.totalStrikes,
         bullpens: acc.bullpens + stats.bullpens,
         games: acc.games + stats.games,
-        liveABs: acc.liveABs + stats.liveABs,
+        external: acc.external + stats.external,
         practices: acc.practices + stats.practices,
         totalOutings: acc.totalOutings + stats.totalOutings,
       }),
-      { totalPitches: 0, totalStrikes: 0, bullpens: 0, games: 0, liveABs: 0, practices: 0, totalOutings: 0 }
+      { totalPitches: 0, totalStrikes: 0, bullpens: 0, games: 0, external: 0, practices: 0, totalOutings: 0 }
     );
   }, [pitcherStats]);
 
@@ -129,7 +129,7 @@ export function AllTimeStats({ outings }: AllTimeStatsProps) {
               <TableHead className="text-center font-semibold">Max Velo</TableHead>
               <TableHead className="text-center font-semibold">Bullpens</TableHead>
               <TableHead className="text-center font-semibold">Games</TableHead>
-              <TableHead className="text-center font-semibold">Live ABs</TableHead>
+              <TableHead className="text-center font-semibold">External</TableHead>
               <TableHead className="text-center font-semibold">Practices</TableHead>
               <TableHead className="text-center font-semibold">Total Outings</TableHead>
             </TableRow>
@@ -154,7 +154,7 @@ export function AllTimeStats({ outings }: AllTimeStatsProps) {
                     </TableCell>
                     <TableCell className="text-center">{stats.bullpens}</TableCell>
                     <TableCell className="text-center">{stats.games}</TableCell>
-                    <TableCell className="text-center">{stats.liveABs}</TableCell>
+                    <TableCell className="text-center">{stats.external}</TableCell>
                     <TableCell className="text-center">{stats.practices}</TableCell>
                     <TableCell className="text-center font-medium">{stats.totalOutings}</TableCell>
                   </TableRow>
@@ -168,7 +168,7 @@ export function AllTimeStats({ outings }: AllTimeStatsProps) {
                   <TableCell className="text-center">—</TableCell>
                   <TableCell className="text-center">{teamTotals.bullpens}</TableCell>
                   <TableCell className="text-center">{teamTotals.games}</TableCell>
-                  <TableCell className="text-center">{teamTotals.liveABs}</TableCell>
+                  <TableCell className="text-center">{teamTotals.external}</TableCell>
                   <TableCell className="text-center">{teamTotals.practices}</TableCell>
                   <TableCell className="text-center">{teamTotals.totalOutings}</TableCell>
                 </TableRow>
