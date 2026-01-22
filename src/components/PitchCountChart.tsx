@@ -8,17 +8,17 @@ interface PitchCountChartProps {
 }
 
 const EVENT_COLORS: Record<string, string> = {
-  'Bullpen': 'hsl(var(--primary))',
-  'Live ABs': 'hsl(var(--accent))',
-  'Game': 'hsl(var(--status-danger))',
-  'Practice': 'hsl(var(--muted-foreground))',
+  'Bullpen': 'hsl(220, 70%, 45%)',      // dark blue
+  'Game': 'hsl(142, 70%, 45%)',          // green
+  'Live ABs': 'hsl(200, 80%, 60%)',      // light blue
+  'Practice': 'hsl(25, 90%, 55%)',       // orange
 };
 
 const EVENT_LEGEND_COLORS: Record<string, string> = {
-  'Bullpen': 'var(--primary)',
-  'Live ABs': 'var(--accent)',
-  'Game': 'var(--status-danger)',
-  'Practice': 'var(--muted-foreground)',
+  'Bullpen': '220, 70%, 45%',            // dark blue
+  'Game': '142, 70%, 45%',               // green
+  'Live ABs': '200, 80%, 60%',           // light blue
+  'Practice': '25, 90%, 55%',            // orange
 };
 
 export function PitchCountChart({ outings }: PitchCountChartProps) {
