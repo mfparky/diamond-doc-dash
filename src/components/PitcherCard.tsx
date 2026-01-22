@@ -45,7 +45,6 @@ export function PitcherCard({ pitcher, onClick, maxWeeklyPitches = DEFAULT_MAX_W
               <p className="text-xs text-muted-foreground">7-Day Pulse</p>
               <p className={`font-semibold ${pulseColors.text}`}>
                 {pitcher.sevenDayPulse}
-                {pulseLevel !== 'normal' && <span className="text-xs ml-1">/ {maxWeeklyPitches}</span>}
               </p>
             </div>
           </div>
