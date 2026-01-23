@@ -40,10 +40,11 @@ export function calculatePitcherStats(pitcher: Pitcher, allOutings: Outing[]): P
   const recentOutings = pitcherOutings.filter(o => new Date(o.date) >= sevenDaysAgo);
   const sevenDayPulse = recentOutings.reduce((sum, o) => sum + o.pitchCount, 0);
 
-  // Calculate overall strike percentage
-  const totalPitches = pitcherOutings.reduce((sum, o) => sum + o.pitchCount, 0);
-  const totalStrikes = pitcherOutings.reduce((sum, o) => sum + o.strikes, 0);
-  const strikePercentage = totalPitches > 0 ? (totalStrikes / totalPitches) * 100 : 0;
+  // Calculate overall strike percentage (only include outings where strikes were tracked)
+  const outingsWithStrikes = pitcherOutings.filter(o => o.strikes !== null);
+  const totalPitchesWithStrikes = outingsWithStrikes.reduce((sum, o) => sum + o.pitchCount, 0);
+  const totalStrikes = outingsWithStrikes.reduce((sum, o) => sum + (o.strikes ?? 0), 0);
+  const strikePercentage = totalPitchesWithStrikes > 0 ? (totalStrikes / totalPitchesWithStrikes) * 100 : 0;
 
   // Get max velo across all outings
   const maxVelo = Math.max(...pitcherOutings.map(o => o.maxVelo));

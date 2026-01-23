@@ -5,7 +5,7 @@ export interface Outing {
   pitcherName: string;
   eventType: 'Bullpen' | 'External' | 'Game' | 'Practice';
   pitchCount: number;
-  strikes: number;
+  strikes: number | null;
   maxVelo: number;
   notes: string;
   videoUrl?: string;
