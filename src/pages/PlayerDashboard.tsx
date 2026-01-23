@@ -6,6 +6,9 @@ import { calculatePitcherStats } from '@/lib/pitcher-data';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PitchCountChart } from '@/components/PitchCountChart';
+import { StrikeLocationViewer } from '@/components/StrikeLocationViewer';
+import { usePitchLocations } from '@/hooks/use-pitch-locations';
+import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
 import { TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, ArrowLeft } from 'lucide-react';
 import hawksLogo from '@/assets/hawks-logo.png';
 
@@ -13,8 +16,10 @@ export default function PlayerDashboard() {
   const { playerId } = useParams<{ playerId: string }>();
   const [pitcher, setPitcher] = useState<Pitcher | null>(null);
   const [outings, setOutings] = useState<Outing[]>([]);
+  const [pitchTypes, setPitchTypes] = useState<PitchTypeConfig>(DEFAULT_PITCH_TYPES);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { fetchPitchTypes } = usePitchLocations();
 
   useEffect(() => {
     async function fetchPlayerData() {
@@ -83,6 +88,10 @@ export default function PlayerDashboard() {
         // Calculate stats
         const calculatedPitcher = calculatePitcherStats(basePitcher, mappedOutings);
         setPitcher(calculatedPitcher);
+
+        // Fetch pitch types
+        const types = await fetchPitchTypes(playerId);
+        setPitchTypes(types);
       } catch (err) {
         console.error('Error fetching player data:', err);
         setError('Failed to load player data');
@@ -229,6 +238,13 @@ export default function PlayerDashboard() {
 
         {/* Season Pitch Count Chart */}
         <PitchCountChart outings={pitcher.outings} />
+
+        {/* Strike Location Viewer */}
+        <StrikeLocationViewer 
+          pitcherId={pitcher.id} 
+          outings={pitcher.outings}
+          pitchTypes={pitchTypes}
+        />
 
         {/* Outing History - Read Only */}
         <Card className="glass-card">
