@@ -103,12 +103,6 @@ export function PitcherCard({ pitcher, onClick, maxWeeklyPitches = DEFAULT_MAX_W
           </div>
         </div>
 
-        {pitcher.focus && (
-          <div className="mt-3 border-t border-border/50 pt-3">
-            <p className="text-xs text-muted-foreground font-medium">Focus:</p>
-            <p className="text-sm text-foreground">{pitcher.focus}</p>
-          </div>
-        )}
 
         {pitcher.notes && (
           <p className="mt-3 text-sm text-muted-foreground line-clamp-2 border-t border-border/50 pt-3">

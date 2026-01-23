@@ -164,6 +164,16 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting 
         </Card>
       </div>
 
+      {/* Current Focus - moved up below stats */}
+      {pitcher.focus && (
+        <Card className="glass-card border-accent/30 bg-accent/5">
+          <CardContent className="p-4">
+            <p className="text-sm font-medium text-accent">Current Focus</p>
+            <p className="text-foreground mt-1">{pitcher.focus}</p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Season Pitch Count Chart */}
       <PitchCountChart outings={pitcher.outings} />
 
