@@ -3,10 +3,11 @@ import { Pitcher, Outing, getDaysRestNeeded } from '@/types/pitcher';
 import { StatusBadge } from './StatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, Pencil, Trash2, Share2 } from 'lucide-react';
 import { EditOutingDialog } from './EditOutingDialog';
 import { DeleteOutingDialog } from './DeleteOutingDialog';
 import { PitchCountChart } from './PitchCountChart';
+import { useToast } from '@/hooks/use-toast';
 
 interface PitcherDetailProps {
   pitcher: Pitcher;
@@ -18,6 +19,16 @@ interface PitcherDetailProps {
 export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting }: PitcherDetailProps) {
   const [editingOuting, setEditingOuting] = useState<Outing | null>(null);
   const [deletingOuting, setDeletingOuting] = useState<Outing | null>(null);
+  const { toast } = useToast();
+
+  const handleShare = () => {
+    const url = `${window.location.origin}/player/${pitcher.id}`;
+    navigator.clipboard.writeText(url);
+    toast({
+      title: 'Link copied!',
+      description: `Share this link with ${pitcher.name.split(' ')[0]}'s parents.`,
+    });
+  };
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';
@@ -43,6 +54,10 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting 
           <h2 className="font-display text-2xl font-bold text-foreground">{pitcher.name}</h2>
           <StatusBadge status={pitcher.restStatus} className="mt-1" />
         </div>
+        <Button variant="outline" size="sm" onClick={handleShare} className="shrink-0">
+          <Share2 className="w-4 h-4 mr-2" />
+          Share
+        </Button>
       </div>
 
       {/* Arm Care Status Card */}

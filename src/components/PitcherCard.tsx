@@ -1,9 +1,11 @@
 import { Pitcher } from '@/types/pitcher';
 import { StatusBadge } from './StatusBadge';
 import { Card, CardContent } from '@/components/ui/card';
-import { TrendingUp, Target, Gauge, Calendar } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { TrendingUp, Target, Gauge, Calendar, Share2 } from 'lucide-react';
 import { getDaysRestNeeded } from '@/types/pitcher';
 import { getPulseLevel, getPulseColorClasses, DEFAULT_MAX_WEEKLY_PITCHES } from '@/lib/pulse-status';
+import { useToast } from '@/hooks/use-toast';
 
 interface PitcherCardProps {
   pitcher: Pitcher;
@@ -12,10 +14,22 @@ interface PitcherCardProps {
 }
 
 export function PitcherCard({ pitcher, onClick, maxWeeklyPitches = DEFAULT_MAX_WEEKLY_PITCHES }: PitcherCardProps) {
+  const { toast } = useToast();
+  
   const formatDate = (dateStr: string) => {
     if (!dateStr) return 'No outings';
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const handleShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const url = `${window.location.origin}/player/${pitcher.id}`;
+    navigator.clipboard.writeText(url);
+    toast({
+      title: 'Link copied!',
+      description: `Share this link with ${pitcher.name.split(' ')[0]}'s parents.`,
+    });
   };
 
   const pulseLevel = getPulseLevel(pitcher.sevenDayPulse, maxWeeklyPitches);
@@ -34,6 +48,15 @@ export function PitcherCard({ pitcher, onClick, maxWeeklyPitches = DEFAULT_MAX_W
               <StatusBadge status={pitcher.restStatus} compact />
             </div>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            onClick={handleShare}
+            title="Share player dashboard"
+          >
+            <Share2 className="w-4 h-4" />
+          </Button>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
