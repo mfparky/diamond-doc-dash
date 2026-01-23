@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface EditOutingDialogProps {
@@ -19,7 +20,8 @@ export function EditOutingDialog({ outing, open, onOpenChange, onSave }: EditOut
     date: '',
     eventType: 'Bullpen' as Outing['eventType'],
     pitchCount: 0,
-    strikes: 0,
+    strikes: null as number | null,
+    strikesNotTracked: false,
     maxVelo: 0,
     notes: '',
     videoUrl: '',
@@ -35,6 +37,7 @@ export function EditOutingDialog({ outing, open, onOpenChange, onSave }: EditOut
         eventType: outing.eventType,
         pitchCount: outing.pitchCount,
         strikes: outing.strikes,
+        strikesNotTracked: outing.strikes === null,
         maxVelo: outing.maxVelo,
         notes: outing.notes || '',
         videoUrl: outing.videoUrl || '',
@@ -46,7 +49,11 @@ export function EditOutingDialog({ outing, open, onOpenChange, onSave }: EditOut
   const handleSave = async () => {
     if (!outing) return;
     setIsSaving(true);
-    const success = await onSave(outing.id, formData);
+    const { strikesNotTracked, ...dataToSave } = formData;
+    const success = await onSave(outing.id, {
+      ...dataToSave,
+      strikes: strikesNotTracked ? null : dataToSave.strikes,
+    });
     setIsSaving(false);
     if (success) {
       onOpenChange(false);
@@ -108,9 +115,26 @@ export function EditOutingDialog({ outing, open, onOpenChange, onSave }: EditOut
                 id="edit-strikes"
                 type="number"
                 min={0}
-                value={formData.strikes}
+                value={formData.strikesNotTracked ? '' : (formData.strikes ?? '')}
                 onChange={(e) => setFormData((prev) => ({ ...prev, strikes: parseInt(e.target.value) || 0 }))}
+                disabled={formData.strikesNotTracked}
               />
+              <div className="flex items-center space-x-2 pt-1">
+                <Checkbox
+                  id="edit-strikesNotTracked"
+                  checked={formData.strikesNotTracked}
+                  onCheckedChange={(checked) => 
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      strikesNotTracked: checked === true,
+                      strikes: checked === true ? null : 0
+                    }))
+                  }
+                />
+                <Label htmlFor="edit-strikesNotTracked" className="text-xs text-muted-foreground cursor-pointer">
+                  Not tracked
+                </Label>
+              </div>
             </div>
           </div>
 

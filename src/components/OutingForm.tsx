@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -27,6 +28,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
     eventType: '' as Outing['eventType'] | '',
     pitchCount: '',
     strikes: '',
+    strikesNotTracked: false,
     maxVelo: '',
     notes: '',
     videoUrl: '',
@@ -45,7 +47,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
       date: formData.date,
       eventType: formData.eventType as Outing['eventType'],
       pitchCount: parseInt(formData.pitchCount) || 0,
-      strikes: parseInt(formData.strikes) || 0,
+      strikes: formData.strikesNotTracked ? null : (parseInt(formData.strikes) || 0),
       maxVelo: parseInt(formData.maxVelo) || 0,
       notes: formData.notes,
       videoUrl: formData.videoUrl,
@@ -59,6 +61,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
       eventType: '',
       pitchCount: '',
       strikes: '',
+      strikesNotTracked: false,
       maxVelo: '',
       notes: '',
       videoUrl: '',
@@ -155,7 +158,24 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
                 value={formData.strikes}
                 onChange={(e) => setFormData(prev => ({ ...prev, strikes: e.target.value }))}
                 className="mobile-input"
+                disabled={formData.strikesNotTracked}
               />
+              <div className="flex items-center space-x-2 pt-1">
+                <Checkbox
+                  id="strikesNotTracked"
+                  checked={formData.strikesNotTracked}
+                  onCheckedChange={(checked) => 
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      strikesNotTracked: checked === true,
+                      strikes: checked === true ? '' : prev.strikes
+                    }))
+                  }
+                />
+                <Label htmlFor="strikesNotTracked" className="text-xs text-muted-foreground cursor-pointer">
+                  Not tracked
+                </Label>
+              </div>
             </div>
           </div>
 
