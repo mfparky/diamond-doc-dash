@@ -5,11 +5,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { StrikeZone } from './StrikeZone';
 import { StrikeZoneHeatmap } from './StrikeZoneHeatmap';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
-import { PitchLocation, PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
+import { PitchLocation, PitchTypeConfig, DEFAULT_PITCH_TYPES, PITCH_TYPE_COLORS } from '@/types/pitch-location';
 import { Outing } from '@/types/pitcher';
 import { Target } from 'lucide-react';
 
 type ViewMode = 'session' | '7-day' | 'year';
+type ResultFilter = 'all' | 'strikes' | 'balls';
 
 interface StrikeLocationViewerProps {
   pitcherId: string;
@@ -26,6 +27,7 @@ export function StrikeLocationViewer({
   const [selectedOutingId, setSelectedOutingId] = useState<string | null>(null);
   const [pitchLocations, setPitchLocations] = useState<PitchLocation[]>([]);
   const [filterPitchType, setFilterPitchType] = useState<number | null>(null);
+  const [resultFilter, setResultFilter] = useState<ResultFilter>('all');
   const [isLoading, setIsLoading] = useState(false);
 
   const { fetchPitchLocationsForOuting, fetchPitchLocationsForPitcher } = usePitchLocations();
@@ -90,15 +92,69 @@ export function StrikeLocationViewer({
     }
   }, [viewMode, sortedOutings, selectedOutingId]);
 
-  // Filter locations by pitch type if selected
+  // Filter locations by pitch type and result
   const filteredLocations = useMemo(() => {
-    if (filterPitchType === null) return pitchLocations;
-    return pitchLocations.filter(p => p.pitchType === filterPitchType);
-  }, [pitchLocations, filterPitchType]);
+    let filtered = pitchLocations;
+    
+    if (filterPitchType !== null) {
+      filtered = filtered.filter(p => p.pitchType === filterPitchType);
+    }
+    
+    if (resultFilter === 'strikes') {
+      filtered = filtered.filter(p => p.isStrike);
+    } else if (resultFilter === 'balls') {
+      filtered = filtered.filter(p => !p.isStrike);
+    }
+    
+    return filtered;
+  }, [pitchLocations, filterPitchType, resultFilter]);
 
   // Get unique pitch types in the data
   const usedPitchTypes = useMemo(() => {
     return [...new Set(pitchLocations.map(p => p.pitchType))].sort();
+  }, [pitchLocations]);
+
+  // Calculate pitch mix breakdown
+  const pitchMixStats = useMemo(() => {
+    const total = pitchLocations.length;
+    if (total === 0) return [];
+
+    const breakdown: Array<{
+      pitchType: number;
+      label: string;
+      count: number;
+      percentage: number;
+      strikes: number;
+      strikePercentage: number;
+    }> = [];
+
+    usedPitchTypes.forEach((pt) => {
+      const pitchesOfType = pitchLocations.filter(p => p.pitchType === pt);
+      const strikesOfType = pitchesOfType.filter(p => p.isStrike).length;
+      
+      breakdown.push({
+        pitchType: pt,
+        label: pitchTypes[pt.toString()] || `P${pt}`,
+        count: pitchesOfType.length,
+        percentage: (pitchesOfType.length / total) * 100,
+        strikes: strikesOfType,
+        strikePercentage: pitchesOfType.length > 0 ? (strikesOfType / pitchesOfType.length) * 100 : 0,
+      });
+    });
+
+    return breakdown.sort((a, b) => b.count - a.count);
+  }, [pitchLocations, usedPitchTypes, pitchTypes]);
+
+  // Overall stats
+  const overallStats = useMemo(() => {
+    const total = pitchLocations.length;
+    const strikes = pitchLocations.filter(p => p.isStrike).length;
+    return {
+      total,
+      strikes,
+      balls: total - strikes,
+      strikePercentage: total > 0 ? (strikes / total) * 100 : 0,
+    };
   }, [pitchLocations]);
 
   const formatDate = (dateStr: string) => {
@@ -170,30 +226,79 @@ export function StrikeLocationViewer({
           </Select>
         )}
 
-        {/* Pitch type filter */}
-        {usedPitchTypes.length > 1 && (
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant={filterPitchType === null ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setFilterPitchType(null)}
-              className="text-xs"
-            >
-              All
-            </Button>
-            {usedPitchTypes.map((pt) => (
-              <Button
-                key={pt}
-                variant={filterPitchType === pt ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFilterPitchType(pt)}
-                className="text-xs"
-              >
-                {pitchTypes[pt.toString()] || `P${pt}`}
-              </Button>
-            ))}
+        {/* Pitch Mix Breakdown */}
+        {pitchMixStats.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">Pitch Mix</p>
+            <div className="space-y-2">
+              {pitchMixStats.map((stat) => (
+                <div 
+                  key={stat.pitchType} 
+                  className="flex items-center gap-3 cursor-pointer hover:bg-secondary/30 rounded-lg p-2 -mx-2 transition-colors"
+                  onClick={() => setFilterPitchType(filterPitchType === stat.pitchType ? null : stat.pitchType)}
+                >
+                  <div
+                    className={`w-3 h-3 rounded-full shrink-0 border ${filterPitchType === stat.pitchType ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : 'border-white/30'}`}
+                    style={{ backgroundColor: PITCH_TYPE_COLORS[stat.pitchType.toString()] }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium">{stat.label}</span>
+                      <span className="text-muted-foreground">
+                        {stat.count} ({stat.percentage.toFixed(0)}%)
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-secondary/50 rounded-full mt-1 overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{
+                          width: `${stat.percentage}%`,
+                          backgroundColor: PITCH_TYPE_COLORS[stat.pitchType.toString()],
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="text-xs text-right shrink-0">
+                    <span className={stat.strikePercentage >= 60 ? 'text-green-500' : stat.strikePercentage >= 50 ? 'text-foreground' : 'text-orange-500'}>
+                      {stat.strikePercentage.toFixed(0)}% K
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
+
+        {/* Result Filter (Strike/Ball) */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Show:</span>
+          <div className="flex gap-1">
+            <Button
+              variant={resultFilter === 'all' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setResultFilter('all')}
+              className="text-xs"
+            >
+              All ({overallStats.total})
+            </Button>
+            <Button
+              variant={resultFilter === 'strikes' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setResultFilter('strikes')}
+              className="text-xs"
+            >
+              Strikes ({overallStats.strikes})
+            </Button>
+            <Button
+              variant={resultFilter === 'balls' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setResultFilter('balls')}
+              className="text-xs"
+            >
+              Balls ({overallStats.balls})
+            </Button>
+          </div>
+        </div>
 
         {/* Visualization */}
         <div className="flex justify-center py-2">
@@ -203,16 +308,27 @@ export function StrikeLocationViewer({
             <StrikeZoneHeatmap
               pitchLocations={filteredLocations}
               pitchTypes={pitchTypes}
-              showLegend={true}
+              showLegend={false}
               size="md"
             />
           ) : (
             <StrikeZone
               pitchLocations={filteredLocations}
               pitchTypes={pitchTypes}
-              showLegend={true}
+              showLegend={false}
               size="md"
             />
+          )}
+        </div>
+
+        {/* Summary Stats */}
+        <div className="text-center text-sm text-muted-foreground border-t border-border/50 pt-3">
+          Showing <span className="font-medium text-foreground">{filteredLocations.length}</span> pitches
+          {filterPitchType !== null && (
+            <span> • Filtered by {pitchTypes[filterPitchType.toString()] || `P${filterPitchType}`}</span>
+          )}
+          {resultFilter !== 'all' && (
+            <span> • {resultFilter === 'strikes' ? 'Strikes only' : 'Balls only'}</span>
           )}
         </div>
       </CardContent>
