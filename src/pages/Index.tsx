@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getDaysRestNeeded } from '@/types/pitcher';
 import { useOutings } from '@/hooks/use-outings';
 import { usePitchers } from '@/hooks/use-pitchers';
+import { usePitchLocations } from '@/hooks/use-pitch-locations';
 import { DEFAULT_MAX_WEEKLY_PITCHES } from '@/lib/pulse-status';
 
 type View = 'dashboard' | 'detail';
@@ -21,6 +22,7 @@ type TimeView = '7day' | 'alltime';
 const Index = () => {
   const { outings, isLoading: outingsLoading, addOuting, updateOuting, deleteOuting } = useOutings();
   const { pitchers: rosterPitchers, isLoading: pitchersLoading, addPitcher, updatePitcher, deletePitcher } = usePitchers();
+  const { addPitchLocations } = usePitchLocations();
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [timeView, setTimeView] = useState<TimeView>('7day');
   const [currentView, setCurrentView] = useState<View>('dashboard');
@@ -59,9 +61,17 @@ const Index = () => {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [rosterPitchers, outings]);
 
-  const handleAddOuting = async (outingData: Omit<Outing, 'id' | 'timestamp'>) => {
+  const handleAddOuting = async (outingData: Omit<Outing, 'id' | 'timestamp'>, pitchLocations?: Array<{pitchNumber: number; pitchType: number; xLocation: number; yLocation: number; isStrike: boolean}>) => {
     const newOuting = await addOuting(outingData);
     if (newOuting) {
+      // Save pitch locations if provided
+      if (pitchLocations && pitchLocations.length > 0) {
+        const selectedPitcher = rosterPitchers.find(p => p.name === outingData.pitcherName);
+        if (selectedPitcher) {
+          await addPitchLocations(newOuting.id, selectedPitcher.id, pitchLocations);
+        }
+      }
+      
       setShowOutingForm(false);
       const daysRest = getDaysRestNeeded(outingData.pitchCount);
       toast({

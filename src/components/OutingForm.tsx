@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outing, Pitcher } from '@/types/pitcher';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,11 +13,22 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Video, Send, X } from 'lucide-react';
+import { PitchPlotter } from './PitchPlotter';
+import { usePitchLocations } from '@/hooks/use-pitch-locations';
+import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
+import { Video, Send, X, Target } from 'lucide-react';
+
+interface PlottedPitch {
+  pitchNumber: number;
+  pitchType: number;
+  xLocation: number;
+  yLocation: number;
+  isStrike: boolean;
+}
 
 interface OutingFormProps {
   pitchers: Pitcher[];
-  onSubmit: (outing: Omit<Outing, 'id' | 'timestamp'>) => void;
+  onSubmit: (outing: Omit<Outing, 'id' | 'timestamp'>, pitchLocations?: PlottedPitch[]) => void;
   onCancel?: () => void;
 }
 
@@ -34,6 +45,20 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
     videoUrl: '',
     focus: '',
   });
+  const [showPitchPlotter, setShowPitchPlotter] = useState(false);
+  const [plottedPitches, setPlottedPitches] = useState<PlottedPitch[]>([]);
+  const [pitchTypes, setPitchTypes] = useState<PitchTypeConfig>(DEFAULT_PITCH_TYPES);
+  const { fetchPitchTypes } = usePitchLocations();
+
+  // Load pitch types when pitcher is selected
+  useEffect(() => {
+    if (formData.pitcherName) {
+      const selectedPitcher = pitchers.find(p => p.name === formData.pitcherName);
+      if (selectedPitcher) {
+        fetchPitchTypes(selectedPitcher.id).then(setPitchTypes);
+      }
+    }
+  }, [formData.pitcherName, pitchers, fetchPitchTypes]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +77,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
       notes: formData.notes,
       videoUrl: formData.videoUrl,
       focus: formData.focus || undefined,
-    });
+    }, plottedPitches.length > 0 ? plottedPitches : undefined);
 
     // Reset form
     setFormData({
@@ -67,7 +92,25 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
       videoUrl: '',
       focus: '',
     });
+    setPlottedPitches([]);
+    setShowPitchPlotter(false);
   };
+
+  const handlePlotterSave = (pitches: PlottedPitch[]) => {
+    setPlottedPitches(pitches);
+    setShowPitchPlotter(false);
+  };
+
+  // Show pitch plotter if user wants to plot
+  if (showPitchPlotter) {
+    return (
+      <PitchPlotter
+        pitchTypes={pitchTypes}
+        onSave={handlePlotterSave}
+        onCancel={() => setShowPitchPlotter(false)}
+      />
+    );
+  }
 
   return (
     <Card className="glass-card border-primary/20">
@@ -235,6 +278,23 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
               className="mobile-input"
             />
           </div>
+
+          {/* Plot Pitch Locations Button */}
+          {formData.pitcherName && (
+            <div className="space-y-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => setShowPitchPlotter(true)}
+              >
+                <Target className="w-4 h-4 mr-2" />
+                {plottedPitches.length > 0 
+                  ? `${plottedPitches.length} Pitches Plotted ✓` 
+                  : 'Plot Pitch Locations (optional)'}
+              </Button>
+            </div>
+          )}
 
           {/* Submit Button */}
           <Button 

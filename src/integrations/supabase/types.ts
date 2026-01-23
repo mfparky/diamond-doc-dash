@@ -59,12 +59,57 @@ export type Database = {
         }
         Relationships: []
       }
+      pitch_locations: {
+        Row: {
+          created_at: string
+          id: string
+          is_strike: boolean
+          outing_id: string
+          pitch_number: number
+          pitch_type: number
+          pitcher_id: string
+          x_location: number
+          y_location: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_strike?: boolean
+          outing_id: string
+          pitch_number: number
+          pitch_type: number
+          pitcher_id: string
+          x_location: number
+          y_location: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_strike?: boolean
+          outing_id?: string
+          pitch_number?: number
+          pitch_type?: number
+          pitcher_id?: string
+          x_location?: number
+          y_location?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pitch_locations_outing_id_fkey"
+            columns: ["outing_id"]
+            isOneToOne: false
+            referencedRelation: "outings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pitchers: {
         Row: {
           created_at: string
           id: string
           max_weekly_pitches: number
           name: string
+          pitch_types: Json | null
           updated_at: string
         }
         Insert: {
@@ -72,6 +117,7 @@ export type Database = {
           id?: string
           max_weekly_pitches?: number
           name: string
+          pitch_types?: Json | null
           updated_at?: string
         }
         Update: {
@@ -79,6 +125,7 @@ export type Database = {
           id?: string
           max_weekly_pitches?: number
           name?: string
+          pitch_types?: Json | null
           updated_at?: string
         }
         Relationships: []
