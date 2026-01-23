@@ -22,9 +22,9 @@ export function StrikeZone({
   const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null);
 
   const sizeClasses = {
-    sm: 'w-48 h-56',
-    md: 'w-64 h-72',
-    lg: 'w-80 h-96',
+    sm: 'w-56 h-64',
+    md: 'w-72 h-80',
+    lg: 'w-96 h-[26rem]',
   };
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {

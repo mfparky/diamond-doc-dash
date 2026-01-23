@@ -198,19 +198,20 @@ export function StrikeLocationViewer({
         {/* Visualization */}
         <div className="flex justify-center py-2">
           {isLoading ? (
-            <div className="w-64 h-72 bg-secondary/30 rounded-lg animate-pulse" />
+            <div className="w-72 h-80 bg-secondary/30 rounded-lg animate-pulse" />
           ) : viewMode === 'year' ? (
             <StrikeZoneHeatmap
               pitchLocations={filteredLocations}
               pitchTypes={pitchTypes}
               showLegend={true}
-              filterPitchType={filterPitchType}
+              size="md"
             />
           ) : (
             <StrikeZone
               pitchLocations={filteredLocations}
               pitchTypes={pitchTypes}
               showLegend={true}
+              size="md"
             />
           )}
         </div>

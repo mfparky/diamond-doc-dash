@@ -17,9 +17,9 @@ export function StrikeZoneHeatmap({
   filterPitchType = null,
 }: StrikeZoneHeatmapProps) {
   const sizeClasses = {
-    sm: 'w-48 h-56',
-    md: 'w-64 h-72',
-    lg: 'w-80 h-96',
+    sm: 'w-56 h-64',
+    md: 'w-72 h-80',
+    lg: 'w-96 h-[26rem]',
   };
 
   // Filter pitches by type if specified
@@ -37,8 +37,11 @@ export function StrikeZoneHeatmap({
 
     filteredPitches.forEach((pitch) => {
       // Convert -1 to 1 range to 0 to gridSize-1 index
+      // xLocation: -1 (left) to 1 (right) -> 0 to 9
       const xIndex = Math.min(gridSize - 1, Math.max(0, Math.floor(((pitch.xLocation + 1) / 2) * gridSize)));
-      const yIndex = Math.min(gridSize - 1, Math.max(0, Math.floor(((1 - pitch.yLocation) / 2 + 0.5) * gridSize)));
+      // yLocation: -1 (bottom) to 1 (top) -> we need to invert for grid (top row = high Y)
+      // So yLocation 1 (top) should be row 0, yLocation -1 (bottom) should be row 9
+      const yIndex = Math.min(gridSize - 1, Math.max(0, Math.floor(((1 - pitch.yLocation) / 2) * gridSize)));
       
       grid[yIndex][xIndex]++;
     });

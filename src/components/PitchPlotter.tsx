@@ -96,7 +96,7 @@ export function PitchPlotter({
           </Label>
           <div className="flex justify-center py-4">
             <div
-              className="w-64 h-72 relative bg-secondary/30 rounded-lg border border-border/50 cursor-crosshair hover:bg-secondary/40"
+              className="w-72 h-80 relative bg-secondary/30 rounded-lg border border-border/50 cursor-crosshair hover:bg-secondary/40"
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
