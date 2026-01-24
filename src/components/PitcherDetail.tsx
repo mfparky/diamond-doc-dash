@@ -1,16 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Pitcher, Outing, getDaysRestNeeded } from '@/types/pitcher';
 import { StatusBadge } from './StatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, Pencil, Trash2, Share2, Settings } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, Pencil, Trash2, Share2, Settings, MapPin } from 'lucide-react';
 import { EditOutingDialog } from './EditOutingDialog';
 import { DeleteOutingDialog } from './DeleteOutingDialog';
+import { OutingPitchMapDialog } from './OutingPitchMapDialog';
 import { PitchCountChart } from './PitchCountChart';
 import { StrikeLocationViewer } from './StrikeLocationViewer';
 import { PitchTypeConfigDialog } from './PitchTypeConfigDialog';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
-import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
+import { PitchTypeConfig, DEFAULT_PITCH_TYPES, PitchLocation } from '@/types/pitch-location';
 import { useToast } from '@/hooks/use-toast';
 interface PitcherDetailProps {
   pitcher: Pitcher;
@@ -22,10 +23,27 @@ interface PitcherDetailProps {
 export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting }: PitcherDetailProps) {
   const [editingOuting, setEditingOuting] = useState<Outing | null>(null);
   const [deletingOuting, setDeletingOuting] = useState<Outing | null>(null);
+  const [pitchMapOuting, setPitchMapOuting] = useState<Outing | null>(null);
   const [showPitchTypeConfig, setShowPitchTypeConfig] = useState(false);
   const [pitchTypes, setPitchTypes] = useState<PitchTypeConfig>(DEFAULT_PITCH_TYPES);
-  const { fetchPitchTypes } = usePitchLocations();
+  const [outingPitchCounts, setOutingPitchCounts] = useState<Record<string, number>>({});
+  const [refreshKey, setRefreshKey] = useState(0);
+  const { fetchPitchTypes, fetchPitchLocationsForOuting } = usePitchLocations();
   const { toast } = useToast();
+
+  // Load pitch location counts for each outing
+  const loadOutingPitchCounts = useCallback(async () => {
+    const counts: Record<string, number> = {};
+    for (const outing of pitcher.outings) {
+      const locations = await fetchPitchLocationsForOuting(outing.id);
+      counts[outing.id] = locations.length;
+    }
+    setOutingPitchCounts(counts);
+  }, [pitcher.outings, fetchPitchLocationsForOuting]);
+
+  useEffect(() => {
+    loadOutingPitchCounts();
+  }, [loadOutingPitchCounts, refreshKey]);
 
   // Load pitcher's pitch type config
   useEffect(() => {
@@ -234,6 +252,15 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting 
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
+                          onClick={() => setPitchMapOuting(outing)}
+                          title={outingPitchCounts[outing.id] ? `${outingPitchCounts[outing.id]} pitches mapped` : 'Add pitch map'}
+                        >
+                          <MapPin className={`w-4 h-4 ${outingPitchCounts[outing.id] ? 'text-primary' : ''}`} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
                           onClick={() => setEditingOuting(outing)}
                         >
                           <Pencil className="w-4 h-4" />
@@ -299,6 +326,16 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting 
         onOpenChange={(open) => !open && setDeletingOuting(null)}
         onConfirm={() => deletingOuting ? onDeleteOuting(deletingOuting.id) : Promise.resolve(false)}
         outingDate={deletingOuting ? formatDate(deletingOuting.date) : undefined}
+      />
+
+      {/* Pitch Map Dialog */}
+      <OutingPitchMapDialog
+        outing={pitchMapOuting}
+        pitcherId={pitcher.id}
+        pitchTypes={pitchTypes}
+        open={!!pitchMapOuting}
+        onOpenChange={(open) => !open && setPitchMapOuting(null)}
+        onPitchMapUpdated={() => setRefreshKey(k => k + 1)}
       />
 
       {/* Pitch Type Config Dialog */}
