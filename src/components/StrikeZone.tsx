@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { PitchLocation, PitchTypeConfig, PITCH_TYPE_COLORS, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
+import { getZoneSizeClasses, getZoneAspectStyle, STRIKE_ZONE, GRID_CONFIG } from '@/lib/strike-zone';
 
 interface StrikeZoneProps {
   pitchLocations: PitchLocation[];
@@ -20,12 +21,6 @@ export function StrikeZone({
 }: StrikeZoneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null);
-
-  const sizeClasses = {
-    sm: 'w-56 h-64',
-    md: 'w-72 h-80',
-    lg: 'w-96 h-[26rem]',
-  };
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!interactive || !onPlotPitch || !containerRef.current) return;
@@ -54,42 +49,50 @@ export function StrikeZone({
   // Convert normalized coordinates to percentage for positioning
   const toPercent = (val: number) => ((val + 1) / 2) * 100;
 
-  // Check if a point is within the strike zone (roughly -0.4 to 0.4 horizontally, -0.3 to 0.5 vertically)
-  const isInStrikeZone = (x: number, y: number) => {
-    return x >= -0.4 && x <= 0.4 && y >= -0.3 && y <= 0.5;
-  };
-
   // Get unique pitch types in the data
   const usedPitchTypes = [...new Set(pitchLocations.map(p => p.pitchType))].sort();
+
+  // Calculate strike zone box position
+  const zoneLeft = toPercent(STRIKE_ZONE.ZONE_LEFT);
+  const zoneRight = 100 - toPercent(STRIKE_ZONE.ZONE_RIGHT);
+  const zoneTop = 100 - toPercent(STRIKE_ZONE.ZONE_TOP);
+  const zoneBottom = 100 - toPercent(STRIKE_ZONE.ZONE_BOTTOM);
 
   return (
     <div className="space-y-3">
       <div
         ref={containerRef}
-        className={`${sizeClasses[size]} relative bg-secondary/30 rounded-lg border border-border/50 ${
+        className={`${getZoneSizeClasses(size)} relative bg-secondary/30 rounded-lg border border-border/50 ${
           interactive ? 'cursor-crosshair hover:bg-secondary/40' : ''
         }`}
+        style={getZoneAspectStyle()}
         onClick={handleClick}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
       >
-        {/* Background grid */}
+        {/* Background grid - finer resolution for better pitch proximity */}
         <div className="absolute inset-0 opacity-20">
-          <div className="w-full h-full grid grid-cols-5 grid-rows-5">
-            {Array.from({ length: 25 }).map((_, i) => (
+          <div 
+            className="w-full h-full grid"
+            style={{
+              gridTemplateColumns: `repeat(${GRID_CONFIG.COLS}, 1fr)`,
+              gridTemplateRows: `repeat(${GRID_CONFIG.ROWS}, 1fr)`,
+            }}
+          >
+            {Array.from({ length: GRID_CONFIG.COLS * GRID_CONFIG.ROWS }).map((_, i) => (
               <div key={i} className="border border-muted-foreground/30" />
             ))}
           </div>
         </div>
 
-        {/* Strike zone box (centered, roughly 40% width and 40% height) */}
+        {/* Strike zone box - using accurate MLB proportions */}
         <div
           className="absolute border-2 border-foreground/80 bg-primary/5"
           style={{
-            left: '30%',
-            right: '30%',
-            top: '25%',
-            bottom: '35%',
+            left: `${zoneLeft}%`,
+            right: `${zoneRight}%`,
+            top: `${zoneTop}%`,
+            bottom: `${zoneBottom}%`,
           }}
         />
 
