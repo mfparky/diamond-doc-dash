@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { PitchLocation, PitchTypeConfig, DEFAULT_PITCH_TYPES, PITCH_TYPE_COLORS } from '@/types/pitch-location';
+import { getZoneSizeClasses, getZoneAspectStyle, STRIKE_ZONE, GRID_CONFIG } from '@/lib/strike-zone';
 
 interface StrikeZoneHeatmapProps {
   pitchLocations: PitchLocation[];
@@ -16,11 +17,14 @@ export function StrikeZoneHeatmap({
   size = 'md',
   filterPitchType = null,
 }: StrikeZoneHeatmapProps) {
-  const sizeClasses = {
-    sm: 'w-56 h-64',
-    md: 'w-72 h-80',
-    lg: 'w-96 h-[26rem]',
-  };
+  // Convert normalized coordinates to percentage for positioning
+  const toPercent = (val: number) => ((val + 1) / 2) * 100;
+
+  // Calculate strike zone box position
+  const zoneLeft = toPercent(STRIKE_ZONE.ZONE_LEFT);
+  const zoneRight = 100 - toPercent(STRIKE_ZONE.ZONE_RIGHT);
+  const zoneTop = 100 - toPercent(STRIKE_ZONE.ZONE_TOP);
+  const zoneBottom = 100 - toPercent(STRIKE_ZONE.ZONE_BOTTOM);
 
   // Filter pitches by type if specified
   const filteredPitches = useMemo(() => {
@@ -28,26 +32,24 @@ export function StrikeZoneHeatmap({
     return pitchLocations.filter(p => p.pitchType === filterPitchType);
   }, [pitchLocations, filterPitchType]);
 
-  // Create heatmap grid (10x10)
+  // Create heatmap grid - higher resolution for better proximity
   const heatmapData = useMemo(() => {
-    const gridSize = 10;
-    const grid: number[][] = Array.from({ length: gridSize }, () => 
-      Array.from({ length: gridSize }, () => 0)
+    const gridCols = GRID_CONFIG.HEATMAP_COLS;
+    const gridRows = GRID_CONFIG.HEATMAP_ROWS;
+    const grid: number[][] = Array.from({ length: gridRows }, () => 
+      Array.from({ length: gridCols }, () => 0)
     );
 
     filteredPitches.forEach((pitch) => {
       // Convert -1 to 1 range to 0 to gridSize-1 index
-      // xLocation: -1 (left) to 1 (right) -> 0 to 9
-      const xIndex = Math.min(gridSize - 1, Math.max(0, Math.floor(((pitch.xLocation + 1) / 2) * gridSize)));
-      // yLocation: -1 (bottom) to 1 (top) -> we need to invert for grid (top row = high Y)
-      // So yLocation 1 (top) should be row 0, yLocation -1 (bottom) should be row 9
-      const yIndex = Math.min(gridSize - 1, Math.max(0, Math.floor(((1 - pitch.yLocation) / 2) * gridSize)));
+      const xIndex = Math.min(gridCols - 1, Math.max(0, Math.floor(((pitch.xLocation + 1) / 2) * gridCols)));
+      const yIndex = Math.min(gridRows - 1, Math.max(0, Math.floor(((1 - pitch.yLocation) / 2) * gridRows)));
       
       grid[yIndex][xIndex]++;
     });
 
     const maxCount = Math.max(...grid.flat(), 1);
-    return { grid, maxCount };
+    return { grid, maxCount, gridCols, gridRows };
   }, [filteredPitches]);
 
   // Get color intensity based on count
@@ -70,9 +72,18 @@ export function StrikeZoneHeatmap({
 
   return (
     <div className="space-y-3">
-      <div className={`${sizeClasses[size]} relative bg-secondary/30 rounded-lg border border-border/50 overflow-hidden`}>
-        {/* Heatmap grid */}
-        <div className="absolute inset-0 grid grid-cols-10 grid-rows-10">
+      <div 
+        className={`${getZoneSizeClasses(size)} relative bg-secondary/30 rounded-lg border border-border/50 overflow-hidden`}
+        style={getZoneAspectStyle()}
+      >
+        {/* Heatmap grid - higher resolution */}
+        <div 
+          className="absolute inset-0 grid"
+          style={{
+            gridTemplateColumns: `repeat(${heatmapData.gridCols}, 1fr)`,
+            gridTemplateRows: `repeat(${heatmapData.gridRows}, 1fr)`,
+          }}
+        >
           {heatmapData.grid.map((row, rowIndex) =>
             row.map((count, colIndex) => (
               <div
@@ -85,14 +96,14 @@ export function StrikeZoneHeatmap({
           )}
         </div>
 
-        {/* Strike zone box overlay */}
+        {/* Strike zone box overlay - using accurate MLB proportions */}
         <div
           className="absolute border-2 border-foreground/80 pointer-events-none"
           style={{
-            left: '30%',
-            right: '30%',
-            top: '25%',
-            bottom: '35%',
+            left: `${zoneLeft}%`,
+            right: `${zoneRight}%`,
+            top: `${zoneTop}%`,
+            bottom: `${zoneBottom}%`,
           }}
         />
 

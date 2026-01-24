@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES, PITCH_TYPE_COLORS } from '@/types/pitch-location';
+import { isStrike, getZoneAspectStyle, STRIKE_ZONE, GRID_CONFIG } from '@/lib/strike-zone';
 import { Undo2, Save, X } from 'lucide-react';
 
 interface PlottedPitch {
@@ -27,21 +28,16 @@ export function PitchPlotter({
   const [selectedPitchType, setSelectedPitchType] = useState<number>(1);
   const [plottedPitches, setPlottedPitches] = useState<PlottedPitch[]>([]);
 
-  // Check if a point is within the strike zone
-  const isInStrikeZone = useCallback((x: number, y: number) => {
-    return x >= -0.4 && x <= 0.4 && y >= -0.3 && y <= 0.5;
-  }, []);
-
   const handlePlotPitch = useCallback((x: number, y: number) => {
     const newPitch: PlottedPitch = {
       pitchNumber: plottedPitches.length + 1,
       pitchType: selectedPitchType,
       xLocation: x,
       yLocation: y,
-      isStrike: isInStrikeZone(x, y),
+      isStrike: isStrike(x, y), // Use the shared isStrike function
     };
     setPlottedPitches((prev) => [...prev, newPitch]);
-  }, [plottedPitches.length, selectedPitchType, isInStrikeZone]);
+  }, [plottedPitches.length, selectedPitchType]);
 
   const handleUndo = useCallback(() => {
     setPlottedPitches((prev) => prev.slice(0, -1));
@@ -55,6 +51,12 @@ export function PitchPlotter({
 
   // Convert normalized coordinates to percentage for positioning
   const toPercent = (val: number) => ((val + 1) / 2) * 100;
+
+  // Calculate strike zone box position
+  const zoneLeft = toPercent(STRIKE_ZONE.ZONE_LEFT);
+  const zoneRight = 100 - toPercent(STRIKE_ZONE.ZONE_RIGHT);
+  const zoneTop = 100 - toPercent(STRIKE_ZONE.ZONE_TOP);
+  const zoneBottom = 100 - toPercent(STRIKE_ZONE.ZONE_BOTTOM);
 
   return (
     <Card className="glass-card border-primary/20">
@@ -89,14 +91,15 @@ export function PitchPlotter({
           </div>
         </div>
 
-        {/* Strike Zone for plotting */}
+        {/* Strike Zone for plotting - with accurate MLB proportions */}
         <div className="space-y-2">
           <Label className="text-sm font-medium">
             Tap to plot pitches ({plottedPitches.length} plotted)
           </Label>
           <div className="flex justify-center py-4">
             <div
-              className="w-72 h-80 relative bg-secondary/30 rounded-lg border border-border/50 cursor-crosshair hover:bg-secondary/40"
+              className="w-64 relative bg-secondary/30 rounded-lg border border-border/50 cursor-crosshair hover:bg-secondary/40"
+              style={getZoneAspectStyle()}
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -104,23 +107,29 @@ export function PitchPlotter({
                 handlePlotPitch(x, y);
               }}
             >
-              {/* Background grid */}
+              {/* Background grid - finer resolution for better pitch proximity */}
               <div className="absolute inset-0 opacity-20">
-                <div className="w-full h-full grid grid-cols-5 grid-rows-5">
-                  {Array.from({ length: 25 }).map((_, i) => (
+                <div 
+                  className="w-full h-full grid"
+                  style={{
+                    gridTemplateColumns: `repeat(${GRID_CONFIG.COLS}, 1fr)`,
+                    gridTemplateRows: `repeat(${GRID_CONFIG.ROWS}, 1fr)`,
+                  }}
+                >
+                  {Array.from({ length: GRID_CONFIG.COLS * GRID_CONFIG.ROWS }).map((_, i) => (
                     <div key={i} className="border border-muted-foreground/30" />
                   ))}
                 </div>
               </div>
 
-              {/* Strike zone box */}
+              {/* Strike zone box - using accurate MLB proportions */}
               <div
                 className="absolute border-2 border-foreground/80 bg-primary/5"
                 style={{
-                  left: '30%',
-                  right: '30%',
-                  top: '25%',
-                  bottom: '35%',
+                  left: `${zoneLeft}%`,
+                  right: `${zoneRight}%`,
+                  top: `${zoneTop}%`,
+                  bottom: `${zoneBottom}%`,
                 }}
               />
 
