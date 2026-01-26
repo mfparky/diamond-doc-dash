@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Outing } from '@/types/pitcher';
 import { useToast } from '@/hooks/use-toast';
+import { validateOuting } from '@/lib/validation';
 
 export function useOutings() {
   const [outings, setOutings] = useState<Outing[]>([]);
@@ -48,7 +49,41 @@ export function useOutings() {
 
   // Add a new outing to Supabase
   const addOuting = useCallback(async (outingData: Omit<Outing, 'id' | 'timestamp'>): Promise<Outing | null> => {
+    // Validate input
+    const validation = validateOuting({
+      pitcherName: outingData.pitcherName,
+      date: outingData.date,
+      eventType: outingData.eventType,
+      pitchCount: outingData.pitchCount,
+      strikes: outingData.strikes,
+      maxVelo: outingData.maxVelo,
+      notes: outingData.notes || '',
+      videoUrl: outingData.videoUrl || '',
+      focus: outingData.focus || '',
+    });
+
+    if (validation.success === false) {
+      toast({
+        title: 'Validation Error',
+        description: validation.error,
+        variant: 'destructive',
+      });
+      return null;
+    }
+    const validatedData = validation.data;
+
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: 'Authentication required',
+          description: 'Please sign in to log outings.',
+          variant: 'destructive',
+        });
+        return null;
+      }
+
       // Find the pitcher to get their ID
       const pitcherId = outingData.pitcherName.toLowerCase().replace(/\s+/g, '-');
 
@@ -65,6 +100,7 @@ export function useOutings() {
           notes: outingData.notes || null,
           video_url: outingData.videoUrl || null,
           focus: outingData.focus || null,
+          user_id: user.id,
         })
         .select()
         .single();
@@ -87,11 +123,14 @@ export function useOutings() {
 
       setOutings((prev) => [newOuting, ...prev]);
       return newOuting;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding outing:', error);
+      const message = error?.message?.includes('row-level security')
+        ? 'You must be signed in to log outings.'
+        : 'Could not save the outing to the database.';
       toast({
         title: 'Error saving outing',
-        description: 'Could not save the outing to the database.',
+        description: message,
         variant: 'destructive',
       });
       return null;

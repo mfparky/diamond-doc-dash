@@ -90,6 +90,17 @@ export function usePitchLocations() {
   ): Promise<boolean> => {
     setIsLoading(true);
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: 'Authentication required',
+          description: 'Please sign in to save pitch locations.',
+          variant: 'destructive',
+        });
+        return false;
+      }
+
       const insertData = locations.map((loc) => ({
         outing_id: outingId,
         pitcher_id: pitcherId,
@@ -98,6 +109,7 @@ export function usePitchLocations() {
         x_location: loc.xLocation,
         y_location: loc.yLocation,
         is_strike: loc.isStrike,
+        user_id: user.id,
       }));
 
       const { error } = await supabase
@@ -107,11 +119,14 @@ export function usePitchLocations() {
       if (error) throw error;
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding pitch locations:', error);
+      const message = error?.message?.includes('row-level security')
+        ? 'You must be signed in to save pitch locations.'
+        : 'Could not save the pitch location data.';
       toast({
         title: 'Error saving pitch locations',
-        description: 'Could not save the pitch location data.',
+        description: message,
         variant: 'destructive',
       });
       return false;
