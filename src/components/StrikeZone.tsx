@@ -52,11 +52,11 @@ export function StrikeZone({
   // Get unique pitch types in the data
   const usedPitchTypes = [...new Set(pitchLocations.map(p => p.pitchType))].sort();
 
-  // Calculate strike zone box position
+  // Calculate strike zone box position (CSS positioning)
   const zoneLeft = toPercent(STRIKE_ZONE.ZONE_LEFT);
   const zoneRight = 100 - toPercent(STRIKE_ZONE.ZONE_RIGHT);
   const zoneTop = 100 - toPercent(STRIKE_ZONE.ZONE_TOP);
-  const zoneBottom = 100 - toPercent(STRIKE_ZONE.ZONE_BOTTOM);
+  const zoneBottom = toPercent(STRIKE_ZONE.ZONE_BOTTOM);
 
   return (
     <div className="space-y-3">

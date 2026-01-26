@@ -20,11 +20,11 @@ export function StrikeZoneHeatmap({
   // Convert normalized coordinates to percentage for positioning
   const toPercent = (val: number) => ((val + 1) / 2) * 100;
 
-  // Calculate strike zone box position
+  // Calculate strike zone box position (CSS positioning)
   const zoneLeft = toPercent(STRIKE_ZONE.ZONE_LEFT);
   const zoneRight = 100 - toPercent(STRIKE_ZONE.ZONE_RIGHT);
   const zoneTop = 100 - toPercent(STRIKE_ZONE.ZONE_TOP);
-  const zoneBottom = 100 - toPercent(STRIKE_ZONE.ZONE_BOTTOM);
+  const zoneBottom = toPercent(STRIKE_ZONE.ZONE_BOTTOM);
 
   // Filter pitches by type if specified
   const filteredPitches = useMemo(() => {

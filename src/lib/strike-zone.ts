@@ -14,12 +14,12 @@ export const STRIKE_ZONE = {
   ASPECT_RATIO: 19.94 / 25.79, // ≈ 0.773
 
   // Normalized strike zone boundaries (-1 to 1 coordinate system)
-  // The zone box is centered horizontally
+  // The zone box is centered horizontally and vertically proportioned
   // Ball touching edge = strike, so we account for ball radius
-  ZONE_LEFT: -0.42,
-  ZONE_RIGHT: 0.42,
-  ZONE_BOTTOM: -0.35,
-  ZONE_TOP: 0.5,
+  ZONE_LEFT: -0.4,
+  ZONE_RIGHT: 0.4,
+  ZONE_BOTTOM: -0.45,
+  ZONE_TOP: 0.45,
 
   // Ball radius in normalized coordinates (for edge detection)
   // A pitch is a strike if any part of the ball touches the zone
