@@ -316,7 +316,7 @@ export function StrikeLocationViewer({
               pitchLocations={filteredLocations}
               pitchTypes={pitchTypes}
               showLegend={false}
-              size="md"
+              size="lg"
             />
           )}
         </div>

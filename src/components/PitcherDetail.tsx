@@ -182,14 +182,26 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting 
         </Card>
       </div>
 
-      {/* Current Focus - moved up below stats */}
-      {pitcher.focus && (
-        <Card className="glass-card border-accent/30 bg-accent/5">
-          <CardContent className="p-4">
-            <p className="text-sm font-medium text-accent">Current Focus</p>
-            <p className="text-foreground mt-1">{pitcher.focus}</p>
-          </CardContent>
-        </Card>
+      {/* Current Focus & Latest Notes - side by side */}
+      {(pitcher.focus || pitcher.notes) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {pitcher.focus && (
+            <Card className="glass-card border-accent/30 bg-accent/5">
+              <CardContent className="p-4">
+                <p className="text-sm font-medium text-accent">Current Focus</p>
+                <p className="text-foreground mt-1">{pitcher.focus}</p>
+              </CardContent>
+            </Card>
+          )}
+          {pitcher.notes && (
+            <Card className="glass-card">
+              <CardContent className="p-4">
+                <p className="text-sm font-medium text-muted-foreground">Latest Notes</p>
+                <p className="text-foreground mt-1">{pitcher.notes}</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
 
       {/* Season Pitch Count Chart */}
@@ -201,18 +213,6 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting 
         outings={pitcher.outings}
         pitchTypes={pitchTypes}
       />
-
-      {/* Recent Notes */}
-      {pitcher.notes && (
-        <Card className="glass-card">
-          <CardHeader className="pb-2">
-            <CardTitle className="font-display text-lg">Latest Notes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">{pitcher.notes}</p>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Outing History */}
       <Card className="glass-card">
