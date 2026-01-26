@@ -62,10 +62,10 @@ export function StrikeZone({
     <div className="space-y-3">
       <div
         ref={containerRef}
-        className={`${getZoneSizeClasses(size)} relative bg-secondary/30 rounded-lg border border-border/50 ${
+        className={`relative bg-secondary/30 rounded-lg border border-border/50 ${
           interactive ? 'cursor-crosshair hover:bg-secondary/40' : ''
         }`}
-        style={getZoneAspectStyle()}
+        style={getZoneAspectStyle(size)}
         onClick={handleClick}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}

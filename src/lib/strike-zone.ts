@@ -51,22 +51,26 @@ export function isStrike(x: number, y: number): boolean {
  * Get container size classes with proper aspect ratio
  */
 export function getZoneSizeClasses(size: 'sm' | 'md' | 'lg'): string {
-  // Width classes and calculated heights based on aspect ratio (~0.773)
-  // Height should be width / 0.773
-  const sizes = {
-    sm: 'w-48',   // 12rem width → ~15.5rem height (248px)
-    md: 'w-64',   // 16rem width → ~20.7rem height (331px)
-    lg: 'w-80',   // 20rem width → ~25.9rem height (414px)
-  };
-  return sizes[size];
+  // Base classes without width - width handled by inline style
+  return '';
 }
 
 /**
- * Get inline styles for proper aspect ratio
+ * Get inline styles for proper aspect ratio and size
  */
-export function getZoneAspectStyle(): React.CSSProperties {
+export function getZoneAspectStyle(size: 'sm' | 'md' | 'lg' = 'md'): React.CSSProperties {
+  // Exact pixel dimensions maintaining aspect ratio
+  const sizes = {
+    sm: { width: 200, height: 259 },
+    md: { width: 300, height: 388 },
+    lg: { width: 380, height: 492 },
+  };
+  
+  const { width, height } = sizes[size];
+  
   return {
-    aspectRatio: `${STRIKE_ZONE.ZONE_WIDTH} / ${STRIKE_ZONE.ZONE_HEIGHT}`,
+    width: `${width}px`,
+    height: `${height}px`,
   };
 }
 
