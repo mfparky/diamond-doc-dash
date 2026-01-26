@@ -99,6 +99,6 @@ export function getZoneBoxStyle(): React.CSSProperties {
 export const GRID_CONFIG = {
   COLS: 12, // Increased from 5 for finer plotting grid
   ROWS: 16, // Proportional to aspect ratio (12 / 0.773 ≈ 15.5)
-  HEATMAP_COLS: 14,
-  HEATMAP_ROWS: 18,
+  HEATMAP_COLS: 32, // High resolution for granular heatmap
+  HEATMAP_ROWS: 42, // Proportional to aspect ratio
 } as const;
