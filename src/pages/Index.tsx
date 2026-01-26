@@ -2,10 +2,11 @@ import { useState, useMemo } from 'react';
 import { Pitcher, Outing } from '@/types/pitcher';
 import { calculatePitcherStats } from '@/lib/pitcher-data';
 import { Header } from '@/components/Header';
+import { PitcherCard } from '@/components/PitcherCard';
+import { PitcherTable } from '@/components/PitcherTable';
 import { PitcherDetail } from '@/components/PitcherDetail';
 import { OutingForm } from '@/components/OutingForm';
 import { AllTimeStats } from '@/components/AllTimeStats';
-import { SevenDayDashboard } from '@/components/SevenDayDashboard';
 import { RosterManagementDialog } from '@/components/RosterManagementDialog';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useToast } from '@/hooks/use-toast';
@@ -13,6 +14,7 @@ import { getDaysRestNeeded } from '@/types/pitcher';
 import { useOutings } from '@/hooks/use-outings';
 import { usePitchers } from '@/hooks/use-pitchers';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
+import { DEFAULT_MAX_WEEKLY_PITCHES } from '@/lib/pulse-status';
 
 type View = 'dashboard' | 'detail';
 type TimeView = '7day' | 'alltime';
@@ -21,6 +23,7 @@ const Index = () => {
   const { outings, isLoading: outingsLoading, addOuting, updateOuting, deleteOuting } = useOutings();
   const { pitchers: rosterPitchers, isLoading: pitchersLoading, addPitcher, updatePitcher, deletePitcher } = usePitchers();
   const { addPitchLocations } = usePitchLocations();
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [timeView, setTimeView] = useState<TimeView>('7day');
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [selectedPitcher, setSelectedPitcher] = useState<Pitcher | null>(null);
@@ -92,6 +95,8 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
         onAddOuting={() => setShowOutingForm(true)}
         timeView={timeView}
         onTimeViewChange={setTimeView}
@@ -99,13 +104,54 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-6">
         {currentView === 'dashboard' && timeView === '7day' && (
-          <SevenDayDashboard 
-            pitchers={pitchers}
-            outings={outings}
-            pitcherMaxPitches={pitcherMaxPitches}
-            onPitcherClick={handlePitcherClick}
-            onEditRoster={() => setShowRosterManagement(true)}
-          />
+          <div className="animate-slide-up">
+            {/* Stats Summary */}
+            <div className="mb-6">
+              <div className="flex items-center gap-3">
+                <h2 className="font-display text-2xl font-bold text-foreground">
+                  Roster
+                </h2>
+                <button
+                  onClick={() => setShowRosterManagement(true)}
+                  className="text-sm text-primary hover:text-primary/80 underline underline-offset-2"
+                >
+                  Edit
+                </button>
+              </div>
+              <p className="text-muted-foreground">
+                {pitchers.length} pitchers •{' '}
+                {pitchers.filter((p) => p.restStatus.type === 'active').length} active •{' '}
+                {pitchers.filter((p) => p.restStatus.type === 'resting').length} resting
+              </p>
+            </div>
+
+            {/* Desktop Table View */}
+            {viewMode === 'table' && (
+              <div className="hidden md:block">
+                <PitcherTable 
+                  pitchers={pitchers} 
+                  onPitcherClick={handlePitcherClick} 
+                  pitcherMaxPitches={pitcherMaxPitches}
+                />
+              </div>
+            )}
+
+            {/* Cards View (default on mobile, toggle on desktop) */}
+            {(viewMode === 'cards' || window.innerWidth < 768) && (
+              <div className={viewMode === 'table' ? 'md:hidden' : ''}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {pitchers.map((pitcher) => (
+                    <PitcherCard
+                      key={pitcher.id}
+                      pitcher={pitcher}
+                      onClick={() => handlePitcherClick(pitcher)}
+                      maxWeeklyPitches={pitcherMaxPitches[pitcher.name] || DEFAULT_MAX_WEEKLY_PITCHES}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {currentView === 'dashboard' && timeView === 'alltime' && (
