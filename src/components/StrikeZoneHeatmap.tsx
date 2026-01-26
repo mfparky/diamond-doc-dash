@@ -73,8 +73,8 @@ export function StrikeZoneHeatmap({
   return (
     <div className="space-y-3">
       <div 
-        className={`${getZoneSizeClasses(size)} relative bg-secondary/30 rounded-lg border border-border/50 overflow-hidden`}
-        style={getZoneAspectStyle()}
+        className={`relative bg-secondary/30 rounded-lg border border-border/50 overflow-hidden`}
+        style={getZoneAspectStyle(size)}
       >
         {/* Heatmap grid - higher resolution */}
         <div 

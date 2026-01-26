@@ -98,8 +98,8 @@ export function PitchPlotter({
           </Label>
           <div className="flex justify-center py-4">
             <div
-              className="w-64 relative bg-secondary/30 rounded-lg border border-border/50 cursor-crosshair hover:bg-secondary/40"
-              style={getZoneAspectStyle()}
+              className="relative bg-secondary/30 rounded-lg border border-border/50 cursor-crosshair hover:bg-secondary/40"
+              style={getZoneAspectStyle('md')}
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
