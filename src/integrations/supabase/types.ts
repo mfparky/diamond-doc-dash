@@ -27,6 +27,7 @@ export type Database = {
           pitcher_id: string
           pitcher_name: string
           strikes: number | null
+          user_id: string | null
           video_url: string | null
         }
         Insert: {
@@ -41,6 +42,7 @@ export type Database = {
           pitcher_id: string
           pitcher_name: string
           strikes?: number | null
+          user_id?: string | null
           video_url?: string | null
         }
         Update: {
@@ -55,6 +57,7 @@ export type Database = {
           pitcher_id?: string
           pitcher_name?: string
           strikes?: number | null
+          user_id?: string | null
           video_url?: string | null
         }
         Relationships: []
@@ -68,6 +71,7 @@ export type Database = {
           pitch_number: number
           pitch_type: number
           pitcher_id: string
+          user_id: string | null
           x_location: number
           y_location: number
         }
@@ -79,6 +83,7 @@ export type Database = {
           pitch_number: number
           pitch_type: number
           pitcher_id: string
+          user_id?: string | null
           x_location: number
           y_location: number
         }
@@ -90,6 +95,7 @@ export type Database = {
           pitch_number?: number
           pitch_type?: number
           pitcher_id?: string
+          user_id?: string | null
           x_location?: number
           y_location?: number
         }
@@ -111,6 +117,7 @@ export type Database = {
           name: string
           pitch_types: Json | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -119,6 +126,7 @@ export type Database = {
           name: string
           pitch_types?: Json | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -127,6 +135,7 @@ export type Database = {
           name?: string
           pitch_types?: Json | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { validatePitcher } from '@/lib/validation';
 
 export interface PitcherRecord {
   id: string;
@@ -48,12 +49,36 @@ export function usePitchers() {
 
   // Add a new pitcher
   const addPitcher = useCallback(async (name: string, maxWeeklyPitches: number = 120): Promise<PitcherRecord | null> => {
+    // Validate input
+    const validation = validatePitcher({ name, maxWeeklyPitches });
+    if (validation.success === false) {
+      toast({
+        title: 'Validation Error',
+        description: validation.error,
+        variant: 'destructive',
+      });
+      return null;
+    }
+    const validatedData = validation.data;
+
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: 'Authentication required',
+          description: 'Please sign in to add pitchers.',
+          variant: 'destructive',
+        });
+        return null;
+      }
+
       const { data, error } = await supabase
         .from('pitchers')
         .insert({
-          name: name.trim(),
-          max_weekly_pitches: maxWeeklyPitches,
+          name: validatedData.name,
+          max_weekly_pitches: validatedData.maxWeeklyPitches,
+          user_id: user.id,
         })
         .select()
         .single();
@@ -78,6 +103,8 @@ export function usePitchers() {
       console.error('Error adding pitcher:', error);
       const message = error?.message?.includes('duplicate') 
         ? 'A pitcher with this name already exists.'
+        : error?.message?.includes('row-level security')
+        ? 'You must be signed in to add pitchers.'
         : 'Could not add the pitcher.';
       toast({
         title: 'Error adding pitcher',
