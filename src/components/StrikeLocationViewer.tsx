@@ -162,7 +162,10 @@ export function StrikeLocationViewer({
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  if (pitchLocations.length === 0 && !isLoading) {
+  // Check if we should show the empty state (only for non-session views with no data at all)
+  const showFullEmptyState = pitchLocations.length === 0 && !isLoading && viewMode !== 'session';
+
+  if (showFullEmptyState) {
     return (
       <Card className="glass-card">
         <CardHeader className="pb-2">
@@ -304,6 +307,13 @@ export function StrikeLocationViewer({
         <div className="flex justify-center py-2">
           {isLoading ? (
             <div className="w-72 h-80 bg-secondary/30 rounded-lg animate-pulse" />
+          ) : pitchLocations.length === 0 ? (
+            <div className="flex items-center justify-center text-center text-muted-foreground py-12" style={{ width: 380, height: 492 }}>
+              <div>
+                <p>No pitch locations for this {viewMode === 'session' ? 'session' : 'period'}.</p>
+                <p className="text-sm mt-1">Use the pitch map button to add locations.</p>
+              </div>
+            </div>
           ) : viewMode === 'year' ? (
             <StrikeZoneHeatmap
               pitchLocations={filteredLocations}
