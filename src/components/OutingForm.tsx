@@ -304,7 +304,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
                     <Camera className="w-4 h-4" />
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-md">
+                <DialogContent className="max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Record or Upload Video</DialogTitle>
                   </DialogHeader>

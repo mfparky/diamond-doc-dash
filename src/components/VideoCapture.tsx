@@ -47,6 +47,7 @@ export function VideoCapture({
   const [velocity, setVelocity] = useState<string>(existingVelocity?.toString() || '');
   
   const videoRef = useRef<HTMLVideoElement>(null);
+  const liveVideoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -67,9 +68,10 @@ export function VideoCapture({
 
       streamRef.current = stream;
       
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
+      // Use the live video ref for the camera preview
+      if (liveVideoRef.current) {
+        liveVideoRef.current.srcObject = stream;
+        liveVideoRef.current.play().catch(console.error);
       }
 
       const mediaRecorder = new MediaRecorder(stream, {
@@ -260,20 +262,23 @@ export function VideoCapture({
                 {compressionProgress?.progress || 0}%
               </p>
             </div>
-          ) : previewUrl ? (
-            <video
-              ref={videoRef}
-              src={isRecording ? undefined : previewUrl}
-              controls={!isRecording}
-              className="w-full h-full object-contain"
-              playsInline
-            />
           ) : isRecording ? (
+            // Live camera preview while recording
             <video
-              ref={videoRef}
+              ref={liveVideoRef}
               className="w-full h-full object-cover"
               playsInline
               muted
+              autoPlay
+            />
+          ) : previewUrl ? (
+            // Recorded/uploaded video playback
+            <video
+              ref={videoRef}
+              src={previewUrl}
+              controls
+              className="w-full h-full object-contain"
+              playsInline
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground">
