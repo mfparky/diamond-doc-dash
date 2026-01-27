@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Outing } from '@/types/pitcher';
 import { PitchLocation, PitchTypeConfig, DEFAULT_PITCH_TYPES, PITCH_TYPE_COLORS } from '@/types/pitch-location';
-import { StrikeZoneHeatmap } from '@/components/StrikeZoneHeatmap';
+import { SmoothHeatmap } from '@/components/SmoothHeatmap';
 import { supabase } from '@/integrations/supabase/client';
 import { Activity, Target, Gauge, Calendar, Flame } from 'lucide-react';
 
@@ -260,7 +260,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
                 <p className="text-muted-foreground animate-pulse">Loading...</p>
               </div>
             ) : pitchLocations.length > 0 ? (
-              <StrikeZoneHeatmap 
+              <SmoothHeatmap 
                 pitchLocations={pitchLocations} 
                 size="md"
               />
