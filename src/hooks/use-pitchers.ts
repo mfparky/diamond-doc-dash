@@ -2,11 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { validatePitcher } from '@/lib/validation';
+import { PitchTypeConfig } from '@/types/pitch-location';
 
 export interface PitcherRecord {
   id: string;
   name: string;
   maxWeeklyPitches: number;
+  pitchTypes: PitchTypeConfig | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -30,6 +32,7 @@ export function usePitchers() {
         id: row.id,
         name: row.name,
         maxWeeklyPitches: row.max_weekly_pitches,
+        pitchTypes: row.pitch_types as PitchTypeConfig | null,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       }));
@@ -89,6 +92,7 @@ export function usePitchers() {
         id: data.id,
         name: data.name,
         maxWeeklyPitches: data.max_weekly_pitches,
+        pitchTypes: data.pitch_types as PitchTypeConfig | null,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
       };
