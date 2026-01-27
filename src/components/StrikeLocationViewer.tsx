@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StrikeZone } from './StrikeZone';
-import { StrikeZoneHeatmap } from './StrikeZoneHeatmap';
+import { SmoothHeatmap } from './SmoothHeatmap';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
 import { PitchLocation, PitchTypeConfig, DEFAULT_PITCH_TYPES, PITCH_TYPE_COLORS } from '@/types/pitch-location';
 import { Outing } from '@/types/pitcher';
@@ -315,9 +315,8 @@ export function StrikeLocationViewer({
               </div>
             </div>
           ) : viewMode === 'year' ? (
-            <StrikeZoneHeatmap
+            <SmoothHeatmap
               pitchLocations={filteredLocations}
-              pitchTypes={pitchTypes}
               showLegend={false}
               size="lg"
             />
