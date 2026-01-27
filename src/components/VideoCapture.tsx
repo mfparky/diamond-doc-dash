@@ -4,10 +4,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Video, StopCircle, Upload, X, Camera } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Video, StopCircle, Upload, X, Camera, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
+import { compressVideo, formatFileSize, CompressionProgress } from '@/lib/video-compression';
 
 interface VideoCaptureProps {
   slot: 1 | 2;
@@ -35,6 +37,10 @@ export function VideoCapture({
   const { toast } = useToast();
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
+  const [compressionProgress, setCompressionProgress] = useState<CompressionProgress | null>(null);
+  const [originalSize, setOriginalSize] = useState<number | null>(null);
+  const [compressedSize, setCompressedSize] = useState<number | null>(null);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(existingUrl || null);
   const [pitchType, setPitchType] = useState<string>(existingPitchType?.toString() || '');
@@ -112,11 +118,11 @@ export function VideoCapture({
     }
   }, [isRecording]);
 
-  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Check file size (50MB limit)
+    // Check file size (50MB limit before compression)
     if (file.size > 52428800) {
       toast({
         title: 'File too large',
@@ -126,9 +132,41 @@ export function VideoCapture({
       return;
     }
 
-    setRecordedBlob(file);
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
+    setOriginalSize(file.size);
+    setIsCompressing(true);
+    setCompressionProgress({ stage: 'loading', progress: 0 });
+
+    try {
+      const compressedBlob = await compressVideo(file, {
+        maxWidth: 1280,
+        maxHeight: 720,
+        videoBitrate: 2_000_000,
+        onProgress: setCompressionProgress,
+      });
+
+      setCompressedSize(compressedBlob.size);
+      setRecordedBlob(compressedBlob);
+      const url = URL.createObjectURL(compressedBlob);
+      setPreviewUrl(url);
+
+      const savings = ((file.size - compressedBlob.size) / file.size * 100).toFixed(0);
+      if (compressedBlob.size < file.size) {
+        toast({
+          title: 'Video compressed',
+          description: `Reduced from ${formatFileSize(file.size)} to ${formatFileSize(compressedBlob.size)} (${savings}% smaller)`,
+        });
+      }
+    } catch (error) {
+      console.error('Compression error:', error);
+      // Fall back to original file
+      setRecordedBlob(file);
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+      setCompressedSize(file.size);
+    } finally {
+      setIsCompressing(false);
+      setCompressionProgress(null);
+    }
   }, [toast]);
 
   const uploadVideo = useCallback(async () => {
@@ -180,6 +218,8 @@ export function VideoCapture({
     setPreviewUrl(null);
     setPitchType('');
     setVelocity('');
+    setOriginalSize(null);
+    setCompressedSize(null);
     onVideoRemoved();
   }, [onVideoRemoved]);
 
@@ -207,7 +247,20 @@ export function VideoCapture({
 
         {/* Video Preview / Recording */}
         <div className="relative aspect-video bg-secondary/50 rounded-lg overflow-hidden">
-          {previewUrl ? (
+          {isCompressing ? (
+            <div className="flex flex-col items-center justify-center h-full gap-3 p-4">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-sm text-foreground font-medium">
+                {compressionProgress?.stage === 'loading' && 'Loading video...'}
+                {compressionProgress?.stage === 'compressing' && 'Compressing video...'}
+                {compressionProgress?.stage === 'finalizing' && 'Finalizing...'}
+              </p>
+              <Progress value={compressionProgress?.progress || 0} className="w-full max-w-[200px]" />
+              <p className="text-xs text-muted-foreground">
+                {compressionProgress?.progress || 0}%
+              </p>
+            </div>
+          ) : previewUrl ? (
             <video
               ref={videoRef}
               src={isRecording ? undefined : previewUrl}
@@ -237,8 +290,16 @@ export function VideoCapture({
           )}
         </div>
 
+        {/* Compression info */}
+        {originalSize && compressedSize && compressedSize < originalSize && (
+          <div className="text-xs text-muted-foreground bg-success/10 text-success px-3 py-2 rounded-md">
+            Compressed: {formatFileSize(originalSize)} → {formatFileSize(compressedSize)} 
+            ({((originalSize - compressedSize) / originalSize * 100).toFixed(0)}% saved)
+          </div>
+        )}
+
         {/* Recording Controls */}
-        {!previewUrl && (
+        {!previewUrl && !isCompressing && (
           <div className="flex gap-2">
             {isRecording ? (
               <Button
