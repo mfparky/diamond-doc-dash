@@ -69,12 +69,14 @@ export function SmoothHeatmap({
     }
   }, [size]);
 
-  // Calculate strike zone box position
+  // Calculate strike zone box position - matching StrikeZone component
   const toPercent = (val: number) => ((val + 1) / 2) * 100;
-  const zoneLeft = toPercent(STRIKE_ZONE.ZONE_LEFT);
-  const zoneRight = 100 - toPercent(STRIKE_ZONE.ZONE_RIGHT);
-  const zoneTop = 100 - toPercent(STRIKE_ZONE.ZONE_TOP);
-  const zoneBottom = toPercent(STRIKE_ZONE.ZONE_BOTTOM);
+  
+  // Zone boundaries in percentage (same as StrikeZone CSS positioning)
+  const zoneLeftPct = toPercent(STRIKE_ZONE.ZONE_LEFT);
+  const zoneRightPct = toPercent(STRIKE_ZONE.ZONE_RIGHT);
+  const zoneTopPct = 100 - toPercent(STRIKE_ZONE.ZONE_TOP);
+  const zoneBottomPct = 100 - toPercent(STRIKE_ZONE.ZONE_BOTTOM);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -94,11 +96,11 @@ export function SmoothHeatmap({
     // Clear canvas with transparent background
     ctx.clearRect(0, 0, width, height);
 
-    // Draw strike zone background
-    const zoneLeftPx = (zoneLeft / 100) * width;
-    const zoneRightPx = width - (zoneRight / 100) * width;
-    const zoneTopPx = (zoneTop / 100) * height;
-    const zoneBottomPx = height - (zoneBottom / 100) * height;
+    // Draw strike zone background - convert percentages to pixels
+    const zoneLeftPx = (zoneLeftPct / 100) * width;
+    const zoneRightPx = (zoneRightPct / 100) * width;
+    const zoneTopPx = (zoneTopPct / 100) * height;
+    const zoneBottomPx = (zoneBottomPct / 100) * height;
 
     // Subtle background for entire zone area
     ctx.fillStyle = 'rgba(100, 100, 120, 0.15)';
@@ -267,7 +269,7 @@ export function SmoothHeatmap({
       ctx.stroke();
     }
 
-  }, [pitchLocations, dimensions, zoneLeft, zoneRight, zoneTop, zoneBottom]);
+  }, [pitchLocations, dimensions, zoneLeftPct, zoneRightPct, zoneTopPct, zoneBottomPct]);
 
   return (
     <div className="space-y-3">
