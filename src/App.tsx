@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { Auth } from "@/components/Auth";
+import { HomeButton } from "@/components/HomeButton";
 import Index from "./pages/Index";
 import PlayerDashboard from "./pages/PlayerDashboard";
 import NotFound from "./pages/NotFound";
@@ -24,6 +25,7 @@ function AppRoutes() {
 
   return (
     <BrowserRouter>
+      <HomeButton />
       <Routes>
         {/* Player dashboard remains public for parents to view */}
         <Route path="/player/:playerId" element={<PlayerDashboard />} />
