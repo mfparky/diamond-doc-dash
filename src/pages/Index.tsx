@@ -3,7 +3,7 @@ import { Pitcher, Outing } from '@/types/pitcher';
 import { calculatePitcherStats } from '@/lib/pitcher-data';
 import { Header } from '@/components/Header';
 import { PitcherCard } from '@/components/PitcherCard';
-import { PitcherTable } from '@/components/PitcherTable';
+import { CombinedDashboard } from '@/components/CombinedDashboard';
 import { PitcherDetail } from '@/components/PitcherDetail';
 import { OutingForm } from '@/components/OutingForm';
 import { AllTimeStats } from '@/components/AllTimeStats';
@@ -15,6 +15,7 @@ import { useOutings } from '@/hooks/use-outings';
 import { usePitchers } from '@/hooks/use-pitchers';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
 import { DEFAULT_MAX_WEEKLY_PITCHES } from '@/lib/pulse-status';
+import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
 
 type View = 'dashboard' | 'detail';
 type TimeView = '7day' | 'alltime';
@@ -23,7 +24,7 @@ const Index = () => {
   const { outings, isLoading: outingsLoading, addOuting, updateOuting, deleteOuting } = useOutings();
   const { pitchers: rosterPitchers, isLoading: pitchersLoading, addPitcher, updatePitcher, deletePitcher } = usePitchers();
   const { addPitchLocations } = usePitchLocations();
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  const [viewMode, setViewMode] = useState<'cards' | 'combined'>('cards');
   const [timeView, setTimeView] = useState<TimeView>('7day');
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [selectedPitcher, setSelectedPitcher] = useState<Pitcher | null>(null);
@@ -36,6 +37,15 @@ const Index = () => {
     const map: Record<string, number> = {};
     rosterPitchers.forEach(p => {
       map[p.name] = p.maxWeeklyPitches;
+    });
+    return map;
+  }, [rosterPitchers]);
+
+  // Create a map of pitcher ID to pitch types config
+  const pitcherPitchTypesMap = useMemo(() => {
+    const map: Record<string, PitchTypeConfig> = {};
+    rosterPitchers.forEach(p => {
+      map[p.id] = (p.pitchTypes as PitchTypeConfig) || DEFAULT_PITCH_TYPES;
     });
     return map;
   }, [rosterPitchers]);
@@ -103,7 +113,7 @@ const Index = () => {
       />
 
       <main className="container mx-auto px-4 py-6">
-        {currentView === 'dashboard' && timeView === '7day' && (
+        {currentView === 'dashboard' && timeView === '7day' && viewMode === 'cards' && (
           <div className="animate-slide-up">
             {/* Stats Summary */}
             <div className="mb-6">
@@ -125,33 +135,25 @@ const Index = () => {
               </p>
             </div>
 
-            {/* Desktop Table View */}
-            {viewMode === 'table' && (
-              <div className="hidden md:block">
-                <PitcherTable 
-                  pitchers={pitchers} 
-                  onPitcherClick={handlePitcherClick} 
-                  pitcherMaxPitches={pitcherMaxPitches}
+            {/* Cards View */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {pitchers.map((pitcher) => (
+                <PitcherCard
+                  key={pitcher.id}
+                  pitcher={pitcher}
+                  onClick={() => handlePitcherClick(pitcher)}
+                  maxWeeklyPitches={pitcherMaxPitches[pitcher.name] || DEFAULT_MAX_WEEKLY_PITCHES}
                 />
-              </div>
-            )}
-
-            {/* Cards View (default on mobile, toggle on desktop) */}
-            {(viewMode === 'cards' || window.innerWidth < 768) && (
-              <div className={viewMode === 'table' ? 'md:hidden' : ''}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {pitchers.map((pitcher) => (
-                    <PitcherCard
-                      key={pitcher.id}
-                      pitcher={pitcher}
-                      onClick={() => handlePitcherClick(pitcher)}
-                      maxWeeklyPitches={pitcherMaxPitches[pitcher.name] || DEFAULT_MAX_WEEKLY_PITCHES}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
+        )}
+
+        {currentView === 'dashboard' && timeView === '7day' && viewMode === 'combined' && (
+          <CombinedDashboard 
+            outings={outings} 
+            pitcherPitchTypes={pitcherPitchTypesMap}
+          />
         )}
 
         {currentView === 'dashboard' && timeView === 'alltime' && (

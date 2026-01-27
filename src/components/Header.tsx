@@ -1,10 +1,10 @@
 import { Button } from '@/components/ui/button';
-import { Plus, LayoutGrid, List, Calendar, CalendarDays } from 'lucide-react';
+import { Plus, LayoutGrid, BarChart3, Calendar, CalendarDays } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import hawksLogo from '@/assets/hawks-logo.png';
 interface HeaderProps {
-  viewMode: 'cards' | 'table';
-  onViewModeChange: (mode: 'cards' | 'table') => void;
+  viewMode: 'cards' | 'combined';
+  onViewModeChange: (mode: 'cards' | 'combined') => void;
   onAddOuting: () => void;
   timeView: '7day' | 'alltime';
   onTimeViewChange: (view: '7day' | 'alltime') => void;
@@ -49,11 +49,11 @@ export function Header({
 
             {/* View Toggle - Hidden on mobile, only show in 7day view */}
             {timeView === '7day' && <div className="hidden md:flex items-center bg-secondary rounded-lg p-1">
-                <Button variant="ghost" size="sm" className={viewMode === 'cards' ? 'bg-card shadow-sm' : ''} onClick={() => onViewModeChange('cards')}>
+                <Button variant="ghost" size="sm" className={viewMode === 'cards' ? 'bg-card shadow-sm' : ''} onClick={() => onViewModeChange('cards')} title="Roster Cards">
                   <LayoutGrid className="w-4 h-4" />
                 </Button>
-                <Button variant="ghost" size="sm" className={viewMode === 'table' ? 'bg-card shadow-sm' : ''} onClick={() => onViewModeChange('table')}>
-                  <List className="w-4 h-4" />
+                <Button variant="ghost" size="sm" className={viewMode === 'combined' ? 'bg-card shadow-sm' : ''} onClick={() => onViewModeChange('combined')} title="Combined Dashboard">
+                  <BarChart3 className="w-4 h-4" />
                 </Button>
               </div>}
 
