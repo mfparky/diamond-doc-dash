@@ -8,21 +8,23 @@ interface SmoothHeatmapProps {
   showLegend?: boolean;
 }
 
-// Color stops for the gradient (magenta -> blue -> cyan -> green -> yellow -> orange -> red)
+// Color stops for the gradient (transparent -> blue -> cyan -> green -> yellow -> orange -> red)
+// Low density = transparent, high density = red
 const COLOR_STOPS = [
-  { threshold: 0, color: [255, 0, 255] },      // magenta (lowest)
-  { threshold: 0.15, color: [128, 0, 255] },   // purple
-  { threshold: 0.25, color: [0, 0, 255] },     // blue
-  { threshold: 0.35, color: [0, 128, 255] },   // light blue
-  { threshold: 0.45, color: [0, 255, 255] },   // cyan
-  { threshold: 0.55, color: [0, 255, 128] },   // teal
-  { threshold: 0.65, color: [0, 255, 0] },     // green
-  { threshold: 0.75, color: [255, 255, 0] },   // yellow
-  { threshold: 0.85, color: [255, 128, 0] },   // orange
-  { threshold: 1.0, color: [255, 0, 0] },      // red (highest)
+  { threshold: 0, color: [0, 100, 255], alpha: 0 },        // transparent (no data)
+  { threshold: 0.05, color: [0, 100, 255], alpha: 0.3 },   // light blue, low opacity
+  { threshold: 0.15, color: [0, 150, 255], alpha: 0.5 },   // blue
+  { threshold: 0.25, color: [0, 200, 255], alpha: 0.65 },  // cyan-blue
+  { threshold: 0.35, color: [0, 255, 200], alpha: 0.75 },  // cyan-green
+  { threshold: 0.45, color: [0, 255, 100], alpha: 0.8 },   // green-cyan
+  { threshold: 0.55, color: [100, 255, 0], alpha: 0.85 },  // green
+  { threshold: 0.65, color: [200, 255, 0], alpha: 0.9 },   // lime
+  { threshold: 0.75, color: [255, 220, 0], alpha: 0.92 },  // yellow
+  { threshold: 0.85, color: [255, 150, 0], alpha: 0.95 },  // orange
+  { threshold: 1.0, color: [255, 50, 0], alpha: 1 },       // red (highest)
 ];
 
-function interpolateColor(value: number): [number, number, number] {
+function interpolateColor(value: number): [number, number, number, number] {
   // Clamp value between 0 and 1
   value = Math.max(0, Math.min(1, value));
   
@@ -42,11 +44,12 @@ function interpolateColor(value: number): [number, number, number] {
   const range = upperStop.threshold - lowerStop.threshold;
   const t = range > 0 ? (value - lowerStop.threshold) / range : 0;
   
-  // Interpolate RGB values
+  // Interpolate RGB and alpha values
   return [
     Math.round(lowerStop.color[0] + t * (upperStop.color[0] - lowerStop.color[0])),
     Math.round(lowerStop.color[1] + t * (upperStop.color[1] - lowerStop.color[1])),
     Math.round(lowerStop.color[2] + t * (upperStop.color[2] - lowerStop.color[2])),
+    Math.round((lowerStop.alpha + t * (upperStop.alpha - lowerStop.alpha)) * 255),
   ];
 }
 
@@ -88,40 +91,55 @@ export function SmoothHeatmap({
     canvas.height = height * scale;
     ctx.scale(scale, scale);
 
-    // Clear canvas with background color
-    ctx.fillStyle = 'rgb(255, 0, 255)'; // Magenta background for "no data"
+    // Clear canvas with transparent background
+    ctx.clearRect(0, 0, width, height);
+
+    // Draw strike zone background
+    const zoneLeftPx = (zoneLeft / 100) * width;
+    const zoneRightPx = width - (zoneRight / 100) * width;
+    const zoneTopPx = (zoneTop / 100) * height;
+    const zoneBottomPx = height - (zoneBottom / 100) * height;
+
+    // Subtle background for entire zone area
+    ctx.fillStyle = 'rgba(100, 100, 120, 0.15)';
     ctx.fillRect(0, 0, width, height);
 
     if (pitchLocations.length === 0) {
+      // Draw strike zone outline even with no data
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(zoneLeftPx, zoneTopPx, zoneRightPx - zoneLeftPx, zoneBottomPx - zoneTopPx);
       return;
     }
 
     // Create density grid with higher resolution
-    const gridSize = 100;
+    const gridSize = 120; // Increased for better accuracy
     const densityGrid: number[][] = Array.from({ length: gridSize }, () => 
       Array.from({ length: gridSize }, () => 0)
     );
 
-    // Radius for each pitch point influence (in grid units)
-    const influenceRadius = 8;
+    // Smaller influence radius for more accurate pitch representation
+    const influenceRadius = 6;
 
     // Add density for each pitch with Gaussian falloff
     pitchLocations.forEach((pitch) => {
       // Convert -1 to 1 range to 0 to gridSize-1
-      const centerX = Math.floor(((pitch.xLocation + 1) / 2) * gridSize);
-      const centerY = Math.floor(((1 - pitch.yLocation) / 2) * gridSize);
+      // X: -1 = left edge, 1 = right edge
+      const centerX = ((pitch.xLocation + 1) / 2) * (gridSize - 1);
+      // Y: 1 = top (high), -1 = bottom (low) - canvas Y is inverted
+      const centerY = ((1 - pitch.yLocation) / 2) * (gridSize - 1);
 
       // Add influence in a circular area around the pitch
       for (let dy = -influenceRadius; dy <= influenceRadius; dy++) {
         for (let dx = -influenceRadius; dx <= influenceRadius; dx++) {
-          const x = centerX + dx;
-          const y = centerY + dy;
+          const x = Math.round(centerX) + dx;
+          const y = Math.round(centerY) + dy;
           
           if (x >= 0 && x < gridSize && y >= 0 && y < gridSize) {
             const distance = Math.sqrt(dx * dx + dy * dy);
             if (distance <= influenceRadius) {
-              // Gaussian falloff
-              const sigma = influenceRadius / 2.5;
+              // Tighter Gaussian falloff for more accurate representation
+              const sigma = influenceRadius / 3;
               const weight = Math.exp(-(distance * distance) / (2 * sigma * sigma));
               densityGrid[y][x] += weight;
             }
@@ -138,8 +156,8 @@ export function SmoothHeatmap({
       }
     }
 
-    // Apply multi-pass blur for smoother gradients
-    const blurPasses = 3;
+    // Apply fewer blur passes for more accurate representation
+    const blurPasses = 2;
     for (let pass = 0; pass < blurPasses; pass++) {
       const tempGrid: number[][] = Array.from({ length: gridSize }, () => 
         Array.from({ length: gridSize }, () => 0)
@@ -162,8 +180,18 @@ export function SmoothHeatmap({
         }
       }
       
-      for (let y = 1; y < gridSize - 1; y++) {
-        for (let x = 1; x < gridSize - 1; x++) {
+      // Copy edges
+      for (let x = 0; x < gridSize; x++) {
+        tempGrid[0][x] = densityGrid[0][x] * 0.5;
+        tempGrid[gridSize-1][x] = densityGrid[gridSize-1][x] * 0.5;
+      }
+      for (let y = 0; y < gridSize; y++) {
+        tempGrid[y][0] = densityGrid[y][0] * 0.5;
+        tempGrid[y][gridSize-1] = densityGrid[y][gridSize-1] * 0.5;
+      }
+      
+      for (let y = 0; y < gridSize; y++) {
+        for (let x = 0; x < gridSize; x++) {
           densityGrid[y][x] = tempGrid[y][x];
         }
       }
@@ -171,8 +199,6 @@ export function SmoothHeatmap({
 
     // Create image data
     const imageData = ctx.createImageData(width, height);
-    const cellWidth = width / gridSize;
-    const cellHeight = height / gridSize;
 
     // Render with bilinear interpolation for smooth color transitions
     for (let py = 0; py < height; py++) {
@@ -196,15 +222,15 @@ export function SmoothHeatmap({
           densityGrid[y1][x0] * (1 - xFrac) * yFrac +
           densityGrid[y1][x1] * xFrac * yFrac;
         
-        // Normalize and get color
-        const normalizedDensity = maxDensity > 0 ? density / maxDensity : 0;
-        const [r, g, b] = interpolateColor(normalizedDensity);
+        // Normalize with slight gamma correction for better visual distribution
+        const normalizedDensity = maxDensity > 0 ? Math.pow(density / maxDensity, 0.8) : 0;
+        const [r, g, b, a] = interpolateColor(normalizedDensity);
         
         const idx = (py * width + px) * 4;
         imageData.data[idx] = r;
         imageData.data[idx + 1] = g;
         imageData.data[idx + 2] = b;
-        imageData.data[idx + 3] = 255; // Full opacity
+        imageData.data[idx + 3] = a;
       }
     }
 
@@ -212,11 +238,6 @@ export function SmoothHeatmap({
     ctx.putImageData(imageData, 0, 0);
 
     // Draw strike zone outline
-    const zoneLeftPx = (zoneLeft / 100) * width;
-    const zoneRightPx = width - (zoneRight / 100) * width;
-    const zoneTopPx = (zoneTop / 100) * height;
-    const zoneBottomPx = height - (zoneBottom / 100) * height;
-
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
     ctx.lineWidth = 2;
     ctx.strokeRect(zoneLeftPx, zoneTopPx, zoneRightPx - zoneLeftPx, zoneBottomPx - zoneTopPx);
@@ -251,7 +272,7 @@ export function SmoothHeatmap({
   return (
     <div className="space-y-3">
       <div 
-        className="relative rounded-lg border border-border/50 overflow-hidden"
+        className="relative rounded-lg border border-border/50 overflow-hidden bg-secondary/30"
         style={getZoneAspectStyle(size)}
       >
         <canvas
@@ -286,13 +307,13 @@ export function SmoothHeatmap({
       {showLegend && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span>Low</span>
-          <div className="flex h-3 flex-1 max-w-[150px] rounded overflow-hidden">
-            <div className="flex-1" style={{ backgroundColor: 'rgb(255, 0, 255)' }} />
-            <div className="flex-1" style={{ backgroundColor: 'rgb(0, 0, 255)' }} />
-            <div className="flex-1" style={{ backgroundColor: 'rgb(0, 255, 255)' }} />
-            <div className="flex-1" style={{ backgroundColor: 'rgb(0, 255, 0)' }} />
-            <div className="flex-1" style={{ backgroundColor: 'rgb(255, 255, 0)' }} />
-            <div className="flex-1" style={{ backgroundColor: 'rgb(255, 0, 0)' }} />
+          <div className="flex h-3 flex-1 max-w-[150px] rounded overflow-hidden border border-border/30">
+            <div className="flex-1" style={{ backgroundColor: 'rgba(0, 100, 255, 0.3)' }} />
+            <div className="flex-1" style={{ backgroundColor: 'rgba(0, 255, 200, 0.7)' }} />
+            <div className="flex-1" style={{ backgroundColor: 'rgba(100, 255, 0, 0.85)' }} />
+            <div className="flex-1" style={{ backgroundColor: 'rgba(255, 220, 0, 0.92)' }} />
+            <div className="flex-1" style={{ backgroundColor: 'rgba(255, 150, 0, 0.95)' }} />
+            <div className="flex-1" style={{ backgroundColor: 'rgb(255, 50, 0)' }} />
           </div>
           <span>High</span>
         </div>
