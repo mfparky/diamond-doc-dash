@@ -86,30 +86,33 @@ export function SmoothHeatmap({
     if (!ctx) return;
 
     const { width, height } = dimensions;
-    
-    // Set canvas size (use higher resolution for smoother gradients)
+
+    // Render at higher pixel density for a cloud-like look.
+    // IMPORTANT: do NOT use ctx.scale() with putImageData() because putImageData()
+    // ignores transforms (it would render only in the top-left quadrant).
     const scale = 2;
-    canvas.width = width * scale;
-    canvas.height = height * scale;
-    ctx.scale(scale, scale);
+    const renderWidth = Math.round(width * scale);
+    const renderHeight = Math.round(height * scale);
 
-    // Clear canvas with transparent background
-    ctx.clearRect(0, 0, width, height);
+    canvas.width = renderWidth;
+    canvas.height = renderHeight;
 
-    // Draw strike zone background - convert percentages to pixels
-    const zoneLeftPx = (zoneLeftPct / 100) * width;
-    const zoneRightPx = (zoneRightPct / 100) * width;
-    const zoneTopPx = (zoneTopPct / 100) * height;
-    const zoneBottomPx = (zoneBottomPct / 100) * height;
+    // Reset any transforms (defensive)
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-    // Subtle background for entire zone area
-    ctx.fillStyle = 'rgba(100, 100, 120, 0.15)';
-    ctx.fillRect(0, 0, width, height);
+    // Clear canvas (transparent). Background is provided by the wrapper div.
+    ctx.clearRect(0, 0, renderWidth, renderHeight);
+
+    // Convert zone percentages to pixels in the *render* coordinate space
+    const zoneLeftPx = (zoneLeftPct / 100) * renderWidth;
+    const zoneRightPx = (zoneRightPct / 100) * renderWidth;
+    const zoneTopPx = (zoneTopPct / 100) * renderHeight;
+    const zoneBottomPx = (zoneBottomPct / 100) * renderHeight;
 
     if (pitchLocations.length === 0) {
       // Draw strike zone outline even with no data
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2 * scale;
       ctx.strokeRect(zoneLeftPx, zoneTopPx, zoneRightPx - zoneLeftPx, zoneBottomPx - zoneTopPx);
       return;
     }
@@ -200,14 +203,14 @@ export function SmoothHeatmap({
     }
 
     // Create image data
-    const imageData = ctx.createImageData(width, height);
+    const imageData = ctx.createImageData(renderWidth, renderHeight);
 
     // Render with bilinear interpolation for smooth color transitions
-    for (let py = 0; py < height; py++) {
-      for (let px = 0; px < width; px++) {
+    for (let py = 0; py < renderHeight; py++) {
+      for (let px = 0; px < renderWidth; px++) {
         // Map pixel to grid coordinates with sub-pixel precision
-        const gx = (px / width) * (gridSize - 1);
-        const gy = (py / height) * (gridSize - 1);
+        const gx = (px / renderWidth) * (gridSize - 1);
+        const gy = (py / renderHeight) * (gridSize - 1);
         
         const x0 = Math.floor(gx);
         const y0 = Math.floor(gy);
@@ -228,7 +231,7 @@ export function SmoothHeatmap({
         const normalizedDensity = maxDensity > 0 ? Math.pow(density / maxDensity, 0.8) : 0;
         const [r, g, b, a] = interpolateColor(normalizedDensity);
         
-        const idx = (py * width + px) * 4;
+        const idx = (py * renderWidth + px) * 4;
         imageData.data[idx] = r;
         imageData.data[idx + 1] = g;
         imageData.data[idx + 2] = b;
@@ -241,12 +244,12 @@ export function SmoothHeatmap({
 
     // Draw strike zone outline
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2 * scale;
     ctx.strokeRect(zoneLeftPx, zoneTopPx, zoneRightPx - zoneLeftPx, zoneBottomPx - zoneTopPx);
 
     // Draw grid lines within strike zone
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 1 * scale;
     
     const zoneWidth = zoneRightPx - zoneLeftPx;
     const zoneHeight = zoneBottomPx - zoneTopPx;
