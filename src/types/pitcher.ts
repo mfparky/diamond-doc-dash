@@ -10,6 +10,13 @@ export interface Outing {
   notes: string;
   videoUrl?: string;
   focus?: string;
+  // New video fields
+  videoUrl1?: string;
+  videoUrl2?: string;
+  video1PitchType?: number;
+  video1Velocity?: number;
+  video2PitchType?: number;
+  video2Velocity?: number;
 }
 
 export interface Pitcher {

@@ -28,7 +28,13 @@ export type Database = {
           pitcher_name: string
           strikes: number | null
           user_id: string | null
+          video_1_pitch_type: number | null
+          video_1_velocity: number | null
+          video_2_pitch_type: number | null
+          video_2_velocity: number | null
           video_url: string | null
+          video_url_1: string | null
+          video_url_2: string | null
         }
         Insert: {
           created_at?: string
@@ -43,7 +49,13 @@ export type Database = {
           pitcher_name: string
           strikes?: number | null
           user_id?: string | null
+          video_1_pitch_type?: number | null
+          video_1_velocity?: number | null
+          video_2_pitch_type?: number | null
+          video_2_velocity?: number | null
           video_url?: string | null
+          video_url_1?: string | null
+          video_url_2?: string | null
         }
         Update: {
           created_at?: string
@@ -58,7 +70,13 @@ export type Database = {
           pitcher_name?: string
           strikes?: number | null
           user_id?: string | null
+          video_1_pitch_type?: number | null
+          video_1_velocity?: number | null
+          video_2_pitch_type?: number | null
+          video_2_velocity?: number | null
           video_url?: string | null
+          video_url_1?: string | null
+          video_url_2?: string | null
         }
         Relationships: []
       }

@@ -3,10 +3,12 @@ import { Pitcher, Outing, getDaysRestNeeded } from '@/types/pitcher';
 import { StatusBadge } from './StatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, Pencil, Trash2, Share2, Settings, MapPin } from 'lucide-react';
 import { EditOutingDialog } from './EditOutingDialog';
 import { DeleteOutingDialog } from './DeleteOutingDialog';
 import { OutingPitchMapDialog } from './OutingPitchMapDialog';
+import { OutingVideoSection } from './OutingVideoSection';
 import { PitchCountChart } from './PitchCountChart';
 import { StrikeLocationViewer } from './StrikeLocationViewer';
 import { PitchTypeConfigDialog } from './PitchTypeConfigDialog';
@@ -24,6 +26,7 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting 
   const [editingOuting, setEditingOuting] = useState<Outing | null>(null);
   const [deletingOuting, setDeletingOuting] = useState<Outing | null>(null);
   const [pitchMapOuting, setPitchMapOuting] = useState<Outing | null>(null);
+  const [videoOuting, setVideoOuting] = useState<Outing | null>(null);
   const [showPitchTypeConfig, setShowPitchTypeConfig] = useState(false);
   const [pitchTypes, setPitchTypes] = useState<PitchTypeConfig>(DEFAULT_PITCH_TYPES);
   const [outingPitchCounts, setOutingPitchCounts] = useState<Record<string, number>>({});
@@ -237,15 +240,25 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting 
                         <p className="text-sm text-accent">{outing.eventType}</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        {outing.videoUrl && (
+                        {/* Video button */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => setVideoOuting(outing)}
+                          title={outing.videoUrl1 || outing.videoUrl2 ? 'View/edit videos' : 'Add videos'}
+                        >
+                          <Video className={`w-4 h-4 ${outing.videoUrl1 || outing.videoUrl2 ? 'text-primary' : ''}`} />
+                        </Button>
+                        {outing.videoUrl && !outing.videoUrl1 && !outing.videoUrl2 && (
                           <a 
                             href={outing.videoUrl} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors"
+                            title="External video link"
                           >
-                            <Video className="w-4 h-4" />
-                            <ExternalLink className="w-3 h-3" />
+                            <ExternalLink className="w-4 h-4" />
                           </a>
                         )}
                         <Button
@@ -345,6 +358,35 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting 
         pitcherId={pitcher.id}
         pitcherName={pitcher.name}
       />
+
+      {/* Video Dialog */}
+      <Dialog open={!!videoOuting} onOpenChange={(open) => !open && setVideoOuting(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Session Videos</DialogTitle>
+            {videoOuting && (
+              <p className="text-sm text-muted-foreground">
+                {formatDate(videoOuting.date)} - {videoOuting.eventType}
+              </p>
+            )}
+          </DialogHeader>
+          
+          {videoOuting && (
+            <OutingVideoSection
+              outingId={videoOuting.id}
+              pitcherId={pitcher.id}
+              pitchTypes={pitchTypes}
+              videoUrl1={videoOuting.videoUrl1}
+              videoUrl2={videoOuting.videoUrl2}
+              video1PitchType={videoOuting.video1PitchType}
+              video1Velocity={videoOuting.video1Velocity}
+              video2PitchType={videoOuting.video2PitchType}
+              video2Velocity={videoOuting.video2Velocity}
+              onVideosUpdated={() => setRefreshKey(k => k + 1)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

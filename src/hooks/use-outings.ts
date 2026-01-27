@@ -32,6 +32,12 @@ export function useOutings() {
         notes: row.notes ?? '',
         videoUrl: row.video_url ?? undefined,
         focus: row.focus ?? undefined,
+        videoUrl1: row.video_url_1 ?? undefined,
+        videoUrl2: row.video_url_2 ?? undefined,
+        video1PitchType: row.video_1_pitch_type ?? undefined,
+        video1Velocity: row.video_1_velocity ?? undefined,
+        video2PitchType: row.video_2_pitch_type ?? undefined,
+        video2Velocity: row.video_2_velocity ?? undefined,
       }));
 
       setOutings(mappedOutings);
@@ -119,6 +125,12 @@ export function useOutings() {
         notes: data.notes ?? '',
         videoUrl: data.video_url ?? undefined,
         focus: data.focus ?? undefined,
+        videoUrl1: data.video_url_1 ?? undefined,
+        videoUrl2: data.video_url_2 ?? undefined,
+        video1PitchType: data.video_1_pitch_type ?? undefined,
+        video1Velocity: data.video_1_velocity ?? undefined,
+        video2PitchType: data.video_2_pitch_type ?? undefined,
+        video2Velocity: data.video_2_velocity ?? undefined,
       };
 
       setOutings((prev) => [newOuting, ...prev]);

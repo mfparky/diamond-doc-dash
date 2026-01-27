@@ -5,11 +5,13 @@ import { Pitcher, Outing, getDaysRestNeeded, calculateRestStatus } from '@/types
 import { calculatePitcherStats } from '@/lib/pitcher-data';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { PitchCountChart } from '@/components/PitchCountChart';
 import { StrikeLocationViewer } from '@/components/StrikeLocationViewer';
+import { VideoPlayer } from '@/components/VideoPlayer';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
-import { TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, ArrowLeft } from 'lucide-react';
+import { TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, ArrowLeft, Play } from 'lucide-react';
 import hawksLogo from '@/assets/hawks-logo.png';
 
 export default function PlayerDashboard() {
@@ -19,6 +21,7 @@ export default function PlayerDashboard() {
   const [pitchTypes, setPitchTypes] = useState<PitchTypeConfig>(DEFAULT_PITCH_TYPES);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedVideoOuting, setSelectedVideoOuting] = useState<Outing | null>(null);
   const { fetchPitchTypes } = usePitchLocations();
 
   useEffect(() => {
@@ -67,6 +70,12 @@ export default function PlayerDashboard() {
           notes: row.notes ?? '',
           videoUrl: row.video_url ?? undefined,
           focus: row.focus ?? undefined,
+          videoUrl1: row.video_url_1 ?? undefined,
+          videoUrl2: row.video_url_2 ?? undefined,
+          video1PitchType: row.video_1_pitch_type ?? undefined,
+          video1Velocity: row.video_1_velocity ?? undefined,
+          video2PitchType: row.video_2_pitch_type ?? undefined,
+          video2Velocity: row.video_2_velocity ?? undefined,
         }));
 
         setOutings(mappedOutings);
@@ -236,6 +245,46 @@ export default function PlayerDashboard() {
           </Card>
         </div>
 
+        {/* Latest Video */}
+        {(() => {
+          // Find latest outing with a video
+          const outingWithVideo = pitcher.outings
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .find(o => o.videoUrl1 || o.videoUrl2);
+          
+          if (!outingWithVideo) return null;
+          
+          const latestVideoUrl = outingWithVideo.videoUrl1 || outingWithVideo.videoUrl2;
+          const latestPitchType = outingWithVideo.videoUrl1 
+            ? outingWithVideo.video1PitchType 
+            : outingWithVideo.video2PitchType;
+          const latestVelocity = outingWithVideo.videoUrl1 
+            ? outingWithVideo.video1Velocity 
+            : outingWithVideo.video2Velocity;
+          
+          return (
+            <Card className="glass-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="font-display text-lg flex items-center gap-2">
+                  <Play className="w-5 h-5 text-primary" />
+                  Latest Video
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  {formatDate(outingWithVideo.date)} - {outingWithVideo.eventType}
+                </p>
+              </CardHeader>
+              <CardContent>
+                <VideoPlayer
+                  url={latestVideoUrl!}
+                  pitchType={latestPitchType}
+                  velocity={latestVelocity}
+                  pitchTypes={pitchTypes}
+                />
+              </CardContent>
+            </Card>
+          );
+        })()}
+
         {/* Season Pitch Count Chart */}
         <PitchCountChart outings={pitcher.outings} />
 
@@ -268,17 +317,31 @@ export default function PlayerDashboard() {
                           <p className="font-semibold text-foreground">{formatDate(outing.date)}</p>
                           <p className="text-sm text-accent">{outing.eventType}</p>
                         </div>
-                        {outing.videoUrl && (
-                          <a 
-                            href={outing.videoUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors"
-                          >
-                            <Video className="w-4 h-4" />
-                            <ExternalLink className="w-3 h-3" />
-                          </a>
-                        )}
+                        {/* Video indicators */}
+                        <div className="flex items-center gap-2">
+                          {(outing.videoUrl1 || outing.videoUrl2) && (
+                            <button
+                              onClick={() => setSelectedVideoOuting(outing)}
+                              className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors"
+                            >
+                              <Video className="w-4 h-4" />
+                              <span className="text-xs">
+                                {outing.videoUrl1 && outing.videoUrl2 ? '2' : '1'}
+                              </span>
+                            </button>
+                          )}
+                          {outing.videoUrl && !outing.videoUrl1 && !outing.videoUrl2 && (
+                            <a 
+                              href={outing.videoUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors"
+                            >
+                              <Video className="w-4 h-4" />
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          )}
+                        </div>
                       </div>
                       <div className="grid grid-cols-3 gap-4 text-sm">
                         <div>
@@ -328,6 +391,50 @@ export default function PlayerDashboard() {
           <p>Powered by Diamond Doc Dash</p>
         </div>
       </main>
+
+      {/* Video Dialog */}
+      <Dialog open={!!selectedVideoOuting} onOpenChange={() => setSelectedVideoOuting(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Video className="w-5 h-5 text-primary" />
+              Session Videos
+            </DialogTitle>
+            {selectedVideoOuting && (
+              <p className="text-sm text-muted-foreground">
+                {formatDate(selectedVideoOuting.date)} - {selectedVideoOuting.eventType}
+              </p>
+            )}
+          </DialogHeader>
+          
+          {selectedVideoOuting && (
+            <div className="space-y-4">
+              {selectedVideoOuting.videoUrl1 && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Video 1</p>
+                  <VideoPlayer
+                    url={selectedVideoOuting.videoUrl1}
+                    pitchType={selectedVideoOuting.video1PitchType}
+                    velocity={selectedVideoOuting.video1Velocity}
+                    pitchTypes={pitchTypes}
+                  />
+                </div>
+              )}
+              {selectedVideoOuting.videoUrl2 && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Video 2</p>
+                  <VideoPlayer
+                    url={selectedVideoOuting.videoUrl2}
+                    pitchType={selectedVideoOuting.video2PitchType}
+                    velocity={selectedVideoOuting.video2Velocity}
+                    pitchTypes={pitchTypes}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
