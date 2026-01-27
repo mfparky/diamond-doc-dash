@@ -1,8 +1,10 @@
 import { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Outing } from '@/types/pitcher';
 import { PitchLocation, PitchTypeConfig, DEFAULT_PITCH_TYPES, PITCH_TYPE_COLORS } from '@/types/pitch-location';
 import { SmoothHeatmap } from '@/components/SmoothHeatmap';
+import { DateRangePicker } from '@/components/DateRangePicker';
 import { supabase } from '@/integrations/supabase/client';
 import { Activity, Target, Gauge, Calendar, Flame } from 'lucide-react';
 
@@ -18,33 +20,49 @@ const EVENT_COLORS: Record<string, string> = {
   'Practice': 'hsl(25, 90%, 55%)',
 };
 
+type ViewMode = '7-day' | 'season';
+
 export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashboardProps) {
   const [pitchLocations, setPitchLocations] = useState<PitchLocation[]>([]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(true);
+  const [viewMode, setViewMode] = useState<ViewMode>('7-day');
+  
+  // Default season range: Jan 1 to Dec 31 of current year
+  const currentYear = new Date().getFullYear();
+  const [seasonStart, setSeasonStart] = useState<Date>(new Date(currentYear, 0, 1));
+  const [seasonEnd, setSeasonEnd] = useState<Date>(new Date());
 
-  // Calculate date range for 7-day window
+  // Calculate date range based on view mode
   const dateRange = useMemo(() => {
-    const today = new Date();
-    const sevenDaysAgo = new Date(today);
-    sevenDaysAgo.setDate(today.getDate() - 7);
-    return {
-      start: sevenDaysAgo.toISOString().split('T')[0],
-      end: today.toISOString().split('T')[0],
-    };
-  }, []);
-
-  // Filter outings to last 7 days
-  const recentOutings = useMemo(() => {
-    return outings.filter((o) => {
-      const outingDate = new Date(o.date);
+    if (viewMode === '7-day') {
       const today = new Date();
       const sevenDaysAgo = new Date(today);
       sevenDaysAgo.setDate(today.getDate() - 7);
-      return outingDate >= sevenDaysAgo && outingDate <= today;
-    });
-  }, [outings]);
+      return {
+        start: sevenDaysAgo.toISOString().split('T')[0],
+        end: today.toISOString().split('T')[0],
+      };
+    } else {
+      return {
+        start: seasonStart.toISOString().split('T')[0],
+        end: seasonEnd.toISOString().split('T')[0],
+      };
+    }
+  }, [viewMode, seasonStart, seasonEnd]);
 
-  // Fetch all pitch locations for the 7-day window
+  // Filter outings based on date range
+  const filteredOutings = useMemo(() => {
+    const startDate = new Date(dateRange.start);
+    const endDate = new Date(dateRange.end);
+    endDate.setHours(23, 59, 59, 999);
+    
+    return outings.filter((o) => {
+      const outingDate = new Date(o.date);
+      return outingDate >= startDate && outingDate <= endDate;
+    });
+  }, [outings, dateRange]);
+
+  // Fetch all pitch locations for the selected date range
   useEffect(() => {
     const fetchAllLocations = async () => {
       setIsLoadingLocations(true);
@@ -79,12 +97,17 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
     fetchAllLocations();
   }, [dateRange]);
 
+  const handleDateRangeChange = (start: Date, end: Date) => {
+    setSeasonStart(start);
+    setSeasonEnd(end);
+  };
+
   // Calculate aggregate stats
   const stats = useMemo(() => {
-    const totalPitches = recentOutings.reduce((sum, o) => sum + o.pitchCount, 0);
+    const totalPitches = filteredOutings.reduce((sum, o) => sum + o.pitchCount, 0);
     
     // Only include outings where strikes were tracked
-    const outingsWithStrikes = recentOutings.filter((o) => o.strikes !== null && o.strikes !== undefined);
+    const outingsWithStrikes = filteredOutings.filter((o) => o.strikes !== null && o.strikes !== undefined);
     const totalStrikes = outingsWithStrikes.reduce((sum, o) => sum + (o.strikes || 0), 0);
     const totalPitchesWithStrikes = outingsWithStrikes.reduce((sum, o) => sum + o.pitchCount, 0);
     const strikePercentage = totalPitchesWithStrikes > 0 
@@ -92,7 +115,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
       : null;
 
     // Velocity range
-    const velocities = recentOutings
+    const velocities = filteredOutings
       .filter((o) => o.maxVelo && o.maxVelo > 0)
       .map((o) => o.maxVelo!);
     const minVelo = velocities.length > 0 ? Math.min(...velocities) : null;
@@ -100,7 +123,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
 
     // Event type breakdown
     const eventBreakdown: Record<string, { count: number; pitches: number }> = {};
-    recentOutings.forEach((o) => {
+    filteredOutings.forEach((o) => {
       if (!eventBreakdown[o.eventType]) {
         eventBreakdown[o.eventType] = { count: 0, pitches: 0 };
       }
@@ -109,18 +132,18 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
     });
 
     // Unique pitchers who threw
-    const uniquePitchers = new Set(recentOutings.map((o) => o.pitcherName)).size;
+    const uniquePitchers = new Set(filteredOutings.map((o) => o.pitcherName)).size;
 
     return {
       totalPitches,
       strikePercentage,
       minVelo,
       maxVelo,
-      totalOutings: recentOutings.length,
+      totalOutings: filteredOutings.length,
       uniquePitchers,
       eventBreakdown,
     };
-  }, [recentOutings]);
+  }, [filteredOutings]);
 
   // Calculate pitch type breakdown from pitch locations
   const pitchTypeBreakdown = useMemo(() => {
@@ -155,20 +178,81 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
     return DEFAULT_PITCH_TYPES[typeNum.toString()] || `P${typeNum}`;
   };
 
-  if (recentOutings.length === 0) {
+  if (filteredOutings.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground">No outings in the last 7 days</p>
+      <div className="space-y-6 animate-slide-up">
+        {/* View Toggle & Date Range */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === '7-day' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('7-day')}
+            >
+              7-Day
+            </Button>
+            <Button
+              variant={viewMode === 'season' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('season')}
+            >
+              Season
+            </Button>
+          </div>
+          {viewMode === 'season' && (
+            <DateRangePicker
+              startDate={seasonStart}
+              endDate={seasonEnd}
+              onRangeChange={handleDateRangeChange}
+            />
+          )}
+        </div>
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">
+            No outings in the selected {viewMode === '7-day' ? '7 days' : 'date range'}
+          </p>
+        </div>
       </div>
     );
   }
 
+  const viewTitle = viewMode === '7-day' 
+    ? 'Combined 7-Day Dashboard' 
+    : `Season Dashboard`;
+
   return (
     <div className="space-y-6 animate-slide-up">
+      {/* View Toggle & Date Range */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex gap-2">
+          <Button
+            variant={viewMode === '7-day' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('7-day')}
+          >
+            7-Day
+          </Button>
+          <Button
+            variant={viewMode === 'season' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('season')}
+          >
+            Season
+          </Button>
+        </div>
+        {viewMode === 'season' && (
+          <DateRangePicker
+            startDate={seasonStart}
+            endDate={seasonEnd}
+            onRangeChange={handleDateRangeChange}
+          />
+        )}
+      </div>
+
       {/* Header */}
       <div className="mb-6">
         <h2 className="font-display text-2xl font-bold text-foreground">
-          Combined 7-Day Dashboard
+          {viewTitle}
         </h2>
         <p className="text-muted-foreground">
           {stats.uniquePitchers} pitcher{stats.uniquePitchers !== 1 ? 's' : ''} • {stats.totalOutings} outing{stats.totalOutings !== 1 ? 's' : ''} • {stats.totalPitches} total pitches
