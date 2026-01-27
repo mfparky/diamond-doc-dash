@@ -13,10 +13,19 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { PitchPlotter } from './PitchPlotter';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
-import { Video, Send, X, Target } from 'lucide-react';
+import { Video, Send, X, Target, Camera } from 'lucide-react';
+import { VideoCapture } from './VideoCapture';
+import { useAuth } from '@/hooks/use-auth';
 
 interface PlottedPitch {
   pitchNumber: number;
@@ -33,6 +42,7 @@ interface OutingFormProps {
 }
 
 export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     pitcherName: '',
     date: new Date().toISOString().split('T')[0],
@@ -49,6 +59,10 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
   const [plottedPitches, setPlottedPitches] = useState<PlottedPitch[]>([]);
   const [pitchTypes, setPitchTypes] = useState<PitchTypeConfig>(DEFAULT_PITCH_TYPES);
   const { fetchPitchTypes } = usePitchLocations();
+  const [videoDialogOpen, setVideoDialogOpen] = useState(false);
+  const [capturedVideoUrl, setCapturedVideoUrl] = useState<string | null>(null);
+  const [videoPitchType, setVideoPitchType] = useState<number | null>(null);
+  const [videoVelocity, setVideoVelocity] = useState<number | null>(null);
 
   // Load pitch types when pitcher is selected
   useEffect(() => {
@@ -269,14 +283,67 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
               <Video className="w-4 h-4 text-accent" />
               Video Link (optional)
             </Label>
-            <Input
-              id="videoUrl"
-              type="url"
-              placeholder="https://..."
-              value={formData.videoUrl}
-              onChange={(e) => setFormData(prev => ({ ...prev, videoUrl: e.target.value }))}
-              className="mobile-input"
-            />
+            <div className="flex gap-2">
+              <Input
+                id="videoUrl"
+                type="url"
+                placeholder="https://..."
+                value={capturedVideoUrl || formData.videoUrl}
+                onChange={(e) => setFormData(prev => ({ ...prev, videoUrl: e.target.value }))}
+                className="mobile-input flex-1"
+                disabled={!!capturedVideoUrl}
+              />
+              <Dialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button 
+                    type="button" 
+                    variant={capturedVideoUrl ? "secondary" : "outline"}
+                    size="icon"
+                    className="shrink-0"
+                  >
+                    <Camera className="w-4 h-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Record or Upload Video</DialogTitle>
+                  </DialogHeader>
+                  {user && formData.pitcherName && (
+                    <VideoCapture
+                      slot={1}
+                      outingId="pending"
+                      userId={user.id}
+                      pitchTypes={pitchTypes}
+                      existingUrl={capturedVideoUrl || undefined}
+                      existingPitchType={videoPitchType || undefined}
+                      existingVelocity={videoVelocity || undefined}
+                      onVideoSaved={(url, pt, vel) => {
+                        setCapturedVideoUrl(url);
+                        setVideoPitchType(pt);
+                        setVideoVelocity(vel);
+                        setVideoDialogOpen(false);
+                      }}
+                      onVideoRemoved={() => {
+                        setCapturedVideoUrl(null);
+                        setVideoPitchType(null);
+                        setVideoVelocity(null);
+                      }}
+                    />
+                  )}
+                  {!formData.pitcherName && (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Please select a pitcher first to record video.
+                    </p>
+                  )}
+                </DialogContent>
+              </Dialog>
+            </div>
+            {capturedVideoUrl && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Video className="w-3 h-3" />
+                Video captured - will be saved with outing
+              </p>
+            )}
           </div>
 
           {/* Plot Pitch Locations Button */}
