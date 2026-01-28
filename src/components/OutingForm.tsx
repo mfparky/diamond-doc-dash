@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { format } from 'date-fns';
+import { CalendarIcon, Video, Send, X, Target } from 'lucide-react';
 import { Outing, Pitcher } from '@/types/pitcher';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,10 +15,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { PitchPlotter } from './PitchPlotter';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
-import { Video, Send, X, Target } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface PlottedPitch {
   pitchNumber: number;
@@ -32,10 +36,19 @@ interface OutingFormProps {
   onCancel?: () => void;
 }
 
+// Helper to get today's date as YYYY-MM-DD without timezone issues
+function getTodayDateString(): string {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
   const [formData, setFormData] = useState({
     pitcherName: '',
-    date: new Date().toISOString().split('T')[0],
+    date: getTodayDateString(),
     eventType: '' as Outing['eventType'] | '',
     pitchCount: '',
     strikes: '',
@@ -45,6 +58,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
     videoUrl: '',
     focus: '',
   });
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showPitchPlotter, setShowPitchPlotter] = useState(false);
   const [plottedPitches, setPlottedPitches] = useState<PlottedPitch[]>([]);
   const [pitchTypes, setPitchTypes] = useState<PitchTypeConfig>(DEFAULT_PITCH_TYPES);
@@ -59,6 +73,18 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
       }
     }
   }, [formData.pitcherName, pitchers, fetchPitchTypes]);
+
+  // Update date string when calendar selection changes
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      setSelectedDate(date);
+      // Format as YYYY-MM-DD using local date parts to avoid timezone issues
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      setFormData(prev => ({ ...prev, date: `${year}-${month}-${day}` }));
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,9 +106,10 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
     }, plottedPitches.length > 0 ? plottedPitches : undefined);
 
     // Reset form
+    const today = new Date();
     setFormData({
       pitcherName: '',
-      date: new Date().toISOString().split('T')[0],
+      date: getTodayDateString(),
       eventType: '',
       pitchCount: '',
       strikes: '',
@@ -92,6 +119,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
       videoUrl: '',
       focus: '',
     });
+    setSelectedDate(today);
     setPlottedPitches([]);
     setShowPitchPlotter(false);
   };
@@ -148,14 +176,30 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
 
           {/* Date */}
           <div className="space-y-2">
-            <Label htmlFor="date" className="text-sm font-medium">Date</Label>
-            <Input
-              id="date"
-              type="date"
-              value={formData.date}
-              onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-              className="mobile-input"
-            />
+            <Label className="text-sm font-medium">Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal mobile-input",
+                    !selectedDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={handleDateSelect}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Event Type */}
