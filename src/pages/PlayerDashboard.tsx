@@ -222,37 +222,6 @@ export default function PlayerDashboard() {
           </Card>
         )}
 
-        {/* Focus & Notes Section (no video here) */}
-        {(() => {
-          const hasFocus = !!pitcher.focus;
-          const hasNotes = !!pitcher.notes;
-
-          if (hasFocus || hasNotes) {
-            return (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {hasFocus && (
-                  <Card className="glass-card border-accent/30 bg-accent/5">
-                    <CardContent className="p-4">
-                      <p className="text-sm font-medium text-accent">Current Focus</p>
-                      <p className="text-foreground mt-1">{pitcher.focus}</p>
-                    </CardContent>
-                  </Card>
-                )}
-                {hasNotes && (
-                  <Card className="glass-card">
-                    <CardContent className="p-4">
-                      <p className="text-sm font-medium text-muted-foreground">Latest Notes</p>
-                      <p className="text-foreground mt-1">{pitcher.notes}</p>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            );
-          }
-
-          return null;
-        })()}
-
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="stat-card">
@@ -303,6 +272,37 @@ export default function PlayerDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Focus & Notes Section */}
+        {(() => {
+          const hasFocus = !!pitcher.focus;
+          const hasNotes = !!pitcher.notes;
+
+          if (hasFocus || hasNotes) {
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                {hasFocus && (
+                  <Card className="glass-card border-accent/30 bg-accent/5">
+                    <CardContent className="p-4">
+                      <p className="text-sm font-medium text-accent">Current Focus</p>
+                      <p className="text-foreground mt-1">{pitcher.focus}</p>
+                    </CardContent>
+                  </Card>
+                )}
+                {hasNotes && (
+                  <Card className="glass-card">
+                    <CardContent className="p-4">
+                      <p className="text-sm font-medium text-muted-foreground">Latest Notes</p>
+                      <p className="text-foreground mt-1">{pitcher.notes}</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            );
+          }
+
+          return null;
+        })()}
 
         {/* Latest Video Section */}
         {(() => {
