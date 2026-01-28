@@ -202,6 +202,22 @@ export function VelocityScale({
             })}
           </svg>
 
+          {/* Tick labels */}
+          <div className="absolute bottom-0 left-0 right-0 flex justify-between px-0">
+            {ticks.map((mph) => (
+              <span 
+                key={mph} 
+                className="text-[10px] sm:text-xs text-muted-foreground"
+                style={{ 
+                  position: 'absolute',
+                  left: `${((mph - minRange) / (maxRange - minRange)) * 100}%`,
+                  transform: 'translateX(-50%)'
+                }}
+              >
+                {mph}
+              </span>
+            ))}
+          </div>
         </div>
       </CardContent>
     </Card>
