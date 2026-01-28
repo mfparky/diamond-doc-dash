@@ -10,8 +10,8 @@ interface VelocityScaleProps {
 
 export function VelocityScale({ 
   velocities, 
-  minRange = 45, 
-  maxRange = 65 
+  minRange = 40, 
+  maxRange = 60 
 }: VelocityScaleProps) {
   // Calculate velocity distribution and stats
   const { plotPoints, stats, densityPath } = useMemo(() => {
@@ -202,28 +202,7 @@ export function VelocityScale({
             })}
           </svg>
 
-          {/* Tick labels */}
-          <div className="absolute bottom-0 left-0 right-0 flex justify-between px-0">
-            {ticks.map((mph) => (
-              <span 
-                key={mph} 
-                className="text-[10px] sm:text-xs text-muted-foreground"
-                style={{ 
-                  position: 'absolute',
-                  left: `${((mph - minRange) / (maxRange - minRange)) * 100}%`,
-                  transform: 'translateX(-50%)'
-                }}
-              >
-                {mph}
-              </span>
-            ))}
-          </div>
         </div>
-
-        {/* Unit label */}
-        <p className="text-center text-[10px] sm:text-xs text-muted-foreground mt-1">
-          MPH
-        </p>
       </CardContent>
     </Card>
   );
