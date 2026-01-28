@@ -13,6 +13,7 @@ import { PitchCountChart } from './PitchCountChart';
 import { VideoPlayer } from './VideoPlayer';
 import { StrikeLocationViewer } from './StrikeLocationViewer';
 import { PitchTypeConfigDialog } from './PitchTypeConfigDialog';
+import { HomeButton } from './HomeButton';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES, PitchLocation } from '@/types/pitch-location';
 import { useToast } from '@/hooks/use-toast';
@@ -87,6 +88,7 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting 
 
   return (
     <div className="space-y-6 animate-slide-up" {...swipeHandlers}>
+      <HomeButton />
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0">
