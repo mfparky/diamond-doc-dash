@@ -8,7 +8,7 @@ import { CombinedDashboard } from '@/components/CombinedDashboard';
 import { PitcherDetail } from '@/components/PitcherDetail';
 import { OutingForm } from '@/components/OutingForm';
 import { AllTimeStats } from '@/components/AllTimeStats';
-import { RosterManagementDialog } from '@/components/RosterManagementDialog';
+import { TeamSettingsDialog } from '@/components/TeamSettingsDialog';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Settings } from 'lucide-react';
@@ -17,6 +17,7 @@ import { getDaysRestNeeded } from '@/types/pitcher';
 import { useOutings } from '@/hooks/use-outings';
 import { usePitchers } from '@/hooks/use-pitchers';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
+import { useTeams } from '@/hooks/use-teams';
 import { DEFAULT_MAX_WEEKLY_PITCHES } from '@/lib/pulse-status';
 import { useSwipe } from '@/hooks/use-swipe';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
@@ -25,15 +26,34 @@ type View = 'dashboard' | 'detail';
 type TimeView = '7day' | 'alltime';
 
 const Index = () => {
-  const { outings, isLoading: outingsLoading, addOuting, updateOuting, deleteOuting } = useOutings();
-  const { pitchers: rosterPitchers, isLoading: pitchersLoading, addPitcher, updatePitcher, deletePitcher } = usePitchers();
+  // Team management
+  const {
+    teams,
+    currentTeam,
+    teamMembers,
+    userRole,
+    isLoading: teamsLoading,
+    createTeam,
+    joinTeam,
+    updateTeam,
+    removeMember,
+    leaveTeam,
+    switchTeam,
+  } = useTeams();
+
+  // Pass team ID to data hooks for filtering
+  const teamId = currentTeam?.id || null;
+  
+  const { outings, isLoading: outingsLoading, addOuting, updateOuting, deleteOuting } = useOutings(teamId);
+  const { pitchers: rosterPitchers, isLoading: pitchersLoading, addPitcher, updatePitcher, deletePitcher } = usePitchers(teamId);
   const { addPitchLocations } = usePitchLocations();
+  
   const [activeTab, setActiveTab] = useState<'players' | 'team'>('players');
   const [timeView, setTimeView] = useState<TimeView>('7day');
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [selectedPitcher, setSelectedPitcher] = useState<Pitcher | null>(null);
   const [showOutingForm, setShowOutingForm] = useState(false);
-  const [showRosterManagement, setShowRosterManagement] = useState(false);
+  const [showTeamSettings, setShowTeamSettings] = useState(false);
   const { toast } = useToast();
 
   // Create a map of pitcher name to max weekly pitches
@@ -164,12 +184,12 @@ const Index = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="font-display text-2xl font-bold text-foreground">
-                    Roster
+                    {currentTeam ? currentTeam.name : 'Roster'}
                   </h2>
                   <button
-                    onClick={() => setShowRosterManagement(true)}
+                    onClick={() => setShowTeamSettings(true)}
                     className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                    aria-label="Manage roster"
+                    aria-label="Team settings"
                   >
                     <Settings className="w-5 h-5" />
                   </button>
@@ -242,11 +262,21 @@ const Index = () => {
         </SheetContent>
       </Sheet>
 
-      {/* Roster Management Dialog */}
-      <RosterManagementDialog
-        open={showRosterManagement}
-        onOpenChange={setShowRosterManagement}
+      {/* Team Settings Dialog */}
+      <TeamSettingsDialog
+        open={showTeamSettings}
+        onOpenChange={setShowTeamSettings}
+        currentTeam={currentTeam}
+        teams={teams}
+        teamMembers={teamMembers}
+        userRole={userRole}
         pitchers={rosterPitchers}
+        onCreateTeam={createTeam}
+        onJoinTeam={joinTeam}
+        onUpdateTeam={updateTeam}
+        onRemoveMember={removeMember}
+        onLeaveTeam={leaveTeam}
+        onSwitchTeam={switchTeam}
         onAddPitcher={addPitcher}
         onUpdatePitcher={updatePitcher}
         onDeletePitcher={deletePitcher}
