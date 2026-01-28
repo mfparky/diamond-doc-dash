@@ -95,6 +95,8 @@ const Index = () => {
     const updatedPitcher = pitchers.find((p) => p.id === pitcher.id);
     setSelectedPitcher(updatedPitcher || pitcher);
     setCurrentView('detail');
+    // Scroll to top of page
+    window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
   const handleBackToDashboard = () => {
