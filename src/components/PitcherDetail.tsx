@@ -144,113 +144,6 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting 
         </Card>
       )}
 
-      {/* Focus, Notes & Latest Video Section */}
-      {(() => {
-        const sortedOutings = [...pitcher.outings].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        const outingWithVideo = sortedOutings.find(o => o.videoUrl1 || o.videoUrl2 || o.videoUrl);
-        
-        const latestVideoUrl1 = outingWithVideo?.videoUrl1;
-        const latestVideoUrl2 = outingWithVideo?.videoUrl2;
-        const latestLegacyUrl = outingWithVideo?.videoUrl;
-        const latestVideoUrl = latestVideoUrl1 || latestVideoUrl2 || latestLegacyUrl;
-        
-        const latestPitchType = latestVideoUrl1
-          ? outingWithVideo?.video1PitchType
-          : latestVideoUrl2
-            ? outingWithVideo?.video2PitchType
-            : undefined;
-        const latestVelocity = latestVideoUrl1
-          ? outingWithVideo?.video1Velocity
-          : latestVideoUrl2
-            ? outingWithVideo?.video2Velocity
-            : undefined;
-        
-        const formatVideoDate = (dateStr: string) => {
-          const date = new Date(dateStr);
-          return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        };
-        
-        const hasVideo = !!latestVideoUrl;
-        const hasFocus = !!pitcher.focus;
-        const hasNotes = !!pitcher.notes;
-
-        // If video exists: Stacked Focus/Notes on left, Video on right
-        if (hasVideo) {
-          return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Stacked Focus & Notes */}
-              {(hasFocus || hasNotes) && (
-                <div className="flex flex-col gap-4">
-                  {hasFocus && (
-                    <Card className="glass-card border-accent/30 bg-accent/5 flex-1">
-                      <CardContent className="p-4">
-                        <p className="text-sm font-medium text-accent">Current Focus</p>
-                        <p className="text-foreground mt-1">{pitcher.focus}</p>
-                      </CardContent>
-                    </Card>
-                  )}
-                  {hasNotes && (
-                    <Card className="glass-card flex-1">
-                      <CardContent className="p-4">
-                        <p className="text-sm font-medium text-muted-foreground">Latest Notes</p>
-                        <p className="text-foreground mt-1">{pitcher.notes}</p>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              )}
-
-              {/* Latest Video */}
-              <Card className="glass-card">
-                <CardHeader className="pb-2">
-                  <CardTitle className="font-display text-lg flex items-center gap-2">
-                    <Play className="w-5 h-5 text-primary" />
-                    Latest Video
-                  </CardTitle>
-                  <p className="text-xs text-muted-foreground">
-                    {formatVideoDate(outingWithVideo!.date)} - {outingWithVideo!.eventType}
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <VideoPlayer
-                    url={latestVideoUrl!}
-                    pitchType={latestPitchType}
-                    velocity={latestVelocity}
-                    pitchTypes={pitchTypes}
-                  />
-                </CardContent>
-              </Card>
-            </div>
-          );
-        }
-
-        // No video: Focus and Notes side by side
-        if (hasFocus || hasNotes) {
-          return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {hasFocus && (
-                <Card className="glass-card border-accent/30 bg-accent/5">
-                  <CardContent className="p-4">
-                    <p className="text-sm font-medium text-accent">Current Focus</p>
-                    <p className="text-foreground mt-1">{pitcher.focus}</p>
-                  </CardContent>
-                </Card>
-              )}
-              {hasNotes && (
-                <Card className="glass-card">
-                  <CardContent className="p-4">
-                    <p className="text-sm font-medium text-muted-foreground">Latest Notes</p>
-                    <p className="text-foreground mt-1">{pitcher.notes}</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          );
-        }
-
-        return null;
-      })()}
-
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="stat-card">
@@ -301,6 +194,87 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting 
           </CardContent>
         </Card>
       </div>
+
+      {/* Focus/Notes & Latest Video Section - Side by Side */}
+      {(() => {
+        const sortedOutings = [...pitcher.outings].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        const outingWithVideo = sortedOutings.find(o => o.videoUrl1 || o.videoUrl2 || o.videoUrl);
+        
+        const latestVideoUrl = outingWithVideo?.videoUrl1 || outingWithVideo?.videoUrl2 || outingWithVideo?.videoUrl;
+        const latestPitchType = outingWithVideo?.videoUrl1
+          ? outingWithVideo?.video1PitchType
+          : outingWithVideo?.videoUrl2
+            ? outingWithVideo?.video2PitchType
+            : undefined;
+        const latestVelocity = outingWithVideo?.videoUrl1
+          ? outingWithVideo?.video1Velocity
+          : outingWithVideo?.videoUrl2
+            ? outingWithVideo?.video2Velocity
+            : undefined;
+        
+        const formatVideoDate = (dateStr: string) => {
+          const date = new Date(dateStr);
+          return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        };
+        
+        const hasVideo = !!latestVideoUrl;
+        const hasFocus = !!pitcher.focus;
+        const hasNotes = !!pitcher.notes;
+
+        // If we have video OR focus/notes, show the section
+        if (hasVideo || hasFocus || hasNotes) {
+          return (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+              {/* Stacked Focus & Notes on left */}
+              {(hasFocus || hasNotes) && (
+                <div className="flex flex-col gap-4">
+                  {hasFocus && (
+                    <Card className="glass-card border-accent/30 bg-accent/5">
+                      <CardContent className="p-4">
+                        <p className="text-sm font-medium text-accent">Current Focus</p>
+                        <p className="text-foreground mt-1">{pitcher.focus}</p>
+                      </CardContent>
+                    </Card>
+                  )}
+                  {hasNotes && (
+                    <Card className="glass-card">
+                      <CardContent className="p-4">
+                        <p className="text-sm font-medium text-muted-foreground">Latest Notes</p>
+                        <p className="text-foreground mt-1">{pitcher.notes}</p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+
+              {/* Latest Video on right */}
+              {hasVideo && (
+                <Card className="glass-card">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="font-display text-lg flex items-center gap-2">
+                      <Play className="w-5 h-5 text-primary" />
+                      Latest Video
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      {formatVideoDate(outingWithVideo!.date)} - {outingWithVideo!.eventType}
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <VideoPlayer
+                      url={latestVideoUrl!}
+                      pitchType={latestPitchType}
+                      velocity={latestVelocity}
+                      pitchTypes={pitchTypes}
+                    />
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          );
+        }
+
+        return null;
+      })()}
 
       {/* Season Pitch Count Chart */}
       <PitchCountChart outings={pitcher.outings} />
