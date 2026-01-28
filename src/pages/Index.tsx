@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { Pitcher, Outing } from '@/types/pitcher';
 import { calculatePitcherStats } from '@/lib/pitcher-data';
 import { Header } from '@/components/Header';
+import { BottomNav } from '@/components/BottomNav';
 import { PitcherCard } from '@/components/PitcherCard';
 import { CombinedDashboard } from '@/components/CombinedDashboard';
 import { PitcherDetail } from '@/components/PitcherDetail';
@@ -9,6 +10,7 @@ import { OutingForm } from '@/components/OutingForm';
 import { AllTimeStats } from '@/components/AllTimeStats';
 import { RosterManagementDialog } from '@/components/RosterManagementDialog';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { getDaysRestNeeded } from '@/types/pitcher';
 import { useOutings } from '@/hooks/use-outings';
@@ -25,7 +27,7 @@ const Index = () => {
   const { outings, isLoading: outingsLoading, addOuting, updateOuting, deleteOuting } = useOutings();
   const { pitchers: rosterPitchers, isLoading: pitchersLoading, addPitcher, updatePitcher, deletePitcher } = usePitchers();
   const { addPitchLocations } = usePitchLocations();
-  const [viewMode, setViewMode] = useState<'cards' | 'combined'>('cards');
+  const [activeTab, setActiveTab] = useState<'players' | 'team'>('players');
   const [timeView, setTimeView] = useState<TimeView>('7day');
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [selectedPitcher, setSelectedPitcher] = useState<Pitcher | null>(null);
@@ -105,80 +107,102 @@ const Index = () => {
     setSelectedPitcher(null);
   };
 
-  // Swipe handlers for switching between Cards and Combined views
+  // Swipe handlers for switching between Players and Team tabs
   const swipeHandlers = useSwipe({
     onSwipeLeft: useCallback(() => {
-      if (timeView === '7day' && viewMode === 'cards' && currentView === 'dashboard') {
-        setViewMode('combined');
+      if (currentView === 'dashboard' && activeTab === 'players') {
+        setActiveTab('team');
       }
-    }, [timeView, viewMode, currentView]),
+    }, [activeTab, currentView]),
     onSwipeRight: useCallback(() => {
-      if (timeView === '7day' && viewMode === 'combined' && currentView === 'dashboard') {
-        setViewMode('cards');
+      if (currentView === 'dashboard' && activeTab === 'team') {
+        setActiveTab('players');
       }
-    }, [timeView, viewMode, currentView]),
+    }, [activeTab, currentView]),
     threshold: 75,
   });
 
+  // Time toggle pills component
+  const TimeTogglePills = () => (
+    <div className="flex items-center bg-secondary rounded-lg p-1 w-fit">
+      <Button
+        variant="ghost"
+        size="sm"
+        className={`h-8 px-4 text-sm font-medium ${timeView === '7day' ? 'bg-card shadow-sm' : ''}`}
+        onClick={() => setTimeView('7day')}
+      >
+        7-Day
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        className={`h-8 px-4 text-sm font-medium ${timeView === 'alltime' ? 'bg-card shadow-sm' : ''}`}
+        onClick={() => setTimeView('alltime')}
+      >
+        Season
+      </Button>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background">
-      <Header
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        onAddOuting={() => setShowOutingForm(true)}
-        timeView={timeView}
-        onTimeViewChange={setTimeView}
-      />
+      <Header onAddOuting={() => setShowOutingForm(true)} />
 
       <main 
-        className="container mx-auto px-4 py-6 pb-20 sm:pb-6"
+        className="container mx-auto px-4 py-6 pb-24 sm:pb-6"
         {...swipeHandlers}
       >
-        {currentView === 'dashboard' && timeView === '7day' && viewMode === 'cards' && (
+        {currentView === 'dashboard' && activeTab === 'players' && (
           <div className="animate-slide-up">
-            {/* Stats Summary */}
-            <div className="mb-6">
-              <div className="flex items-center gap-3">
-                <h2 className="font-display text-2xl font-bold text-foreground">
-                  Roster
-                </h2>
-                <button
-                  onClick={() => setShowRosterManagement(true)}
-                  className="text-sm text-primary hover:text-primary/80 underline underline-offset-2"
-                >
-                  Edit
-                </button>
+            {/* Header with Time Toggle */}
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-3">
+                  <h2 className="font-display text-2xl font-bold text-foreground">
+                    Roster
+                  </h2>
+                  <button
+                    onClick={() => setShowRosterManagement(true)}
+                    className="text-sm text-primary hover:text-primary/80 underline underline-offset-2"
+                  >
+                    Edit
+                  </button>
+                </div>
+                <p className="text-muted-foreground">
+                  {pitchers.length} pitchers •{' '}
+                  {pitchers.filter((p) => p.restStatus.type === 'active').length} active •{' '}
+                  {pitchers.filter((p) => p.restStatus.type === 'resting').length} resting
+                </p>
               </div>
-              <p className="text-muted-foreground">
-                {pitchers.length} pitchers •{' '}
-                {pitchers.filter((p) => p.restStatus.type === 'active').length} active •{' '}
-                {pitchers.filter((p) => p.restStatus.type === 'resting').length} resting
-              </p>
+              <TimeTogglePills />
             </div>
 
-            {/* Cards View */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {pitchers.map((pitcher) => (
-                <PitcherCard
-                  key={pitcher.id}
-                  pitcher={pitcher}
-                  onClick={() => handlePitcherClick(pitcher)}
-                  maxWeeklyPitches={pitcherMaxPitches[pitcher.name] || DEFAULT_MAX_WEEKLY_PITCHES}
-                />
-              ))}
-            </div>
+            {/* Cards View - 7 Day */}
+            {timeView === '7day' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {pitchers.map((pitcher) => (
+                  <PitcherCard
+                    key={pitcher.id}
+                    pitcher={pitcher}
+                    onClick={() => handlePitcherClick(pitcher)}
+                    maxWeeklyPitches={pitcherMaxPitches[pitcher.name] || DEFAULT_MAX_WEEKLY_PITCHES}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Season Stats */}
+            {timeView === 'alltime' && (
+              <AllTimeStats outings={outings} />
+            )}
           </div>
         )}
 
-        {currentView === 'dashboard' && timeView === '7day' && viewMode === 'combined' && (
+        {currentView === 'dashboard' && activeTab === 'team' && (
           <CombinedDashboard 
             outings={outings} 
             pitcherPitchTypes={pitcherPitchTypesMap}
           />
-        )}
-
-        {currentView === 'dashboard' && timeView === 'alltime' && (
-          <AllTimeStats outings={outings} />
         )}
 
         {currentView === 'detail' && selectedPitcher && (
@@ -190,6 +214,13 @@ const Index = () => {
           />
         )}
       </main>
+
+      {/* Bottom Navigation - Mobile Only */}
+      <BottomNav
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onAddOuting={() => setShowOutingForm(true)}
+      />
 
       {/* Outing Form Sheet - Mobile Friendly */}
       <Sheet open={showOutingForm} onOpenChange={setShowOutingForm}>
