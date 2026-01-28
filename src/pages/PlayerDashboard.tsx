@@ -24,7 +24,24 @@ export default function PlayerDashboard() {
   const [selectedVideoOuting, setSelectedVideoOuting] = useState<Outing | null>(null);
   const { fetchPitchTypes } = usePitchLocations();
 
+  const withTimeout = <T,>(promise: Promise<T>, ms = 8000): Promise<T> => {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('timeout')), ms);
+      promise
+        .then((value) => {
+          clearTimeout(timer);
+          resolve(value);
+        })
+        .catch((err) => {
+          clearTimeout(timer);
+          reject(err);
+        });
+    });
+  };
+
   useEffect(() => {
+    let cancelled = false;
+
     async function fetchPlayerData() {
       if (!playerId) {
         setError('Player ID not provided');
@@ -33,6 +50,9 @@ export default function PlayerDashboard() {
       }
 
       try {
+        setIsLoading(true);
+        setError(null);
+
         // Fetch pitcher by ID
         const { data: pitcherData, error: pitcherError } = await supabase
           .from('pitchers')
@@ -96,21 +116,32 @@ export default function PlayerDashboard() {
 
         // Calculate stats
         const calculatedPitcher = calculatePitcherStats(basePitcher, mappedOutings);
-        setPitcher(calculatedPitcher);
+        if (!cancelled) {
+          setPitcher(calculatedPitcher);
+        }
 
-        // Fetch pitch types
-        const types = await fetchPitchTypes(playerId);
-        setPitchTypes(types);
+        // Fetch pitch types in the background (don't block page load)
+        void withTimeout(fetchPitchTypes(playerId), 8000)
+          .then((types) => {
+            if (!cancelled) setPitchTypes(types);
+          })
+          .catch((err) => {
+            // If this fails/hangs, we still want the dashboard to be usable.
+            console.warn('Pitch types failed to load (fallback to defaults):', err);
+          });
       } catch (err) {
         console.error('Error fetching player data:', err);
         setError('Failed to load player data');
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     }
 
     fetchPlayerData();
-  }, [playerId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [playerId, fetchPitchTypes]);
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';
