@@ -4,12 +4,13 @@ import { StatusBadge } from './StatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, Pencil, Trash2, Share2, Settings, MapPin } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, Pencil, Trash2, Share2, Settings, MapPin, Play } from 'lucide-react';
 import { EditOutingDialog } from './EditOutingDialog';
 import { DeleteOutingDialog } from './DeleteOutingDialog';
 import { OutingPitchMapDialog } from './OutingPitchMapDialog';
 import { OutingVideoSection } from './OutingVideoSection';
 import { PitchCountChart } from './PitchCountChart';
+import { VideoPlayer } from './VideoPlayer';
 import { StrikeLocationViewer } from './StrikeLocationViewer';
 import { PitchTypeConfigDialog } from './PitchTypeConfigDialog';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
@@ -140,6 +141,57 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting 
           </CardContent>
         </Card>
       )}
+
+      {/* Latest Video Section */}
+      {(() => {
+        const sortedOutings = [...pitcher.outings].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        const outingWithVideo = sortedOutings.find(o => o.videoUrl1 || o.videoUrl2 || o.videoUrl);
+        
+        if (!outingWithVideo) return null;
+        
+        const latestVideoUrl1 = outingWithVideo.videoUrl1;
+        const latestVideoUrl2 = outingWithVideo.videoUrl2;
+        const latestLegacyUrl = outingWithVideo.videoUrl;
+        const latestVideoUrl = latestVideoUrl1 || latestVideoUrl2 || latestLegacyUrl;
+        
+        const latestPitchType = latestVideoUrl1
+          ? outingWithVideo.video1PitchType
+          : latestVideoUrl2
+            ? outingWithVideo.video2PitchType
+            : undefined;
+        const latestVelocity = latestVideoUrl1
+          ? outingWithVideo.video1Velocity
+          : latestVideoUrl2
+            ? outingWithVideo.video2Velocity
+            : undefined;
+        
+        const formatVideoDate = (dateStr: string) => {
+          const date = new Date(dateStr);
+          return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        };
+        
+        return (
+          <Card className="glass-card">
+            <CardHeader className="pb-2">
+              <CardTitle className="font-display text-lg flex items-center gap-2">
+                <Play className="w-5 h-5 text-primary" />
+                Latest Video
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                {formatVideoDate(outingWithVideo.date)} - {outingWithVideo.eventType}
+              </p>
+            </CardHeader>
+            <CardContent>
+              <VideoPlayer
+                url={latestVideoUrl!}
+                pitchType={latestPitchType}
+                velocity={latestVelocity}
+                pitchTypes={pitchTypes}
+              />
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
