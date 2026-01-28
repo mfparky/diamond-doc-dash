@@ -184,19 +184,6 @@ export function VelocityScale({
               strokeWidth="0.5"
             />
 
-            {/* Plot points */}
-            {plotPoints.map((point, idx) => (
-              <circle
-                key={idx}
-                cx={point.x}
-                cy={50 + point.yOffset * 0.4}
-                r="1.5"
-                fill="hsl(var(--foreground))"
-                opacity={0.7 + point.density * 0.3}
-                className="transition-all duration-200"
-              />
-            ))}
-
             {/* Tick marks */}
             {ticks.map((mph) => {
               const x = ((mph - minRange) / (maxRange - minRange)) * 100;
