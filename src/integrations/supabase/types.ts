@@ -27,6 +27,7 @@ export type Database = {
           pitcher_id: string
           pitcher_name: string
           strikes: number | null
+          team_id: string | null
           user_id: string | null
           video_1_pitch_type: number | null
           video_1_velocity: number | null
@@ -48,6 +49,7 @@ export type Database = {
           pitcher_id: string
           pitcher_name: string
           strikes?: number | null
+          team_id?: string | null
           user_id?: string | null
           video_1_pitch_type?: number | null
           video_1_velocity?: number | null
@@ -69,6 +71,7 @@ export type Database = {
           pitcher_id?: string
           pitcher_name?: string
           strikes?: number | null
+          team_id?: string | null
           user_id?: string | null
           video_1_pitch_type?: number | null
           video_1_velocity?: number | null
@@ -78,7 +81,15 @@ export type Database = {
           video_url_1?: string | null
           video_url_2?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "outings_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pitch_locations: {
         Row: {
@@ -89,6 +100,7 @@ export type Database = {
           pitch_number: number
           pitch_type: number
           pitcher_id: string
+          team_id: string | null
           user_id: string | null
           x_location: number
           y_location: number
@@ -101,6 +113,7 @@ export type Database = {
           pitch_number: number
           pitch_type: number
           pitcher_id: string
+          team_id?: string | null
           user_id?: string | null
           x_location: number
           y_location: number
@@ -113,6 +126,7 @@ export type Database = {
           pitch_number?: number
           pitch_type?: number
           pitcher_id?: string
+          team_id?: string | null
           user_id?: string | null
           x_location?: number
           y_location?: number
@@ -125,6 +139,13 @@ export type Database = {
             referencedRelation: "outings"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pitch_locations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
         ]
       }
       pitchers: {
@@ -134,6 +155,7 @@ export type Database = {
           max_weekly_pitches: number
           name: string
           pitch_types: Json | null
+          team_id: string | null
           updated_at: string
           user_id: string | null
         }
@@ -143,6 +165,7 @@ export type Database = {
           max_weekly_pitches?: number
           name: string
           pitch_types?: Json | null
+          team_id?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -152,8 +175,76 @@ export type Database = {
           max_weekly_pitches?: number
           name?: string
           pitch_types?: Json | null
+          team_id?: string | null
           updated_at?: string
           user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pitchers_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_members: {
+        Row: {
+          created_at: string
+          id: string
+          role: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: string
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          created_at: string
+          id: string
+          join_code: string
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          join_code?: string
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          join_code?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -162,7 +253,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_team_member: {
+        Args: { _team_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_team_owner: {
+        Args: { _team_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

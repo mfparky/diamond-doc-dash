@@ -4,7 +4,7 @@ import { Outing } from '@/types/pitcher';
 import { useToast } from '@/hooks/use-toast';
 import { validateOuting } from '@/lib/validation';
 
-export function useOutings() {
+export function useOutings(teamId?: string | null) {
   const [outings, setOutings] = useState<Outing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -12,10 +12,17 @@ export function useOutings() {
   // Fetch outings from Supabase
   const fetchOutings = useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('outings')
         .select('*')
         .order('date', { ascending: false });
+
+      // Filter by team if teamId is provided
+      if (teamId) {
+        query = query.eq('team_id', teamId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -51,7 +58,7 @@ export function useOutings() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, teamId]);
 
   // Add a new outing to Supabase
   const addOuting = useCallback(async (outingData: Omit<Outing, 'id' | 'timestamp'>): Promise<Outing | null> => {
@@ -107,6 +114,7 @@ export function useOutings() {
           video_url_1: outingData.videoUrl1 || null,
           focus: outingData.focus || null,
           user_id: user.id,
+          team_id: teamId || null,
         })
         .select()
         .single();
@@ -147,7 +155,7 @@ export function useOutings() {
       });
       return null;
     }
-  }, [toast]);
+  }, [toast, teamId]);
 
   // Update an existing outing
   const updateOuting = useCallback(async (id: string, outingData: Partial<Omit<Outing, 'id' | 'timestamp'>>): Promise<boolean> => {
