@@ -163,11 +163,12 @@ export function VideoCapture({
           </div>
         )}
 
-        {/* Save Button - show when there's a valid video ID */}
-        {videoId && (
+        {/* Save Button - always visible when URL entered, enabled when valid */}
+        {youtubeUrl && (
           <Button
             onClick={handleSave}
             className="w-full"
+            disabled={!videoId}
           >
             Save Video
           </Button>
