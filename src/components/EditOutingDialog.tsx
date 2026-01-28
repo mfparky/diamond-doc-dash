@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 import { Outing } from '@/types/pitcher';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -35,6 +35,17 @@ export function EditOutingDialog({ outing, open, onOpenChange, onSave }: EditOut
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
 
+  const normalizeDateOnly = (d: Date) => {
+    // DayPicker can give a Date that represents the chosen day but with a non-midnight
+    // local time (common when a date-only value is interpreted as UTC).
+    // Normalize to local *noon* for stable display and to avoid timezone/day shifts.
+    const useUtcParts = d.getHours() !== 0 || d.getMinutes() !== 0 || d.getSeconds() !== 0 || d.getMilliseconds() !== 0;
+    const year = useUtcParts ? d.getUTCFullYear() : d.getFullYear();
+    const monthIndex = useUtcParts ? d.getUTCMonth() : d.getMonth();
+    const day = useUtcParts ? d.getUTCDate() : d.getDate();
+    return new Date(year, monthIndex, day, 12, 0, 0, 0);
+  };
+
   // Reset form when outing changes
   useEffect(() => {
     if (outing) {
@@ -52,21 +63,22 @@ export function EditOutingDialog({ outing, open, onOpenChange, onSave }: EditOut
       // Parse the date string as local date (not UTC)
       if (outing.date) {
         const [year, month, day] = outing.date.split('-').map(Number);
-        setSelectedDate(new Date(year, month - 1, day));
+        setSelectedDate(new Date(year, month - 1, day, 12, 0, 0, 0));
       }
     }
   }, [outing]);
 
   // Update date string when calendar selection changes
   const handleDateSelect = (date: Date | undefined) => {
-    setSelectedDate(date);
-    if (date) {
-      // Format as YYYY-MM-DD using local date parts to avoid timezone issues
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      setFormData(prev => ({ ...prev, date: `${year}-${month}-${day}` }));
-    }
+    if (!date) return;
+    const normalized = normalizeDateOnly(date);
+    setSelectedDate(normalized);
+
+    // Format as YYYY-MM-DD using local date parts from the normalized date
+    const year = normalized.getFullYear();
+    const month = String(normalized.getMonth() + 1).padStart(2, '0');
+    const day = String(normalized.getDate()).padStart(2, '0');
+    setFormData((prev) => ({ ...prev, date: `${year}-${month}-${day}` }));
   };
 
   const handleSave = async () => {

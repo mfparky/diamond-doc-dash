@@ -45,6 +45,10 @@ function getTodayDateString(): string {
   return `${year}-${month}-${day}`;
 }
 
+function toLocalNoon(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0, 0);
+}
+
 export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
   const [formData, setFormData] = useState({
     pitcherName: '',
@@ -58,7 +62,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
     videoUrl: '',
     focus: '',
   });
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(() => toLocalNoon(new Date()));
   const [showPitchPlotter, setShowPitchPlotter] = useState(false);
   const [plottedPitches, setPlottedPitches] = useState<PlottedPitch[]>([]);
   const [pitchTypes, setPitchTypes] = useState<PitchTypeConfig>(DEFAULT_PITCH_TYPES);
@@ -76,14 +80,15 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
 
   // Update date string when calendar selection changes
   const handleDateSelect = (date: Date | undefined) => {
-    if (date) {
-      setSelectedDate(date);
-      // Format as YYYY-MM-DD using local date parts to avoid timezone issues
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      setFormData(prev => ({ ...prev, date: `${year}-${month}-${day}` }));
-    }
+    if (!date) return;
+    const normalized = toLocalNoon(date);
+    setSelectedDate(normalized);
+
+    // Format as YYYY-MM-DD using local date parts from the normalized date
+    const year = normalized.getFullYear();
+    const month = String(normalized.getMonth() + 1).padStart(2, '0');
+    const day = String(normalized.getDate()).padStart(2, '0');
+    setFormData((prev) => ({ ...prev, date: `${year}-${month}-${day}` }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -106,7 +111,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
     }, plottedPitches.length > 0 ? plottedPitches : undefined);
 
     // Reset form
-    const today = new Date();
+    const today = toLocalNoon(new Date());
     setFormData({
       pitcherName: '',
       date: getTodayDateString(),
