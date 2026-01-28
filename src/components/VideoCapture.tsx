@@ -163,8 +163,8 @@ export function VideoCapture({
           </div>
         )}
 
-        {/* Save Button */}
-        {videoId && !existingUrl && (
+        {/* Save Button - show when there's a valid video ID */}
+        {videoId && (
           <Button
             onClick={handleSave}
             className="w-full"
