@@ -182,7 +182,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
 
   if (filteredOutings.length === 0) {
     return (
-      <div className="space-y-6 animate-slide-up">
+      <div className="space-y-6 animate-slide-up overflow-x-hidden">
         {/* View Toggle & Date Range */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex gap-2">
@@ -223,7 +223,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
     : `Season Dashboard`;
 
   return (
-    <div className="space-y-6 animate-slide-up">
+    <div className="space-y-6 animate-slide-up overflow-x-hidden">
       {/* View Toggle & Date Range */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex gap-2">
