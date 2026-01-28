@@ -23,7 +23,7 @@ export function Header({
           <div className="flex items-center gap-3">
             <img src={hawksLogo} alt="Newmarket Hawks Logo" className="h-10 w-auto sm:h-12 object-contain" />
             <div>
-              <h1 className="font-display font-bold text-lg sm:text-xl text-foreground">Arm Care</h1>
+              <h1 className="font-display font-bold text-lg sm:text-xl text-foreground">Arm Stats</h1>
               <p className="text-xs text-muted-foreground hidden sm:block">
                 Pitching Dashboard
               </p>
