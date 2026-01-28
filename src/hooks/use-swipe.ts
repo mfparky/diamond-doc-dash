@@ -12,39 +12,44 @@ interface UseSwipeOptions {
   threshold?: number;
 }
 
+interface SwipeState {
+  startX: number | null;
+  endX: number | null;
+  isSwiping: boolean;
+}
+
 export function useSwipe({ onSwipeLeft, onSwipeRight, threshold = 50 }: UseSwipeOptions): SwipeHandlers {
-  const touchStartX = useRef<number | null>(null);
-  const touchEndX = useRef<number | null>(null);
-  const isSwiping = useRef(false);
+  // Single ref to avoid hook count issues with HMR
+  const swipeState = useRef<SwipeState>({ startX: null, endX: null, isSwiping: false });
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchEndX.current = null;
-    isSwiping.current = false;
+    swipeState.current.startX = e.touches[0].clientX;
+    swipeState.current.endX = null;
+    swipeState.current.isSwiping = false;
   }, []);
 
   const onTouchMove = useCallback((e: React.TouchEvent) => {
-    if (touchStartX.current === null) return;
+    if (swipeState.current.startX === null) return;
     
-    touchEndX.current = e.touches[0].clientX;
-    const deltaX = touchEndX.current - touchStartX.current;
+    swipeState.current.endX = e.touches[0].clientX;
+    const deltaX = swipeState.current.endX - swipeState.current.startX;
     
     // Mark as swiping only if we've moved past a small threshold
     if (Math.abs(deltaX) > 10) {
-      isSwiping.current = true;
+      swipeState.current.isSwiping = true;
     }
   }, []);
 
   const onTouchEnd = useCallback((e: React.TouchEvent) => {
+    const { startX, endX, isSwiping } = swipeState.current;
+    
     // Only process if we actually swiped (not just a tap)
-    if (!isSwiping.current || touchStartX.current === null || touchEndX.current === null) {
-      touchStartX.current = null;
-      touchEndX.current = null;
-      isSwiping.current = false;
+    if (!isSwiping || startX === null || endX === null) {
+      swipeState.current = { startX: null, endX: null, isSwiping: false };
       return;
     }
 
-    const deltaX = touchEndX.current - touchStartX.current;
+    const deltaX = endX - startX;
 
     if (Math.abs(deltaX) > threshold) {
       // Prevent the tap from also firing
@@ -57,9 +62,7 @@ export function useSwipe({ onSwipeLeft, onSwipeRight, threshold = 50 }: UseSwipe
       }
     }
 
-    touchStartX.current = null;
-    touchEndX.current = null;
-    isSwiping.current = false;
+    swipeState.current = { startX: null, endX: null, isSwiping: false };
   }, [onSwipeLeft, onSwipeRight, threshold]);
 
   return { onTouchStart, onTouchMove, onTouchEnd };
