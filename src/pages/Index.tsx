@@ -103,10 +103,10 @@ const Index = () => {
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
-  const handleBackToDashboard = () => {
+  const handleBackToDashboard = useCallback(() => {
     setCurrentView('dashboard');
     setSelectedPitcher(null);
-  };
+  }, []);
 
   // Swipe handlers for switching between Players and Team tabs
   const swipeHandlers = useSwipe({
