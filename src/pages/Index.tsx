@@ -6,7 +6,6 @@ import { PitcherCard } from '@/components/PitcherCard';
 import { CombinedDashboard } from '@/components/CombinedDashboard';
 import { PitcherDetail } from '@/components/PitcherDetail';
 import { OutingForm } from '@/components/OutingForm';
-import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { AllTimeStats } from '@/components/AllTimeStats';
 import { RosterManagementDialog } from '@/components/RosterManagementDialog';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -214,15 +213,6 @@ const Index = () => {
         onAddPitcher={addPitcher}
         onUpdatePitcher={updatePitcher}
         onDeletePitcher={deletePitcher}
-      />
-
-      {/* Mobile Bottom Navigation */}
-      <MobileBottomNav
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        onAddOuting={() => setShowOutingForm(true)}
-        timeView={timeView}
-        onTimeViewChange={setTimeView}
       />
     </div>
   );
