@@ -13,7 +13,7 @@ export interface PitcherRecord {
   updatedAt: string;
 }
 
-export function usePitchers(teamId?: string | null) {
+export function usePitchers() {
   const [pitchers, setPitchers] = useState<PitcherRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -21,17 +21,10 @@ export function usePitchers(teamId?: string | null) {
   // Fetch pitchers from Supabase
   const fetchPitchers = useCallback(async () => {
     try {
-      let query = supabase
+      const { data, error } = await supabase
         .from('pitchers')
         .select('*')
         .order('name', { ascending: true });
-
-      // Filter by team if teamId is provided
-      if (teamId) {
-        query = query.eq('team_id', teamId);
-      }
-
-      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -55,7 +48,7 @@ export function usePitchers(teamId?: string | null) {
     } finally {
       setIsLoading(false);
     }
-  }, [toast, teamId]);
+  }, [toast]);
 
   // Add a new pitcher
   const addPitcher = useCallback(async (name: string, maxWeeklyPitches: number = 120): Promise<PitcherRecord | null> => {
@@ -83,22 +76,12 @@ export function usePitchers(teamId?: string | null) {
         return null;
       }
 
-      if (!teamId) {
-        toast({
-          title: 'No team selected',
-          description: 'Please create or join a team first.',
-          variant: 'destructive',
-        });
-        return null;
-      }
-
       const { data, error } = await supabase
         .from('pitchers')
         .insert({
           name: validatedData.name,
           max_weekly_pitches: validatedData.maxWeeklyPitches,
           user_id: user.id,
-          team_id: teamId,
         })
         .select()
         .single();
@@ -134,7 +117,7 @@ export function usePitchers(teamId?: string | null) {
       });
       return null;
     }
-  }, [toast, teamId]);
+  }, [toast]);
 
   // Update a pitcher
   const updatePitcher = useCallback(async (id: string, updates: { name?: string; maxWeeklyPitches?: number }): Promise<boolean> => {
