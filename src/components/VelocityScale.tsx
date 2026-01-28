@@ -10,7 +10,7 @@ interface VelocityScaleProps {
 
 export function VelocityScale({ 
   velocities, 
-  minRange = 40, 
+  minRange = 45, 
   maxRange = 60 
 }: VelocityScaleProps) {
   // Calculate velocity distribution and stats
