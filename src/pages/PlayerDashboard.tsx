@@ -154,7 +154,7 @@ export default function PlayerDashboard() {
             <img src={hawksLogo} alt="Hawks" className="w-10 h-10 object-contain" />
             <div>
               <h1 className="font-display text-xl font-bold text-foreground">{pitcher.name}</h1>
-              <p className="text-xs text-muted-foreground">Player Dashboard</p>
+              <p className="text-xs text-muted-foreground hidden md:block">Player Dashboard</p>
             </div>
           </div>
           <StatusBadge status={pitcher.restStatus} />
@@ -162,9 +162,9 @@ export default function PlayerDashboard() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {/* Arm Care Status Card */}
+        {/* Arm Care Status Card - Hidden on mobile */}
         {pitcher.lastPitchCount > 0 && (
-          <Card className="glass-card border-primary/30 bg-primary/5">
+          <Card className="glass-card border-primary/30 bg-primary/5 hidden md:block">
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">

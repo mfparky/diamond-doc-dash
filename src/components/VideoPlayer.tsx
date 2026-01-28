@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Play, Pause, RotateCcw, Gauge, Video } from 'lucide-react';
+import { Play, Pause, RotateCcw, Gauge } from 'lucide-react';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES, PITCH_TYPE_COLORS } from '@/types/pitch-location';
 
 interface VideoPlayerProps {
@@ -14,6 +14,25 @@ interface VideoPlayerProps {
 }
 
 const PLAYBACK_SPEEDS = [0.25, 0.5, 0.75, 1];
+
+// Extract YouTube video ID from various URL formats
+function extractYouTubeId(url: string): string | null {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
+    /^([a-zA-Z0-9_-]{11})$/, // Just the ID itself
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+// Check if URL is a YouTube link
+function isYouTubeUrl(url: string): boolean {
+  return extractYouTubeId(url) !== null;
+}
 
 export function VideoPlayer({
   url,
@@ -29,9 +48,12 @@ export function VideoPlayer({
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
 
+  const youtubeId = extractYouTubeId(url);
+  const isYouTube = isYouTubeUrl(url);
+
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || isYouTube) return;
 
     const handleTimeUpdate = () => {
       setProgress(video.currentTime);
@@ -54,7 +76,7 @@ export function VideoPlayer({
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
       video.removeEventListener('ended', handleEnded);
     };
-  }, []);
+  }, [isYouTube]);
 
   const togglePlay = () => {
     if (!videoRef.current) return;
@@ -99,6 +121,45 @@ export function VideoPlayer({
   const pitchLabel = pitchType ? pitchTypes[pitchType.toString()] || `P${pitchType}` : null;
   const pitchColor = pitchType ? PITCH_TYPE_COLORS[pitchType.toString()] : null;
 
+  // YouTube embed
+  if (isYouTube && youtubeId) {
+    return (
+      <div className={`space-y-2 ${compact ? '' : 'bg-secondary/30 rounded-lg p-3'}`}>
+        {/* Pitch Info Header */}
+        {(pitchLabel || velocity) && (
+          <div className="flex items-center gap-2 mb-2">
+            {pitchLabel && (
+              <span
+                className="px-2 py-0.5 rounded text-xs font-bold text-white"
+                style={{ backgroundColor: pitchColor || 'hsl(var(--primary))' }}
+              >
+                {pitchLabel}
+              </span>
+            )}
+            {velocity && (
+              <span className="px-2 py-0.5 rounded bg-secondary text-foreground text-xs font-bold flex items-center gap-1">
+                <Gauge className="w-3 h-3" />
+                {velocity} mph
+              </span>
+            )}
+          </div>
+        )}
+        
+        {/* YouTube Embed */}
+        <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+          <iframe
+            src={`https://www.youtube.com/embed/${youtubeId}`}
+            title="YouTube video"
+            className="w-full h-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Native video player (for uploaded videos)
   return (
     <div className={`space-y-2 ${compact ? '' : 'bg-secondary/30 rounded-lg p-3'}`}>
       {/* Video */}
@@ -238,17 +299,26 @@ export function VideoCard({
 }: VideoPlayerProps & { label?: string; onClick?: () => void }) {
   const pitchLabel = pitchType ? pitchTypes[pitchType.toString()] || `P${pitchType}` : null;
   const pitchColor = pitchType ? PITCH_TYPE_COLORS[pitchType.toString()] : null;
+  const youtubeId = extractYouTubeId(url);
 
   return (
     <button
       onClick={onClick}
       className="relative aspect-video bg-black rounded-lg overflow-hidden group"
     >
-      <video
-        src={url}
-        className="w-full h-full object-contain"
-        preload="metadata"
-      />
+      {youtubeId ? (
+        <img
+          src={`https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg`}
+          alt="Video thumbnail"
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <video
+          src={url}
+          className="w-full h-full object-contain"
+          preload="metadata"
+        />
+      )}
       
       {/* Overlay */}
       <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition-colors flex items-center justify-center">
