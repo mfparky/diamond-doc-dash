@@ -180,27 +180,70 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
     return DEFAULT_PITCH_TYPES[typeNum.toString()] || `P${typeNum}`;
   };
 
+  // Time toggle pills component - matches Players view design
+  const TimeTogglePills = () => (
+    <div className="flex items-center bg-secondary rounded-lg p-1 w-fit">
+      <Button
+        variant="ghost"
+        size="sm"
+        className={`h-8 px-4 text-sm font-medium ${viewMode === '7-day' ? 'bg-card shadow-sm' : ''}`}
+        onClick={() => setViewMode('7-day')}
+      >
+        7-Day
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        className={`h-8 px-4 text-sm font-medium ${viewMode === 'season' ? 'bg-card shadow-sm' : ''}`}
+        onClick={() => setViewMode('season')}
+      >
+        Season
+      </Button>
+    </div>
+  );
+
   if (filteredOutings.length === 0) {
     return (
       <div className="space-y-6 animate-slide-up overflow-x-hidden">
-        {/* View Toggle & Date Range */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex gap-2">
-            <Button
-              variant={viewMode === '7-day' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('7-day')}
-            >
-              7-Day
-            </Button>
-            <Button
-              variant={viewMode === 'season' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('season')}
-            >
-              Season
-            </Button>
+        {/* Header with Time Toggle on right */}
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 className="font-display text-2xl font-bold text-foreground">
+              Team Dashboard
+            </h2>
+            <p className="text-muted-foreground">
+              No outings in the selected {viewMode === '7-day' ? '7 days' : 'date range'}
+            </p>
           </div>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <TimeTogglePills />
+            {viewMode === 'season' && (
+              <DateRangePicker
+                startDate={seasonStart}
+                endDate={seasonEnd}
+                onRangeChange={handleDateRangeChange}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 animate-slide-up overflow-x-hidden">
+      {/* Header with Time Toggle on right - matches Players view */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="font-display text-2xl font-bold text-foreground">
+            Team Dashboard
+          </h2>
+          <p className="text-muted-foreground">
+            {stats.uniquePitchers} pitcher{stats.uniquePitchers !== 1 ? 's' : ''} • {stats.totalOutings} outing{stats.totalOutings !== 1 ? 's' : ''} • {stats.totalPitches} total pitches
+          </p>
+        </div>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+          <TimeTogglePills />
           {viewMode === 'season' && (
             <DateRangePicker
               startDate={seasonStart}
@@ -209,56 +252,6 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
             />
           )}
         </div>
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">
-            No outings in the selected {viewMode === '7-day' ? '7 days' : 'date range'}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  const viewTitle = viewMode === '7-day' 
-    ? 'Combined 7-Day Dashboard' 
-    : `Season Dashboard`;
-
-  return (
-    <div className="space-y-6 animate-slide-up overflow-x-hidden">
-      {/* View Toggle & Date Range */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex gap-2">
-          <Button
-            variant={viewMode === '7-day' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('7-day')}
-          >
-            7-Day
-          </Button>
-          <Button
-            variant={viewMode === 'season' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('season')}
-          >
-            Season
-          </Button>
-        </div>
-        {viewMode === 'season' && (
-          <DateRangePicker
-            startDate={seasonStart}
-            endDate={seasonEnd}
-            onRangeChange={handleDateRangeChange}
-          />
-        )}
-      </div>
-
-      {/* Header */}
-      <div className="mb-6">
-        <h2 className="font-display text-2xl font-bold text-foreground">
-          {viewTitle}
-        </h2>
-        <p className="text-muted-foreground">
-          {stats.uniquePitchers} pitcher{stats.uniquePitchers !== 1 ? 's' : ''} • {stats.totalOutings} outing{stats.totalOutings !== 1 ? 's' : ''} • {stats.totalPitches} total pitches
-        </p>
       </div>
 
       {/* Main Stats Grid */}
