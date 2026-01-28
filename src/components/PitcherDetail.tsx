@@ -142,27 +142,25 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting 
         </Card>
       )}
 
-      {/* Latest Video Section */}
+      {/* Focus, Notes & Latest Video Section */}
       {(() => {
         const sortedOutings = [...pitcher.outings].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         const outingWithVideo = sortedOutings.find(o => o.videoUrl1 || o.videoUrl2 || o.videoUrl);
         
-        if (!outingWithVideo) return null;
-        
-        const latestVideoUrl1 = outingWithVideo.videoUrl1;
-        const latestVideoUrl2 = outingWithVideo.videoUrl2;
-        const latestLegacyUrl = outingWithVideo.videoUrl;
+        const latestVideoUrl1 = outingWithVideo?.videoUrl1;
+        const latestVideoUrl2 = outingWithVideo?.videoUrl2;
+        const latestLegacyUrl = outingWithVideo?.videoUrl;
         const latestVideoUrl = latestVideoUrl1 || latestVideoUrl2 || latestLegacyUrl;
         
         const latestPitchType = latestVideoUrl1
-          ? outingWithVideo.video1PitchType
+          ? outingWithVideo?.video1PitchType
           : latestVideoUrl2
-            ? outingWithVideo.video2PitchType
+            ? outingWithVideo?.video2PitchType
             : undefined;
         const latestVelocity = latestVideoUrl1
-          ? outingWithVideo.video1Velocity
+          ? outingWithVideo?.video1Velocity
           : latestVideoUrl2
-            ? outingWithVideo.video2Velocity
+            ? outingWithVideo?.video2Velocity
             : undefined;
         
         const formatVideoDate = (dateStr: string) => {
@@ -170,27 +168,85 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting 
           return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         };
         
-        return (
-          <Card className="glass-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="font-display text-lg flex items-center gap-2">
-                <Play className="w-5 h-5 text-primary" />
-                Latest Video
-              </CardTitle>
-              <p className="text-xs text-muted-foreground">
-                {formatVideoDate(outingWithVideo.date)} - {outingWithVideo.eventType}
-              </p>
-            </CardHeader>
-            <CardContent>
-              <VideoPlayer
-                url={latestVideoUrl!}
-                pitchType={latestPitchType}
-                velocity={latestVelocity}
-                pitchTypes={pitchTypes}
-              />
-            </CardContent>
-          </Card>
-        );
+        const hasVideo = !!latestVideoUrl;
+        const hasFocus = !!pitcher.focus;
+        const hasNotes = !!pitcher.notes;
+
+        // If video exists: Video on left, stacked Focus/Notes on right
+        if (hasVideo) {
+          return (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Latest Video */}
+              <Card className="glass-card">
+                <CardHeader className="pb-2">
+                  <CardTitle className="font-display text-lg flex items-center gap-2">
+                    <Play className="w-5 h-5 text-primary" />
+                    Latest Video
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    {formatVideoDate(outingWithVideo!.date)} - {outingWithVideo!.eventType}
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <VideoPlayer
+                    url={latestVideoUrl!}
+                    pitchType={latestPitchType}
+                    velocity={latestVelocity}
+                    pitchTypes={pitchTypes}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Stacked Focus & Notes */}
+              {(hasFocus || hasNotes) && (
+                <div className="flex flex-col gap-4">
+                  {hasFocus && (
+                    <Card className="glass-card border-accent/30 bg-accent/5 flex-1">
+                      <CardContent className="p-4">
+                        <p className="text-sm font-medium text-accent">Current Focus</p>
+                        <p className="text-foreground mt-1">{pitcher.focus}</p>
+                      </CardContent>
+                    </Card>
+                  )}
+                  {hasNotes && (
+                    <Card className="glass-card flex-1">
+                      <CardContent className="p-4">
+                        <p className="text-sm font-medium text-muted-foreground">Latest Notes</p>
+                        <p className="text-foreground mt-1">{pitcher.notes}</p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        // No video: Focus and Notes side by side
+        if (hasFocus || hasNotes) {
+          return (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {hasFocus && (
+                <Card className="glass-card border-accent/30 bg-accent/5">
+                  <CardContent className="p-4">
+                    <p className="text-sm font-medium text-accent">Current Focus</p>
+                    <p className="text-foreground mt-1">{pitcher.focus}</p>
+                  </CardContent>
+                </Card>
+              )}
+              {hasNotes && (
+                <Card className="glass-card">
+                  <CardContent className="p-4">
+                    <p className="text-sm font-medium text-muted-foreground">Latest Notes</p>
+                    <p className="text-foreground mt-1">{pitcher.notes}</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          );
+        }
+
+        return null;
       })()}
 
       {/* Stats Grid */}
@@ -243,28 +299,6 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting 
           </CardContent>
         </Card>
       </div>
-
-      {/* Current Focus & Latest Notes - side by side */}
-      {(pitcher.focus || pitcher.notes) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {pitcher.focus && (
-            <Card className="glass-card border-accent/30 bg-accent/5">
-              <CardContent className="p-4">
-                <p className="text-sm font-medium text-accent">Current Focus</p>
-                <p className="text-foreground mt-1">{pitcher.focus}</p>
-              </CardContent>
-            </Card>
-          )}
-          {pitcher.notes && (
-            <Card className="glass-card">
-              <CardContent className="p-4">
-                <p className="text-sm font-medium text-muted-foreground">Latest Notes</p>
-                <p className="text-foreground mt-1">{pitcher.notes}</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      )}
 
       {/* Season Pitch Count Chart */}
       <PitchCountChart outings={pitcher.outings} />
