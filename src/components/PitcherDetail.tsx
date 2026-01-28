@@ -82,10 +82,10 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting 
 
   const daysRestNeeded = pitcher.lastPitchCount > 0 ? getDaysRestNeeded(pitcher.lastPitchCount) : 0;
 
-  // Swipe right to go back
+  // Swipe right to go back to player cards
   const swipeHandlers = useSwipe({
     onSwipeRight: onBack,
-    threshold: 75,
+    threshold: 50,
   });
 
   return (
