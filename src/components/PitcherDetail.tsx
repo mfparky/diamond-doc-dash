@@ -15,6 +15,7 @@ import { PitchTypeConfigDialog } from './PitchTypeConfigDialog';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES, PitchLocation } from '@/types/pitch-location';
 import { useToast } from '@/hooks/use-toast';
+import { useSwipe } from '@/hooks/use-swipe';
 interface PitcherDetailProps {
   pitcher: Pitcher;
   onBack: () => void;
@@ -77,8 +78,14 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting 
 
   const daysRestNeeded = pitcher.lastPitchCount > 0 ? getDaysRestNeeded(pitcher.lastPitchCount) : 0;
 
+  // Swipe right to go back
+  const swipeHandlers = useSwipe({
+    onSwipeRight: onBack,
+    threshold: 75,
+  });
+
   return (
-    <div className="space-y-6 animate-slide-up">
+    <div className="space-y-6 animate-slide-up" {...swipeHandlers}>
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0">
