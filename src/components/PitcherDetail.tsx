@@ -172,31 +172,10 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting 
         const hasFocus = !!pitcher.focus;
         const hasNotes = !!pitcher.notes;
 
-        // If video exists: Video on left, stacked Focus/Notes on right
+        // If video exists: Stacked Focus/Notes on left, Video on right
         if (hasVideo) {
           return (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Latest Video */}
-              <Card className="glass-card">
-                <CardHeader className="pb-2">
-                  <CardTitle className="font-display text-lg flex items-center gap-2">
-                    <Play className="w-5 h-5 text-primary" />
-                    Latest Video
-                  </CardTitle>
-                  <p className="text-xs text-muted-foreground">
-                    {formatVideoDate(outingWithVideo!.date)} - {outingWithVideo!.eventType}
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <VideoPlayer
-                    url={latestVideoUrl!}
-                    pitchType={latestPitchType}
-                    velocity={latestVelocity}
-                    pitchTypes={pitchTypes}
-                  />
-                </CardContent>
-              </Card>
-
               {/* Stacked Focus & Notes */}
               {(hasFocus || hasNotes) && (
                 <div className="flex flex-col gap-4">
@@ -218,6 +197,27 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting 
                   )}
                 </div>
               )}
+
+              {/* Latest Video */}
+              <Card className="glass-card">
+                <CardHeader className="pb-2">
+                  <CardTitle className="font-display text-lg flex items-center gap-2">
+                    <Play className="w-5 h-5 text-primary" />
+                    Latest Video
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    {formatVideoDate(outingWithVideo!.date)} - {outingWithVideo!.eventType}
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <VideoPlayer
+                    url={latestVideoUrl!}
+                    pitchType={latestPitchType}
+                    velocity={latestVelocity}
+                    pitchTypes={pitchTypes}
+                  />
+                </CardContent>
+              </Card>
             </div>
           );
         }
