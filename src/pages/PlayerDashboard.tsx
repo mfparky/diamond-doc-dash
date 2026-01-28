@@ -186,10 +186,9 @@ export default function PlayerDashboard() {
 
         {/* Focus, Notes & Latest Video Section */}
         {(() => {
-          // Find latest outing with a video
-          const outingWithVideo = pitcher.outings
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-            .find(o => o.videoUrl1 || o.videoUrl2);
+          // Find latest outing with a video - use outings state which has fresh data
+          const sortedOutings = [...outings].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          const outingWithVideo = sortedOutings.find(o => o.videoUrl1 || o.videoUrl2);
           
           const latestVideoUrl = outingWithVideo?.videoUrl1 || outingWithVideo?.videoUrl2;
           const latestPitchType = outingWithVideo?.videoUrl1 
