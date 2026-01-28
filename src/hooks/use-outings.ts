@@ -64,7 +64,7 @@ export function useOutings() {
       strikes: outingData.strikes,
       maxVelo: outingData.maxVelo,
       notes: outingData.notes || '',
-      videoUrl: outingData.videoUrl || '',
+      videoUrl1: outingData.videoUrl1 || '',
       focus: outingData.focus || '',
     });
 
@@ -104,7 +104,7 @@ export function useOutings() {
           strikes: outingData.strikes || null,
           max_velocity: outingData.maxVelo || null,
           notes: outingData.notes || null,
-          video_url: outingData.videoUrl || null,
+          video_url_1: outingData.videoUrl1 || null,
           focus: outingData.focus || null,
           user_id: user.id,
         })
@@ -161,7 +161,7 @@ export function useOutings() {
           strikes: outingData.strikes || null,
           max_velocity: outingData.maxVelo || null,
           notes: outingData.notes || null,
-          video_url: outingData.videoUrl || null,
+          video_url_1: outingData.videoUrl1 || null,
           focus: outingData.focus || null,
         })
         .eq('id', id);

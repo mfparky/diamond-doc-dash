@@ -59,7 +59,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
     strikesNotTracked: false,
     maxVelo: '',
     notes: '',
-    videoUrl: '',
+    videoUrl1: '',
     focus: '',
   });
   const [selectedDate, setSelectedDate] = useState<Date>(() => toLocalNoon(new Date()));
@@ -106,7 +106,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
       strikes: formData.strikesNotTracked ? null : (parseInt(formData.strikes) || 0),
       maxVelo: parseInt(formData.maxVelo) || 0,
       notes: formData.notes,
-      videoUrl: formData.videoUrl,
+      videoUrl1: formData.videoUrl1 || undefined,
       focus: formData.focus || undefined,
     }, plottedPitches.length > 0 ? plottedPitches : undefined);
 
@@ -121,7 +121,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
       strikesNotTracked: false,
       maxVelo: '',
       notes: '',
-      videoUrl: '',
+      videoUrl1: '',
       focus: '',
     });
     setSelectedDate(today);
@@ -314,16 +314,16 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
 
           {/* Video URL */}
           <div className="space-y-2">
-            <Label htmlFor="videoUrl" className="text-sm font-medium flex items-center gap-2">
+            <Label htmlFor="videoUrl1" className="text-sm font-medium flex items-center gap-2">
               <Video className="w-4 h-4 text-accent" />
               YouTube Link (optional)
             </Label>
             <Input
-              id="videoUrl"
+              id="videoUrl1"
               type="url"
               placeholder="https://youtube.com/watch?v=... or youtu.be/..."
-              value={formData.videoUrl}
-              onChange={(e) => setFormData(prev => ({ ...prev, videoUrl: e.target.value }))}
+              value={formData.videoUrl1}
+              onChange={(e) => setFormData(prev => ({ ...prev, videoUrl1: e.target.value }))}
               className="mobile-input"
             />
           </div>

@@ -40,7 +40,7 @@ export const outingSchema = z.object({
     .max(2000, 'Notes must be less than 2000 characters')
     .optional()
     .or(z.literal('')),
-  videoUrl: z.string()
+  videoUrl1: z.string()
     .url('Please enter a valid URL')
     .max(500, 'URL too long')
     .optional()
