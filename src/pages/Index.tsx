@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Pitcher, Outing } from '@/types/pitcher';
 import { calculatePitcherStats } from '@/lib/pitcher-data';
 import { Header } from '@/components/Header';
@@ -16,6 +16,7 @@ import { useOutings } from '@/hooks/use-outings';
 import { usePitchers } from '@/hooks/use-pitchers';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
 import { DEFAULT_MAX_WEEKLY_PITCHES } from '@/lib/pulse-status';
+import { useSwipe } from '@/hooks/use-swipe';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
 
 type View = 'dashboard' | 'detail';
@@ -105,6 +106,21 @@ const Index = () => {
     setSelectedPitcher(null);
   };
 
+  // Swipe handlers for switching between Cards and Combined views
+  const swipeHandlers = useSwipe({
+    onSwipeLeft: useCallback(() => {
+      if (timeView === '7day' && viewMode === 'cards' && currentView === 'dashboard') {
+        setViewMode('combined');
+      }
+    }, [timeView, viewMode, currentView]),
+    onSwipeRight: useCallback(() => {
+      if (timeView === '7day' && viewMode === 'combined' && currentView === 'dashboard') {
+        setViewMode('cards');
+      }
+    }, [timeView, viewMode, currentView]),
+    threshold: 75,
+  });
+
   return (
     <div className="min-h-screen bg-background">
       <Header
@@ -115,7 +131,10 @@ const Index = () => {
         onTimeViewChange={setTimeView}
       />
 
-      <main className="container mx-auto px-4 py-6">
+      <main 
+        className="container mx-auto px-4 py-6 pb-20 sm:pb-6"
+        {...swipeHandlers}
+      >
         {currentView === 'dashboard' && timeView === '7day' && viewMode === 'cards' && (
           <div className="animate-slide-up">
             {/* Stats Summary */}
