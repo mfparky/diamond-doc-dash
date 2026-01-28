@@ -29,7 +29,7 @@ export function EditOutingDialog({ outing, open, onOpenChange, onSave }: EditOut
     strikesNotTracked: false,
     maxVelo: 0,
     notes: '',
-    videoUrl: '',
+    videoUrl1: '',
     focus: '',
   });
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -57,7 +57,7 @@ export function EditOutingDialog({ outing, open, onOpenChange, onSave }: EditOut
         strikesNotTracked: outing.strikes === null,
         maxVelo: outing.maxVelo,
         notes: outing.notes || '',
-        videoUrl: outing.videoUrl || '',
+        videoUrl1: outing.videoUrl1 || outing.videoUrl || '',
         focus: outing.focus || '',
       });
       // Parse the date string as local date (not UTC)
@@ -213,13 +213,13 @@ export function EditOutingDialog({ outing, open, onOpenChange, onSave }: EditOut
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-videoUrl">Video URL</Label>
+            <Label htmlFor="edit-videoUrl1">Video URL</Label>
             <Input
-              id="edit-videoUrl"
+              id="edit-videoUrl1"
               type="url"
               placeholder="https://youtube.com/watch?v=..."
-              value={formData.videoUrl}
-              onChange={(e) => setFormData((prev) => ({ ...prev, videoUrl: e.target.value }))}
+              value={formData.videoUrl1}
+              onChange={(e) => setFormData((prev) => ({ ...prev, videoUrl1: e.target.value }))}
             />
           </div>
 
