@@ -11,7 +11,7 @@ import { StrikeLocationViewer } from '@/components/StrikeLocationViewer';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
-import { TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, ArrowLeft, Play } from 'lucide-react';
+import { TrendingUp, Target, Gauge, Calendar, Video, Shield, ArrowLeft, Play } from 'lucide-react';
 import hawksLogo from '@/assets/hawks-logo.png';
 
 export default function PlayerDashboard() {
@@ -195,15 +195,25 @@ export default function PlayerDashboard() {
         {(() => {
           // Find latest outing with a video - use outings state which has fresh data
           const sortedOutings = [...outings].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          const outingWithVideo = sortedOutings.find(o => o.videoUrl1 || o.videoUrl2);
+          // Support both the newer 2-clip fields (videoUrl1/videoUrl2) and legacy single field (videoUrl)
+          const outingWithVideo = sortedOutings.find(o => o.videoUrl1 || o.videoUrl2 || o.videoUrl);
           
-          const latestVideoUrl = outingWithVideo?.videoUrl1 || outingWithVideo?.videoUrl2;
-          const latestPitchType = outingWithVideo?.videoUrl1 
-            ? outingWithVideo.video1PitchType 
-            : outingWithVideo?.video2PitchType;
-          const latestVelocity = outingWithVideo?.videoUrl1 
-            ? outingWithVideo.video1Velocity 
-            : outingWithVideo?.video2Velocity;
+          const latestVideoUrl1 = outingWithVideo?.videoUrl1;
+          const latestVideoUrl2 = outingWithVideo?.videoUrl2;
+          const latestLegacyUrl = outingWithVideo?.videoUrl;
+
+          const latestVideoUrl = latestVideoUrl1 || latestVideoUrl2 || latestLegacyUrl;
+
+          const latestPitchType = latestVideoUrl1
+            ? outingWithVideo?.video1PitchType
+            : latestVideoUrl2
+              ? outingWithVideo?.video2PitchType
+              : undefined;
+          const latestVelocity = latestVideoUrl1
+            ? outingWithVideo?.video1Velocity
+            : latestVideoUrl2
+              ? outingWithVideo?.video2Velocity
+              : undefined;
 
           const hasVideo = !!latestVideoUrl;
           const hasFocus = !!pitcher.focus;
@@ -320,7 +330,7 @@ export default function PlayerDashboard() {
                         </div>
                         {/* Video indicators */}
                         <div className="flex items-center gap-2">
-                          {(outing.videoUrl1 || outing.videoUrl2) && (
+                          {(outing.videoUrl1 || outing.videoUrl2 || outing.videoUrl) && (
                             <button
                               onClick={() => setSelectedVideoOuting(outing)}
                               className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors"
@@ -330,17 +340,6 @@ export default function PlayerDashboard() {
                                 {outing.videoUrl1 && outing.videoUrl2 ? '2' : '1'}
                               </span>
                             </button>
-                          )}
-                          {outing.videoUrl && !outing.videoUrl1 && !outing.videoUrl2 && (
-                            <a 
-                              href={outing.videoUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors"
-                            >
-                              <Video className="w-4 h-4" />
-                              <ExternalLink className="w-3 h-3" />
-                            </a>
                           )}
                         </div>
                       </div>
@@ -428,6 +427,16 @@ export default function PlayerDashboard() {
                     url={selectedVideoOuting.videoUrl2}
                     pitchType={selectedVideoOuting.video2PitchType}
                     velocity={selectedVideoOuting.video2Velocity}
+                    pitchTypes={pitchTypes}
+                  />
+                </div>
+              )}
+
+              {selectedVideoOuting.videoUrl && !selectedVideoOuting.videoUrl1 && !selectedVideoOuting.videoUrl2 && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Video</p>
+                  <VideoPlayer
+                    url={selectedVideoOuting.videoUrl}
                     pitchTypes={pitchTypes}
                   />
                 </div>
