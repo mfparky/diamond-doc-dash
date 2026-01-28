@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Pencil, Trash2, Plus, Check, X } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Pencil, Trash2, Plus, Check, X, Sun, Moon } from 'lucide-react';
 import { PitcherRecord } from '@/hooks/use-pitchers';
 import {
   AlertDialog,
@@ -40,6 +41,17 @@ export function RosterManagementDialog({
   const [newMaxPitches, setNewMaxPitches] = useState(120);
   const [isAdding, setIsAdding] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [isDark, setIsDark] = useState(() => !document.documentElement.classList.contains('light'));
+
+  const toggleTheme = () => {
+    const newIsDark = !isDark;
+    setIsDark(newIsDark);
+    if (newIsDark) {
+      document.documentElement.classList.remove('light');
+    } else {
+      document.documentElement.classList.add('light');
+    }
+  };
 
   const handleStartEdit = (pitcher: PitcherRecord) => {
     setEditingId(pitcher.id);
@@ -179,6 +191,33 @@ export function RosterManagementDialog({
                 Add Pitcher
               </Button>
             )}
+
+            {/* Theme Toggle Section */}
+            <Separator className="my-4" />
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-foreground">Appearance</p>
+                <p className="text-xs text-muted-foreground">Toggle light/dark mode</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleTheme}
+                className="gap-2"
+              >
+                {isDark ? (
+                  <>
+                    <Sun className="w-4 h-4" />
+                    <span>Light</span>
+                  </>
+                ) : (
+                  <>
+                    <Moon className="w-4 h-4" />
+                    <span>Dark</span>
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

@@ -159,4 +159,9 @@
   .glow-accent {
     box-shadow: 0 0 20px hsl(var(--accent) / 0.3);
   }
+
+  /* Safe area for iOS devices with home indicator */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
 }
