@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Outing } from '@/types/pitcher';
 import { PitchLocation, PitchTypeConfig, DEFAULT_PITCH_TYPES, PITCH_TYPE_COLORS } from '@/types/pitch-location';
 import { SmoothHeatmap } from '@/components/SmoothHeatmap';
+import { VelocityScale } from '@/components/VelocityScale';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import { supabase } from '@/integrations/supabase/client';
-import { Activity, Target, Gauge, Calendar, Flame } from 'lucide-react';
+import { Activity, Target, Calendar, Flame } from 'lucide-react';
 
 interface CombinedDashboardProps {
   outings: Outing[];
@@ -114,7 +115,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
       ? Math.round((totalStrikes / totalPitchesWithStrikes) * 100) 
       : null;
 
-    // Velocity range
+    // Velocity data - collect all velocities
     const velocities = filteredOutings
       .filter((o) => o.maxVelo && o.maxVelo > 0)
       .map((o) => o.maxVelo!);
@@ -137,6 +138,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
     return {
       totalPitches,
       strikePercentage,
+      velocities,
       minVelo,
       maxVelo,
       totalOutings: filteredOutings.length,
@@ -260,7 +262,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
       </div>
 
       {/* Main Stats Grid */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+      <div className="grid grid-cols-3 gap-3 sm:gap-4">
         {/* Total Pitches */}
         <Card className="glass-card">
           <CardContent className="p-3 sm:p-4">
@@ -293,25 +295,6 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
           </CardContent>
         </Card>
 
-        {/* Velocity Range */}
-        <Card className="glass-card">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-1.5 sm:p-2 rounded-lg bg-warning/10 shrink-0">
-                <Gauge className="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10px] sm:text-xs text-muted-foreground">Velocity</p>
-                <p className="text-lg sm:text-2xl font-bold text-foreground">
-                  {stats.minVelo && stats.maxVelo 
-                    ? `${stats.minVelo}-${stats.maxVelo}` 
-                    : '—'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Total Outings */}
         <Card className="glass-card">
           <CardContent className="p-3 sm:p-4">
@@ -327,6 +310,11 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
           </CardContent>
         </Card>
       </div>
+
+      {/* Velocity Distribution Chart */}
+      {stats.velocities.length > 0 && (
+        <VelocityScale velocities={stats.velocities} minRange={45} maxRange={65} />
+      )}
 
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
