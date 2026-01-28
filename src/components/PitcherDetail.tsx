@@ -69,7 +69,9 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting 
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';
-    const date = new Date(dateStr);
+    // Parse as local date to avoid timezone shift (YYYY-MM-DD → local noon)
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day, 12, 0, 0, 0);
     return date.toLocaleDateString('en-US', { 
       weekday: 'short',
       month: 'short', 
@@ -213,7 +215,9 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting 
             : undefined;
         
         const formatVideoDate = (dateStr: string) => {
-          const date = new Date(dateStr);
+          // Parse as local date to avoid timezone shift
+          const [year, month, day] = dateStr.split('-').map(Number);
+          const date = new Date(year, month - 1, day, 12, 0, 0, 0);
           return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         };
         
