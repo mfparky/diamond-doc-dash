@@ -1,30 +1,63 @@
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, LayoutGrid, BarChart3 } from 'lucide-react';
 import hawksLogo from '@/assets/hawks-logo.png';
 
 interface HeaderProps {
   onAddOuting: () => void;
+  activeTab?: 'players' | 'team';
+  onTabChange?: (tab: 'players' | 'team') => void;
 }
 
-export function Header({ onAddOuting }: HeaderProps) {
+export function Header({ onAddOuting, activeTab = 'players', onTabChange }: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex items-center justify-between gap-2">
+      <div className="container mx-auto px-4 py-2 sm:py-3">
+        {/* Mobile: Centered logo, shorter height */}
+        <div className="flex sm:hidden items-center justify-center">
+          <img 
+            src={hawksLogo} 
+            alt="Newmarket Hawks Logo" 
+            className="h-8 w-auto object-contain" 
+          />
+        </div>
+
+        {/* Desktop/Tablet: Full header with nav */}
+        <div className="hidden sm:flex items-center justify-between gap-4">
           {/* Logo */}
           <div className="flex items-center gap-2 shrink-0">
             <img 
               src={hawksLogo} 
               alt="Newmarket Hawks Logo" 
-              className="h-9 w-auto sm:h-11 object-contain" 
+              className="h-10 w-auto object-contain" 
             />
-            <h1 className="font-display font-bold text-base sm:text-lg text-foreground hidden sm:block">
+            <h1 className="font-display font-bold text-lg text-foreground">
               Arm Stats
             </h1>
           </div>
 
-          {/* Add Outing Button - Desktop only, mobile uses bottom nav */}
-          <div className="hidden sm:flex items-center gap-2">
+          {/* Desktop Navigation Tabs */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center bg-secondary rounded-lg p-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`h-8 px-4 gap-2 ${activeTab === 'players' ? 'bg-card shadow-sm' : ''}`}
+                onClick={() => onTabChange?.('players')}
+              >
+                <LayoutGrid className="w-4 h-4" />
+                Players
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`h-8 px-4 gap-2 ${activeTab === 'team' ? 'bg-card shadow-sm' : ''}`}
+                onClick={() => onTabChange?.('team')}
+              >
+                <BarChart3 className="w-4 h-4" />
+                Team
+              </Button>
+            </div>
+
             <Button 
               onClick={onAddOuting} 
               size="sm"
