@@ -148,14 +148,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
   return (
     <Card className="glass-card border-primary/20">
       <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
-          <CardTitle className="font-display text-xl text-foreground">Log Outing</CardTitle>
-          {onCancel && (
-            <Button variant="ghost" size="icon" onClick={onCancel}>
-              <X className="w-5 h-5" />
-            </Button>
-          )}
-        </div>
+        <CardTitle className="font-display text-xl text-foreground">Log Outing</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
