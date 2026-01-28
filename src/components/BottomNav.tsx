@@ -23,9 +23,6 @@ export function BottomNav({ activeTab, onTabChange, onAddOuting }: BottomNavProp
         >
           <Users className="w-6 h-6" />
           <span className="text-xs font-medium">Players</span>
-          {activeTab === 'players' && (
-            <div className="absolute bottom-3 w-6 h-1 bg-primary rounded-full" />
-          )}
         </button>
 
         {/* Log Outing - Center Action Button */}
@@ -51,9 +48,6 @@ export function BottomNav({ activeTab, onTabChange, onAddOuting }: BottomNavProp
         >
           <BarChart3 className="w-6 h-6" />
           <span className="text-xs font-medium">Team</span>
-          {activeTab === 'team' && (
-            <div className="absolute bottom-3 w-6 h-1 bg-primary rounded-full" />
-          )}
         </button>
       </div>
     </nav>
