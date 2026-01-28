@@ -260,17 +260,17 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
       </div>
 
       {/* Main Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
         {/* Total Pitches */}
         <Card className="glass-card">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Activity className="w-5 h-5 text-primary" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10 shrink-0">
+                <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Total Pitches</p>
-                <p className="text-2xl font-bold text-foreground">{stats.totalPitches}</p>
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Total Pitches</p>
+                <p className="text-lg sm:text-2xl font-bold text-foreground">{stats.totalPitches}</p>
               </div>
             </div>
           </CardContent>
@@ -278,14 +278,14 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
 
         {/* Strike % */}
         <Card className="glass-card">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-success/10">
-                <Target className="w-5 h-5 text-success" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-success/10 shrink-0">
+                <Target className="w-4 h-4 sm:w-5 sm:h-5 text-success" />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Strike %</p>
-                <p className="text-2xl font-bold text-foreground">
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Strike %</p>
+                <p className="text-lg sm:text-2xl font-bold text-foreground">
                   {stats.strikePercentage !== null ? `${stats.strikePercentage}%` : '—'}
                 </p>
               </div>
@@ -295,14 +295,14 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
 
         {/* Velocity Range */}
         <Card className="glass-card">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-warning/10">
-                <Gauge className="w-5 h-5 text-warning" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-warning/10 shrink-0">
+                <Gauge className="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Velocity</p>
-                <p className="text-2xl font-bold text-foreground">
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Velocity</p>
+                <p className="text-lg sm:text-2xl font-bold text-foreground">
                   {stats.minVelo && stats.maxVelo 
                     ? `${stats.minVelo}-${stats.maxVelo}` 
                     : '—'}
@@ -314,14 +314,14 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
 
         {/* Total Outings */}
         <Card className="glass-card">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-accent/10">
-                <Calendar className="w-5 h-5 text-accent-foreground" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-accent/10 shrink-0">
+                <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-accent-foreground" />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Sessions</p>
-                <p className="text-2xl font-bold text-foreground">{stats.totalOutings}</p>
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Sessions</p>
+                <p className="text-lg sm:text-2xl font-bold text-foreground">{stats.totalOutings}</p>
               </div>
             </div>
           </CardContent>
@@ -329,57 +329,59 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
       </div>
 
       {/* Two Column Layout */}
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Heatmap */}
         <Card className="glass-card">
-          <CardHeader className="pb-2">
-            <CardTitle className="font-display text-lg flex items-center gap-2">
-              <Flame className="w-5 h-5 text-orange-500" />
+          <CardHeader className="pb-2 px-3 sm:px-6">
+            <CardTitle className="font-display text-base sm:text-lg flex items-center gap-2">
+              <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
               Combined Strike Zone
             </CardTitle>
           </CardHeader>
-          <CardContent className="flex justify-center">
+          <CardContent className="flex justify-center px-2 sm:px-6">
             {isLoadingLocations ? (
-              <div className="w-[300px] h-[388px] flex items-center justify-center">
+              <div className="w-full max-w-[300px] aspect-[300/388] flex items-center justify-center">
                 <p className="text-muted-foreground animate-pulse">Loading...</p>
               </div>
             ) : pitchLocations.length > 0 ? (
-              <SmoothHeatmap 
-                pitchLocations={pitchLocations} 
-                size="md"
-              />
+              <div className="w-full max-w-[300px]">
+                <SmoothHeatmap 
+                  pitchLocations={pitchLocations} 
+                  size="md"
+                />
+              </div>
             ) : (
-              <div className="w-[300px] h-[388px] flex items-center justify-center border border-dashed border-muted-foreground/30 rounded-lg">
-                <p className="text-muted-foreground text-sm">No pitch location data</p>
+              <div className="w-full max-w-[300px] aspect-[300/388] flex items-center justify-center border border-dashed border-muted-foreground/30 rounded-lg">
+                <p className="text-muted-foreground text-sm text-center px-4">No pitch location data</p>
               </div>
             )}
           </CardContent>
         </Card>
 
         {/* Right Column: Event & Pitch Type Breakdown */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Event Type Breakdown */}
           <Card className="glass-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="font-display text-lg">Session Breakdown</CardTitle>
+            <CardHeader className="pb-2 px-3 sm:px-6">
+              <CardTitle className="font-display text-base sm:text-lg">Session Breakdown</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+            <CardContent className="px-3 sm:px-6">
+              <div className="space-y-2.5 sm:space-y-3">
                 {Object.entries(stats.eventBreakdown)
                   .sort(([, a], [, b]) => b.pitches - a.pitches)
                   .map(([eventType, data]) => (
-                    <div key={eventType} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+                    <div key={eventType} className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
                         <div 
-                          className="w-3 h-3 rounded-sm" 
+                          className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm shrink-0" 
                           style={{ backgroundColor: EVENT_COLORS[eventType] || 'hsl(var(--muted))' }}
                         />
-                        <span className="text-sm text-foreground">{eventType}</span>
+                        <span className="text-xs sm:text-sm text-foreground truncate">{eventType}</span>
                       </div>
-                      <div className="text-right">
-                        <span className="text-sm font-medium text-foreground">{data.pitches}</span>
-                        <span className="text-xs text-muted-foreground ml-1">
-                          ({data.count} session{data.count !== 1 ? 's' : ''})
+                      <div className="text-right shrink-0">
+                        <span className="text-xs sm:text-sm font-medium text-foreground">{data.pitches}</span>
+                        <span className="text-[10px] sm:text-xs text-muted-foreground ml-1">
+                          ({data.count})
                         </span>
                       </div>
                     </div>
@@ -391,28 +393,28 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
           {/* Pitch Type Breakdown */}
           {pitchTypeBreakdown.length > 0 && (
             <Card className="glass-card">
-              <CardHeader className="pb-2">
-                <CardTitle className="font-display text-lg">Pitch Mix</CardTitle>
+              <CardHeader className="pb-2 px-3 sm:px-6">
+                <CardTitle className="font-display text-base sm:text-lg">Pitch Mix</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
+              <CardContent className="px-3 sm:px-6">
+                <div className="space-y-2.5 sm:space-y-3">
                   {pitchTypeBreakdown.map((pitch) => (
-                    <div key={pitch.type} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+                    <div key={pitch.type} className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
                         <div 
-                          className="w-3 h-3 rounded-full" 
+                          className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full shrink-0" 
                           style={{ backgroundColor: PITCH_TYPE_COLORS[pitch.type.toString()] || 'hsl(var(--muted))' }}
                         />
-                        <span className="text-sm text-foreground font-medium">
+                        <span className="text-xs sm:text-sm text-foreground font-medium truncate">
                           {getPitchTypeLabel(pitch.type)}
                         </span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                        <span className="text-[10px] sm:text-xs text-muted-foreground">
                           {pitch.count} ({pitch.percentage}%)
                         </span>
                         <span 
-                          className={`text-xs font-medium ${
+                          className={`text-[10px] sm:text-xs font-medium ${
                             pitch.strikeRate >= 60 
                               ? 'text-success' 
                               : pitch.strikeRate < 50 
