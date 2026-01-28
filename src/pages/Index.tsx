@@ -11,6 +11,7 @@ import { AllTimeStats } from '@/components/AllTimeStats';
 import { RosterManagementDialog } from '@/components/RosterManagementDialog';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
+import { Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getDaysRestNeeded } from '@/types/pitcher';
 import { useOutings } from '@/hooks/use-outings';
@@ -146,7 +147,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header onAddOuting={() => setShowOutingForm(true)} />
+      <Header 
+        onAddOuting={() => setShowOutingForm(true)} 
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
 
       <main 
         className="container mx-auto px-4 py-6 pb-24 sm:pb-6"
@@ -157,15 +162,16 @@ const Index = () => {
             {/* Header with Time Toggle */}
             <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <h2 className="font-display text-2xl font-bold text-foreground">
                     Roster
                   </h2>
                   <button
                     onClick={() => setShowRosterManagement(true)}
-                    className="text-sm text-primary hover:text-primary/80 underline underline-offset-2"
+                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                    aria-label="Manage roster"
                   >
-                    Edit
+                    <Settings className="w-5 h-5" />
                   </button>
                 </div>
                 <p className="text-muted-foreground">

@@ -103,6 +103,34 @@ export function RosterManagementDialog({
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto space-y-2 py-4">
+            {/* Theme Toggle Section - At top */}
+            <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border/50">
+              <div>
+                <p className="text-sm font-medium text-foreground">Appearance</p>
+                <p className="text-xs text-muted-foreground">Toggle light/dark mode</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleTheme}
+                className="gap-2"
+              >
+                {isDark ? (
+                  <>
+                    <Sun className="w-4 h-4" />
+                    <span>Light</span>
+                  </>
+                ) : (
+                  <>
+                    <Moon className="w-4 h-4" />
+                    <span>Dark</span>
+                  </>
+                )}
+              </Button>
+            </div>
+
+            <Separator className="my-2" />
+
             {pitchers.map((pitcher) => (
               <div
                 key={pitcher.id}
@@ -191,33 +219,6 @@ export function RosterManagementDialog({
                 Add Pitcher
               </Button>
             )}
-
-            {/* Theme Toggle Section */}
-            <Separator className="my-4" />
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-foreground">Appearance</p>
-                <p className="text-xs text-muted-foreground">Toggle light/dark mode</p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={toggleTheme}
-                className="gap-2"
-              >
-                {isDark ? (
-                  <>
-                    <Sun className="w-4 h-4" />
-                    <span>Light</span>
-                  </>
-                ) : (
-                  <>
-                    <Moon className="w-4 h-4" />
-                    <span>Dark</span>
-                  </>
-                )}
-              </Button>
-            </div>
           </div>
         </DialogContent>
       </Dialog>
