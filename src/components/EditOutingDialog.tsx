@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { format, parseISO } from 'date-fns';
+import { CalendarIcon } from 'lucide-react';
 import { Outing } from '@/types/pitcher';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -7,6 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
 interface EditOutingDialogProps {
   outing: Outing | null;
@@ -27,6 +32,7 @@ export function EditOutingDialog({ outing, open, onOpenChange, onSave }: EditOut
     videoUrl: '',
     focus: '',
   });
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
 
   // Reset form when outing changes
@@ -43,8 +49,25 @@ export function EditOutingDialog({ outing, open, onOpenChange, onSave }: EditOut
         videoUrl: outing.videoUrl || '',
         focus: outing.focus || '',
       });
+      // Parse the date string as local date (not UTC)
+      if (outing.date) {
+        const [year, month, day] = outing.date.split('-').map(Number);
+        setSelectedDate(new Date(year, month - 1, day));
+      }
     }
   }, [outing]);
+
+  // Update date string when calendar selection changes
+  const handleDateSelect = (date: Date | undefined) => {
+    setSelectedDate(date);
+    if (date) {
+      // Format as YYYY-MM-DD using local date parts to avoid timezone issues
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      setFormData(prev => ({ ...prev, date: `${year}-${month}-${day}` }));
+    }
+  };
 
   const handleSave = async () => {
     if (!outing) return;
@@ -71,13 +94,30 @@ export function EditOutingDialog({ outing, open, onOpenChange, onSave }: EditOut
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="edit-date">Date</Label>
-            <Input
-              id="edit-date"
-              type="date"
-              value={formData.date}
-              onChange={(e) => setFormData((prev) => ({ ...prev, date: e.target.value }))}
-            />
+            <Label>Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !selectedDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={handleDateSelect}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="space-y-2">
@@ -165,7 +205,7 @@ export function EditOutingDialog({ outing, open, onOpenChange, onSave }: EditOut
             <Input
               id="edit-videoUrl"
               type="url"
-              placeholder="https://..."
+              placeholder="https://youtube.com/watch?v=..."
               value={formData.videoUrl}
               onChange={(e) => setFormData((prev) => ({ ...prev, videoUrl: e.target.value }))}
             />
