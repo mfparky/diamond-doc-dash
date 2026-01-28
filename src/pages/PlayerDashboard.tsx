@@ -114,12 +114,19 @@ export default function PlayerDashboard() {
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { 
+
+    // dateStr is a Postgres DATE (YYYY-MM-DD). Using `new Date(dateStr)` treats it as UTC
+    // and can render as the previous day in negative timezones.
+    const parts = dateStr.split('-').map(Number);
+    const date = parts.length === 3 && parts.every((n) => Number.isFinite(n))
+      ? new Date(parts[0], parts[1] - 1, parts[2])
+      : new Date(dateStr);
+
+    return date.toLocaleDateString('en-US', {
       weekday: 'short',
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
     });
   };
 
