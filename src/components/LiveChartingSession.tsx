@@ -3,9 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES, PITCH_TYPE_COLORS } from '@/types/pitch-location';
 import { isStrike, getZoneAspectStyle, STRIKE_ZONE, GRID_CONFIG } from '@/lib/strike-zone';
-import { Undo2, Save, X, Zap, Video, Square } from 'lucide-react';
+import { Undo2, Save, X, Video, Check } from 'lucide-react';
 import { Pitcher, Outing } from '@/types/pitcher';
 import { useVideoCapture } from '@/hooks/use-video-capture';
 import { VideoSaveDialog } from '@/components/VideoSaveDialog';
@@ -43,17 +44,23 @@ function getTodayDateString(): string {
   return `${year}-${month}-${day}`;
 }
 
+type PitchEntryStep = 'idle' | 'selectType' | 'enterVelocity';
+
 export function LiveChartingSession({
   pitcher,
   pitchTypes = DEFAULT_PITCH_TYPES,
   onComplete,
   onCancel,
 }: LiveChartingSessionProps) {
-  const [selectedPitchType, setSelectedPitchType] = useState<number>(1);
   const [plottedPitches, setPlottedPitches] = useState<LivePitch[]>([]);
-  const [currentVelocity, setCurrentVelocity] = useState<string>('');
-  const [pendingVideoLocation, setPendingVideoLocation] = useState<{x: number, y: number} | null>(null);
   const [showVideoDialog, setShowVideoDialog] = useState(false);
+  
+  // Pitch entry flow state
+  const [pitchEntryStep, setPitchEntryStep] = useState<PitchEntryStep>('idle');
+  const [pendingLocation, setPendingLocation] = useState<{x: number, y: number} | null>(null);
+  const [selectedPitchType, setSelectedPitchType] = useState<number | null>(null);
+  const [velocityInput, setVelocityInput] = useState('');
+  const [pendingHasVideo, setPendingHasVideo] = useState(false);
   
   const { isRecording, startRecording, stopRecording, cancelRecording, capturedVideos, pendingVideo, clearPendingVideo, isNative } = useVideoCapture();
 
@@ -71,30 +78,58 @@ export function LiveChartingSession({
     ? ((strikes / plottedPitches.length) * 100).toFixed(0) 
     : '0';
 
-  const handlePlotPitch = useCallback((x: number, y: number, hasVideo: boolean = false) => {
+  // Handle zone tap - starts the pitch entry flow
+  const handleZoneTap = useCallback((x: number, y: number, hasVideo: boolean = false) => {
+    setPendingLocation({ x, y });
+    setPendingHasVideo(hasVideo);
+    setPitchEntryStep('selectType');
+    setSelectedPitchType(null);
+    setVelocityInput('');
+  }, []);
+
+  // Handle pitch type selection
+  const handlePitchTypeSelect = useCallback((pitchType: number) => {
+    setSelectedPitchType(pitchType);
+    setPitchEntryStep('enterVelocity');
+  }, []);
+
+  // Confirm and save the pitch
+  const handleConfirmPitch = useCallback(() => {
+    if (!pendingLocation || selectedPitchType === null) return;
+    
     const newPitch: LivePitch = {
       pitchNumber: plottedPitches.length + 1,
       pitchType: selectedPitchType,
-      xLocation: x,
-      yLocation: y,
-      isStrike: isStrike(x, y),
-      velocity: currentVelocity ? parseInt(currentVelocity) : undefined,
-      hasVideo,
+      xLocation: pendingLocation.x,
+      yLocation: pendingLocation.y,
+      isStrike: isStrike(pendingLocation.x, pendingLocation.y),
+      velocity: velocityInput ? parseInt(velocityInput) : undefined,
+      hasVideo: pendingHasVideo,
     };
+    
     setPlottedPitches((prev) => [...prev, newPitch]);
-    // Clear velocity after each pitch for fresh entry
-    setCurrentVelocity('');
-  }, [plottedPitches.length, selectedPitchType, currentVelocity]);
+    setPitchEntryStep('idle');
+    setPendingLocation(null);
+    setSelectedPitchType(null);
+    setVelocityInput('');
+    setPendingHasVideo(false);
+  }, [pendingLocation, selectedPitchType, velocityInput, plottedPitches.length, pendingHasVideo]);
+
+  // Cancel pitch entry
+  const handleCancelPitchEntry = useCallback(() => {
+    setPitchEntryStep('idle');
+    setPendingLocation(null);
+    setSelectedPitchType(null);
+    setVelocityInput('');
+    setPendingHasVideo(false);
+  }, []);
 
   // Start recording video for next pitch
   const handleStartRecording = useCallback(async () => {
-    const success = await startRecording();
-    if (success) {
-      // Recording started - user will plot pitch location after stopping
-    }
+    await startRecording();
   }, [startRecording]);
 
-  // Stop recording and save with pitch metadata
+  // Stop recording and start pitch entry flow
   const handleStopRecording = useCallback(async (x: number, y: number) => {
     const pitchNumber = plottedPitches.length + 1;
     const pitchIsStrike = isStrike(x, y);
@@ -103,20 +138,19 @@ export function LiveChartingSession({
       pitcherName: pitcher.name,
       date: getTodayDateString(),
       pitchNumber,
-      pitchType: pitchTypes[selectedPitchType.toString()] || `P${selectedPitchType}`,
-      velocity: currentVelocity ? parseInt(currentVelocity) : undefined,
+      pitchType: 'TBD', // Will be selected in dialog
+      velocity: undefined,
       isStrike: pitchIsStrike,
     });
 
-    // Add the pitch with video flag
-    handlePlotPitch(x, y, !!capturedVideo);
-    setPendingVideoLocation(null);
+    // Start pitch entry flow with video flag
+    handleZoneTap(x, y, !!capturedVideo);
     
     // Show video save dialog for web users (non-native)
     if (capturedVideo && !isNative) {
       setShowVideoDialog(true);
     }
-  }, [plottedPitches.length, pitcher.name, selectedPitchType, pitchTypes, currentVelocity, stopRecording, handlePlotPitch, isNative]);
+  }, [plottedPitches.length, pitcher.name, stopRecording, handleZoneTap, isNative]);
 
   const handleUndo = useCallback(() => {
     setPlottedPitches((prev) => prev.slice(0, -1));
@@ -130,7 +164,7 @@ export function LiveChartingSession({
       maxVelo,
       pitchCount: plottedPitches.length,
       strikes,
-      eventType: 'Bullpen', // Default for live charting
+      eventType: 'Bullpen',
       date: getTodayDateString(),
     });
   }, [plottedPitches, maxVelo, strikes, onComplete]);
@@ -145,7 +179,7 @@ export function LiveChartingSession({
   const zoneBottom = toPercent(STRIKE_ZONE.ZONE_BOTTOM);
 
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col">
+    <div className="fixed inset-0 z-50 bg-background flex flex-col overflow-x-hidden">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border">
         <div>
@@ -158,8 +192,8 @@ export function LiveChartingSession({
       </div>
 
       {/* Main Content - Scrollable */}
-      <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${isRecording ? 'flex flex-col justify-center' : ''}`}>
-        {/* Live Stats Bar - Hide when recording to center strike zone */}
+      <div className={`flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4 ${isRecording ? 'flex flex-col justify-center' : ''}`}>
+        {/* 1. Live Stats Bar */}
         {!isRecording && (
           <div className="grid grid-cols-4 gap-2">
             <Card className="bg-secondary/50">
@@ -189,66 +223,20 @@ export function LiveChartingSession({
           </div>
         )}
 
-        {/* Pitch Type Selector - Hide when recording */}
-        {!isRecording && (
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Pitch Type</Label>
-            <div className="grid grid-cols-5 gap-2">
-              {[1, 2, 3, 4, 5].map((pt) => (
-                <Button
-                  key={pt}
-                  variant={selectedPitchType === pt ? 'default' : 'outline'}
-                  className="h-14 text-lg font-bold"
-                  style={{
-                    backgroundColor: selectedPitchType === pt ? PITCH_TYPE_COLORS[pt.toString()] : undefined,
-                    borderColor: PITCH_TYPE_COLORS[pt.toString()],
-                    borderWidth: selectedPitchType === pt ? 0 : 2,
-                  }}
-                  onClick={() => setSelectedPitchType(pt)}
-                >
-                  {pitchTypes[pt.toString()] || `P${pt}`}
-                </Button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Velocity Input - Hide when recording */}
-        {!isRecording && (
-          <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center gap-2">
-              <Zap className="w-4 h-4 text-primary" />
-              Velocity (optional)
-            </Label>
-            <Input
-              type="number"
-              inputMode="numeric"
-              placeholder="Enter velo..."
-              value={currentVelocity}
-              onChange={(e) => setCurrentVelocity(e.target.value)}
-              className="h-14 text-2xl text-center font-bold"
-            />
-          </div>
-        )}
-
-        {/* Video Recording Section */}
+        {/* 2. Video Recording Section */}
         {!isRecording ? (
           <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center gap-2">
-              <Video className="w-4 h-4 text-accent" />
-              Video Capture
-            </Label>
             <Button
               variant="outline"
-              className="w-full h-14 text-lg border-accent text-accent hover:bg-accent/10"
+              className="w-full h-12 text-base border-accent text-accent hover:bg-accent/10"
               onClick={handleStartRecording}
             >
               <Video className="w-5 h-5 mr-2" />
-              Start Recording for Next Pitch
+              Record Video for Next Pitch
             </Button>
             {capturedVideos.length > 0 && (
               <p className="text-xs text-muted-foreground text-center">
-                {capturedVideos.length} video{capturedVideos.length !== 1 ? 's' : ''} captured this session
+                {capturedVideos.length} video{capturedVideos.length !== 1 ? 's' : ''} captured
               </p>
             )}
           </div>
@@ -262,7 +250,7 @@ export function LiveChartingSession({
           </div>
         )}
 
-        {/* Strike Zone */}
+        {/* 3. Strike Zone */}
         <div className={`space-y-2 ${isRecording ? 'flex-1 flex flex-col justify-center' : ''}`}>
           <Label className="text-sm font-medium">
             {isRecording 
@@ -284,7 +272,7 @@ export function LiveChartingSession({
                 if (isRecording) {
                   handleStopRecording(x, y);
                 } else {
-                  handlePlotPitch(x, y);
+                  handleZoneTap(x, y);
                 }
               }}
               onTouchEnd={(e) => {
@@ -296,7 +284,7 @@ export function LiveChartingSession({
                 if (isRecording) {
                   handleStopRecording(x, y);
                 } else {
-                  handlePlotPitch(x, y);
+                  handleZoneTap(x, y);
                 }
               }}
             >
@@ -343,18 +331,29 @@ export function LiveChartingSession({
                 </div>
               ))}
 
-              {/* Zone labels - only top/bottom to save horizontal space */}
+              {/* Pending location indicator */}
+              {pendingLocation && (
+                <div
+                  className="absolute w-6 h-6 rounded-full transform -translate-x-1/2 -translate-y-1/2 border-2 border-dashed border-foreground bg-foreground/20 pointer-events-none animate-pulse"
+                  style={{
+                    left: `${toPercent(pendingLocation.x)}%`,
+                    top: `${100 - toPercent(pendingLocation.y)}%`,
+                  }}
+                />
+              )}
+
+              {/* Zone labels */}
               <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs text-muted-foreground pointer-events-none">High</span>
               <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-xs text-muted-foreground pointer-events-none">Low</span>
             </div>
           </div>
         </div>
 
-        {/* Recent pitches list - Hide when recording */}
+        {/* Recent pitches list */}
         {!isRecording && plottedPitches.length > 0 && (
           <div className="space-y-2">
             <Label className="text-sm font-medium">Recent Pitches</Label>
-            <div className="flex flex-wrap gap-2 max-h-24 overflow-y-auto">
+            <div className="flex flex-wrap gap-2 max-h-20 overflow-y-auto">
               {plottedPitches.slice(-10).reverse().map((pitch) => (
                 <div
                   key={pitch.pitchNumber}
@@ -372,7 +371,7 @@ export function LiveChartingSession({
         )}
       </div>
 
-      {/* Fixed Bottom Action Bar - Show cancel when recording, normal actions otherwise */}
+      {/* Fixed Bottom Action Bar */}
       <div className="p-4 border-t border-border bg-background safe-area-bottom">
         {isRecording ? (
           <Button
@@ -407,6 +406,79 @@ export function LiveChartingSession({
           </div>
         )}
       </div>
+
+      {/* Pitch Entry Dialog - Step 1: Select Pitch Type */}
+      <Dialog open={pitchEntryStep === 'selectType'} onOpenChange={(open) => !open && handleCancelPitchEntry()}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Select Pitch Type</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 py-4">
+            {[1, 2, 3, 4, 5].map((pt) => (
+              <Button
+                key={pt}
+                variant="outline"
+                className="h-16 text-lg font-bold"
+                style={{
+                  borderColor: PITCH_TYPE_COLORS[pt.toString()],
+                  borderWidth: 2,
+                }}
+                onClick={() => handlePitchTypeSelect(pt)}
+              >
+                <span
+                  className="w-4 h-4 rounded-full mr-2"
+                  style={{ backgroundColor: PITCH_TYPE_COLORS[pt.toString()] }}
+                />
+                {pitchTypes[pt.toString()] || `P${pt}`}
+              </Button>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={handleCancelPitchEntry}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Pitch Entry Dialog - Step 2: Enter Velocity */}
+      <Dialog open={pitchEntryStep === 'enterVelocity'} onOpenChange={(open) => !open && handleCancelPitchEntry()}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              Velocity
+              {selectedPitchType && (
+                <span
+                  className="px-2 py-1 rounded-full text-xs text-white"
+                  style={{ backgroundColor: PITCH_TYPE_COLORS[selectedPitchType.toString()] }}
+                >
+                  {pitchTypes[selectedPitchType.toString()]}
+                </span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              type="number"
+              inputMode="numeric"
+              placeholder="Enter velocity (optional)"
+              value={velocityInput}
+              onChange={(e) => setVelocityInput(e.target.value)}
+              className="h-16 text-3xl text-center font-bold"
+              autoFocus
+            />
+          </div>
+          <DialogFooter className="flex-row gap-2">
+            <Button variant="ghost" onClick={() => setPitchEntryStep('selectType')}>
+              Back
+            </Button>
+            <Button onClick={handleConfirmPitch} className="flex-1">
+              <Check className="w-4 h-4 mr-2" />
+              OK
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Video Save Dialog for Web Users */}
       <VideoSaveDialog
