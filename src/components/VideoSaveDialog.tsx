@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Download, Share2, X, Check, Video } from 'lucide-react';
+import { Share2, X, Video } from 'lucide-react';
 
 interface VideoSaveDialogProps {
   open: boolean;
@@ -18,56 +18,30 @@ export function VideoSaveDialog({
   fileName,
   onDiscard,
 }: VideoSaveDialogProps) {
-  const [isSaving, setIsSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-
-  const handleSave = async () => {
-    if (!videoBlob) return;
-    setIsSaving(true);
-    
-    try {
-      const url = URL.createObjectURL(videoBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      setSaved(true);
-      setTimeout(() => {
-        onOpenChange(false);
-        setSaved(false);
-      }, 1500);
-    } catch (error) {
-      console.error('Save error:', error);
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  const [isSharing, setIsSharing] = useState(false);
 
   const handleShare = async () => {
     if (!videoBlob) return;
+    setIsSharing(true);
     
     try {
       const file = new File([videoBlob], fileName, { type: videoBlob.type });
       
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      if (navigator.share) {
         await navigator.share({
           files: [file],
           title: fileName,
         });
         onOpenChange(false);
-      } else {
-        // Fallback to download if share isn't supported
-        handleSave();
+        onDiscard();
       }
     } catch (error) {
       // User cancelled share - that's fine
       if ((error as Error).name !== 'AbortError') {
         console.error('Share error:', error);
       }
+    } finally {
+      setIsSharing(false);
     }
   };
 
@@ -101,7 +75,7 @@ export function VideoSaveDialog({
           </div>
         )}
 
-        <DialogFooter className="flex-col sm:flex-row gap-2">
+        <DialogFooter className="flex-row gap-2">
           <Button
             variant="ghost"
             onClick={handleDiscard}
@@ -111,34 +85,14 @@ export function VideoSaveDialog({
             Discard
           </Button>
           
-          <div className="flex gap-2 flex-1">
-            <Button
-              variant="outline"
-              onClick={handleShare}
-              className="flex-1"
-            >
-              <Share2 className="w-4 h-4 mr-2" />
-              Share
-            </Button>
-            
-            <Button
-              onClick={handleSave}
-              disabled={isSaving || saved}
-              className="flex-1"
-            >
-              {saved ? (
-                <>
-                  <Check className="w-4 h-4 mr-2" />
-                  Saved!
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4 mr-2" />
-                  {isSaving ? 'Saving...' : 'Save'}
-                </>
-              )}
-            </Button>
-          </div>
+          <Button
+            onClick={handleShare}
+            disabled={isSharing}
+            className="flex-1"
+          >
+            <Share2 className="w-4 h-4 mr-2" />
+            {isSharing ? 'Sharing...' : 'Share / Save'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
