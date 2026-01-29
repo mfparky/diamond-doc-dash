@@ -34,6 +34,7 @@ interface OutingFormProps {
   pitchers: Pitcher[];
   onSubmit: (outing: Omit<Outing, 'id' | 'timestamp'>, pitchLocations?: PlottedPitch[]) => void;
   onCancel?: () => void;
+  defaultPitcherName?: string;
 }
 
 // Helper to get today's date as YYYY-MM-DD without timezone issues
@@ -49,9 +50,9 @@ function toLocalNoon(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0, 0);
 }
 
-export function OutingForm({ pitchers, onSubmit, onCancel }: OutingFormProps) {
+export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }: OutingFormProps) {
   const [formData, setFormData] = useState({
-    pitcherName: '',
+    pitcherName: defaultPitcherName || '',
     date: getTodayDateString(),
     eventType: '' as Outing['eventType'] | '',
     pitchCount: '',
