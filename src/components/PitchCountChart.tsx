@@ -78,6 +78,7 @@ export function PitchCountChart({ outings }: PitchCountChartProps) {
                 allowDecimals={false}
               />
               <Tooltip
+                cursor={{ fill: 'transparent' }}
                 contentStyle={{
                   backgroundColor: 'hsl(var(--card))',
                   border: '1px solid hsl(var(--border))',
