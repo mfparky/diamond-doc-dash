@@ -17,11 +17,19 @@ interface CapturedVideo {
   filePath: string;
   fileName: string;
   metadata: VideoMetadata;
+  blob?: Blob;
+}
+
+interface PendingVideo {
+  blob: Blob;
+  fileName: string;
+  metadata: VideoMetadata;
 }
 
 export function useVideoCapture() {
   const [isRecording, setIsRecording] = useState(false);
   const [capturedVideos, setCapturedVideos] = useState<CapturedVideo[]>([]);
+  const [pendingVideo, setPendingVideo] = useState<PendingVideo | null>(null);
   const { toast } = useToast();
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -189,13 +197,18 @@ export function useVideoCapture() {
             };
             reader.readAsDataURL(blob);
           } else {
-            // Web fallback - trigger download
-            downloadVideo(blob, fileName);
+            // Web - store pending video for user to review
+            setPendingVideo({
+              blob,
+              fileName,
+              metadata,
+            });
             
             const capturedVideo: CapturedVideo = {
               filePath: URL.createObjectURL(blob),
               fileName,
               metadata,
+              blob,
             };
 
             setCapturedVideos(prev => [...prev, capturedVideo]);
@@ -247,12 +260,42 @@ export function useVideoCapture() {
     setIsRecording(false);
   }, []);
 
+  // Clear pending video
+  const clearPendingVideo = useCallback(() => {
+    if (pendingVideo?.blob) {
+      URL.revokeObjectURL(URL.createObjectURL(pendingVideo.blob));
+    }
+    setPendingVideo(null);
+  }, [pendingVideo]);
+
+  // Download video helper for external use
+  const saveVideo = useCallback((blob: Blob, fileName: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: 'Video Saved',
+      description: `${fileName} saved to your device.`,
+    });
+    
+    clearPendingVideo();
+  }, [toast, clearPendingVideo]);
+
   return {
     isRecording,
     capturedVideos,
+    pendingVideo,
     startRecording,
     stopRecording,
     cancelRecording,
+    clearPendingVideo,
+    saveVideo,
     isNative,
   };
 }
