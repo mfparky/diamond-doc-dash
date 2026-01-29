@@ -5,8 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES, PITCH_TYPE_COLORS } from '@/types/pitch-location';
 import { isStrike, getZoneAspectStyle, STRIKE_ZONE, GRID_CONFIG } from '@/lib/strike-zone';
-import { Undo2, Save, X, Zap } from 'lucide-react';
+import { Undo2, Save, X, Zap, Video, Square } from 'lucide-react';
 import { Pitcher, Outing } from '@/types/pitcher';
+import { useVideoCapture } from '@/hooks/use-video-capture';
 
 export interface LivePitch {
   pitchNumber: number;
@@ -15,6 +16,7 @@ export interface LivePitch {
   yLocation: number;
   isStrike: boolean;
   velocity?: number;
+  hasVideo?: boolean;
 }
 
 interface LiveChartingSessionProps {
@@ -49,6 +51,9 @@ export function LiveChartingSession({
   const [selectedPitchType, setSelectedPitchType] = useState<number>(1);
   const [plottedPitches, setPlottedPitches] = useState<LivePitch[]>([]);
   const [currentVelocity, setCurrentVelocity] = useState<string>('');
+  const [pendingVideoLocation, setPendingVideoLocation] = useState<{x: number, y: number} | null>(null);
+  
+  const { isRecording, startRecording, stopRecording, cancelRecording, capturedVideos } = useVideoCapture();
 
   // Auto-calculate max velo from recorded pitches
   const maxVelo = useMemo(() => {
@@ -64,7 +69,7 @@ export function LiveChartingSession({
     ? ((strikes / plottedPitches.length) * 100).toFixed(0) 
     : '0';
 
-  const handlePlotPitch = useCallback((x: number, y: number) => {
+  const handlePlotPitch = useCallback((x: number, y: number, hasVideo: boolean = false) => {
     const newPitch: LivePitch = {
       pitchNumber: plottedPitches.length + 1,
       pitchType: selectedPitchType,
@@ -72,11 +77,39 @@ export function LiveChartingSession({
       yLocation: y,
       isStrike: isStrike(x, y),
       velocity: currentVelocity ? parseInt(currentVelocity) : undefined,
+      hasVideo,
     };
     setPlottedPitches((prev) => [...prev, newPitch]);
     // Clear velocity after each pitch for fresh entry
     setCurrentVelocity('');
   }, [plottedPitches.length, selectedPitchType, currentVelocity]);
+
+  // Start recording video for next pitch
+  const handleStartRecording = useCallback(async () => {
+    const success = await startRecording();
+    if (success) {
+      // Recording started - user will plot pitch location after stopping
+    }
+  }, [startRecording]);
+
+  // Stop recording and save with pitch metadata
+  const handleStopRecording = useCallback(async (x: number, y: number) => {
+    const pitchNumber = plottedPitches.length + 1;
+    const pitchIsStrike = isStrike(x, y);
+    
+    const capturedVideo = await stopRecording({
+      pitcherName: pitcher.name,
+      date: getTodayDateString(),
+      pitchNumber,
+      pitchType: pitchTypes[selectedPitchType.toString()] || `P${selectedPitchType}`,
+      velocity: currentVelocity ? parseInt(currentVelocity) : undefined,
+      isStrike: pitchIsStrike,
+    });
+
+    // Add the pitch with video flag
+    handlePlotPitch(x, y, !!capturedVideo);
+    setPendingVideoLocation(null);
+  }, [plottedPitches.length, pitcher.name, selectedPitchType, pitchTypes, currentVelocity, stopRecording, handlePlotPitch]);
 
   const handleUndo = useCallback(() => {
     setPlottedPitches((prev) => prev.slice(0, -1));
@@ -185,20 +218,67 @@ export function LiveChartingSession({
           />
         </div>
 
+        {/* Video Recording Button */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium flex items-center gap-2">
+            <Video className="w-4 h-4 text-accent" />
+            Video Capture
+          </Label>
+          {!isRecording ? (
+            <Button
+              variant="outline"
+              className="w-full h-14 text-lg border-accent text-accent hover:bg-accent/10"
+              onClick={handleStartRecording}
+            >
+              <Video className="w-5 h-5 mr-2" />
+              Start Recording for Next Pitch
+            </Button>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-center justify-center gap-2 p-3 bg-destructive/10 rounded-lg border border-destructive/30">
+                <div className="w-3 h-3 bg-destructive rounded-full animate-pulse" />
+                <span className="text-destructive font-medium">Recording... Plot location to stop & save</span>
+              </div>
+              <Button
+                variant="outline"
+                className="w-full h-10 text-sm text-muted-foreground"
+                onClick={cancelRecording}
+              >
+                Cancel Recording
+              </Button>
+            </div>
+          )}
+          {capturedVideos.length > 0 && (
+            <p className="text-xs text-muted-foreground text-center">
+              {capturedVideos.length} video{capturedVideos.length !== 1 ? 's' : ''} captured this session
+            </p>
+          )}
+        </div>
+
         {/* Strike Zone - Large for easy tapping */}
         <div className="space-y-2">
           <Label className="text-sm font-medium">
-            Tap to plot pitch #{plottedPitches.length + 1}
+            {isRecording 
+              ? 'Tap location to stop recording & plot pitch' 
+              : `Tap to plot pitch #${plottedPitches.length + 1}`}
           </Label>
           <div className="flex justify-center py-2">
             <div
-              className="relative bg-secondary/30 rounded-lg border-2 border-border cursor-crosshair active:bg-secondary/50 touch-none"
+              className={`relative rounded-lg border-2 cursor-crosshair active:bg-secondary/50 touch-none ${
+                isRecording 
+                  ? 'bg-destructive/10 border-destructive/50' 
+                  : 'bg-secondary/30 border-border'
+              }`}
               style={getZoneAspectStyle('lg')}
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
                 const y = 1 - ((e.clientY - rect.top) / rect.height) * 2;
-                handlePlotPitch(x, y);
+                if (isRecording) {
+                  handleStopRecording(x, y);
+                } else {
+                  handlePlotPitch(x, y);
+                }
               }}
               onTouchEnd={(e) => {
                 e.preventDefault();
@@ -206,7 +286,11 @@ export function LiveChartingSession({
                 const rect = e.currentTarget.getBoundingClientRect();
                 const x = ((touch.clientX - rect.left) / rect.width) * 2 - 1;
                 const y = 1 - ((touch.clientY - rect.top) / rect.height) * 2;
-                handlePlotPitch(x, y);
+                if (isRecording) {
+                  handleStopRecording(x, y);
+                } else {
+                  handlePlotPitch(x, y);
+                }
               }}
             >
               {/* Background grid */}
@@ -239,7 +323,9 @@ export function LiveChartingSession({
               {plottedPitches.map((pitch, idx) => (
                 <div
                   key={idx}
-                  className="absolute w-6 h-6 rounded-full transform -translate-x-1/2 -translate-y-1/2 border-2 border-white/70 flex items-center justify-center text-[10px] text-white font-bold shadow-lg pointer-events-none"
+                  className={`absolute w-6 h-6 rounded-full transform -translate-x-1/2 -translate-y-1/2 border-2 flex items-center justify-center text-[10px] text-white font-bold shadow-lg pointer-events-none ${
+                    pitch.hasVideo ? 'border-accent ring-2 ring-accent/50' : 'border-white/70'
+                  }`}
                   style={{
                     left: `${toPercent(pitch.xLocation)}%`,
                     top: `${100 - toPercent(pitch.yLocation)}%`,
@@ -270,6 +356,7 @@ export function LiveChartingSession({
                   className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium text-white"
                   style={{ backgroundColor: PITCH_TYPE_COLORS[pitch.pitchType.toString()] }}
                 >
+                  {pitch.hasVideo && <Video className="w-3 h-3" />}
                   #{pitch.pitchNumber} {pitchTypes[pitch.pitchType.toString()]}
                   {pitch.velocity && <span className="ml-1 opacity-80">{pitch.velocity}</span>}
                   {pitch.isStrike && <span className="ml-1">✓</span>}
