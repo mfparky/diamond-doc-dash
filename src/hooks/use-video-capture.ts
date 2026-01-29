@@ -56,8 +56,10 @@ export function useVideoCapture() {
     return { mimeType: 'video/webm', extension: 'webm' };
   };
 
-  // Check if running on native platform
-  const isNative = Capacitor.isNativePlatform();
+  // Check if running on native platform or in Capacitor WebView
+  // Note: When using live reload with server.url, isNativePlatform() returns false
+  // We check for Capacitor plugins being available as a fallback
+  const isNative = Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'web';
 
   // Start video recording
   const startRecording = useCallback(async (): Promise<boolean> => {
