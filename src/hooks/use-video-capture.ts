@@ -26,12 +26,34 @@ export function useVideoCapture() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const currentFormatRef = useRef<{ mimeType: string; extension: string }>({ mimeType: 'video/mp4', extension: 'mp4' });
 
   // Generate filename from metadata
-  const generateFileName = (metadata: VideoMetadata): string => {
+  const generateFileName = (metadata: VideoMetadata, extension: string): string => {
     const sanitizedName = metadata.pitcherName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
     const formattedDate = metadata.date.replace(/-/g, '');
-    return `${sanitizedName}_${formattedDate}_pitch${metadata.pitchNumber}.mp4`;
+    return `${sanitizedName}_${formattedDate}_pitch${metadata.pitchNumber}.${extension}`;
+  };
+
+  // Get supported video mime type - prefer MP4 for iOS compatibility
+  const getSupportedMimeType = (): { mimeType: string; extension: string } => {
+    const types = [
+      { mimeType: 'video/mp4', extension: 'mp4' },
+      { mimeType: 'video/mp4;codecs=avc1', extension: 'mp4' },
+      { mimeType: 'video/webm;codecs=vp9', extension: 'webm' },
+      { mimeType: 'video/webm;codecs=vp8', extension: 'webm' },
+      { mimeType: 'video/webm', extension: 'webm' },
+    ];
+
+    for (const type of types) {
+      if (MediaRecorder.isTypeSupported(type.mimeType)) {
+        console.log('Using video format:', type.mimeType);
+        return type;
+      }
+    }
+
+    // Fallback
+    return { mimeType: 'video/webm', extension: 'webm' };
   };
 
   // Check if running on native platform
@@ -48,15 +70,23 @@ export function useVideoCapture() {
 
       // Use MediaRecorder API for recording (works on web and in WebView)
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }, // Back camera
+        video: { 
+          facingMode: { exact: 'environment' }, // Force back camera
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
         audio: true,
       });
 
       streamRef.current = stream;
       chunksRef.current = [];
 
+      // Get supported format - prefer MP4 for iOS
+      const format = getSupportedMimeType();
+      currentFormatRef.current = format;
+
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'video/webm;codecs=vp9',
+        mimeType: format.mimeType,
       });
 
       mediaRecorder.ondataavailable = (event) => {
@@ -103,8 +133,9 @@ export function useVideoCapture() {
           return;
         }
 
-        const blob = new Blob(chunksRef.current, { type: 'video/webm' });
-        const fileName = generateFileName(metadata);
+        const format = currentFormatRef.current;
+        const blob = new Blob(chunksRef.current, { type: format.mimeType });
+        const fileName = generateFileName(metadata, format.extension);
 
         try {
           if (isNative) {
