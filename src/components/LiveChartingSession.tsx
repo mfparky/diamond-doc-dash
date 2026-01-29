@@ -8,6 +8,7 @@ import { isStrike, getZoneAspectStyle, STRIKE_ZONE, GRID_CONFIG } from '@/lib/st
 import { Undo2, Save, X, Zap, Video, Square } from 'lucide-react';
 import { Pitcher, Outing } from '@/types/pitcher';
 import { useVideoCapture } from '@/hooks/use-video-capture';
+import { VideoSaveDialog } from '@/components/VideoSaveDialog';
 
 export interface LivePitch {
   pitchNumber: number;
@@ -52,8 +53,9 @@ export function LiveChartingSession({
   const [plottedPitches, setPlottedPitches] = useState<LivePitch[]>([]);
   const [currentVelocity, setCurrentVelocity] = useState<string>('');
   const [pendingVideoLocation, setPendingVideoLocation] = useState<{x: number, y: number} | null>(null);
+  const [showVideoDialog, setShowVideoDialog] = useState(false);
   
-  const { isRecording, startRecording, stopRecording, cancelRecording, capturedVideos } = useVideoCapture();
+  const { isRecording, startRecording, stopRecording, cancelRecording, capturedVideos, pendingVideo, clearPendingVideo, isNative } = useVideoCapture();
 
   // Auto-calculate max velo from recorded pitches
   const maxVelo = useMemo(() => {
@@ -109,7 +111,12 @@ export function LiveChartingSession({
     // Add the pitch with video flag
     handlePlotPitch(x, y, !!capturedVideo);
     setPendingVideoLocation(null);
-  }, [plottedPitches.length, pitcher.name, selectedPitchType, pitchTypes, currentVelocity, stopRecording, handlePlotPitch]);
+    
+    // Show video save dialog for web users (non-native)
+    if (capturedVideo && !isNative) {
+      setShowVideoDialog(true);
+    }
+  }, [plottedPitches.length, pitcher.name, selectedPitchType, pitchTypes, currentVelocity, stopRecording, handlePlotPitch, isNative]);
 
   const handleUndo = useCallback(() => {
     setPlottedPitches((prev) => prev.slice(0, -1));
@@ -402,6 +409,15 @@ export function LiveChartingSession({
           </div>
         )}
       </div>
+
+      {/* Video Save Dialog for Web Users */}
+      <VideoSaveDialog
+        open={showVideoDialog}
+        onOpenChange={setShowVideoDialog}
+        videoBlob={pendingVideo?.blob || null}
+        fileName={pendingVideo?.fileName || ''}
+        onDiscard={clearPendingVideo}
+      />
     </div>
   );
 }
