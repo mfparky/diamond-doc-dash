@@ -10,9 +10,15 @@ const config: CapacitorConfig = {
   },
   plugins: {
     Camera: {
-      // iOS camera permissions
       iosPermissions: ['camera', 'microphone', 'photos']
     }
+  },
+  ios: {
+    // These are the Info.plist keys that need to be set
+    // NSCameraUsageDescription - for camera access
+    // NSMicrophoneUsageDescription - for audio recording
+    // NSPhotoLibraryAddUsageDescription - for saving to camera roll
+    // NSPhotoLibraryUsageDescription - for reading from photo library
   }
 };
 
