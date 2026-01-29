@@ -18,7 +18,7 @@ import { useOutings } from '@/hooks/use-outings';
 import { usePitchers } from '@/hooks/use-pitchers';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
 import { DEFAULT_MAX_WEEKLY_PITCHES } from '@/lib/pulse-status';
-import { useSwipe } from '@/hooks/use-swipe';
+
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
 
 type View = 'dashboard' | 'detail';
@@ -108,20 +108,6 @@ const Index = () => {
     setSelectedPitcher(null);
   }, []);
 
-  // Swipe handlers for switching between Players and Team tabs
-  const swipeHandlers = useSwipe({
-    onSwipeLeft: useCallback(() => {
-      if (currentView === 'dashboard' && activeTab === 'players') {
-        setActiveTab('team');
-      }
-    }, [activeTab, currentView]),
-    onSwipeRight: useCallback(() => {
-      if (currentView === 'dashboard' && activeTab === 'team') {
-        setActiveTab('players');
-      }
-    }, [activeTab, currentView]),
-    threshold: 75,
-  });
 
   // Time toggle pills component
   const TimeTogglePills = () => (
@@ -153,10 +139,7 @@ const Index = () => {
         onTabChange={setActiveTab}
       />
 
-      <main 
-        className="container mx-auto px-4 py-6 pb-24 sm:pb-6"
-        {...swipeHandlers}
-      >
+      <main className="container mx-auto px-4 py-6 pb-24 sm:pb-6">
         {currentView === 'dashboard' && activeTab === 'players' && (
           <div className="animate-slide-up">
             {/* Header with Time Toggle */}
