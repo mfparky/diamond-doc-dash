@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
-import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Media } from '@capacitor-community/media';
 import { useToast } from '@/hooks/use-toast';
 
 interface VideoMetadata {
@@ -108,22 +108,33 @@ export function useVideoCapture() {
 
         try {
           if (isNative) {
-            // Save to device using Capacitor Filesystem
+            // Save to camera roll using Capacitor Media plugin
             const reader = new FileReader();
             reader.onloadend = async () => {
               const base64Data = (reader.result as string).split(',')[1];
               
               try {
-                // Save to Documents directory (accessible in Files app on iOS)
-                const result = await Filesystem.writeFile({
-                  path: `DiamondDoc/${fileName}`,
+                // First save temporarily to filesystem
+                const tempPath = `temp_${fileName}`;
+                const tempResult = await Filesystem.writeFile({
+                  path: tempPath,
                   data: base64Data,
-                  directory: Directory.Documents,
-                  recursive: true,
+                  directory: Directory.Cache,
+                });
+
+                // Save to camera roll using Media plugin
+                await Media.saveVideo({
+                  path: tempResult.uri,
+                });
+
+                // Clean up temp file
+                await Filesystem.deleteFile({
+                  path: tempPath,
+                  directory: Directory.Cache,
                 });
 
                 const capturedVideo: CapturedVideo = {
-                  filePath: result.uri,
+                  filePath: tempResult.uri,
                   fileName,
                   metadata,
                 };
@@ -132,12 +143,12 @@ export function useVideoCapture() {
                 
                 toast({
                   title: 'Video Saved!',
-                  description: `${fileName} saved to Documents/DiamondDoc`,
+                  description: `${fileName} saved to Camera Roll`,
                 });
 
                 resolve(capturedVideo);
-              } catch (fsError) {
-                console.error('Filesystem error:', fsError);
+              } catch (mediaError) {
+                console.error('Media save error:', mediaError);
                 // Fallback to download
                 downloadVideo(blob, fileName);
                 resolve(null);
