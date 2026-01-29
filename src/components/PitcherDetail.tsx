@@ -4,7 +4,7 @@ import { StatusBadge } from './StatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, Pencil, Trash2, Share2, Settings, MapPin, Play } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, Pencil, Trash2, Share2, Settings, MapPin, Play, Activity } from 'lucide-react';
 import { EditOutingDialog } from './EditOutingDialog';
 import { DeleteOutingDialog } from './DeleteOutingDialog';
 import { OutingPitchMapDialog } from './OutingPitchMapDialog';
@@ -14,27 +14,37 @@ import { VideoPlayer } from './VideoPlayer';
 import { StrikeLocationViewer } from './StrikeLocationViewer';
 import { PitchTypeConfigDialog } from './PitchTypeConfigDialog';
 import { HomeButton } from './HomeButton';
+import { LiveChartingSession, LivePitch } from './LiveChartingSession';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES, PitchLocation } from '@/types/pitch-location';
 import { useToast } from '@/hooks/use-toast';
 import { useSwipe } from '@/hooks/use-swipe';
+
 interface PitcherDetailProps {
   pitcher: Pitcher;
   onBack: () => void;
   onUpdateOuting: (id: string, data: Partial<Omit<Outing, 'id' | 'timestamp'>>) => Promise<boolean>;
   onDeleteOuting: (id: string) => Promise<boolean>;
+  onAddOuting?: (outing: Omit<Outing, 'id' | 'timestamp'>, pitchLocations?: Array<{
+    pitchNumber: number;
+    pitchType: number;
+    xLocation: number;
+    yLocation: number;
+    isStrike: boolean;
+  }>) => Promise<Outing | null>;
 }
 
-export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting }: PitcherDetailProps) {
+export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting, onAddOuting }: PitcherDetailProps) {
   const [editingOuting, setEditingOuting] = useState<Outing | null>(null);
   const [deletingOuting, setDeletingOuting] = useState<Outing | null>(null);
   const [pitchMapOuting, setPitchMapOuting] = useState<Outing | null>(null);
   const [videoOuting, setVideoOuting] = useState<Outing | null>(null);
   const [showPitchTypeConfig, setShowPitchTypeConfig] = useState(false);
+  const [showLiveCharting, setShowLiveCharting] = useState(false);
   const [pitchTypes, setPitchTypes] = useState<PitchTypeConfig>(DEFAULT_PITCH_TYPES);
   const [outingPitchCounts, setOutingPitchCounts] = useState<Record<string, number>>({});
   const [refreshKey, setRefreshKey] = useState(0);
-  const { fetchPitchTypes, fetchPitchLocationsForOuting } = usePitchLocations();
+  const { fetchPitchTypes, fetchPitchLocationsForOuting, addPitchLocations } = usePitchLocations();
   const { toast } = useToast();
 
   // Load pitch location counts for each outing
@@ -82,11 +92,77 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting 
 
   const daysRestNeeded = pitcher.lastPitchCount > 0 ? getDaysRestNeeded(pitcher.lastPitchCount) : 0;
 
+  // Handle live charting session completion
+  const handleLiveSessionComplete = useCallback(async (sessionData: {
+    pitches: LivePitch[];
+    maxVelo: number;
+    pitchCount: number;
+    strikes: number;
+    eventType: Outing['eventType'];
+    date: string;
+  }) => {
+    if (!onAddOuting) {
+      toast({
+        title: 'Error',
+        description: 'Unable to save session. Please try again.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Create the outing first
+    const newOuting = await onAddOuting({
+      pitcherName: pitcher.name,
+      date: sessionData.date,
+      eventType: sessionData.eventType,
+      pitchCount: sessionData.pitchCount,
+      strikes: sessionData.strikes,
+      maxVelo: sessionData.maxVelo,
+      notes: `Live charted session - ${sessionData.pitches.length} pitches`,
+    });
+
+    if (newOuting) {
+      // Convert LivePitch to pitch location format
+      const pitchLocations = sessionData.pitches.map(p => ({
+        pitchNumber: p.pitchNumber,
+        pitchType: p.pitchType,
+        xLocation: p.xLocation,
+        yLocation: p.yLocation,
+        isStrike: p.isStrike,
+      }));
+
+      // Add pitch locations
+      const success = await addPitchLocations(newOuting.id, pitcher.id, pitchLocations);
+      
+      if (success) {
+        toast({
+          title: 'Session saved!',
+          description: `${sessionData.pitchCount} pitches recorded${sessionData.maxVelo ? ` • Max velo: ${sessionData.maxVelo}` : ''}.`,
+        });
+        setRefreshKey(k => k + 1);
+      }
+    }
+
+    setShowLiveCharting(false);
+  }, [onAddOuting, pitcher.name, pitcher.id, addPitchLocations, toast]);
+
   // Swipe right to go back to player cards
   const swipeHandlers = useSwipe({
     onSwipeRight: onBack,
     threshold: 50,
   });
+
+  // Show live charting session if active
+  if (showLiveCharting) {
+    return (
+      <LiveChartingSession
+        pitcher={pitcher}
+        pitchTypes={pitchTypes}
+        onComplete={handleLiveSessionComplete}
+        onCancel={() => setShowLiveCharting(false)}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6 animate-slide-up" {...swipeHandlers}>
@@ -115,6 +191,17 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting 
           </Button>
         </div>
       </div>
+
+      {/* Start Live Session Button */}
+      {onAddOuting && (
+        <Button 
+          onClick={() => setShowLiveCharting(true)}
+          className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90"
+        >
+          <Activity className="w-5 h-5 mr-2" />
+          Start Live Session
+        </Button>
+      )}
       {/* Arm Care Status Card */}
       {pitcher.lastPitchCount > 0 && (
         <Card className="glass-card border-primary/30 bg-primary/5">
