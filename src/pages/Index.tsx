@@ -75,7 +75,7 @@ const Index = () => {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [rosterPitchers, outings]);
 
-  const handleAddOuting = async (outingData: Omit<Outing, 'id' | 'timestamp'>, pitchLocations?: Array<{pitchNumber: number; pitchType: number; xLocation: number; yLocation: number; isStrike: boolean}>) => {
+  const handleAddOuting = async (outingData: Omit<Outing, 'id' | 'timestamp'>, pitchLocations?: Array<{pitchNumber: number; pitchType: number; xLocation: number; yLocation: number; isStrike: boolean}>): Promise<Outing | null> => {
     const newOuting = await addOuting(outingData);
     if (newOuting) {
       // Save pitch locations if provided
@@ -92,7 +92,9 @@ const Index = () => {
         title: 'Outing Logged',
         description: `${outingData.pitcherName}: ${outingData.pitchCount} pitches → ${daysRest} day${daysRest !== 1 ? 's' : ''} rest required.`,
       });
+      return newOuting;
     }
+    return null;
   };
 
   const handlePitcherClick = (pitcher: Pitcher) => {
@@ -200,6 +202,7 @@ const Index = () => {
             onBack={handleBackToDashboard}
             onUpdateOuting={updateOuting}
             onDeleteOuting={deleteOuting}
+            onAddOuting={handleAddOuting}
           />
         )}
       </main>
