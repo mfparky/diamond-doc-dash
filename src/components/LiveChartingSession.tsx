@@ -471,7 +471,7 @@ export function LiveChartingSession({
             <Button variant="ghost" onClick={() => setPitchEntryStep('selectType')}>
               Back
             </Button>
-            <Button onClick={handleConfirmPitch} className="flex-1">
+            <Button onClick={handleConfirmPitch} className="flex-1" autoFocus>
               <Check className="w-4 h-4 mr-2" />
               OK
             </Button>
