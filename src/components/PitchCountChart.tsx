@@ -57,7 +57,11 @@ export function PitchCountChart({ outings }: PitchCountChartProps) {
       <CardContent>
         <div className="h-[250px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 20 }}>
+            <BarChart 
+              data={chartData} 
+              margin={{ top: 10, right: 10, left: -10, bottom: 20 }}
+              style={{ backgroundColor: 'transparent' }}
+            >
               <XAxis 
                 dataKey="date" 
                 tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
