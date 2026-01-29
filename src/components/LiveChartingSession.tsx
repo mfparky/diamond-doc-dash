@@ -343,11 +343,9 @@ export function LiveChartingSession({
                 </div>
               ))}
 
-              {/* Zone labels */}
-              <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-sm text-muted-foreground pointer-events-none">High</span>
-              <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-sm text-muted-foreground pointer-events-none">Low</span>
-              <span className="absolute top-1/2 -left-8 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">In</span>
-              <span className="absolute top-1/2 -right-8 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">Out</span>
+              {/* Zone labels - only top/bottom to save horizontal space */}
+              <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs text-muted-foreground pointer-events-none">High</span>
+              <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-xs text-muted-foreground pointer-events-none">Low</span>
             </div>
           </div>
         </div>
