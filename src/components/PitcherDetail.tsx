@@ -4,8 +4,9 @@ import { StatusBadge } from './StatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, Pencil, Trash2, Share2, Settings, MapPin, Play, Activity } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, Pencil, Trash2, Share2, Settings, MapPin, Play, Activity, ClipboardList } from 'lucide-react';
 import { EditOutingDialog } from './EditOutingDialog';
+import { OutingForm } from './OutingForm';
 import { DeleteOutingDialog } from './DeleteOutingDialog';
 import { OutingPitchMapDialog } from './OutingPitchMapDialog';
 import { OutingVideoSection } from './OutingVideoSection';
@@ -41,6 +42,7 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
   const [videoOuting, setVideoOuting] = useState<Outing | null>(null);
   const [showPitchTypeConfig, setShowPitchTypeConfig] = useState(false);
   const [showLiveCharting, setShowLiveCharting] = useState(false);
+  const [showLogOuting, setShowLogOuting] = useState(false);
   const [pitchTypes, setPitchTypes] = useState<PitchTypeConfig>(DEFAULT_PITCH_TYPES);
   const [outingPitchCounts, setOutingPitchCounts] = useState<Record<string, number>>({});
   const [refreshKey, setRefreshKey] = useState(0);
@@ -192,15 +194,25 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
         </div>
       </div>
 
-      {/* Start Live Session Button */}
+      {/* Action Buttons - Live Session & Log Outing */}
       {onAddOuting && (
-        <Button 
-          onClick={() => setShowLiveCharting(true)}
-          className="w-full h-14 text-lg font-bold bg-primary hover:bg-primary/90"
-        >
-          <Activity className="w-5 h-5 mr-2" />
-          Start Live Session
-        </Button>
+        <div className="flex gap-3">
+          <Button 
+            onClick={() => setShowLiveCharting(true)}
+            className="flex-1 h-14 text-lg font-bold bg-primary hover:bg-primary/90"
+          >
+            <Activity className="w-5 h-5 mr-2" />
+            Live Session
+          </Button>
+          <Button 
+            onClick={() => setShowLogOuting(true)}
+            variant="outline"
+            className="flex-1 h-14 text-lg font-bold border-accent text-accent hover:bg-accent/10"
+          >
+            <ClipboardList className="w-5 h-5 mr-2" />
+            Log Outing
+          </Button>
+        </div>
       )}
       {/* Arm Care Status Card */}
       {pitcher.lastPitchCount > 0 && (
@@ -545,6 +557,29 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
               onVideosUpdated={() => setRefreshKey(k => k + 1)}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Log Outing Dialog */}
+      <Dialog open={showLogOuting} onOpenChange={setShowLogOuting}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-0">
+          <OutingForm
+            pitchers={[pitcher]}
+            onSubmit={async (outingData, pitchLocations) => {
+              if (onAddOuting) {
+                const newOuting = await onAddOuting(outingData, pitchLocations);
+                if (newOuting) {
+                  toast({
+                    title: 'Outing logged!',
+                    description: `${outingData.pitchCount} pitches recorded.`,
+                  });
+                  setShowLogOuting(false);
+                  setRefreshKey(k => k + 1);
+                }
+              }
+            }}
+            onCancel={() => setShowLogOuting(false)}
+          />
         </DialogContent>
       </Dialog>
     </div>
