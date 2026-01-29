@@ -296,32 +296,33 @@ export default function PlayerDashboard() {
 
           // If we have video OR focus/notes, show the section
           if (hasVideo || hasFocus || hasNotes) {
-            return (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                {/* Stacked Focus & Notes on left */}
-                {(hasFocus || hasNotes) && (
-                  <div className="flex flex-col gap-4">
-                    {hasFocus && (
-                      <Card className="glass-card border-accent/30 bg-accent/5">
-                        <CardContent className="p-4">
-                          <p className="text-sm font-medium text-accent">Current Focus</p>
-                          <p className="text-foreground mt-1">{pitcher.focus}</p>
-                        </CardContent>
-                      </Card>
-                    )}
-                    {hasNotes && (
-                      <Card className="glass-card">
-                        <CardContent className="p-4">
-                          <p className="text-sm font-medium text-muted-foreground">Latest Notes</p>
-                          <p className="text-foreground mt-1">{pitcher.notes}</p>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </div>
-                )}
+            // If video exists: 2-column layout with stacked focus/notes on left, video on right
+            if (hasVideo) {
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                  {/* Stacked Focus & Notes on left */}
+                  {(hasFocus || hasNotes) && (
+                    <div className="flex flex-col gap-4">
+                      {hasFocus && (
+                        <Card className="glass-card border-accent/30 bg-accent/5">
+                          <CardContent className="p-4">
+                            <p className="text-sm font-medium text-accent">Current Focus</p>
+                            <p className="text-foreground mt-1">{pitcher.focus}</p>
+                          </CardContent>
+                        </Card>
+                      )}
+                      {hasNotes && (
+                        <Card className="glass-card">
+                          <CardContent className="p-4">
+                            <p className="text-sm font-medium text-muted-foreground">Latest Notes</p>
+                            <p className="text-foreground mt-1">{pitcher.notes}</p>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  )}
 
-                {/* Latest Video on right */}
-                {hasVideo && (
+                  {/* Latest Video on right */}
                   <Card className="glass-card">
                     <CardHeader className="pb-2">
                       <CardTitle className="font-display text-lg flex items-center gap-2">
@@ -339,6 +340,28 @@ export default function PlayerDashboard() {
                         velocity={latestVelocity}
                         pitchTypes={pitchTypes}
                       />
+                    </CardContent>
+                  </Card>
+                </div>
+              );
+            }
+
+            // No video: Focus and Notes side by side
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                {hasFocus && (
+                  <Card className="glass-card border-accent/30 bg-accent/5">
+                    <CardContent className="p-4">
+                      <p className="text-sm font-medium text-accent">Current Focus</p>
+                      <p className="text-foreground mt-1">{pitcher.focus}</p>
+                    </CardContent>
+                  </Card>
+                )}
+                {hasNotes && (
+                  <Card className="glass-card">
+                    <CardContent className="p-4">
+                      <p className="text-sm font-medium text-muted-foreground">Latest Notes</p>
+                      <p className="text-foreground mt-1">{pitcher.notes}</p>
                     </CardContent>
                   </Card>
                 )}
