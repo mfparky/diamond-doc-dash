@@ -151,80 +151,86 @@ export function LiveChartingSession({
       </div>
 
       {/* Main Content - Scrollable */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* Live Stats Bar */}
-        <div className="grid grid-cols-4 gap-2">
-          <Card className="bg-secondary/50">
-            <CardContent className="p-3 text-center">
-              <p className="text-2xl font-bold text-foreground">{plottedPitches.length}</p>
-              <p className="text-xs text-muted-foreground">Pitches</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-secondary/50">
-            <CardContent className="p-3 text-center">
-              <p className="text-2xl font-bold text-foreground">{strikes}</p>
-              <p className="text-xs text-muted-foreground">Strikes</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-secondary/50">
-            <CardContent className="p-3 text-center">
-              <p className="text-2xl font-bold text-foreground">{strikePercentage}%</p>
-              <p className="text-xs text-muted-foreground">K%</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-primary/10 border-primary/30">
-            <CardContent className="p-3 text-center">
-              <p className="text-2xl font-bold text-primary">{maxVelo || '-'}</p>
-              <p className="text-xs text-muted-foreground">Max Velo</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Pitch Type Selector - Large touch targets */}
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Pitch Type</Label>
-          <div className="grid grid-cols-5 gap-2">
-            {[1, 2, 3, 4, 5].map((pt) => (
-              <Button
-                key={pt}
-                variant={selectedPitchType === pt ? 'default' : 'outline'}
-                className="h-14 text-lg font-bold"
-                style={{
-                  backgroundColor: selectedPitchType === pt ? PITCH_TYPE_COLORS[pt.toString()] : undefined,
-                  borderColor: PITCH_TYPE_COLORS[pt.toString()],
-                  borderWidth: selectedPitchType === pt ? 0 : 2,
-                }}
-                onClick={() => setSelectedPitchType(pt)}
-              >
-                {pitchTypes[pt.toString()] || `P${pt}`}
-              </Button>
-            ))}
+      <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${isRecording ? 'flex flex-col justify-center' : ''}`}>
+        {/* Live Stats Bar - Hide when recording to center strike zone */}
+        {!isRecording && (
+          <div className="grid grid-cols-4 gap-2">
+            <Card className="bg-secondary/50">
+              <CardContent className="p-3 text-center">
+                <p className="text-2xl font-bold text-foreground">{plottedPitches.length}</p>
+                <p className="text-xs text-muted-foreground">Pitches</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-secondary/50">
+              <CardContent className="p-3 text-center">
+                <p className="text-2xl font-bold text-foreground">{strikes}</p>
+                <p className="text-xs text-muted-foreground">Strikes</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-secondary/50">
+              <CardContent className="p-3 text-center">
+                <p className="text-2xl font-bold text-foreground">{strikePercentage}%</p>
+                <p className="text-xs text-muted-foreground">K%</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-primary/10 border-primary/30">
+              <CardContent className="p-3 text-center">
+                <p className="text-2xl font-bold text-primary">{maxVelo || '-'}</p>
+                <p className="text-xs text-muted-foreground">Max Velo</p>
+              </CardContent>
+            </Card>
           </div>
-        </div>
+        )}
 
-        {/* Velocity Input - Optional, large for touch */}
-        <div className="space-y-2">
-          <Label className="text-sm font-medium flex items-center gap-2">
-            <Zap className="w-4 h-4 text-primary" />
-            Velocity (optional)
-          </Label>
-          <Input
-            type="number"
-            inputMode="numeric"
-            placeholder="Enter velo..."
-            value={currentVelocity}
-            onChange={(e) => setCurrentVelocity(e.target.value)}
-            className="h-14 text-2xl text-center font-bold"
-          />
-        </div>
+        {/* Pitch Type Selector - Hide when recording */}
+        {!isRecording && (
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Pitch Type</Label>
+            <div className="grid grid-cols-5 gap-2">
+              {[1, 2, 3, 4, 5].map((pt) => (
+                <Button
+                  key={pt}
+                  variant={selectedPitchType === pt ? 'default' : 'outline'}
+                  className="h-14 text-lg font-bold"
+                  style={{
+                    backgroundColor: selectedPitchType === pt ? PITCH_TYPE_COLORS[pt.toString()] : undefined,
+                    borderColor: PITCH_TYPE_COLORS[pt.toString()],
+                    borderWidth: selectedPitchType === pt ? 0 : 2,
+                  }}
+                  onClick={() => setSelectedPitchType(pt)}
+                >
+                  {pitchTypes[pt.toString()] || `P${pt}`}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
 
-        {/* Video Recording Button */}
-        <div className="space-y-2">
-          <Label className="text-sm font-medium flex items-center gap-2">
-            <Video className="w-4 h-4 text-accent" />
-            Video Capture
-          </Label>
-          {!isRecording ? (
+        {/* Velocity Input - Hide when recording */}
+        {!isRecording && (
+          <div className="space-y-2">
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <Zap className="w-4 h-4 text-primary" />
+              Velocity (optional)
+            </Label>
+            <Input
+              type="number"
+              inputMode="numeric"
+              placeholder="Enter velo..."
+              value={currentVelocity}
+              onChange={(e) => setCurrentVelocity(e.target.value)}
+              className="h-14 text-2xl text-center font-bold"
+            />
+          </div>
+        )}
+
+        {/* Video Recording Section */}
+        {!isRecording ? (
+          <div className="space-y-2">
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <Video className="w-4 h-4 text-accent" />
+              Video Capture
+            </Label>
             <Button
               variant="outline"
               className="w-full h-14 text-lg border-accent text-accent hover:bg-accent/10"
@@ -233,30 +239,24 @@ export function LiveChartingSession({
               <Video className="w-5 h-5 mr-2" />
               Start Recording for Next Pitch
             </Button>
-          ) : (
-            <div className="space-y-2">
-              <div className="flex items-center justify-center gap-2 p-3 bg-destructive/10 rounded-lg border border-destructive/30">
-                <div className="w-3 h-3 bg-destructive rounded-full animate-pulse" />
-                <span className="text-destructive font-medium">Recording... Plot location to stop & save</span>
-              </div>
-              <Button
-                variant="outline"
-                className="w-full h-10 text-sm text-muted-foreground"
-                onClick={cancelRecording}
-              >
-                Cancel Recording
-              </Button>
+            {capturedVideos.length > 0 && (
+              <p className="text-xs text-muted-foreground text-center">
+                {capturedVideos.length} video{capturedVideos.length !== 1 ? 's' : ''} captured this session
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3 text-center">
+            <div className="flex items-center justify-center gap-2 p-4 bg-destructive/10 rounded-lg border border-destructive/30">
+              <div className="w-4 h-4 bg-destructive rounded-full animate-pulse" />
+              <span className="text-destructive font-semibold text-lg">Recording...</span>
             </div>
-          )}
-          {capturedVideos.length > 0 && (
-            <p className="text-xs text-muted-foreground text-center">
-              {capturedVideos.length} video{capturedVideos.length !== 1 ? 's' : ''} captured this session
-            </p>
-          )}
-        </div>
+            <p className="text-muted-foreground">Tap the zone below to stop & save</p>
+          </div>
+        )}
 
-        {/* Strike Zone - Large for easy tapping */}
-        <div className="space-y-2">
+        {/* Strike Zone */}
+        <div className={`space-y-2 ${isRecording ? 'flex-1 flex flex-col justify-center' : ''}`}>
           <Label className="text-sm font-medium">
             {isRecording 
               ? 'Tap location to stop recording & plot pitch' 
@@ -345,8 +345,8 @@ export function LiveChartingSession({
           </div>
         </div>
 
-        {/* Recent pitches list */}
-        {plottedPitches.length > 0 && (
+        {/* Recent pitches list - Hide when recording */}
+        {!isRecording && plottedPitches.length > 0 && (
           <div className="space-y-2">
             <Label className="text-sm font-medium">Recent Pitches</Label>
             <div className="flex flex-wrap gap-2 max-h-24 overflow-y-auto">
@@ -367,29 +367,40 @@ export function LiveChartingSession({
         )}
       </div>
 
-      {/* Fixed Bottom Action Bar */}
+      {/* Fixed Bottom Action Bar - Show cancel when recording, normal actions otherwise */}
       <div className="p-4 border-t border-border bg-background safe-area-bottom">
-        <div className="flex gap-3">
+        {isRecording ? (
           <Button
             variant="outline"
             size="lg"
-            onClick={handleUndo}
-            disabled={plottedPitches.length === 0}
-            className="flex-1 h-14"
+            onClick={cancelRecording}
+            className="w-full h-14 text-muted-foreground"
           >
-            <Undo2 className="w-5 h-5 mr-2" />
-            Undo
+            Cancel Recording
           </Button>
-          <Button
-            size="lg"
-            onClick={handleComplete}
-            disabled={plottedPitches.length === 0}
-            className="flex-[2] h-14 text-lg font-bold"
-          >
-            <Save className="w-5 h-5 mr-2" />
-            Save Session ({plottedPitches.length})
-          </Button>
-        </div>
+        ) : (
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={handleUndo}
+              disabled={plottedPitches.length === 0}
+              className="flex-1 h-14"
+            >
+              <Undo2 className="w-5 h-5 mr-2" />
+              Undo
+            </Button>
+            <Button
+              size="lg"
+              onClick={handleComplete}
+              disabled={plottedPitches.length === 0}
+              className="flex-[2] h-14 text-lg font-bold"
+            >
+              <Save className="w-5 h-5 mr-2" />
+              Save Session ({plottedPitches.length})
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
