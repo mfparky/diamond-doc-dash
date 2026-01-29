@@ -1,6 +1,8 @@
 import { Button } from '@/components/ui/button';
 import { Plus, LayoutGrid, BarChart3 } from 'lucide-react';
 import hawksLogo from '@/assets/hawks-logo.png';
+import { useScrollDirection } from '@/hooks/use-scroll-direction';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface HeaderProps {
   onAddOuting: () => void;
@@ -9,8 +11,17 @@ interface HeaderProps {
 }
 
 export function Header({ onAddOuting, activeTab = 'players', onTabChange }: HeaderProps) {
+  const scrollDirection = useScrollDirection();
+  const isMobile = useIsMobile();
+  
+  const isHidden = isMobile && scrollDirection === 'down';
+  
   return (
-    <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
+    <header 
+      className={`sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 transition-transform duration-300 ${
+        isHidden ? '-translate-y-full' : 'translate-y-0'
+      }`}
+    >
       <div className="container mx-auto px-4 py-2 sm:py-3">
         {/* Mobile: Centered logo, shorter height */}
         <div className="flex sm:hidden items-center justify-center">
