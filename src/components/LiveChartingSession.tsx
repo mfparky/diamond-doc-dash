@@ -461,11 +461,10 @@ export function LiveChartingSession({
             <Input
               type="number"
               inputMode="numeric"
-              placeholder="Enter velocity (optional)"
+              placeholder="Velo"
               value={velocityInput}
               onChange={(e) => setVelocityInput(e.target.value)}
               className="h-16 text-3xl text-center font-bold"
-              autoFocus
             />
           </div>
           <DialogFooter className="flex-row gap-2">
