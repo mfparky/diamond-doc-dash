@@ -86,6 +86,7 @@ export function PitchCountChart({ outings }: PitchCountChartProps) {
                   color: 'hsl(var(--foreground))',
                 }}
                 labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
+                itemStyle={{ color: 'hsl(var(--muted-foreground))' }}
                 formatter={(value: number, name: string, props: any) => [
                   `${value} pitches`,
                   props.payload.eventType,
