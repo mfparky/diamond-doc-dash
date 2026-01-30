@@ -524,10 +524,12 @@ export function LiveChartingSession({
             <Input
               type="number"
               inputMode="numeric"
+              pattern="[0-9]*"
               placeholder="Velo"
               value={velocityInput}
               onChange={(e) => setVelocityInput(e.target.value)}
               className="h-16 text-3xl text-center font-bold"
+              autoFocus
             />
           </div>
           <DialogFooter className="flex-row gap-2">
