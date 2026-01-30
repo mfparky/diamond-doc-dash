@@ -475,10 +475,11 @@ export function LiveChartingSession({
               <Button
                 key={pt}
                 variant="outline"
-                className="h-16 text-lg font-bold select-none touch-none"
+                className="h-16 text-lg font-bold select-none touch-none focus:ring-0 focus:outline-none active:scale-95 transition-transform"
                 style={{
                   borderColor: PITCH_TYPE_COLORS[pt.toString()],
                   borderWidth: 2,
+                  backgroundColor: 'transparent',
                 }}
                 onPointerDown={() => handlePitchTypePointerDown(pt)}
                 onPointerUp={() => handlePitchTypePointerUp(pt)}
