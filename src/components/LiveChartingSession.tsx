@@ -46,6 +46,9 @@ function getTodayDateString(): string {
 
 type PitchEntryStep = 'idle' | 'selectType' | 'enterVelocity';
 
+// Long press threshold in ms
+const LONG_PRESS_DURATION = 500;
+
 export function LiveChartingSession({
   pitcher,
   pitchTypes = DEFAULT_PITCH_TYPES,
@@ -61,6 +64,8 @@ export function LiveChartingSession({
   const [selectedPitchType, setSelectedPitchType] = useState<number | null>(null);
   const [velocityInput, setVelocityInput] = useState('');
   const [pendingHasVideo, setPendingHasVideo] = useState(false);
+  const [longPressTimer, setLongPressTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [isLongPress, setIsLongPress] = useState(false);
   
   const { isRecording, startRecording, stopRecording, cancelRecording, capturedVideos, pendingVideo, clearPendingVideo, isNative } = useVideoCapture();
 
@@ -87,11 +92,63 @@ export function LiveChartingSession({
     setVelocityInput('');
   }, []);
 
-  // Handle pitch type selection
-  const handlePitchTypeSelect = useCallback((pitchType: number) => {
+  // Handle pitch type selection - tap to confirm immediately, long-press for velocity
+  const handlePitchTypeSelect = useCallback((pitchType: number, wantsVelocity: boolean = false) => {
     setSelectedPitchType(pitchType);
-    setPitchEntryStep('enterVelocity');
-  }, []);
+    if (wantsVelocity) {
+      setPitchEntryStep('enterVelocity');
+    } else {
+      // Immediately confirm without velocity
+      if (!pendingLocation) return;
+      
+      const newPitch: LivePitch = {
+        pitchNumber: plottedPitches.length + 1,
+        pitchType: pitchType,
+        xLocation: pendingLocation.x,
+        yLocation: pendingLocation.y,
+        isStrike: isStrike(pendingLocation.x, pendingLocation.y),
+        velocity: undefined,
+        hasVideo: pendingHasVideo,
+      };
+      
+      setPlottedPitches((prev) => [...prev, newPitch]);
+      setPitchEntryStep('idle');
+      setPendingLocation(null);
+      setSelectedPitchType(null);
+      setVelocityInput('');
+      setPendingHasVideo(false);
+    }
+  }, [pendingLocation, plottedPitches.length, pendingHasVideo]);
+
+  // Long press handlers for pitch type buttons
+  const handlePitchTypePointerDown = useCallback((pitchType: number) => {
+    setIsLongPress(false);
+    const timer = setTimeout(() => {
+      setIsLongPress(true);
+      handlePitchTypeSelect(pitchType, true);
+    }, LONG_PRESS_DURATION);
+    setLongPressTimer(timer);
+  }, [handlePitchTypeSelect]);
+
+  const handlePitchTypePointerUp = useCallback((pitchType: number) => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+    // Only trigger tap if it wasn't a long press
+    if (!isLongPress) {
+      handlePitchTypeSelect(pitchType, false);
+    }
+    setIsLongPress(false);
+  }, [longPressTimer, isLongPress, handlePitchTypeSelect]);
+
+  const handlePitchTypePointerLeave = useCallback(() => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+    setIsLongPress(false);
+  }, [longPressTimer]);
 
   // Confirm and save the pitch
   const handleConfirmPitch = useCallback(() => {
@@ -418,12 +475,15 @@ export function LiveChartingSession({
               <Button
                 key={pt}
                 variant="outline"
-                className="h-16 text-lg font-bold"
+                className="h-16 text-lg font-bold select-none touch-none"
                 style={{
                   borderColor: PITCH_TYPE_COLORS[pt.toString()],
                   borderWidth: 2,
                 }}
-                onClick={() => handlePitchTypeSelect(pt)}
+                onPointerDown={() => handlePitchTypePointerDown(pt)}
+                onPointerUp={() => handlePitchTypePointerUp(pt)}
+                onPointerLeave={handlePitchTypePointerLeave}
+                onPointerCancel={handlePitchTypePointerLeave}
               >
                 <span
                   className="w-4 h-4 rounded-full mr-2"
@@ -433,6 +493,9 @@ export function LiveChartingSession({
               </Button>
             ))}
           </div>
+          <p className="text-xs text-muted-foreground text-center">
+            Tap to confirm • Hold for velocity
+          </p>
           <DialogFooter>
             <Button variant="ghost" onClick={handleCancelPitchEntry}>
               Cancel
