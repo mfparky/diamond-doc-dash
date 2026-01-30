@@ -79,13 +79,15 @@ export function useVideoCapture() {
       }
 
       // Use MediaRecorder API for recording (works on web and in WebView)
+      // Request high frame rate for slow motion playback, no audio
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { 
           facingMode: { exact: 'environment' }, // Force back camera
           width: { ideal: 1920 },
           height: { ideal: 1080 },
+          frameRate: { ideal: 240, min: 120 }, // High FPS for slow motion
         },
-        audio: true,
+        audio: false, // No audio for cleaner slow-mo files
       });
 
       streamRef.current = stream;
