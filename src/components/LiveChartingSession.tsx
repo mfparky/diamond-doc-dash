@@ -491,15 +491,14 @@ export function LiveChartingSession({
           </DialogHeader>
           <div className="grid grid-cols-2 gap-3 py-4">
             {[1, 2, 3, 4, 5].map((pt) => (
-              <Button
+              <button
                 key={pt}
-                variant="outline"
-                className="h-16 text-lg font-bold select-none touch-none focus:ring-0 focus:outline-none active:scale-95 transition-transform text-foreground"
+                type="button"
+                className="h-16 text-lg font-bold select-none touch-none focus:ring-0 focus:outline-none active:scale-95 transition-transform rounded-md inline-flex items-center justify-center text-foreground bg-background hover:bg-accent/10"
                 style={{
                   borderColor: PITCH_TYPE_COLORS[pt.toString()],
                   borderWidth: 2,
-                  backgroundColor: 'transparent',
-                  // Avoid iOS tap highlight that can make the last tapped option look "stuck"
+                  borderStyle: 'solid',
                   WebkitTapHighlightColor: 'transparent',
                 }}
                 onPointerDown={() => handlePitchTypePointerDown(pt)}
@@ -512,7 +511,7 @@ export function LiveChartingSession({
                   style={{ backgroundColor: PITCH_TYPE_COLORS[pt.toString()] }}
                 />
                 {pitchTypes[pt.toString()] || `P${pt}`}
-              </Button>
+              </button>
             ))}
           </div>
           <p className="text-xs text-muted-foreground text-center">
