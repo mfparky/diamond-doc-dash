@@ -70,26 +70,20 @@ export function useVideoCapture() {
   const isNative = Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'web';
 
   // Start video recording
-  const startRecording = useCallback(async (): Promise<boolean> => {
-    try {
-      if (isNative) {
-        // On native, we'll use the Camera plugin for video capture
-        // Note: Camera.getPhoto with video is limited, so we use web API for recording
-        // but save to native filesystem
-      }
-
-      // Use MediaRecorder API for recording (works on web and in WebView)
-      // Request high frame rate for slow motion playback, no audio
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          facingMode: { exact: 'environment' }, // Force back camera
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-          frameRate: { ideal: 240, min: 120 }, // High FPS for slow motion
-        },
-        audio: false, // No audio for cleaner slow-mo files
-      });
-
+  // CRITICAL: This function MUST be called directly from a user gesture (click handler)
+  // without any await/async before the getUserMedia call - browser security requirement
+  const startRecording = useCallback((): void => {
+    // getUserMedia must be called synchronously within the user gesture
+    navigator.mediaDevices.getUserMedia({
+      video: { 
+        facingMode: { exact: 'environment' }, // Force back camera
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        frameRate: { ideal: 240, min: 120 }, // High FPS for slow motion
+      },
+      audio: false, // No audio for cleaner slow-mo files
+    })
+    .then((stream) => {
       streamRef.current = stream;
       chunksRef.current = [];
 
@@ -110,18 +104,55 @@ export function useVideoCapture() {
       mediaRecorderRef.current = mediaRecorder;
       mediaRecorder.start(100); // Collect data every 100ms
       setIsRecording(true);
-      
-      return true;
-    } catch (error) {
+    })
+    .catch((error) => {
       console.error('Error starting recording:', error);
-      toast({
-        title: 'Camera Error',
-        description: 'Could not access camera. Please grant camera permissions.',
-        variant: 'destructive',
-      });
-      return false;
-    }
-  }, [isNative, toast]);
+      
+      // Handle specific error types
+      if ((error as DOMException).name === 'NotAllowedError') {
+        toast({
+          title: 'Camera Access Denied',
+          description: 'Please grant camera permissions in your browser settings.',
+          variant: 'destructive',
+        });
+      } else if ((error as DOMException).name === 'OverconstrainedError') {
+        // Back camera not available, try any camera
+        navigator.mediaDevices.getUserMedia({
+          video: { 
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
+          audio: false,
+        })
+        .then((stream) => {
+          streamRef.current = stream;
+          chunksRef.current = [];
+          const format = getSupportedMimeType();
+          currentFormatRef.current = format;
+          const mediaRecorder = new MediaRecorder(stream, { mimeType: format.mimeType });
+          mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) chunksRef.current.push(event.data);
+          };
+          mediaRecorderRef.current = mediaRecorder;
+          mediaRecorder.start(100);
+          setIsRecording(true);
+        })
+        .catch(() => {
+          toast({
+            title: 'Camera Error',
+            description: 'Could not access camera. Please grant camera permissions.',
+            variant: 'destructive',
+          });
+        });
+      } else {
+        toast({
+          title: 'Camera Error',
+          description: 'Could not access camera. Please grant camera permissions.',
+          variant: 'destructive',
+        });
+      }
+    });
+  }, [toast]);
 
   // Stop recording and save video
   const stopRecording = useCallback(async (metadata: VideoMetadata): Promise<CapturedVideo | null> => {

@@ -201,8 +201,10 @@ export function LiveChartingSession({
   }, [blurActiveElement]);
 
   // Start recording video for next pitch
-  const handleStartRecording = useCallback(async () => {
-    await startRecording();
+  // CRITICAL: startRecording must be called synchronously from the click handler
+  // to preserve the user gesture context for getUserMedia (browser security requirement)
+  const handleStartRecording = useCallback(() => {
+    startRecording();
   }, [startRecording]);
 
   // Stop recording and start pitch entry flow
