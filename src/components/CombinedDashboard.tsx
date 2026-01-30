@@ -26,7 +26,7 @@ type ViewMode = '7-day' | 'season';
 export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashboardProps) {
   const [pitchLocations, setPitchLocations] = useState<PitchLocation[]>([]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(true);
-  const [viewMode, setViewMode] = useState<ViewMode>('7-day');
+  const [viewMode, setViewMode] = useState<ViewMode>('season');
   
   // Default season range: Jan 1 to Dec 31 of current year
   const currentYear = new Date().getFullYear();
@@ -216,7 +216,6 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
             </p>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            <TimeTogglePills />
             {viewMode === 'season' && (
               <DateRangePicker
                 startDate={seasonStart}
@@ -224,6 +223,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
                 onRangeChange={handleDateRangeChange}
               />
             )}
+            <TimeTogglePills />
           </div>
         </div>
       </div>
@@ -243,7 +243,6 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
           </p>
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-          <TimeTogglePills />
           {viewMode === 'season' && (
             <DateRangePicker
               startDate={seasonStart}
@@ -251,6 +250,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
               onRangeChange={handleDateRangeChange}
             />
           )}
+          <TimeTogglePills />
         </div>
       </div>
 
