@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -66,6 +66,18 @@ export function LiveChartingSession({
   const [pendingHasVideo, setPendingHasVideo] = useState(false);
   const [longPressTimer, setLongPressTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [isLongPress, setIsLongPress] = useState(false);
+  const velocityInputRef = useRef<HTMLInputElement>(null);
+  
+  // Auto-focus velocity input when entering velocity step
+  useEffect(() => {
+    if (pitchEntryStep === 'enterVelocity') {
+      // Small delay to ensure dialog is fully rendered
+      const timer = setTimeout(() => {
+        velocityInputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [pitchEntryStep]);
   
   const { isRecording, startRecording, stopRecording, cancelRecording, capturedVideos, pendingVideo, clearPendingVideo, isNative } = useVideoCapture();
 
@@ -523,6 +535,7 @@ export function LiveChartingSession({
           </DialogHeader>
           <div className="py-4">
             <Input
+              ref={velocityInputRef}
               type="number"
               inputMode="numeric"
               pattern="[0-9]*"
@@ -530,7 +543,6 @@ export function LiveChartingSession({
               value={velocityInput}
               onChange={(e) => setVelocityInput(e.target.value)}
               className="h-16 text-3xl text-center font-bold"
-              autoFocus
             />
           </div>
           <DialogFooter className="flex-row gap-2">
