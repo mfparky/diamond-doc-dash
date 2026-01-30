@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -64,24 +64,14 @@ export function LiveChartingSession({
   const [selectedPitchType, setSelectedPitchType] = useState<number | null>(null);
   const [velocityInput, setVelocityInput] = useState('');
   const [pendingHasVideo, setPendingHasVideo] = useState(false);
-  const [longPressTimer, setLongPressTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
-  const [isLongPress, setIsLongPress] = useState(false);
   const velocityInputRef = useRef<HTMLInputElement>(null);
-  
-  // Auto-focus velocity input when entering velocity step
-  useEffect(() => {
-    if (pitchEntryStep === 'enterVelocity') {
-      // Longer delay to ensure dialog is fully rendered on mobile
-      const timer = setTimeout(() => {
-        if (velocityInputRef.current) {
-          velocityInputRef.current.focus();
-          // On iOS, we may need to trigger a click to open keyboard
-          velocityInputRef.current.click();
-        }
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [pitchEntryStep]);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTriggeredRef = useRef(false);
+
+  const blurActiveElement = useCallback(() => {
+    const el = document.activeElement as HTMLElement | null;
+    el?.blur?.();
+  }, []);
   
   const { isRecording, startRecording, stopRecording, cancelRecording, capturedVideos, pendingVideo, clearPendingVideo, isNative } = useVideoCapture();
 
@@ -101,12 +91,14 @@ export function LiveChartingSession({
 
   // Handle zone tap - starts the pitch entry flow
   const handleZoneTap = useCallback((x: number, y: number, hasVideo: boolean = false) => {
+    // Prevent iOS/Android from keeping the previously-tapped pitch type visually highlighted
+    blurActiveElement();
     setPendingLocation({ x, y });
     setPendingHasVideo(hasVideo);
     setPitchEntryStep('selectType');
     setSelectedPitchType(null);
     setVelocityInput('');
-  }, []);
+  }, [blurActiveElement]);
 
   // Handle pitch type selection - tap to confirm immediately, long-press for velocity
   const handlePitchTypeSelect = useCallback((pitchType: number, wantsVelocity: boolean = false) => {
@@ -138,33 +130,42 @@ export function LiveChartingSession({
 
   // Long press handlers for pitch type buttons
   const handlePitchTypePointerDown = useCallback((pitchType: number) => {
-    setIsLongPress(false);
-    const timer = setTimeout(() => {
-      setIsLongPress(true);
-      handlePitchTypeSelect(pitchType, true);
+    blurActiveElement();
+    longPressTriggeredRef.current = false;
+
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+
+    // Important for mobile: we only OPEN the velocity dialog on pointerUp (a user gesture)
+    // so the keyboard can reliably appear when the input is focused.
+    longPressTimerRef.current = setTimeout(() => {
+      longPressTriggeredRef.current = true;
     }, LONG_PRESS_DURATION);
-    setLongPressTimer(timer);
-  }, [handlePitchTypeSelect]);
+  }, [blurActiveElement]);
 
   const handlePitchTypePointerUp = useCallback((pitchType: number) => {
-    if (longPressTimer) {
-      clearTimeout(longPressTimer);
-      setLongPressTimer(null);
+    blurActiveElement();
+
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
     }
-    // Only trigger tap if it wasn't a long press
-    if (!isLongPress) {
-      handlePitchTypeSelect(pitchType, false);
-    }
-    setIsLongPress(false);
-  }, [longPressTimer, isLongPress, handlePitchTypeSelect]);
+
+    const wasLongPress = longPressTriggeredRef.current;
+    longPressTriggeredRef.current = false;
+
+    handlePitchTypeSelect(pitchType, wasLongPress);
+  }, [blurActiveElement, handlePitchTypeSelect]);
 
   const handlePitchTypePointerLeave = useCallback(() => {
-    if (longPressTimer) {
-      clearTimeout(longPressTimer);
-      setLongPressTimer(null);
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
     }
-    setIsLongPress(false);
-  }, [longPressTimer]);
+    longPressTriggeredRef.current = false;
+  }, []);
 
   // Confirm and save the pitch
   const handleConfirmPitch = useCallback(() => {
@@ -186,7 +187,8 @@ export function LiveChartingSession({
     setSelectedPitchType(null);
     setVelocityInput('');
     setPendingHasVideo(false);
-  }, [pendingLocation, selectedPitchType, velocityInput, plottedPitches.length, pendingHasVideo]);
+    blurActiveElement();
+  }, [pendingLocation, selectedPitchType, velocityInput, plottedPitches.length, pendingHasVideo, blurActiveElement]);
 
   // Cancel pitch entry
   const handleCancelPitchEntry = useCallback(() => {
@@ -195,7 +197,8 @@ export function LiveChartingSession({
     setSelectedPitchType(null);
     setVelocityInput('');
     setPendingHasVideo(false);
-  }, []);
+    blurActiveElement();
+  }, [blurActiveElement]);
 
   // Start recording video for next pitch
   const handleStartRecording = useCallback(async () => {
@@ -496,7 +499,8 @@ export function LiveChartingSession({
                   borderColor: PITCH_TYPE_COLORS[pt.toString()],
                   borderWidth: 2,
                   backgroundColor: 'transparent',
-                  color: 'inherit',
+                  // Avoid iOS tap highlight that can make the last tapped option look "stuck"
+                  WebkitTapHighlightColor: 'transparent',
                 }}
                 onPointerDown={() => handlePitchTypePointerDown(pt)}
                 onPointerUp={() => handlePitchTypePointerUp(pt)}
@@ -524,7 +528,14 @@ export function LiveChartingSession({
 
       {/* Pitch Entry Dialog - Step 2: Enter Velocity */}
       <Dialog open={pitchEntryStep === 'enterVelocity'} onOpenChange={(open) => !open && handleCancelPitchEntry()}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent
+          className="sm:max-w-sm"
+          onOpenAutoFocus={(e) => {
+            // Let *us* decide focus target (Radix will otherwise focus the Close button)
+            e.preventDefault();
+            velocityInputRef.current?.focus();
+          }}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               Velocity
@@ -541,13 +552,14 @@ export function LiveChartingSession({
           <div className="py-4">
             <Input
               ref={velocityInputRef}
-              type="number"
+              type="tel"
               inputMode="numeric"
               pattern="[0-9]*"
               placeholder="Velo"
               value={velocityInput}
               onChange={(e) => setVelocityInput(e.target.value)}
               className="h-16 text-3xl text-center font-bold"
+              enterKeyHint="done"
             />
           </div>
           <DialogFooter className="flex-row gap-2">
