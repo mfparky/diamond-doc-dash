@@ -71,10 +71,14 @@ export function LiveChartingSession({
   // Auto-focus velocity input when entering velocity step
   useEffect(() => {
     if (pitchEntryStep === 'enterVelocity') {
-      // Small delay to ensure dialog is fully rendered
+      // Longer delay to ensure dialog is fully rendered on mobile
       const timer = setTimeout(() => {
-        velocityInputRef.current?.focus();
-      }, 100);
+        if (velocityInputRef.current) {
+          velocityInputRef.current.focus();
+          // On iOS, we may need to trigger a click to open keyboard
+          velocityInputRef.current.click();
+        }
+      }, 300);
       return () => clearTimeout(timer);
     }
   }, [pitchEntryStep]);
@@ -487,11 +491,12 @@ export function LiveChartingSession({
               <Button
                 key={pt}
                 variant="outline"
-                className="h-16 text-lg font-bold select-none touch-none focus:ring-0 focus:outline-none active:scale-95 transition-transform"
+                className="h-16 text-lg font-bold select-none touch-none focus:ring-0 focus:outline-none active:scale-95 transition-transform text-foreground"
                 style={{
                   borderColor: PITCH_TYPE_COLORS[pt.toString()],
                   borderWidth: 2,
                   backgroundColor: 'transparent',
+                  color: 'inherit',
                 }}
                 onPointerDown={() => handlePitchTypePointerDown(pt)}
                 onPointerUp={() => handlePitchTypePointerUp(pt)}
@@ -499,7 +504,7 @@ export function LiveChartingSession({
                 onPointerCancel={handlePitchTypePointerLeave}
               >
                 <span
-                  className="w-4 h-4 rounded-full mr-2"
+                  className="w-4 h-4 rounded-full mr-2 flex-shrink-0"
                   style={{ backgroundColor: PITCH_TYPE_COLORS[pt.toString()] }}
                 />
                 {pitchTypes[pt.toString()] || `P${pt}`}
@@ -549,7 +554,7 @@ export function LiveChartingSession({
             <Button variant="ghost" onClick={() => setPitchEntryStep('selectType')}>
               Back
             </Button>
-            <Button onClick={handleConfirmPitch} className="flex-1" autoFocus>
+            <Button onClick={handleConfirmPitch} className="flex-1">
               <Check className="w-4 h-4 mr-2" />
               OK
             </Button>
