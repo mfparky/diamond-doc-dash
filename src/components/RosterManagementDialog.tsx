@@ -119,7 +119,7 @@ export function RosterManagementDialog({
                 {/* Appearance Option */}
                 <button
                   onClick={toggleTheme}
-                  className="w-full flex items-center justify-between p-4 rounded-lg bg-secondary/50 border border-border/50 hover:bg-secondary/80 transition-colors text-left"
+                  className="w-full flex items-center justify-between p-4 rounded-lg bg-secondary/50 border border-border/50 hover:bg-secondary/80 transition-colors text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-ring/50"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -140,7 +140,7 @@ export function RosterManagementDialog({
                 {/* Roster Option */}
                 <button
                   onClick={() => setView('roster')}
-                  className="w-full flex items-center justify-between p-4 rounded-lg bg-secondary/50 border border-border/50 hover:bg-secondary/80 transition-colors text-left"
+                  className="w-full flex items-center justify-between p-4 rounded-lg bg-secondary/50 border border-border/50 hover:bg-secondary/80 transition-colors text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-ring/50"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">

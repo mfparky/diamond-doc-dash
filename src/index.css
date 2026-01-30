@@ -99,6 +99,15 @@
     @apply border-border;
   }
 
+  /* Subtle focus styling globally */
+  *:focus {
+    outline: none;
+  }
+  
+  *:focus-visible {
+    @apply outline-none ring-1 ring-ring/50;
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Inter', system-ui, sans-serif;
