@@ -73,17 +73,7 @@ export function useVideoCapture() {
   // CRITICAL: This function MUST be called directly from a user gesture (click handler)
   // without any await/async before the getUserMedia call - browser security requirement
   const startRecording = useCallback((): void => {
-    // getUserMedia must be called synchronously within the user gesture
-    navigator.mediaDevices.getUserMedia({
-      video: { 
-        facingMode: { exact: 'environment' }, // Force back camera
-        width: { ideal: 1920 },
-        height: { ideal: 1080 },
-        frameRate: { ideal: 240, min: 120 }, // High FPS for slow motion
-      },
-      audio: false, // No audio for cleaner slow-mo files
-    })
-    .then((stream) => {
+    const setupRecorder = (stream: MediaStream) => {
       streamRef.current = stream;
       chunksRef.current = [];
 
@@ -104,54 +94,70 @@ export function useVideoCapture() {
       mediaRecorderRef.current = mediaRecorder;
       mediaRecorder.start(100); // Collect data every 100ms
       setIsRecording(true);
-    })
-    .catch((error) => {
-      console.error('Error starting recording:', error);
-      
-      // Handle specific error types
-      if ((error as DOMException).name === 'NotAllowedError') {
-        toast({
-          title: 'Camera Access Denied',
-          description: 'Please grant camera permissions in your browser settings.',
-          variant: 'destructive',
-        });
-      } else if ((error as DOMException).name === 'OverconstrainedError') {
-        // Back camera not available, try any camera
-        navigator.mediaDevices.getUserMedia({
-          video: { 
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-          },
-          audio: false,
-        })
-        .then((stream) => {
-          streamRef.current = stream;
-          chunksRef.current = [];
-          const format = getSupportedMimeType();
-          currentFormatRef.current = format;
-          const mediaRecorder = new MediaRecorder(stream, { mimeType: format.mimeType });
-          mediaRecorder.ondataavailable = (event) => {
-            if (event.data.size > 0) chunksRef.current.push(event.data);
-          };
-          mediaRecorderRef.current = mediaRecorder;
-          mediaRecorder.start(100);
-          setIsRecording(true);
-        })
-        .catch(() => {
+    };
+
+    const showGenericCameraError = () => {
+      toast({
+        title: 'Camera Error',
+        description: 'Could not access the rear camera. Please check permissions and try again.',
+        variant: 'destructive',
+      });
+    };
+
+    // Prefer rear camera + high FPS for slow motion.
+    // IMPORTANT: Use `ideal` values (not `min`) to avoid OverconstrainedError on many devices.
+    const primaryConstraints: MediaStreamConstraints = {
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        frameRate: { ideal: 240, max: 240 },
+      },
+      audio: false,
+    };
+
+    // Fallback that STILL prefers rear camera, but relaxes resolution/FPS.
+    const fallbackConstraints: MediaStreamConstraints = {
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        frameRate: { ideal: 120, max: 120 },
+      },
+      audio: false,
+    };
+
+    // getUserMedia must be called synchronously within the user gesture
+    navigator.mediaDevices
+      .getUserMedia(primaryConstraints)
+      .then(setupRecorder)
+      .catch((error) => {
+        console.error('Error starting recording:', error);
+
+        const errName = (error as DOMException)?.name;
+
+        if (errName === 'NotAllowedError') {
           toast({
-            title: 'Camera Error',
-            description: 'Could not access camera. Please grant camera permissions.',
+            title: 'Camera Access Denied',
+            description: 'Please grant camera permissions in your browser settings.',
             variant: 'destructive',
           });
-        });
-      } else {
-        toast({
-          title: 'Camera Error',
-          description: 'Could not access camera. Please grant camera permissions.',
-          variant: 'destructive',
-        });
-      }
-    });
+          return;
+        }
+
+        if (errName === 'OverconstrainedError') {
+          navigator.mediaDevices
+            .getUserMedia(fallbackConstraints)
+            .then(setupRecorder)
+            .catch((fallbackError) => {
+              console.error('Rear camera fallback failed:', fallbackError);
+              showGenericCameraError();
+            });
+          return;
+        }
+
+        showGenericCameraError();
+      });
   }, [toast]);
 
   // Stop recording and save video
