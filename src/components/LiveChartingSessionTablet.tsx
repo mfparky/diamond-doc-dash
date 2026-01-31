@@ -5,15 +5,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES, PITCH_TYPE_COLORS } from '@/types/pitch-location';
 import { isStrike, getZoneAspectStyle, STRIKE_ZONE, GRID_CONFIG } from '@/lib/strike-zone';
-import { Undo2, Save, X, Video } from 'lucide-react';
+import { Undo2, Save, X, Video, Pencil } from 'lucide-react';
 import { Pitcher, Outing } from '@/types/pitcher';
 import { useVideoCapture } from '@/hooks/use-video-capture';
 import { VideoSaveDialog } from '@/components/VideoSaveDialog';
+import { PitchTypeConfigDialog } from '@/components/PitchTypeConfigDialog';
 import { LivePitch } from '@/components/LiveChartingSession';
 
 interface LiveChartingSessionTabletProps {
   pitcher: Pitcher;
   pitchTypes?: PitchTypeConfig;
+  onPitchTypesUpdated?: () => void;
   onComplete: (sessionData: {
     pitches: LivePitch[];
     maxVelo: number;
@@ -36,6 +38,7 @@ function getTodayDateString(): string {
 export function LiveChartingSessionTablet({
   pitcher,
   pitchTypes = DEFAULT_PITCH_TYPES,
+  onPitchTypesUpdated,
   onComplete,
   onCancel,
 }: LiveChartingSessionTabletProps) {
@@ -43,6 +46,7 @@ export function LiveChartingSessionTablet({
   const [selectedPitchType, setSelectedPitchType] = useState<number>(1);
   const [velocityInput, setVelocityInput] = useState('');
   const [showVideoDialog, setShowVideoDialog] = useState(false);
+  const [showPitchTypeConfig, setShowPitchTypeConfig] = useState(false);
   const velocityInputRef = useRef<HTMLInputElement>(null);
 
   const { isRecording, startRecording, stopRecording, cancelRecording, capturedVideos, pendingVideo, clearPendingVideo, isNative } = useVideoCapture();
@@ -183,10 +187,19 @@ export function LiveChartingSessionTablet({
       <div className="flex-1 flex overflow-hidden p-4 gap-4">
         {/* Left Column - Pitch Type Selection & Velocity */}
         <div className="w-64 flex flex-col gap-4">
-          {/* Pitch Type Selector */}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Pitch Type</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Pitch Type</CardTitle>
+                <button
+                  type="button"
+                  onClick={() => setShowPitchTypeConfig(true)}
+                  className="text-xs text-primary hover:text-primary/80 flex items-center gap-1"
+                >
+                  <Pencil className="w-3 h-3" />
+                  Edit
+                </button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-2">
               {[1, 2, 3, 4, 5].map((pt) => (
@@ -462,6 +475,19 @@ export function LiveChartingSessionTablet({
         videoBlob={pendingVideo?.blob || null}
         fileName={pendingVideo?.fileName || ''}
         onDiscard={clearPendingVideo}
+      />
+
+      {/* Pitch Type Config Dialog */}
+      <PitchTypeConfigDialog
+        open={showPitchTypeConfig}
+        onOpenChange={(open) => {
+          setShowPitchTypeConfig(open);
+          if (!open && onPitchTypesUpdated) {
+            onPitchTypesUpdated();
+          }
+        }}
+        pitcherId={pitcher.id}
+        pitcherName={pitcher.name}
       />
     </div>
   );

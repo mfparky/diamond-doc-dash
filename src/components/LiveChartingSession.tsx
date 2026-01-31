@@ -26,6 +26,7 @@ export interface LivePitch {
 interface LiveChartingSessionProps {
   pitcher: Pitcher;
   pitchTypes?: PitchTypeConfig;
+  onPitchTypesUpdated?: () => void;
   onComplete: (sessionData: {
     pitches: LivePitch[];
     maxVelo: number;
@@ -54,6 +55,7 @@ const LONG_PRESS_DURATION = 500;
 export function LiveChartingSession({
   pitcher,
   pitchTypes = DEFAULT_PITCH_TYPES,
+  onPitchTypesUpdated,
   onComplete,
   onCancel,
 }: LiveChartingSessionProps) {
@@ -65,6 +67,7 @@ export function LiveChartingSession({
       <LiveChartingSessionTablet
         pitcher={pitcher}
         pitchTypes={pitchTypes}
+        onPitchTypesUpdated={onPitchTypesUpdated}
         onComplete={onComplete}
         onCancel={onCancel}
       />

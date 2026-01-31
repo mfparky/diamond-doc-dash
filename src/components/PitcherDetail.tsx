@@ -160,6 +160,7 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
       <LiveChartingSession
         pitcher={pitcher}
         pitchTypes={pitchTypes}
+        onPitchTypesUpdated={() => fetchPitchTypes(pitcher.id).then(setPitchTypes)}
         onComplete={handleLiveSessionComplete}
         onCancel={() => setShowLiveCharting(false)}
       />
