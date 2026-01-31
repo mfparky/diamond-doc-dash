@@ -7,7 +7,7 @@ import { SmoothHeatmap } from '@/components/SmoothHeatmap';
 import { VelocityScale } from '@/components/VelocityScale';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import { supabase } from '@/integrations/supabase/client';
-import { Activity, Target, Calendar, Flame } from 'lucide-react';
+import { Activity, Target, Calendar, Flame, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 interface CombinedDashboardProps {
   outings: Outing[];
@@ -51,6 +51,19 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
     }
   }, [viewMode, seasonStart, seasonEnd]);
 
+  // Calculate previous 7-day range for trend comparison
+  const previousDateRange = useMemo(() => {
+    const today = new Date();
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(today.getDate() - 7);
+    const fourteenDaysAgo = new Date(today);
+    fourteenDaysAgo.setDate(today.getDate() - 14);
+    return {
+      start: fourteenDaysAgo.toISOString().split('T')[0],
+      end: sevenDaysAgo.toISOString().split('T')[0],
+    };
+  }, []);
+
   // Filter outings based on date range
   const filteredOutings = useMemo(() => {
     const startDate = new Date(dateRange.start);
@@ -62,6 +75,18 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
       return outingDate >= startDate && outingDate <= endDate;
     });
   }, [outings, dateRange]);
+
+  // Filter outings for previous 7-day period (for trend comparison)
+  const previousOutings = useMemo(() => {
+    const startDate = new Date(previousDateRange.start);
+    const endDate = new Date(previousDateRange.end);
+    endDate.setHours(23, 59, 59, 999);
+    
+    return outings.filter((o) => {
+      const outingDate = new Date(o.date);
+      return outingDate >= startDate && outingDate <= endDate;
+    });
+  }, [outings, previousDateRange]);
 
   // Fetch all pitch locations for the selected date range
   useEffect(() => {
@@ -103,28 +128,23 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
     setSeasonEnd(end);
   };
 
-  // Calculate aggregate stats
-  const stats = useMemo(() => {
-    const totalPitches = filteredOutings.reduce((sum, o) => sum + o.pitchCount, 0);
+  // Helper to calculate stats for a set of outings
+  const calculateStats = (outingsList: Outing[]) => {
+    const totalPitches = outingsList.reduce((sum, o) => sum + o.pitchCount, 0);
     
-    // Only include outings where strikes were tracked
-    const outingsWithStrikes = filteredOutings.filter((o) => o.strikes !== null && o.strikes !== undefined);
+    const outingsWithStrikes = outingsList.filter((o) => o.strikes !== null && o.strikes !== undefined);
     const totalStrikes = outingsWithStrikes.reduce((sum, o) => sum + (o.strikes || 0), 0);
     const totalPitchesWithStrikes = outingsWithStrikes.reduce((sum, o) => sum + o.pitchCount, 0);
     const strikePercentage = totalPitchesWithStrikes > 0 
       ? Math.round((totalStrikes / totalPitchesWithStrikes) * 100) 
       : null;
 
-    // Velocity data - collect all velocities
-    const velocities = filteredOutings
+    const velocities = outingsList
       .filter((o) => o.maxVelo && o.maxVelo > 0)
       .map((o) => o.maxVelo!);
-    const minVelo = velocities.length > 0 ? Math.min(...velocities) : null;
-    const maxVelo = velocities.length > 0 ? Math.max(...velocities) : null;
 
-    // Event type breakdown
     const eventBreakdown: Record<string, { count: number; pitches: number }> = {};
-    filteredOutings.forEach((o) => {
+    outingsList.forEach((o) => {
       if (!eventBreakdown[o.eventType]) {
         eventBreakdown[o.eventType] = { count: 0, pitches: 0 };
       }
@@ -132,20 +152,58 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
       eventBreakdown[o.eventType].pitches += o.pitchCount;
     });
 
-    // Unique pitchers who threw
-    const uniquePitchers = new Set(filteredOutings.map((o) => o.pitcherName)).size;
+    const uniquePitchers = new Set(outingsList.map((o) => o.pitcherName)).size;
 
     return {
       totalPitches,
       strikePercentage,
       velocities,
-      minVelo,
-      maxVelo,
-      totalOutings: filteredOutings.length,
+      totalOutings: outingsList.length,
       uniquePitchers,
       eventBreakdown,
     };
-  }, [filteredOutings]);
+  };
+
+  // Calculate aggregate stats for current period
+  const stats = useMemo(() => calculateStats(filteredOutings), [filteredOutings]);
+
+  // Calculate stats for previous 7-day period (for trend comparison)
+  const previousStats = useMemo(() => calculateStats(previousOutings), [previousOutings]);
+
+  // Calculate trend indicators (only shown in 7-day view)
+  const trends = useMemo(() => {
+    const getTrend = (current: number | null, previous: number | null): 'up' | 'down' | 'neutral' => {
+      if (current === null || previous === null || previous === 0) return 'neutral';
+      if (current > previous) return 'up';
+      if (current < previous) return 'down';
+      return 'neutral';
+    };
+
+    return {
+      pitches: getTrend(stats.totalPitches, previousStats.totalPitches),
+      pitchesDiff: stats.totalPitches - previousStats.totalPitches,
+      strikePercentage: getTrend(stats.strikePercentage, previousStats.strikePercentage),
+      strikePercentageDiff: (stats.strikePercentage ?? 0) - (previousStats.strikePercentage ?? 0),
+      outings: getTrend(stats.totalOutings, previousStats.totalOutings),
+      outingsDiff: stats.totalOutings - previousStats.totalOutings,
+    };
+  }, [stats, previousStats]);
+
+  // Trend arrow component
+  const TrendIndicator = ({ trend, diff, suffix = '' }: { trend: 'up' | 'down' | 'neutral'; diff: number; suffix?: string }) => {
+    if (viewMode !== '7-day') return null;
+    
+    const Icon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus;
+    const colorClass = trend === 'up' ? 'text-success' : trend === 'down' ? 'text-destructive' : 'text-muted-foreground';
+    const diffText = diff > 0 ? `+${diff}${suffix}` : `${diff}${suffix}`;
+    
+    return (
+      <div className={`flex items-center gap-0.5 ${colorClass}`}>
+        <Icon className="w-3 h-3" />
+        <span className="text-[10px] font-medium">{diffText}</span>
+      </div>
+    );
+  };
 
   // Calculate pitch type breakdown from pitch locations
   const pitchTypeBreakdown = useMemo(() => {
@@ -264,7 +322,10 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
                 <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] sm:text-xs text-muted-foreground">Total Pitches</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Total Pitches</p>
+                  <TrendIndicator trend={trends.pitches} diff={trends.pitchesDiff} />
+                </div>
                 <p className="text-lg sm:text-2xl font-bold text-foreground">{stats.totalPitches}</p>
               </div>
             </div>
@@ -279,7 +340,12 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
                 <Target className="w-4 h-4 sm:w-5 sm:h-5 text-success" />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] sm:text-xs text-muted-foreground">Strike %</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Strike %</p>
+                  {stats.strikePercentage !== null && (
+                    <TrendIndicator trend={trends.strikePercentage} diff={trends.strikePercentageDiff} suffix="%" />
+                  )}
+                </div>
                 <p className="text-lg sm:text-2xl font-bold text-foreground">
                   {stats.strikePercentage !== null ? `${stats.strikePercentage}%` : '—'}
                 </p>
@@ -296,7 +362,10 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
                 <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-accent-foreground" />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] sm:text-xs text-muted-foreground">Sessions</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Sessions</p>
+                  <TrendIndicator trend={trends.outings} diff={trends.outingsDiff} />
+                </div>
                 <p className="text-lg sm:text-2xl font-bold text-foreground">{stats.totalOutings}</p>
               </div>
             </div>
