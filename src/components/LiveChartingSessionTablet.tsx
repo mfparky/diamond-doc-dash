@@ -269,9 +269,8 @@ export function LiveChartingSessionTablet({
           </Card>
         </div>
 
-        {/* Center Column - Strike Zone */}
         <div className="flex-1 flex flex-col items-center justify-center">
-          <Label className="text-sm font-medium mb-2">
+          <Label className="text-sm font-medium mb-8">
             {isRecording 
               ? 'Tap to stop recording & plot pitch' 
               : `Tap to plot ${pitchTypes[selectedPitchType.toString()] || 'pitch'} #${plottedPitches.length + 1}`}
