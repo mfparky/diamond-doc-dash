@@ -10,6 +10,7 @@ import { PitchCountChart } from '@/components/PitchCountChart';
 import { StrikeLocationViewer } from '@/components/StrikeLocationViewer';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
+import { usePageMeta } from '@/hooks/use-page-meta';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
 import { TrendingUp, Target, Gauge, Calendar, Video, Shield, ArrowLeft, Play } from 'lucide-react';
 import hawksLogo from '@/assets/hawks-logo.png';
@@ -160,6 +161,19 @@ export default function PlayerDashboard() {
       year: 'numeric',
     });
   };
+
+  // Dynamic page meta for sharing
+  usePageMeta({
+    title: pitcher ? `${pitcher.name} | Player Dashboard` : 'Player Dashboard | Arm Stats',
+    description: pitcher 
+      ? `View ${pitcher.name}'s pitching stats, arm care status, and performance history.`
+      : 'Player pitching stats and arm care tracking.',
+    ogTitle: pitcher ? `${pitcher.name} - Player Dashboard` : 'Player Dashboard',
+    ogDescription: pitcher 
+      ? `${pitcher.name}'s pitching stats: ${pitcher.sevenDayPulse} pitches (7-day), ${pitcher.strikePercentage.toFixed(0)}% strikes${pitcher.maxVelo ? `, ${pitcher.maxVelo} mph max velo` : ''}.`
+      : 'Player pitching stats and arm care tracking.',
+    ogType: 'profile',
+  });
 
   if (isLoading) {
     return (
