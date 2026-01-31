@@ -10,6 +10,8 @@ import { Undo2, Save, X, Video, Check } from 'lucide-react';
 import { Pitcher, Outing } from '@/types/pitcher';
 import { useVideoCapture } from '@/hooks/use-video-capture';
 import { VideoSaveDialog } from '@/components/VideoSaveDialog';
+import { useIsTabletOrLarger } from '@/hooks/use-device';
+import { LiveChartingSessionTablet } from '@/components/LiveChartingSessionTablet';
 
 export interface LivePitch {
   pitchNumber: number;
@@ -50,6 +52,38 @@ type PitchEntryStep = 'idle' | 'selectType' | 'enterVelocity';
 const LONG_PRESS_DURATION = 500;
 
 export function LiveChartingSession({
+  pitcher,
+  pitchTypes = DEFAULT_PITCH_TYPES,
+  onComplete,
+  onCancel,
+}: LiveChartingSessionProps) {
+  const isTabletOrLarger = useIsTabletOrLarger();
+
+  // Render tablet/desktop version for larger screens
+  if (isTabletOrLarger) {
+    return (
+      <LiveChartingSessionTablet
+        pitcher={pitcher}
+        pitchTypes={pitchTypes}
+        onComplete={onComplete}
+        onCancel={onCancel}
+      />
+    );
+  }
+
+  // Mobile version continues below
+  return (
+    <LiveChartingSessionMobile
+      pitcher={pitcher}
+      pitchTypes={pitchTypes}
+      onComplete={onComplete}
+      onCancel={onCancel}
+    />
+  );
+}
+
+// Mobile-specific component (existing implementation)
+function LiveChartingSessionMobile({
   pitcher,
   pitchTypes = DEFAULT_PITCH_TYPES,
   onComplete,
