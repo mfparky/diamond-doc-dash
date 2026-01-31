@@ -4,15 +4,22 @@ import { Gauge } from 'lucide-react';
 
 interface VelocityScaleProps {
   velocities: number[];
-  minRange?: number;
-  maxRange?: number;
 }
 
-export function VelocityScale({ 
-  velocities, 
-  minRange = 45, 
-  maxRange = 60 
-}: VelocityScaleProps) {
+export function VelocityScale({ velocities }: VelocityScaleProps) {
+  // Calculate dynamic range based on actual velocities with 3 mph buffer
+  const { minRange, maxRange } = useMemo(() => {
+    if (velocities.length === 0) {
+      return { minRange: 45, maxRange: 60 };
+    }
+    const dataMin = Math.min(...velocities);
+    const dataMax = Math.max(...velocities);
+    // Round to nearest 5 for cleaner tick marks
+    const bufferedMin = Math.floor((dataMin - 3) / 5) * 5;
+    const bufferedMax = Math.ceil((dataMax + 3) / 5) * 5;
+    return { minRange: bufferedMin, maxRange: bufferedMax };
+  }, [velocities]);
+
   // Calculate velocity distribution and stats
   const { plotPoints, stats, densityPath } = useMemo(() => {
     if (velocities.length === 0) {
