@@ -14,9 +14,9 @@ export function VelocityScale({ velocities }: VelocityScaleProps) {
     }
     const dataMin = Math.min(...velocities);
     const dataMax = Math.max(...velocities);
-    // Round to nearest 5 for cleaner tick marks
-    const bufferedMin = Math.floor((dataMin - 3) / 5) * 5;
-    const bufferedMax = Math.ceil((dataMax + 3) / 5) * 5;
+    // Use exact 3 mph buffer, no rounding
+    const bufferedMin = Math.floor(dataMin - 3);
+    const bufferedMax = Math.ceil(dataMax + 3);
     return { minRange: bufferedMin, maxRange: bufferedMax };
   }, [velocities]);
 
