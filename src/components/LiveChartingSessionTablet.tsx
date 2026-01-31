@@ -395,19 +395,13 @@ export function LiveChartingSessionTablet({
                   {Object.entries(pitchTypeBreakdown).map(([pt, data]) => (
                     <div
                       key={pt}
-                      className="flex items-center justify-between p-2 rounded-lg"
-                      style={{ backgroundColor: `${PITCH_TYPE_COLORS[pt]}20` }}
+                      className="flex items-center justify-between p-2 rounded-lg text-white"
+                      style={{ backgroundColor: PITCH_TYPE_COLORS[pt] }}
                     >
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: PITCH_TYPE_COLORS[pt] }}
-                        />
-                        <span className="font-medium">{pitchTypes[pt]}</span>
-                      </div>
+                      <span className="font-medium">{pitchTypes[pt]}</span>
                       <div className="text-sm">
                         <span className="font-bold">{data.count}</span>
-                        <span className="text-muted-foreground ml-1">
+                        <span className="text-white/80 ml-1">
                           ({Math.round((data.strikes / data.count) * 100)}% K)
                         </span>
                       </div>
@@ -433,22 +427,19 @@ export function LiveChartingSessionTablet({
                   {plottedPitches.slice(-8).reverse().map((pitch) => (
                     <div
                       key={pitch.pitchNumber}
-                      className="flex items-center justify-between px-2 py-1.5 rounded text-sm"
-                      style={{ backgroundColor: `${PITCH_TYPE_COLORS[pitch.pitchType.toString()]}15` }}
+                      className="flex items-center justify-between px-2 py-1.5 rounded text-sm text-white"
+                      style={{ backgroundColor: PITCH_TYPE_COLORS[pitch.pitchType.toString()] }}
                     >
                       <div className="flex items-center gap-2">
-                        <span
-                          className="w-5 h-5 rounded-full flex items-center justify-center text-xs text-white font-bold"
-                          style={{ backgroundColor: PITCH_TYPE_COLORS[pitch.pitchType.toString()] }}
-                        >
+                        <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold bg-white/20">
                           {pitch.pitchNumber}
                         </span>
                         <span>{pitchTypes[pitch.pitchType.toString()]}</span>
-                        {pitch.hasVideo && <Video className="w-3 h-3 text-accent" />}
+                        {pitch.hasVideo && <Video className="w-3 h-3" />}
                       </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        {pitch.velocity && <span>{pitch.velocity}</span>}
-                        <span className={pitch.isStrike ? 'text-green-500' : 'text-red-500'}>
+                      <div className="flex items-center gap-2">
+                        {pitch.velocity && <span className="text-white/80">{pitch.velocity}</span>}
+                        <span className="font-bold">
                           {pitch.isStrike ? 'K' : 'B'}
                         </span>
                       </div>
