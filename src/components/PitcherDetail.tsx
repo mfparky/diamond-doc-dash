@@ -49,13 +49,18 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
   const { fetchPitchTypes, fetchPitchLocationsForOuting, addPitchLocations } = usePitchLocations();
   const { toast } = useToast();
 
-  // Load pitch location counts for each outing
+  // Load pitch location counts for each outing - fetch in parallel
   const loadOutingPitchCounts = useCallback(async () => {
-    const counts: Record<string, number> = {};
-    for (const outing of pitcher.outings) {
+    const countPromises = pitcher.outings.map(async (outing) => {
       const locations = await fetchPitchLocationsForOuting(outing.id);
-      counts[outing.id] = locations.length;
-    }
+      return { id: outing.id, count: locations.length };
+    });
+    
+    const results = await Promise.all(countPromises);
+    const counts: Record<string, number> = {};
+    results.forEach(({ id, count }) => {
+      counts[id] = count;
+    });
     setOutingPitchCounts(counts);
   }, [pitcher.outings, fetchPitchLocationsForOuting]);
 

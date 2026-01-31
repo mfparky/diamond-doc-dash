@@ -301,11 +301,8 @@ export function useVideoCapture() {
 
   // Clear pending video
   const clearPendingVideo = useCallback(() => {
-    if (pendingVideo?.blob) {
-      URL.revokeObjectURL(URL.createObjectURL(pendingVideo.blob));
-    }
     setPendingVideo(null);
-  }, [pendingVideo]);
+  }, []);
 
   // Download video helper for external use
   const saveVideo = useCallback((blob: Blob, fileName: string) => {
