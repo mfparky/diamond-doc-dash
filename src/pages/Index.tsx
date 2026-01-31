@@ -111,28 +111,6 @@ const Index = () => {
   }, []);
 
 
-  // Time toggle pills component
-  const TimeTogglePills = () => (
-    <div className="flex items-center bg-secondary rounded-lg p-1 w-fit">
-      <Button
-        variant="ghost"
-        size="sm"
-        className={`h-8 px-4 text-sm font-medium ${timeView === '7day' ? 'bg-card shadow-sm' : ''}`}
-        onClick={() => setTimeView('7day')}
-      >
-        7-Day
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        className={`h-8 px-4 text-sm font-medium ${timeView === 'alltime' ? 'bg-card shadow-sm' : ''}`}
-        onClick={() => setTimeView('alltime')}
-      >
-        Season
-      </Button>
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-background">
       <Header 
@@ -165,7 +143,25 @@ const Index = () => {
                   {pitchers.filter((p) => p.restStatus.type === 'resting').length} resting
                 </p>
               </div>
-              <TimeTogglePills />
+              {/* Time Toggle Pills - inline to avoid re-creation */}
+              <div className="flex items-center bg-secondary rounded-lg p-1 w-fit">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`h-8 px-4 text-sm font-medium ${timeView === '7day' ? 'bg-card shadow-sm' : ''}`}
+                  onClick={() => setTimeView('7day')}
+                >
+                  7-Day
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`h-8 px-4 text-sm font-medium ${timeView === 'alltime' ? 'bg-card shadow-sm' : ''}`}
+                  onClick={() => setTimeView('alltime')}
+                >
+                  Season
+                </Button>
+              </div>
             </div>
 
             {/* Cards View - 7 Day */}
