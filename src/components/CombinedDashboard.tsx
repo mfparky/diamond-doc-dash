@@ -375,7 +375,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
 
       {/* Velocity Distribution Chart */}
       {stats.velocities.length > 0 && (
-        <VelocityScale velocities={stats.velocities} minRange={45} maxRange={60} />
+        <VelocityScale velocities={stats.velocities} />
       )}
 
       {/* Two Column Layout */}
