@@ -18,6 +18,13 @@ export function BottomNav({ activeTab, onTabChange, onAddOuting, isOnPlayerDetai
     }
   };
 
+  const handleTeamClick = () => {
+    if (isOnPlayerDetail && onBackToPlayers) {
+      onBackToPlayers();
+    }
+    onTabChange('team');
+  };
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-t border-border sm:hidden safe-area-bottom">
       <div className="flex items-center justify-around h-16 px-4">
@@ -48,7 +55,7 @@ export function BottomNav({ activeTab, onTabChange, onAddOuting, isOnPlayerDetai
 
         {/* Team Tab */}
         <button
-          onClick={() => onTabChange('team')}
+          onClick={handleTeamClick}
           className={cn(
             "flex flex-col items-center justify-center gap-1 py-2 px-6 rounded-xl transition-colors min-w-[72px]",
             activeTab === 'team' 
