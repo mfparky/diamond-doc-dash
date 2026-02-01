@@ -19,7 +19,7 @@ import { LiveChartingSession, LivePitch } from './LiveChartingSession';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES, PitchLocation } from '@/types/pitch-location';
 import { useToast } from '@/hooks/use-toast';
-import { useSwipe } from '@/hooks/use-swipe';
+
 
 interface PitcherDetailProps {
   pitcher: Pitcher;
@@ -153,11 +153,6 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
     setShowLiveCharting(false);
   }, [onAddOuting, pitcher.name, pitcher.id, addPitchLocations, toast]);
 
-  // Swipe right to go back to player cards
-  const swipeHandlers = useSwipe({
-    onSwipeRight: onBack,
-    threshold: 50,
-  });
 
   // Show live charting session if active
   if (showLiveCharting) {
@@ -173,7 +168,7 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
   }
 
   return (
-    <div className="space-y-6 animate-slide-up" {...swipeHandlers}>
+    <div className="space-y-6 animate-slide-up">
       <HomeButton />
       {/* Header */}
       <div className="flex items-center gap-4">
