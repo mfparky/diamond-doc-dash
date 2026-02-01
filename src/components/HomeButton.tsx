@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 export function HomeButton() {
   const location = useLocation();
   
-  // Don't show on home page
-  if (location.pathname === '/') {
+  // Don't show on home page or player dashboard (shared parent links)
+  if (location.pathname === '/' || location.pathname.startsWith('/player/')) {
     return null;
   }
 
