@@ -169,7 +169,14 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <HomeButton />
+      {/* Floating home button for mobile/tablet */}
+      <button
+        onClick={onBack}
+        className="fixed bottom-20 right-4 z-50 sm:hidden h-12 w-12 rounded-full shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center"
+        aria-label="Back to players"
+      >
+        <ArrowLeft className="h-5 w-5" />
+      </button>
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0">

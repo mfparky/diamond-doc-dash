@@ -208,6 +208,8 @@ const Index = () => {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onAddOuting={() => setShowOutingForm(true)}
+        isOnPlayerDetail={currentView === 'detail'}
+        onBackToPlayers={handleBackToDashboard}
       />
 
       {/* Outing Form Sheet - Mobile Friendly */}

@@ -5,18 +5,28 @@ interface BottomNavProps {
   activeTab: 'players' | 'team';
   onTabChange: (tab: 'players' | 'team') => void;
   onAddOuting: () => void;
+  isOnPlayerDetail?: boolean;
+  onBackToPlayers?: () => void;
 }
 
-export function BottomNav({ activeTab, onTabChange, onAddOuting }: BottomNavProps) {
+export function BottomNav({ activeTab, onTabChange, onAddOuting, isOnPlayerDetail, onBackToPlayers }: BottomNavProps) {
+  const handlePlayersClick = () => {
+    if (isOnPlayerDetail && onBackToPlayers) {
+      onBackToPlayers();
+    } else {
+      onTabChange('players');
+    }
+  };
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-t border-border sm:hidden safe-area-bottom">
       <div className="flex items-center justify-around h-16 px-4">
         {/* Players Tab */}
         <button
-          onClick={() => onTabChange('players')}
+          onClick={handlePlayersClick}
           className={cn(
             "flex flex-col items-center justify-center gap-1 py-2 px-6 rounded-xl transition-colors min-w-[72px]",
-            activeTab === 'players' 
+            activeTab === 'players' && !isOnPlayerDetail
               ? "text-primary" 
               : "text-muted-foreground hover:text-foreground"
           )}
