@@ -23,10 +23,14 @@ const EVENT_COLORS: Record<string, string> = {
 
 type ViewMode = '7-day' | 'season';
 
+type ResultFilter = 'all' | 'strikes' | 'balls';
+
 export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashboardProps) {
   const [pitchLocations, setPitchLocations] = useState<PitchLocation[]>([]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('season');
+  const [filterPitchType, setFilterPitchType] = useState<number | null>(null);
+  const [resultFilter, setResultFilter] = useState<ResultFilter>('all');
   
   // Default season range: Jan 1 to Dec 31 of current year
   const currentYear = new Date().getFullYear();
@@ -238,6 +242,36 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
     return DEFAULT_PITCH_TYPES[typeNum.toString()] || `P${typeNum}`;
   };
 
+  // Filter pitch locations by pitch type and result for the heatmap
+  const filteredPitchLocations = useMemo(() => {
+    let filtered = pitchLocations;
+    
+    if (filterPitchType !== null) {
+      filtered = filtered.filter(p => p.pitchType === filterPitchType);
+    }
+    
+    if (resultFilter === 'strikes') {
+      filtered = filtered.filter(p => p.isStrike);
+    } else if (resultFilter === 'balls') {
+      filtered = filtered.filter(p => !p.isStrike);
+    }
+    
+    return filtered;
+  }, [pitchLocations, filterPitchType, resultFilter]);
+
+  // Overall stats for the filter buttons
+  const overallStats = useMemo(() => {
+    const baseLocations = filterPitchType !== null 
+      ? pitchLocations.filter(p => p.pitchType === filterPitchType)
+      : pitchLocations;
+    const strikes = baseLocations.filter(p => p.isStrike).length;
+    return {
+      total: baseLocations.length,
+      strikes,
+      balls: baseLocations.length - strikes,
+    };
+  }, [pitchLocations, filterPitchType]);
+
   // Time toggle pills component - matches Players view design
   const TimeTogglePills = () => (
     <div className="flex items-center bg-secondary rounded-lg p-1 w-fit">
@@ -388,21 +422,102 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
               Combined Strike Zone
             </CardTitle>
           </CardHeader>
-          <CardContent className="flex justify-center px-2 sm:px-6">
-            {isLoadingLocations ? (
-              <div className="w-full max-w-[300px] aspect-[300/388] flex items-center justify-center">
-                <p className="text-muted-foreground animate-pulse">Loading...</p>
+          <CardContent className="space-y-4 px-2 sm:px-6">
+            {/* Pitch Type Filter Pills */}
+            {pitchTypeBreakdown.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">Pitch Type</p>
+                <div className="flex flex-wrap gap-1.5">
+                  <Button
+                    variant={filterPitchType === null ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setFilterPitchType(null)}
+                    className="text-xs h-7 px-2.5"
+                  >
+                    All
+                  </Button>
+                  {pitchTypeBreakdown.map((pitch) => (
+                    <Button
+                      key={pitch.type}
+                      variant={filterPitchType === pitch.type ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setFilterPitchType(filterPitchType === pitch.type ? null : pitch.type)}
+                      className="text-xs h-7 px-2.5 gap-1.5"
+                    >
+                      <div
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: PITCH_TYPE_COLORS[pitch.type.toString()] }}
+                      />
+                      {getPitchTypeLabel(pitch.type)}
+                    </Button>
+                  ))}
+                </div>
               </div>
-            ) : pitchLocations.length > 0 ? (
-              <div className="w-full max-w-[300px]">
-                <SmoothHeatmap 
-                  pitchLocations={pitchLocations} 
-                  size="md"
-                />
+            )}
+
+            {/* Result Filter (Strike/Ball) */}
+            {pitchLocations.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Show:</span>
+                <div className="flex gap-1">
+                  <Button
+                    variant={resultFilter === 'all' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setResultFilter('all')}
+                    className="text-xs h-7 px-2.5"
+                  >
+                    All ({overallStats.total})
+                  </Button>
+                  <Button
+                    variant={resultFilter === 'strikes' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setResultFilter('strikes')}
+                    className="text-xs h-7 px-2.5"
+                  >
+                    Strikes ({overallStats.strikes})
+                  </Button>
+                  <Button
+                    variant={resultFilter === 'balls' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setResultFilter('balls')}
+                    className="text-xs h-7 px-2.5"
+                  >
+                    Balls ({overallStats.balls})
+                  </Button>
+                </div>
               </div>
-            ) : (
-              <div className="w-full max-w-[300px] aspect-[300/388] flex items-center justify-center border border-dashed border-muted-foreground/30 rounded-lg">
-                <p className="text-muted-foreground text-sm text-center px-4">No pitch location data</p>
+            )}
+
+            {/* Heatmap Visualization */}
+            <div className="flex justify-center">
+              {isLoadingLocations ? (
+                <div className="w-full max-w-[300px] aspect-[300/388] flex items-center justify-center">
+                  <p className="text-muted-foreground animate-pulse">Loading...</p>
+                </div>
+              ) : pitchLocations.length > 0 ? (
+                <div className="w-full max-w-[300px]">
+                  <SmoothHeatmap 
+                    pitchLocations={filteredPitchLocations} 
+                    size="md"
+                  />
+                </div>
+              ) : (
+                <div className="w-full max-w-[300px] aspect-[300/388] flex items-center justify-center border border-dashed border-muted-foreground/30 rounded-lg">
+                  <p className="text-muted-foreground text-sm text-center px-4">No pitch location data</p>
+                </div>
+              )}
+            </div>
+
+            {/* Summary Stats */}
+            {pitchLocations.length > 0 && (filterPitchType !== null || resultFilter !== 'all') && (
+              <div className="text-center text-xs text-muted-foreground border-t border-border/50 pt-2">
+                Showing <span className="font-medium text-foreground">{filteredPitchLocations.length}</span> pitches
+                {filterPitchType !== null && (
+                  <span> • {getPitchTypeLabel(filterPitchType)}</span>
+                )}
+                {resultFilter !== 'all' && (
+                  <span> • {resultFilter === 'strikes' ? 'Strikes only' : 'Balls only'}</span>
+                )}
               </div>
             )}
           </CardContent>
