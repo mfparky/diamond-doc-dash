@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { CalendarIcon, Video, Send, X, Target } from 'lucide-react';
+import { CalendarIcon, Video, Send, X, Target, MessageSquare } from 'lucide-react';
 import { Outing, Pitcher } from '@/types/pitcher';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -60,6 +60,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
     strikesNotTracked: false,
     maxVelo: '',
     notes: '',
+    coachNotes: '',
     videoUrl1: '',
     focus: '',
   });
@@ -107,6 +108,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
       strikes: formData.strikesNotTracked ? null : (parseInt(formData.strikes) || 0),
       maxVelo: parseInt(formData.maxVelo) || 0,
       notes: formData.notes,
+      coachNotes: formData.coachNotes || undefined,
       videoUrl1: formData.videoUrl1 || undefined,
       focus: formData.focus || undefined,
     }, plottedPitches.length > 0 ? plottedPitches : undefined);
@@ -122,6 +124,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
       strikesNotTracked: false,
       maxVelo: '',
       notes: '',
+      coachNotes: '',
       videoUrl1: '',
       focus: '',
     });
@@ -302,6 +305,21 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
               placeholder="Session notes..."
               value={formData.notes}
               onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+              className="min-h-[80px] text-base"
+            />
+          </div>
+
+          {/* Coach's Notes */}
+          <div className="space-y-2">
+            <Label htmlFor="coachNotes" className="text-sm font-medium flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-purple-500" />
+              Coach's Notes (optional)
+            </Label>
+            <Textarea
+              id="coachNotes"
+              placeholder="Private coaching observations..."
+              value={formData.coachNotes}
+              onChange={(e) => setFormData(prev => ({ ...prev, coachNotes: e.target.value }))}
               className="min-h-[80px] text-base"
             />
           </div>

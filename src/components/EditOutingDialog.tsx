@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, MessageSquare } from 'lucide-react';
 import { Outing } from '@/types/pitcher';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,7 @@ export function EditOutingDialog({ outing, open, onOpenChange, onSave }: EditOut
     strikesNotTracked: false,
     maxVelo: 0,
     notes: '',
+    coachNotes: '',
     videoUrl1: '',
     focus: '',
   });
@@ -57,6 +58,7 @@ export function EditOutingDialog({ outing, open, onOpenChange, onSave }: EditOut
         strikesNotTracked: outing.strikes === null,
         maxVelo: outing.maxVelo,
         notes: outing.notes || '',
+        coachNotes: outing.coachNotes || '',
         videoUrl1: outing.videoUrl1 || outing.videoUrl || '',
         focus: outing.focus || '',
       });
@@ -230,6 +232,19 @@ export function EditOutingDialog({ outing, open, onOpenChange, onSave }: EditOut
               placeholder="Additional notes..."
               value={formData.notes}
               onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-coachNotes" className="flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-purple-500" />
+              Coach's Notes
+            </Label>
+            <Textarea
+              id="edit-coachNotes"
+              placeholder="Private coaching observations..."
+              value={formData.coachNotes}
+              onChange={(e) => setFormData((prev) => ({ ...prev, coachNotes: e.target.value }))}
             />
           </div>
         </div>

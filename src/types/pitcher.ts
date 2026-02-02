@@ -10,6 +10,7 @@ export interface Outing {
   notes: string;
   videoUrl?: string;
   focus?: string;
+  coachNotes?: string;
   // New video fields
   videoUrl1?: string;
   videoUrl2?: string;

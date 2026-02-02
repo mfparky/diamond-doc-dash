@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       outings: {
         Row: {
+          coach_notes: string | null
           created_at: string
           date: string
           event_type: string
@@ -38,6 +39,7 @@ export type Database = {
           video_url_2: string | null
         }
         Insert: {
+          coach_notes?: string | null
           created_at?: string
           date: string
           event_type: string
@@ -60,6 +62,7 @@ export type Database = {
           video_url_2?: string | null
         }
         Update: {
+          coach_notes?: string | null
           created_at?: string
           date?: string
           event_type?: string
