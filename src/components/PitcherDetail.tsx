@@ -4,7 +4,7 @@ import { StatusBadge } from './StatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, Pencil, Trash2, Share2, Settings, MapPin, Play, Activity, ClipboardList } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, Pencil, Trash2, Share2, Settings, MapPin, Play, Activity, ClipboardList, MessageSquare } from 'lucide-react';
 import { EditOutingDialog } from './EditOutingDialog';
 import { OutingForm } from './OutingForm';
 import { DeleteOutingDialog } from './DeleteOutingDialog';
@@ -520,6 +520,15 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
                       <p className="mt-2 text-sm text-muted-foreground border-t border-border/30 pt-2">
                         {outing.notes}
                       </p>
+                    )}
+                    {outing.coachNotes && (
+                      <div className="mt-2 text-sm border-t border-border/30 pt-2 flex items-start gap-2">
+                        <MessageSquare className="w-4 h-4 text-purple-500 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-medium text-purple-500">Coach's Notes:</span>
+                          <p className="text-foreground mt-0.5">{outing.coachNotes}</p>
+                        </div>
+                      </div>
                     )}
                   </div>
                 ))}

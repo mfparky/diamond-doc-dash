@@ -12,7 +12,7 @@ import { VideoPlayer } from '@/components/VideoPlayer';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
 import { usePageMeta } from '@/hooks/use-page-meta';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
-import { TrendingUp, Target, Gauge, Calendar, Video, Shield, ArrowLeft, Play } from 'lucide-react';
+import { TrendingUp, Target, Gauge, Calendar, Video, Shield, ArrowLeft, Play, MessageSquare } from 'lucide-react';
 import hawksLogo from '@/assets/hawks-logo.png';
 
 export default function PlayerDashboard() {
@@ -91,6 +91,7 @@ export default function PlayerDashboard() {
           notes: row.notes ?? '',
           videoUrl: row.video_url ?? undefined,
           focus: row.focus ?? undefined,
+          coachNotes: row.coach_notes ?? undefined,
           videoUrl1: row.video_url_1 ?? undefined,
           videoUrl2: row.video_url_2 ?? undefined,
           video1PitchType: row.video_1_pitch_type ?? undefined,
@@ -468,6 +469,15 @@ export default function PlayerDashboard() {
                         <p className="mt-2 text-sm text-muted-foreground border-t border-border/30 pt-2">
                           {outing.notes}
                         </p>
+                      )}
+                      {outing.coachNotes && (
+                        <div className="mt-2 text-sm border-t border-border/30 pt-2 flex items-start gap-2">
+                          <MessageSquare className="w-4 h-4 text-purple-500 shrink-0 mt-0.5" />
+                          <div>
+                            <span className="font-medium text-purple-500">Coach's Notes:</span>
+                            <p className="text-foreground mt-0.5">{outing.coachNotes}</p>
+                          </div>
+                        </div>
                       )}
                     </div>
                   ))}
