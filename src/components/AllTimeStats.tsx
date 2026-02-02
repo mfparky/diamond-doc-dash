@@ -17,6 +17,7 @@ interface PitcherStats {
   name: string;
   totalPitches: number;
   totalStrikes: number;
+  pitchesWithStrikesTracked: number;
   strikePercentage: number;
   maxVelocity: number;
   bullpens: number;
@@ -44,6 +45,7 @@ export function AllTimeStats({ outings }: AllTimeStatsProps) {
         name: outing.pitcherName,
         totalPitches: 0,
         totalStrikes: 0,
+        pitchesWithStrikesTracked: 0,
         strikePercentage: 0,
         maxVelocity: 0,
         bullpens: 0,
@@ -54,7 +56,11 @@ export function AllTimeStats({ outings }: AllTimeStatsProps) {
       };
 
       existing.totalPitches += outing.pitchCount;
-      existing.totalStrikes += outing.strikes || 0;
+      // Only count strikes and pitches for strike % when strikes were actually tracked
+      if (outing.strikes !== null && outing.strikes !== undefined) {
+        existing.totalStrikes += outing.strikes;
+        existing.pitchesWithStrikesTracked += outing.pitchCount;
+      }
       existing.maxVelocity = Math.max(existing.maxVelocity, outing.maxVelo || 0);
       existing.totalOutings += 1;
 
@@ -80,8 +86,8 @@ export function AllTimeStats({ outings }: AllTimeStatsProps) {
     return Array.from(statsMap.values())
       .map(stats => ({
         ...stats,
-        strikePercentage: stats.totalPitches > 0 
-          ? Math.round((stats.totalStrikes / stats.totalPitches) * 100) 
+        strikePercentage: stats.pitchesWithStrikesTracked > 0 
+          ? Math.round((stats.totalStrikes / stats.pitchesWithStrikesTracked) * 100) 
           : 0,
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
@@ -93,18 +99,19 @@ export function AllTimeStats({ outings }: AllTimeStatsProps) {
       (acc, stats) => ({
         totalPitches: acc.totalPitches + stats.totalPitches,
         totalStrikes: acc.totalStrikes + stats.totalStrikes,
+        pitchesWithStrikesTracked: acc.pitchesWithStrikesTracked + stats.pitchesWithStrikesTracked,
         bullpens: acc.bullpens + stats.bullpens,
         games: acc.games + stats.games,
         external: acc.external + stats.external,
         practices: acc.practices + stats.practices,
         totalOutings: acc.totalOutings + stats.totalOutings,
       }),
-      { totalPitches: 0, totalStrikes: 0, bullpens: 0, games: 0, external: 0, practices: 0, totalOutings: 0 }
+      { totalPitches: 0, totalStrikes: 0, pitchesWithStrikesTracked: 0, bullpens: 0, games: 0, external: 0, practices: 0, totalOutings: 0 }
     );
   }, [pitcherStats]);
 
-  const teamStrikePercentage = teamTotals.totalPitches > 0 
-    ? Math.round((teamTotals.totalStrikes / teamTotals.totalPitches) * 100) 
+  const teamStrikePercentage = teamTotals.pitchesWithStrikesTracked > 0 
+    ? Math.round((teamTotals.totalStrikes / teamTotals.pitchesWithStrikesTracked) * 100) 
     : 0;
 
   return (
