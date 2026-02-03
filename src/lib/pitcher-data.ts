@@ -61,6 +61,9 @@ export function calculatePitcherStats(pitcher: Pitcher, allOutings: Outing[]): P
   // Get the most recent focus (find the most recent outing that has a focus set)
   const mostRecentFocus = sortedOutings.find(o => o.focus)?.focus;
 
+  // Get the most recent coach notes (find the most recent outing that has coach notes)
+  const mostRecentCoachNotes = sortedOutings.find(o => o.coachNotes)?.coachNotes;
+
   // Calculate rest status based on arm care rules
   const restStatus = calculateRestStatus(lastOuting, lastPitchCount);
 
@@ -75,5 +78,6 @@ export function calculatePitcherStats(pitcher: Pitcher, allOutings: Outing[]): P
     notes,
     outings: pitcherOutings,
     focus: mostRecentFocus,
+    coachNotes: mostRecentCoachNotes,
   };
 }
