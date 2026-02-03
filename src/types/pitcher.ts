@@ -32,6 +32,7 @@ export interface Pitcher {
   notes: string;
   outings: Outing[];
   focus?: string;
+  coachNotes?: string;
 }
 
 export type RestStatus = 
