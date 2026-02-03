@@ -216,22 +216,40 @@ export default function PlayerDashboard() {
 
       <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {/* Arm Care Status Card - Hidden on mobile */}
-        {pitcher.lastPitchCount > 0 && (
+        {(pitcher.lastPitchCount > 0 || pitcher.coachNotes) && (
           <Card className="glass-card border-primary/30 bg-primary/5 hidden md:block">
             <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Shield className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <h4 className="font-display font-semibold text-foreground">Arm Care Status</h4>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Last outing: <span className="text-foreground font-medium">{pitcher.lastPitchCount} pitches</span>
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Rest required: <span className="text-foreground font-medium">{daysRestNeeded} day{daysRestNeeded !== 1 ? 's' : ''}</span>
-                  </p>
-                </div>
+              <div className="flex flex-col md:flex-row md:items-start gap-4">
+                {/* Arm Care Section */}
+                {pitcher.lastPitchCount > 0 && (
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <Shield className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="font-display font-semibold text-foreground">Arm Care Status</h4>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Last outing: <span className="text-foreground font-medium">{pitcher.lastPitchCount} pitches</span>
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Rest required: <span className="text-foreground font-medium">{daysRestNeeded} day{daysRestNeeded !== 1 ? 's' : ''}</span>
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Coach Notes Section */}
+                {pitcher.coachNotes && (
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className="p-2 rounded-lg bg-purple-500/10">
+                      <MessageSquare className="w-5 h-5 text-purple-500" />
+                    </div>
+                    <div>
+                      <h4 className="font-display font-semibold text-purple-500">Coach's Notes</h4>
+                      <p className="text-sm text-foreground mt-1">{pitcher.coachNotes}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

@@ -2,7 +2,7 @@ import { Pitcher } from '@/types/pitcher';
 import { StatusBadge } from './StatusBadge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, Target, Gauge, Calendar, Share2, MessageSquare } from 'lucide-react';
+import { TrendingUp, Target, Gauge, Calendar, Share2 } from 'lucide-react';
 import { getDaysRestNeeded } from '@/types/pitcher';
 import { getPulseLevel, getPulseColorClasses, DEFAULT_MAX_WEEKLY_PITCHES } from '@/lib/pulse-status';
 import { useToast } from '@/hooks/use-toast';
@@ -110,13 +110,6 @@ export function PitcherCard({ pitcher, onClick, maxWeeklyPitches = DEFAULT_MAX_W
           </p>
         )}
 
-        {/* Show coach's notes if available */}
-        {pitcher.coachNotes && (
-          <div className="mt-3 text-sm border-t border-border/50 pt-3 flex items-start gap-2">
-            <MessageSquare className="w-4 h-4 text-purple-500 shrink-0 mt-0.5" />
-            <p className="text-purple-500 line-clamp-2">{pitcher.coachNotes}</p>
-          </div>
-        )}
 
         {/* Show arm care info if pitcher has data */}
         {pitcher.lastPitchCount > 0 && (
