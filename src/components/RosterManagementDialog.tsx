@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Pencil, Trash2, Plus, Check, X, Sun, Moon, ChevronRight, ArrowLeft, Users, Palette } from 'lucide-react';
+import { Pencil, Trash2, Plus, Check, X, Sun, Moon, ChevronRight, ArrowLeft, Users, Palette, ClipboardCheck } from 'lucide-react';
 import { PitcherRecord } from '@/hooks/use-pitchers';
+import { WorkoutManagementSection } from '@/components/WorkoutManagementSection';
+import { useWorkouts, WorkoutAssignment } from '@/hooks/use-workouts';
+import { supabase } from '@/integrations/supabase/client';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +28,7 @@ interface RosterManagementDialogProps {
   onDeletePitcher: (id: string) => Promise<boolean>;
 }
 
-type SettingsView = 'menu' | 'roster';
+type SettingsView = 'menu' | 'roster' | 'workouts';
 
 export function RosterManagementDialog({
   open,
@@ -44,7 +47,106 @@ export function RosterManagementDialog({
   const [isAdding, setIsAdding] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isDark, setIsDark] = useState(() => !document.documentElement.classList.contains('light'));
+  const [workoutAssignments, setWorkoutAssignments] = useState<Record<string, WorkoutAssignment[]>>({});
 
+  // Fetch all workout assignments for all pitchers
+  const fetchAllWorkoutAssignments = useCallback(async () => {
+    if (pitchers.length === 0) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('workout_assignments')
+        .select('*')
+        .in('pitcher_id', pitchers.map(p => p.id));
+
+      if (error) throw error;
+
+      const grouped: Record<string, WorkoutAssignment[]> = {};
+      (data || []).forEach((row) => {
+        const pitcherId = row.pitcher_id;
+        if (!grouped[pitcherId]) grouped[pitcherId] = [];
+        grouped[pitcherId].push({
+          id: row.id,
+          pitcherId: row.pitcher_id,
+          title: row.title,
+          description: row.description,
+          createdAt: row.created_at,
+        });
+      });
+      setWorkoutAssignments(grouped);
+    } catch (error) {
+      console.error('Error fetching workout assignments:', error);
+    }
+  }, [pitchers]);
+
+  useEffect(() => {
+    if (open) {
+      fetchAllWorkoutAssignments();
+    }
+  }, [open, fetchAllWorkoutAssignments]);
+
+  // Add assignment handler
+  const handleAddAssignment = async (pitcherId: string, title: string, description?: string): Promise<WorkoutAssignment | null> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { data, error } = await supabase
+        .from('workout_assignments')
+        .insert({
+          pitcher_id: pitcherId,
+          title,
+          description: description || null,
+          user_id: user?.id || null,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const newAssignment: WorkoutAssignment = {
+        id: data.id,
+        pitcherId: data.pitcher_id,
+        title: data.title,
+        description: data.description,
+        createdAt: data.created_at,
+      };
+
+      setWorkoutAssignments((prev) => ({
+        ...prev,
+        [pitcherId]: [newAssignment, ...(prev[pitcherId] || [])],
+      }));
+
+      return newAssignment;
+    } catch (error) {
+      console.error('Error adding assignment:', error);
+      return null;
+    }
+  };
+
+  // Delete assignment handler
+  const handleDeleteAssignment = async (id: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('workout_assignments')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setWorkoutAssignments((prev) => {
+        const updated = { ...prev };
+        for (const pitcherId in updated) {
+          updated[pitcherId] = updated[pitcherId].filter((a) => a.id !== id);
+        }
+        return updated;
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting assignment:', error);
+      return false;
+    }
+  };
   const toggleTheme = () => {
     const newIsDark = !isDark;
     setIsDark(newIsDark);
@@ -155,9 +257,28 @@ export function RosterManagementDialog({
                   </div>
                   <ChevronRight className="w-5 h-5 text-muted-foreground" />
                 </button>
+
+                {/* Workouts Option */}
+                <button
+                  onClick={() => setView('workouts')}
+                  className="w-full flex items-center justify-between p-4 rounded-lg bg-secondary/50 border border-border/50 hover:bg-secondary/80 transition-colors text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-ring/50"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <ClipboardCheck className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">Workouts</p>
+                      <p className="text-sm text-muted-foreground">
+                        Assign accountability workouts
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                </button>
               </div>
             </>
-          ) : (
+          ) : view === 'roster' ? (
             <>
               <DialogHeader>
                 <div className="flex items-center gap-2">
@@ -266,6 +387,52 @@ export function RosterManagementDialog({
                     <Plus className="w-4 h-4 mr-2" />
                     Add Pitcher
                   </Button>
+                )}
+              </div>
+            </>
+          ) : (
+            /* Workouts View */
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setView('menu')}
+                    className="h-8 w-8 -ml-2"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                  </Button>
+                  <div>
+                    <DialogTitle className="font-display">Assign Workouts</DialogTitle>
+                    <DialogDescription>
+                      Set weekly accountability workouts for each pitcher.
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="flex-1 overflow-y-auto space-y-4 py-4">
+                {pitchers.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-4">
+                    Add pitchers to your roster first.
+                  </p>
+                ) : (
+                  pitchers.map((pitcher) => (
+                    <div
+                      key={pitcher.id}
+                      className="p-4 rounded-lg bg-secondary/50 border border-border/50"
+                    >
+                      <h3 className="font-semibold text-foreground mb-3">{pitcher.name}</h3>
+                      <WorkoutManagementSection
+                        pitcherId={pitcher.id}
+                        pitcherName={pitcher.name}
+                        assignments={workoutAssignments[pitcher.id] || []}
+                        onAddAssignment={handleAddAssignment}
+                        onDeleteAssignment={handleDeleteAssignment}
+                      />
+                    </div>
+                  ))
                 )}
               </div>
             </>

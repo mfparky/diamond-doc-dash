@@ -6,13 +6,16 @@ import { calculatePitcherStats } from '@/lib/pitcher-data';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { PitchCountChart } from '@/components/PitchCountChart';
 import { StrikeLocationViewer } from '@/components/StrikeLocationViewer';
 import { VideoPlayer } from '@/components/VideoPlayer';
+import { AccountabilityDialog } from '@/components/AccountabilityDialog';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
+import { useWorkouts } from '@/hooks/use-workouts';
 import { usePageMeta } from '@/hooks/use-page-meta';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
-import { TrendingUp, Target, Gauge, Calendar, Video, Shield, ArrowLeft, Play, MessageSquare } from 'lucide-react';
+import { TrendingUp, Target, Gauge, Calendar, Video, Shield, ArrowLeft, Play, MessageSquare, ClipboardCheck } from 'lucide-react';
 import hawksLogo from '@/assets/hawks-logo.png';
 
 export default function PlayerDashboard() {
@@ -23,7 +26,15 @@ export default function PlayerDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedVideoOuting, setSelectedVideoOuting] = useState<Outing | null>(null);
+  const [showAccountability, setShowAccountability] = useState(false);
   const { fetchPitchTypes } = usePitchLocations();
+  const { 
+    assignments, 
+    completions, 
+    isLoading: workoutsLoading,
+    toggleCompletion,
+    updateCompletionNotes,
+  } = useWorkouts(playerId);
 
   const withTimeout = <T,>(promise: Promise<T>, ms = 8000): Promise<T> => {
     return new Promise((resolve, reject) => {
@@ -210,7 +221,21 @@ export default function PlayerDashboard() {
               <p className="text-xs text-muted-foreground hidden md:block">Player Dashboard</p>
             </div>
           </div>
-          <StatusBadge status={pitcher.restStatus} />
+          <div className="flex items-center gap-2">
+            {/* Accountability Button */}
+            {assignments.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAccountability(true)}
+                className="flex items-center gap-1.5"
+              >
+                <ClipboardCheck className="w-4 h-4" />
+                <span className="hidden sm:inline">Accountability</span>
+              </Button>
+            )}
+            <StatusBadge status={pitcher.restStatus} />
+          </div>
         </div>
       </header>
 
@@ -563,6 +588,18 @@ export default function PlayerDashboard() {
           )}
         </DialogContent>
       </Dialog>
+      {/* Accountability Dialog */}
+      <AccountabilityDialog
+        open={showAccountability}
+        onOpenChange={setShowAccountability}
+        assignments={assignments}
+        completions={completions}
+        pitcherId={playerId || ''}
+        onToggleDay={(assignmentId, dayOfWeek) => 
+          toggleCompletion(assignmentId, playerId || '', dayOfWeek)
+        }
+        onUpdateNotes={updateCompletionNotes}
+      />
     </div>
   );
 }

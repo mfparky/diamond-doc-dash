@@ -251,6 +251,99 @@ export type Database = {
         }
         Relationships: []
       }
+      workout_assignments: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          pitcher_id: string
+          team_id: string | null
+          title: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          pitcher_id: string
+          team_id?: string | null
+          title: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          pitcher_id?: string
+          team_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_assignments_pitcher_id_fkey"
+            columns: ["pitcher_id"]
+            isOneToOne: false
+            referencedRelation: "pitchers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_assignments_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_completions: {
+        Row: {
+          assignment_id: string
+          created_at: string
+          day_of_week: number
+          id: string
+          notes: string | null
+          pitcher_id: string
+          week_start: string
+        }
+        Insert: {
+          assignment_id: string
+          created_at?: string
+          day_of_week: number
+          id?: string
+          notes?: string | null
+          pitcher_id: string
+          week_start: string
+        }
+        Update: {
+          assignment_id?: string
+          created_at?: string
+          day_of_week?: number
+          id?: string
+          notes?: string | null
+          pitcher_id?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_completions_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "workout_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_completions_pitcher_id_fkey"
+            columns: ["pitcher_id"]
+            isOneToOne: false
+            referencedRelation: "pitchers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
