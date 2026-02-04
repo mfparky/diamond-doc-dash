@@ -3,9 +3,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Pencil, Trash2, Plus, Check, X, Sun, Moon, ChevronRight, ArrowLeft, Users, Palette, ClipboardCheck } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Pencil, Trash2, Plus, Check, X, Sun, Moon, ChevronRight, ArrowLeft, Users, Palette, ClipboardCheck, Trophy } from 'lucide-react';
 import { PitcherRecord } from '@/hooks/use-pitchers';
 import { WorkoutManagementSection } from '@/components/WorkoutManagementSection';
+import { WorkoutLeaderboard } from '@/components/WorkoutLeaderboard';
 import { useWorkouts, WorkoutAssignment } from '@/hooks/use-workouts';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -404,37 +406,54 @@ export function RosterManagementDialog({
                     <ArrowLeft className="w-4 h-4" />
                   </Button>
                   <div>
-                    <DialogTitle className="font-display">Assign Workouts</DialogTitle>
+                    <DialogTitle className="font-display">Workouts & Leaderboard</DialogTitle>
                     <DialogDescription>
-                      Set weekly accountability workouts for each pitcher.
+                      Manage workouts and track team accountability.
                     </DialogDescription>
                   </div>
                 </div>
               </DialogHeader>
 
-              <div className="flex-1 overflow-y-auto space-y-4 py-4">
-                {pitchers.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-4">
-                    Add pitchers to your roster first.
-                  </p>
-                ) : (
-                  pitchers.map((pitcher) => (
-                    <div
-                      key={pitcher.id}
-                      className="p-4 rounded-lg bg-secondary/50 border border-border/50"
-                    >
-                      <h3 className="font-semibold text-foreground mb-3">{pitcher.name}</h3>
-                      <WorkoutManagementSection
-                        pitcherId={pitcher.id}
-                        pitcherName={pitcher.name}
-                        assignments={workoutAssignments[pitcher.id] || []}
-                        onAddAssignment={handleAddAssignment}
-                        onDeleteAssignment={handleDeleteAssignment}
-                      />
-                    </div>
-                  ))
-                )}
-              </div>
+              <Tabs defaultValue="assignments" className="flex-1 flex flex-col overflow-hidden">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="assignments" className="gap-2">
+                    <ClipboardCheck className="w-4 h-4" />
+                    Assignments
+                  </TabsTrigger>
+                  <TabsTrigger value="leaderboard" className="gap-2">
+                    <Trophy className="w-4 h-4" />
+                    Leaderboard
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="assignments" className="flex-1 overflow-y-auto space-y-4 py-4 mt-0">
+                  {pitchers.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-4">
+                      Add pitchers to your roster first.
+                    </p>
+                  ) : (
+                    pitchers.map((pitcher) => (
+                      <div
+                        key={pitcher.id}
+                        className="p-4 rounded-lg bg-secondary/50 border border-border/50"
+                      >
+                        <h3 className="font-semibold text-foreground mb-3">{pitcher.name}</h3>
+                        <WorkoutManagementSection
+                          pitcherId={pitcher.id}
+                          pitcherName={pitcher.name}
+                          assignments={workoutAssignments[pitcher.id] || []}
+                          onAddAssignment={handleAddAssignment}
+                          onDeleteAssignment={handleDeleteAssignment}
+                        />
+                      </div>
+                    ))
+                  )}
+                </TabsContent>
+
+                <TabsContent value="leaderboard" className="flex-1 overflow-y-auto py-4 mt-0">
+                  <WorkoutLeaderboard pitchers={pitchers} />
+                </TabsContent>
+              </Tabs>
             </>
           )}
         </DialogContent>
