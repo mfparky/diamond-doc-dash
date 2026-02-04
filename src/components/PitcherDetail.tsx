@@ -19,6 +19,7 @@ import { LiveChartingSession, LivePitch } from './LiveChartingSession';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES, PitchLocation } from '@/types/pitch-location';
 import { useToast } from '@/hooks/use-toast';
+import { WorkoutCompletionDisplay } from './WorkoutCompletionDisplay';
 
 
 interface PitcherDetailProps {
@@ -270,6 +271,9 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
           </CardContent>
         </Card>
       )}
+
+      {/* Weekly Accountability - Coach View */}
+      <WorkoutCompletionDisplay pitcherId={pitcher.id} />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
