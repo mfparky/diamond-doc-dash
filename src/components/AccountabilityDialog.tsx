@@ -181,11 +181,11 @@ export function AccountabilityDialog({
                         {completed && (
                           <button
                             onClick={() => handleOpenNotes(assignment.id, dayIndex)}
-                            className={`text-xs flex items-center gap-0.5 ${
-                              completion?.notes ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                            className={`p-1.5 -m-1 flex items-center justify-center rounded-md ${
+                              completion?.notes ? 'text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                             }`}
                           >
-                            <MessageSquare className="w-3 h-3" />
+                            <MessageSquare className="w-4 h-4" />
                           </button>
                         )}
                       </div>
