@@ -12,6 +12,7 @@ import { useVideoCapture } from '@/hooks/use-video-capture';
 import { VideoSaveDialog } from '@/components/VideoSaveDialog';
 import { useIsTabletOrLarger } from '@/hooks/use-device';
 import { LiveChartingSessionTablet } from '@/components/LiveChartingSessionTablet';
+import { LiveCameraPreview } from '@/components/LiveCameraPreview';
 
 export interface LivePitch {
   pitchNumber: number;
@@ -110,7 +111,7 @@ function LiveChartingSessionMobile({
     el?.blur?.();
   }, []);
   
-  const { isRecording, startRecording, stopRecording, cancelRecording, capturedVideos, pendingVideo, clearPendingVideo, isNative } = useVideoCapture();
+  const { isRecording, startRecording, stopRecording, cancelRecording, capturedVideos, pendingVideo, clearPendingVideo, isNative, stream } = useVideoCapture();
 
   // Auto-calculate max velo from recorded pitches
   const maxVelo = useMemo(() => {
@@ -292,6 +293,18 @@ function LiveChartingSessionMobile({
   const zoneRight = 100 - toPercent(STRIKE_ZONE.ZONE_RIGHT);
   const zoneTop = 100 - toPercent(STRIKE_ZONE.ZONE_TOP);
   const zoneBottom = toPercent(STRIKE_ZONE.ZONE_BOTTOM);
+
+  // Show live camera preview when recording with active stream
+  if (isRecording && stream) {
+    return (
+      <LiveCameraPreview
+        stream={stream}
+        pitchTypes={pitchTypes}
+        onCapture={(x, y) => handleStopRecording(x, y)}
+        onCancel={cancelRecording}
+      />
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col overflow-x-hidden">

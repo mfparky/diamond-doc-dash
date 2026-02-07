@@ -30,6 +30,7 @@ export function useVideoCapture() {
   const [isRecording, setIsRecording] = useState(false);
   const [capturedVideos, setCapturedVideos] = useState<CapturedVideo[]>([]);
   const [pendingVideo, setPendingVideo] = useState<PendingVideo | null>(null);
+  const [activeStream, setActiveStream] = useState<MediaStream | null>(null);
   const { toast } = useToast();
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -75,6 +76,7 @@ export function useVideoCapture() {
   const startRecording = useCallback((): void => {
     const setupRecorder = (stream: MediaStream) => {
       streamRef.current = stream;
+      setActiveStream(stream);
       chunksRef.current = [];
 
       // Get supported format - prefer MP4 for iOS
@@ -174,6 +176,7 @@ export function useVideoCapture() {
         // Stop all tracks
         streamRef.current?.getTracks().forEach(track => track.stop());
         streamRef.current = null;
+        setActiveStream(null);
         mediaRecorderRef.current = null;
         setIsRecording(false);
 
@@ -294,6 +297,7 @@ export function useVideoCapture() {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
+    setActiveStream(null);
     mediaRecorderRef.current = null;
     chunksRef.current = [];
     setIsRecording(false);
@@ -333,5 +337,6 @@ export function useVideoCapture() {
     clearPendingVideo,
     saveVideo,
     isNative,
+    stream: activeStream,
   };
 }
