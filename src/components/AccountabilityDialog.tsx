@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { ClipboardCheck, Check, MessageSquare } from 'lucide-react';
+import { ClipboardCheck, Check, MessageSquare, Trophy } from 'lucide-react';
+import { TeamLeaderboardDialog } from '@/components/TeamLeaderboardDialog';
 import { WorkoutAssignment, WorkoutCompletion, getWeekDayLabels } from '@/hooks/use-workouts';
 import { format } from 'date-fns';
 
@@ -31,6 +32,7 @@ export function AccountabilityDialog({
   const [pendingToggles, setPendingToggles] = useState<Set<string>>(new Set());
   const [editingNotes, setEditingNotes] = useState<{ assignmentId: string; dayOfWeek: number } | null>(null);
   const [noteText, setNoteText] = useState('');
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   // Check if a day is completed for an assignment
   const isCompleted = (assignmentId: string, dayOfWeek: number): boolean => {
@@ -218,7 +220,25 @@ export function AccountabilityDialog({
             </div>
           </div>
         )}
+
+        {/* Team Leaderboard Link */}
+        <div className="border-t border-border pt-4">
+          <Button
+            variant="outline"
+            className="w-full gap-2"
+            onClick={() => setShowLeaderboard(true)}
+          >
+            <Trophy className="w-4 h-4" />
+            View Team Leaderboard
+          </Button>
+        </div>
       </DialogContent>
+
+      <TeamLeaderboardDialog
+        open={showLeaderboard}
+        onOpenChange={setShowLeaderboard}
+        pitcherId={pitcherId}
+      />
     </Dialog>
   );
 }
