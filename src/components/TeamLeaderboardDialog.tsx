@@ -23,19 +23,27 @@ export function TeamLeaderboardDialog({ open, onOpenChange, pitcherId }: TeamLea
       try {
         const { data: pitcher } = await supabase
           .from('pitchers')
-          .select('team_id')
+          .select('team_id, user_id')
           .eq('id', pitcherId)
-          .single();
+          .maybeSingle();
 
-        if (!pitcher?.team_id) {
+        if (!pitcher) {
           setTeamPitchers([]);
           return;
         }
 
-        const { data: pitchers } = await supabase
-          .from('pitchers')
-          .select('*')
-          .eq('team_id', pitcher.team_id);
+        // Fetch teammates by team_id, or fall back to user_id grouping
+        let query = supabase.from('pitchers').select('*');
+        if (pitcher.team_id) {
+          query = query.eq('team_id', pitcher.team_id);
+        } else if (pitcher.user_id) {
+          query = query.eq('user_id', pitcher.user_id);
+        } else {
+          setTeamPitchers([]);
+          return;
+        }
+
+        const { data: pitchers } = await query;
 
         const mapped: PitcherRecord[] = (pitchers || []).map((p) => ({
           id: p.id,
