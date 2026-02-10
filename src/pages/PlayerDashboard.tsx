@@ -12,6 +12,9 @@ import { StrikeLocationViewer } from '@/components/StrikeLocationViewer';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { AccountabilityDialog } from '@/components/AccountabilityDialog';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
+import { BadgeGrid } from '@/components/BadgeGrid';
+import { evaluateBadges } from '@/types/badges';
+import { PitchLocation } from '@/types/pitch-location';
 import { useWorkouts } from '@/hooks/use-workouts';
 import { usePageMeta } from '@/hooks/use-page-meta';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
@@ -27,7 +30,8 @@ export default function PlayerDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [selectedVideoOuting, setSelectedVideoOuting] = useState<Outing | null>(null);
   const [showAccountability, setShowAccountability] = useState(false);
-  const { fetchPitchTypes } = usePitchLocations();
+  const { fetchPitchTypes, fetchPitchLocationsForPitcher } = usePitchLocations();
+  const [allPitchLocations, setAllPitchLocations] = useState<PitchLocation[]>([]);
   const { 
     assignments, 
     completions, 
@@ -133,14 +137,21 @@ export default function PlayerDashboard() {
           setPitcher(calculatedPitcher);
         }
 
-        // Fetch pitch types in the background (don't block page load)
+        // Fetch pitch types and locations in the background
         void withTimeout(fetchPitchTypes(playerId), 8000)
           .then((types) => {
             if (!cancelled) setPitchTypes(types);
           })
           .catch((err) => {
-            // If this fails/hangs, we still want the dashboard to be usable.
             console.warn('Pitch types failed to load (fallback to defaults):', err);
+          });
+
+        void withTimeout(fetchPitchLocationsForPitcher(playerId), 8000)
+          .then((locs) => {
+            if (!cancelled) setAllPitchLocations(locs);
+          })
+          .catch((err) => {
+            console.warn('Pitch locations failed to load:', err);
           });
       } catch (err) {
         console.error('Error fetching player data:', err);
@@ -154,7 +165,7 @@ export default function PlayerDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [playerId, fetchPitchTypes]);
+  }, [playerId, fetchPitchTypes, fetchPitchLocationsForPitcher]);
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';
@@ -429,6 +440,9 @@ export default function PlayerDashboard() {
 
           return null;
         })()}
+
+        {/* Achievements */}
+        <BadgeGrid badges={evaluateBadges(pitcher.outings, allPitchLocations, pitchTypes)} />
 
         {/* Season Pitch Count Chart */}
         <PitchCountChart outings={pitcher.outings} />
