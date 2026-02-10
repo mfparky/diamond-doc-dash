@@ -11,9 +11,10 @@ interface PitcherCardProps {
   pitcher: Pitcher;
   onClick?: () => void;
   maxWeeklyPitches?: number;
+  seasonStats?: { totalPitches: number; strikePercentage: number; maxVelocity: number };
 }
 
-export function PitcherCard({ pitcher, onClick, maxWeeklyPitches = DEFAULT_MAX_WEEKLY_PITCHES }: PitcherCardProps) {
+export function PitcherCard({ pitcher, onClick, maxWeeklyPitches = DEFAULT_MAX_WEEKLY_PITCHES, seasonStats }: PitcherCardProps) {
   const { toast } = useToast();
   
   const formatDate = (dateStr: string) => {
@@ -61,13 +62,13 @@ export function PitcherCard({ pitcher, onClick, maxWeeklyPitches = DEFAULT_MAX_W
 
         <div className="grid grid-cols-2 gap-3">
           <div className="flex items-center gap-2">
-            <div className={`p-1.5 rounded-md ${pulseColors.bg}`}>
-              <TrendingUp className={`w-3.5 h-3.5 ${pulseColors.icon}`} />
+            <div className={`p-1.5 rounded-md ${seasonStats ? 'bg-primary/10' : pulseColors.bg}`}>
+              <TrendingUp className={`w-3.5 h-3.5 ${seasonStats ? 'text-primary' : pulseColors.icon}`} />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">7-Day Pulse</p>
-              <p className={`font-semibold ${pulseColors.text}`}>
-                {pitcher.sevenDayPulse}
+              <p className="text-xs text-muted-foreground">{seasonStats ? 'Total Pitches' : '7-Day Pulse'}</p>
+              <p className={`font-semibold ${seasonStats ? 'text-foreground' : pulseColors.text}`}>
+                {seasonStats ? seasonStats.totalPitches : pitcher.sevenDayPulse}
               </p>
             </div>
           </div>
@@ -78,7 +79,9 @@ export function PitcherCard({ pitcher, onClick, maxWeeklyPitches = DEFAULT_MAX_W
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Strike %</p>
-              <p className="font-semibold text-foreground">{pitcher.strikePercentage.toFixed(1)}%</p>
+              <p className="font-semibold text-foreground">
+                {seasonStats ? `${seasonStats.strikePercentage}%` : `${pitcher.strikePercentage.toFixed(1)}%`}
+              </p>
             </div>
           </div>
 
@@ -88,7 +91,9 @@ export function PitcherCard({ pitcher, onClick, maxWeeklyPitches = DEFAULT_MAX_W
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Max Velo</p>
-              <p className="font-semibold text-foreground">{pitcher.maxVelo || '-'}</p>
+              <p className="font-semibold text-foreground">
+                {seasonStats ? (seasonStats.maxVelocity > 0 ? seasonStats.maxVelocity : '-') : (pitcher.maxVelo || '-')}
+              </p>
             </div>
           </div>
 

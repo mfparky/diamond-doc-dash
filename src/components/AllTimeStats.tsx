@@ -156,14 +156,22 @@ export function AllTimeStats({ outings, pitchers = [], pitcherMaxPitches = {}, o
 
       {viewMode === 'cards' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {pitchers.map((pitcher) => (
-            <PitcherCard
-              key={pitcher.id}
-              pitcher={pitcher}
-              onClick={() => onPitcherClick?.(pitcher)}
-              maxWeeklyPitches={pitcherMaxPitches[pitcher.name] || 100}
-            />
-          ))}
+          {pitchers.map((pitcher) => {
+            const stats = pitcherStats.find(s => s.name === pitcher.name);
+            return (
+              <PitcherCard
+                key={pitcher.id}
+                pitcher={pitcher}
+                onClick={() => onPitcherClick?.(pitcher)}
+                maxWeeklyPitches={pitcherMaxPitches[pitcher.name] || 100}
+                seasonStats={stats ? {
+                  totalPitches: stats.totalPitches,
+                  strikePercentage: stats.strikePercentage,
+                  maxVelocity: stats.maxVelocity,
+                } : undefined}
+              />
+            );
+          })}
         </div>
       )}
 
