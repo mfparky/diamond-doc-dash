@@ -40,14 +40,15 @@ export function calculatePitcherStats(pitcher: Pitcher, allOutings: Outing[]): P
   const recentOutings = pitcherOutings.filter(o => new Date(o.date) >= sevenDaysAgo);
   const sevenDayPulse = recentOutings.reduce((sum, o) => sum + o.pitchCount, 0);
 
-  // Calculate overall strike percentage (only include outings where strikes were tracked)
-  const outingsWithStrikes = pitcherOutings.filter(o => o.strikes !== null);
-  const totalPitchesWithStrikes = outingsWithStrikes.reduce((sum, o) => sum + o.pitchCount, 0);
-  const totalStrikes = outingsWithStrikes.reduce((sum, o) => sum + (o.strikes ?? 0), 0);
-  const strikePercentage = totalPitchesWithStrikes > 0 ? (totalStrikes / totalPitchesWithStrikes) * 100 : 0;
+  // Calculate 7-day strike percentage (only from last 7 days, only where strikes tracked)
+  const recentWithStrikes = recentOutings.filter(o => o.strikes !== null);
+  const recentPitchesWithStrikes = recentWithStrikes.reduce((sum, o) => sum + o.pitchCount, 0);
+  const recentStrikes = recentWithStrikes.reduce((sum, o) => sum + (o.strikes ?? 0), 0);
+  const strikePercentage = recentPitchesWithStrikes > 0 ? (recentStrikes / recentPitchesWithStrikes) * 100 : 0;
 
-  // Get max velo across all outings
-  const maxVelo = Math.max(...pitcherOutings.map(o => o.maxVelo));
+  // Get max velo from 7-day window (fall back to all-time if no recent data)
+  const recentMaxVelo = recentOutings.length > 0 ? Math.max(...recentOutings.map(o => o.maxVelo || 0)) : 0;
+  const maxVelo = recentMaxVelo > 0 ? recentMaxVelo : Math.max(...pitcherOutings.map(o => o.maxVelo || 0));
 
   // Get most recent outing
   const sortedOutings = [...pitcherOutings].sort((a, b) => 
