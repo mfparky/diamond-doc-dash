@@ -180,7 +180,12 @@ const Index = () => {
 
             {/* Season Stats */}
             {timeView === 'alltime' && (
-              <AllTimeStats outings={outings} />
+              <AllTimeStats
+                outings={outings}
+                pitchers={pitchers}
+                pitcherMaxPitches={pitcherMaxPitches}
+                onPitcherClick={handlePitcherClick}
+              />
             )}
           </div>
         )}
