@@ -20,6 +20,8 @@ import { usePitchLocations } from '@/hooks/use-pitch-locations';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES, PitchLocation } from '@/types/pitch-location';
 import { useToast } from '@/hooks/use-toast';
 import { WorkoutCompletionDisplay } from './WorkoutCompletionDisplay';
+import { BadgeGrid } from './BadgeGrid';
+import { evaluateBadges } from '@/types/badges';
 
 
 interface PitcherDetailProps {
@@ -47,7 +49,8 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
   const [pitchTypes, setPitchTypes] = useState<PitchTypeConfig>(DEFAULT_PITCH_TYPES);
   const [outingPitchCounts, setOutingPitchCounts] = useState<Record<string, number>>({});
   const [refreshKey, setRefreshKey] = useState(0);
-  const { fetchPitchTypes, fetchPitchLocationsForOuting, addPitchLocations } = usePitchLocations();
+  const [allPitchLocations, setAllPitchLocations] = useState<PitchLocation[]>([]);
+  const { fetchPitchTypes, fetchPitchLocationsForOuting, fetchPitchLocationsForPitcher, addPitchLocations } = usePitchLocations();
   const { toast } = useToast();
 
   // Load pitch location counts for each outing - fetch in parallel
@@ -73,8 +76,9 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
   useEffect(() => {
     if (pitcher.id) {
       fetchPitchTypes(pitcher.id).then(setPitchTypes);
+      fetchPitchLocationsForPitcher(pitcher.id).then(setAllPitchLocations);
     }
-  }, [pitcher.id, fetchPitchTypes]);
+  }, [pitcher.id, fetchPitchTypes, fetchPitchLocationsForPitcher, refreshKey]);
 
   const handleShare = () => {
     const url = `${window.location.origin}/player/${pitcher.id}`;
@@ -254,26 +258,33 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
         </Card>
       )}
 
-      {/* Weekly Accountability & Coach Notes - Side by Side */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-        <WorkoutCompletionDisplay pitcherId={pitcher.id} />
-        
-        {pitcher.coachNotes && (
-          <Card className="glass-card border-purple-500/20">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-purple-500/10">
-                  <MessageSquare className="w-5 h-5 text-purple-500" />
-                </div>
-                <div>
-                  <h4 className="font-display font-semibold text-purple-500">Coach's Notes</h4>
-                  <p className="text-sm text-foreground mt-1">{pitcher.coachNotes}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+      {/* Badges, Accountability & Coach Notes */}
+      {(() => {
+        const badgeResults = evaluateBadges(pitcher.outings, allPitchLocations, pitchTypes);
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+            <BadgeGrid badges={badgeResults} />
+            <div className="flex flex-col gap-4">
+              <WorkoutCompletionDisplay pitcherId={pitcher.id} />
+              {pitcher.coachNotes && (
+                <Card className="glass-card border-purple-500/20">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-lg bg-purple-500/10">
+                        <MessageSquare className="w-5 h-5 text-purple-500" />
+                      </div>
+                      <div>
+                        <h4 className="font-display font-semibold text-purple-500">Coach's Notes</h4>
+                        <p className="text-sm text-foreground mt-1">{pitcher.coachNotes}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
