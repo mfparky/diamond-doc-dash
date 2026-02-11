@@ -22,6 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 import { WorkoutCompletionDisplay } from './WorkoutCompletionDisplay';
 import { BadgeGrid } from './BadgeGrid';
 import { evaluateBadges } from '@/types/badges';
+import { useAchievementWindow } from '@/hooks/use-achievement-window';
 
 
 interface PitcherDetailProps {
@@ -52,6 +53,7 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
   const [allPitchLocations, setAllPitchLocations] = useState<PitchLocation[]>([]);
   const { fetchPitchTypes, fetchPitchLocationsForOuting, fetchPitchLocationsForPitcher, addPitchLocations } = usePitchLocations();
   const { toast } = useToast();
+  const { filterByWindow } = useAchievementWindow();
 
   // Load pitch location counts for each outing - fetch in parallel
   const loadOutingPitchCounts = useCallback(async () => {
@@ -260,7 +262,7 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
 
       {/* Badges, Accountability & Coach Notes */}
       {(() => {
-        const badgeResults = evaluateBadges(pitcher.outings, allPitchLocations, pitchTypes);
+        const badgeResults = evaluateBadges(filterByWindow(pitcher.outings, 'date'), filterByWindow(allPitchLocations, 'createdAt'), pitchTypes);
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
             <BadgeGrid badges={badgeResults} />

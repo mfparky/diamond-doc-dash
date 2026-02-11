@@ -14,6 +14,7 @@ import { AccountabilityDialog } from '@/components/AccountabilityDialog';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
 import { BadgeGrid } from '@/components/BadgeGrid';
 import { evaluateBadges } from '@/types/badges';
+import { useAchievementWindow } from '@/hooks/use-achievement-window';
 import { PitchLocation } from '@/types/pitch-location';
 import { useWorkouts } from '@/hooks/use-workouts';
 import { usePageMeta } from '@/hooks/use-page-meta';
@@ -32,6 +33,7 @@ export default function PlayerDashboard() {
   const [showAccountability, setShowAccountability] = useState(false);
   const { fetchPitchTypes, fetchPitchLocationsForPitcher } = usePitchLocations();
   const [allPitchLocations, setAllPitchLocations] = useState<PitchLocation[]>([]);
+  const { filterByWindow } = useAchievementWindow();
   const { 
     assignments, 
     completions, 
@@ -442,7 +444,7 @@ export default function PlayerDashboard() {
         })()}
 
         {/* Achievements */}
-        <BadgeGrid badges={evaluateBadges(pitcher.outings, allPitchLocations, pitchTypes)} />
+        <BadgeGrid badges={evaluateBadges(filterByWindow(pitcher.outings, 'date'), filterByWindow(allPitchLocations, 'createdAt'), pitchTypes)} />
 
         {/* Season Pitch Count Chart */}
         <PitchCountChart outings={pitcher.outings} />
