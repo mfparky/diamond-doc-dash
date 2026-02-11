@@ -4,7 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Pencil, Trash2, Plus, Check, X, Sun, Moon, ChevronRight, ArrowLeft, Users, Palette, ClipboardCheck, Trophy, RotateCcw } from 'lucide-react';
+import { Pencil, Trash2, Plus, Check, X, Sun, Moon, ChevronRight, ArrowLeft, Users, Palette, ClipboardCheck, Trophy, CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { PitcherRecord } from '@/hooks/use-pitchers';
 import { WorkoutManagementSection } from '@/components/WorkoutManagementSection';
 import { WorkoutLeaderboard } from '@/components/WorkoutLeaderboard';
@@ -48,9 +52,12 @@ export function RosterManagementDialog({
   const [newMaxPitches, setNewMaxPitches] = useState(120);
   const [isAdding, setIsAdding] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [clearAchievementsOpen, setClearAchievementsOpen] = useState(false);
   const [isDark, setIsDark] = useState(() => !document.documentElement.classList.contains('light'));
   const [workoutAssignments, setWorkoutAssignments] = useState<Record<string, WorkoutAssignment[]>>({});
+  const [achievementStartDate, setAchievementStartDate] = useState<Date | undefined>(() => {
+    const stored = localStorage.getItem('achievementStartDate');
+    return stored ? new Date(stored) : undefined;
+  });
 
   // Fetch all workout assignments for all pitchers
   const fetchAllWorkoutAssignments = useCallback(async () => {
@@ -205,19 +212,15 @@ export function RosterManagementDialog({
     setDeleteConfirmId(null);
   };
 
-  const handleClearAchievements = async () => {
-    try {
-      const pitcherIds = pitchers.map(p => p.id);
-      if (pitcherIds.length === 0) return;
-      const { error } = await supabase
-        .from('pitch_locations')
-        .delete()
-        .in('pitcher_id', pitcherIds);
-      if (error) throw error;
-      setClearAchievementsOpen(false);
-    } catch (error) {
-      console.error('Error clearing achievements:', error);
+  const handleAchievementDateChange = (date: Date | undefined) => {
+    setAchievementStartDate(date);
+    if (date) {
+      localStorage.setItem('achievementStartDate', date.toISOString());
+    } else {
+      localStorage.removeItem('achievementStartDate');
     }
+    // Dispatch storage event so other components pick up the change
+    window.dispatchEvent(new Event('storage'));
   };
 
   const pitcherToDelete = pitchers.find(p => p.id === deleteConfirmId);
@@ -295,24 +298,59 @@ export function RosterManagementDialog({
                   <ChevronRight className="w-5 h-5 text-muted-foreground" />
                 </button>
 
-                {/* Clear Achievements Option */}
-                <button
-                  onClick={() => setClearAchievementsOpen(true)}
-                  className="w-full flex items-center justify-between p-4 rounded-lg bg-secondary/50 border border-border/50 hover:bg-secondary/80 transition-colors text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-ring/50"
-                >
+                {/* Achievement Window Option */}
+                <div className="w-full p-4 rounded-lg bg-secondary/50 border border-border/50 space-y-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-status-danger/10 flex items-center justify-center">
-                      <RotateCcw className="w-5 h-5 text-status-danger" />
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Trophy className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">Clear Achievements</p>
+                      <p className="font-medium text-foreground">Achievement Window</p>
                       <p className="text-sm text-muted-foreground">
-                        Reset all pitch location data
+                        {achievementStartDate
+                          ? `From ${format(achievementStartDate, 'MMM d, yyyy')}`
+                          : 'All time (no filter)'}
                       </p>
                     </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                </button>
+                  <div className="flex items-center gap-2 pl-[52px]">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className={cn(
+                            'justify-start text-left font-normal flex-1',
+                            !achievementStartDate && 'text-muted-foreground'
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {achievementStartDate ? format(achievementStartDate, 'PPP') : 'Pick start date'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={achievementStartDate}
+                          onSelect={handleAchievementDateChange}
+                          disabled={(date) => date > new Date()}
+                          initialFocus
+                          className={cn('p-3 pointer-events-auto')}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    {achievementStartDate && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleAchievementDateChange(undefined)}
+                        className="text-muted-foreground"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </div>
             </>
           ) : view === 'roster' ? (
@@ -512,22 +550,6 @@ export function RosterManagementDialog({
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={clearAchievementsOpen} onOpenChange={setClearAchievementsOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Clear All Achievements</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to clear all achievement data? This will delete all pitch location records for every pitcher on your roster. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleClearAchievements} className="bg-status-danger hover:bg-status-danger/90">
-              Clear Achievements
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
