@@ -32,7 +32,7 @@ export function BadgeGrid({ badges }: BadgeGridProps) {
                 onClick={() => setSelected({ badge, earned, progress, detail })}
                 className={`relative flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${
                   earned
-                    ? 'bg-yellow-500/10 border border-yellow-500/30 shadow-sm shadow-yellow-500/10'
+                    ? 'bg-transparent border-transparent md:bg-yellow-500/10 md:border md:border-yellow-500/30 md:shadow-sm md:shadow-yellow-500/10'
                     : 'bg-muted/40 border border-border/30 opacity-50 grayscale'
                 }`}
               >
