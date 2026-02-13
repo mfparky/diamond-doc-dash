@@ -294,55 +294,77 @@ export default function PlayerDashboard() {
         )}
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="stat-card">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <TrendingUp className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">7-Day Pulse</p>
-                <p className="text-2xl font-bold text-foreground">{pitcher.sevenDayPulse}</p>
-              </div>
-            </CardContent>
-          </Card>
+        {(() => {
+          const totalPitches = outings.reduce((sum, o) => sum + o.pitchCount, 0);
+          const outingsWithStrikes = outings.filter(o => o.strikes !== null);
+          const totalPitchesWithStrikes = outingsWithStrikes.reduce((sum, o) => sum + o.pitchCount, 0);
+          const totalStrikes = outingsWithStrikes.reduce((sum, o) => sum + (o.strikes ?? 0), 0);
+          const seasonStrikePercent = totalPitchesWithStrikes > 0 ? (totalStrikes / totalPitchesWithStrikes) * 100 : 0;
 
-          <Card className="stat-card">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-accent/10">
-                <Target className="w-5 h-5 text-accent" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Strike %</p>
-                <p className="text-2xl font-bold text-foreground">{pitcher.strikePercentage.toFixed(1)}%</p>
-              </div>
-            </CardContent>
-          </Card>
+          return (
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <Card className="stat-card">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <TrendingUp className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">7-Day Pulse</p>
+                    <p className="text-2xl font-bold text-foreground">{pitcher.sevenDayPulse}</p>
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card className="stat-card">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-status-danger/10">
-                <Gauge className="w-5 h-5 text-status-danger" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Max Velo</p>
-                <p className="text-2xl font-bold text-foreground">{pitcher.maxVelo || '-'}</p>
-              </div>
-            </CardContent>
-          </Card>
+              <Card className="stat-card">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <TrendingUp className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Total Pitches</p>
+                    <p className="text-2xl font-bold text-foreground">{totalPitches}</p>
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card className="stat-card">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-muted">
-                <Calendar className="w-5 h-5 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Last Outing</p>
-                <p className="text-sm font-bold text-foreground">{formatDate(pitcher.lastOuting)}</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              <Card className="stat-card">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-accent/10">
+                    <Target className="w-5 h-5 text-accent" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Strike %</p>
+                    <p className="text-2xl font-bold text-foreground">{seasonStrikePercent.toFixed(1)}%</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="stat-card">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-status-danger/10">
+                    <Gauge className="w-5 h-5 text-status-danger" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Max Velo</p>
+                    <p className="text-2xl font-bold text-foreground">{pitcher.maxVelo || '-'}</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="stat-card">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-muted">
+                    <Calendar className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Last Outing</p>
+                    <p className="text-sm font-bold text-foreground">{formatDate(pitcher.lastOuting)}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          );
+        })()}
 
         {/* Focus/Notes & Latest Video Section - Side by Side */}
         {(() => {
