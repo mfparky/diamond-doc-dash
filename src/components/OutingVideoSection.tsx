@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { VideoCapture } from './VideoCapture';
 import { VideoPlayer } from './VideoPlayer';
+import { EnhancedVideoPlayer } from './EnhancedVideoPlayer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Video } from 'lucide-react';
@@ -214,7 +215,7 @@ export function OutingVideoSection({
           <TabsContent value="video1">
             {localVideo1 ? (
               <div className="space-y-3">
-                <VideoPlayer
+                <EnhancedVideoPlayer
                   url={localVideo1}
                   pitchType={localPitchType1 || undefined}
                   velocity={localVelocity1 || undefined}
@@ -242,7 +243,7 @@ export function OutingVideoSection({
           <TabsContent value="video2">
             {localVideo2 ? (
               <div className="space-y-3">
-                <VideoPlayer
+                <EnhancedVideoPlayer
                   url={localVideo2}
                   pitchType={localPitchType2 || undefined}
                   velocity={localVelocity2 || undefined}
