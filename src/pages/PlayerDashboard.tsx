@@ -13,13 +13,14 @@ import { VideoPlayer } from '@/components/VideoPlayer';
 import { AccountabilityDialog } from '@/components/AccountabilityDialog';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
 import { BadgeGrid } from '@/components/BadgeGrid';
+import { SeasonTrendsChart } from '@/components/SeasonTrendsChart';
 import { evaluateBadges } from '@/types/badges';
 import { useAchievementWindow } from '@/hooks/use-achievement-window';
 import { PitchLocation } from '@/types/pitch-location';
 import { useWorkouts } from '@/hooks/use-workouts';
 import { usePageMeta } from '@/hooks/use-page-meta';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
-import { TrendingUp, Target, Gauge, Calendar, Video, Shield, ArrowLeft, Play, MessageSquare, ClipboardCheck } from 'lucide-react';
+import { TrendingUp, Target, Gauge, Calendar, Video, Shield, ArrowLeft, Play, MessageSquare, ClipboardCheck, Share2, Copy, Check } from 'lucide-react';
 import hawksLogo from '@/assets/hawks-logo.png';
 
 export default function PlayerDashboard() {
@@ -34,8 +35,10 @@ export default function PlayerDashboard() {
   const { fetchPitchTypes, fetchPitchLocationsForPitcher } = usePitchLocations();
   const [allPitchLocations, setAllPitchLocations] = useState<PitchLocation[]>([]);
   const { filterByWindow } = useAchievementWindow();
-  const { 
-    assignments, 
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const {
+    assignments,
     completions, 
     isLoading: workoutsLoading,
     toggleCompletion,
@@ -468,6 +471,9 @@ export default function PlayerDashboard() {
         {/* Achievements */}
         <BadgeGrid badges={evaluateBadges(filterByWindow(pitcher.outings, 'date'), filterByWindow(allPitchLocations, 'createdAt'), pitchTypes)} />
 
+        {/* Season Trends Chart */}
+        <SeasonTrendsChart outings={pitcher.outings} />
+
         {/* Season Pitch Count Chart */}
         <PitchCountChart outings={pitcher.outings} />
 
@@ -505,11 +511,12 @@ export default function PlayerDashboard() {
                           {(outing.videoUrl1 || outing.videoUrl2 || outing.videoUrl) && (
                             <button
                               onClick={() => setSelectedVideoOuting(outing)}
-                              className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors"
+                              className="flex items-center justify-center gap-1.5 h-10 px-3 rounded-lg text-sm text-primary hover:text-primary/80 hover:bg-primary/10 active:scale-95 transition-all"
+                              style={{ WebkitTapHighlightColor: 'transparent' }}
                             >
                               <Video className="w-4 h-4" />
-                              <span className="text-xs">
-                                {outing.videoUrl1 && outing.videoUrl2 ? '2' : '1'}
+                              <span className="text-xs font-medium">
+                                {outing.videoUrl1 && outing.videoUrl2 ? '2 videos' : '1 video'}
                               </span>
                             </button>
                           )}
@@ -567,8 +574,52 @@ export default function PlayerDashboard() {
           </CardContent>
         </Card>
 
-        {/* Footer */}
-        <div className="text-center text-xs text-muted-foreground pt-4 pb-8">
+        {/* Share & Footer */}
+        <Card className="glass-card border-primary/20">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-foreground">Share this dashboard</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Send this link to family and coaches
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(window.location.href);
+                    setLinkCopied(true);
+                    setTimeout(() => setLinkCopied(false), 2000);
+                  }}
+                >
+                  {linkCopied ? (
+                    <Check className="w-4 h-4 mr-1.5 text-[hsl(142,70%,45%)]" />
+                  ) : (
+                    <Copy className="w-4 h-4 mr-1.5" />
+                  )}
+                  {linkCopied ? 'Copied!' : 'Copy Link'}
+                </Button>
+                {'share' in navigator && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      navigator.share?.({
+                        title: `${pitcher.name} - Pitching Dashboard`,
+                        text: `Check out ${pitcher.name}'s pitching stats and arm care dashboard!`,
+                        url: window.location.href,
+                      }).catch(() => {});
+                    }}
+                  >
+                    <Share2 className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <div className="text-center text-xs text-muted-foreground pt-2 pb-8">
           <p>Powered by Diamond Doc Dash</p>
         </div>
       </main>

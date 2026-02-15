@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { Pitcher, Outing } from '@/types/pitcher';
 import { calculatePitcherStats } from '@/lib/pitcher-data';
 import { Header } from '@/components/Header';
@@ -18,6 +18,8 @@ import { useOutings } from '@/hooks/use-outings';
 import { usePitchers } from '@/hooks/use-pitchers';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
 import { DEFAULT_MAX_WEEKLY_PITCHES } from '@/lib/pulse-status';
+import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
+import { useSwipeGesture } from '@/hooks/use-swipe-gesture';
 
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
 
@@ -25,8 +27,8 @@ type View = 'dashboard' | 'detail';
 type TimeView = '7day' | 'alltime';
 
 const Index = () => {
-  const { outings, isLoading: outingsLoading, addOuting, updateOuting, deleteOuting } = useOutings();
-  const { pitchers: rosterPitchers, isLoading: pitchersLoading, addPitcher, updatePitcher, deletePitcher } = usePitchers();
+  const { outings, isLoading: outingsLoading, addOuting, updateOuting, deleteOuting, refetch: refetchOutings } = useOutings();
+  const { pitchers: rosterPitchers, isLoading: pitchersLoading, addPitcher, updatePitcher, deletePitcher, refetch: refetchPitchers } = usePitchers();
   const { addPitchLocations } = usePitchLocations();
   const [activeTab, setActiveTab] = useState<'players' | 'team'>('players');
   const [timeView, setTimeView] = useState<TimeView>('7day');
@@ -110,14 +112,52 @@ const Index = () => {
     setSelectedPitcher(null);
   }, []);
 
+  // Pull-to-refresh
+  const { pullDistance, isRefreshing, handlers: pullHandlers } = usePullToRefresh({
+    onRefresh: async () => {
+      await Promise.all([refetchOutings(), refetchPitchers()]);
+    },
+  });
+
+  // Swipe right to go back from detail view
+  const swipeHandlers = useSwipeGesture({
+    onSwipeRight: () => {
+      if (currentView === 'detail') {
+        handleBackToDashboard();
+      }
+    },
+  });
+
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header 
-        onAddOuting={() => setShowOutingForm(true)} 
+    <div
+      className="min-h-screen bg-background"
+      {...swipeHandlers}
+      {...pullHandlers}
+    >
+      <Header
+        onAddOuting={() => setShowOutingForm(true)}
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />
+
+      {/* Pull-to-refresh indicator */}
+      {(pullDistance > 0 || isRefreshing) && (
+        <div
+          className="flex items-center justify-center overflow-hidden transition-all duration-200"
+          style={{ height: pullDistance > 0 ? pullDistance : isRefreshing ? 40 : 0 }}
+        >
+          <div
+            className={`w-6 h-6 border-2 border-primary border-t-transparent rounded-full ${
+              isRefreshing ? 'animate-spin' : ''
+            }`}
+            style={{
+              opacity: Math.min(pullDistance / 60, 1),
+              transform: `rotate(${pullDistance * 4}deg)`,
+            }}
+          />
+        </div>
+      )}
 
       <main className="container mx-auto px-4 py-6 pb-24 sm:pb-6">
         {currentView === 'dashboard' && activeTab === 'players' && (

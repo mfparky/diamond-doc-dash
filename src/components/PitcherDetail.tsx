@@ -21,6 +21,8 @@ import { PitchTypeConfig, DEFAULT_PITCH_TYPES, PitchLocation } from '@/types/pit
 import { useToast } from '@/hooks/use-toast';
 import { WorkoutCompletionDisplay } from './WorkoutCompletionDisplay';
 import { BadgeGrid } from './BadgeGrid';
+import { SeasonTrendsChart } from './SeasonTrendsChart';
+import { ShareSummaryCard } from './ShareSummaryCard';
 import { evaluateBadges } from '@/types/badges';
 import { useAchievementWindow } from '@/hooks/use-achievement-window';
 
@@ -260,6 +262,9 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
         </Card>
       )}
 
+      {/* Share with Parents */}
+      <ShareSummaryCard pitcher={pitcher} outingsCount={pitcher.outings.length} />
+
       {/* Badges, Accountability & Coach Notes */}
       {(() => {
         const badgeResults = evaluateBadges(filterByWindow(pitcher.outings, 'date'), filterByWindow(allPitchLocations, 'createdAt'), pitchTypes);
@@ -468,6 +473,9 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
         return null;
       })()}
 
+      {/* Season Trends Chart */}
+      <SeasonTrendsChart outings={pitcher.outings} />
+
       {/* Season Pitch Count Chart */}
       <PitchCountChart outings={pitcher.outings} />
 
@@ -500,23 +508,23 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
                         <p className="font-semibold text-foreground">{formatDate(outing.date)}</p>
                         <p className="text-sm text-accent">{outing.eventType}</p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 sm:gap-2">
                         {/* Video button */}
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8"
+                          className="h-10 w-10 sm:h-8 sm:w-8"
                           onClick={() => setVideoOuting(outing)}
                           title={outing.videoUrl1 || outing.videoUrl2 ? 'View/edit videos' : 'Add videos'}
                         >
                           <Video className={`w-4 h-4 ${outing.videoUrl1 || outing.videoUrl2 ? 'text-primary' : ''}`} />
                         </Button>
                         {outing.videoUrl && !outing.videoUrl1 && !outing.videoUrl2 && (
-                          <a 
-                            href={outing.videoUrl} 
-                            target="_blank" 
+                          <a
+                            href={outing.videoUrl}
+                            target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors"
+                            className="flex items-center justify-center h-10 w-10 sm:h-8 sm:w-8 text-sm text-primary hover:text-primary/80 transition-colors"
                             title="External video link"
                           >
                             <ExternalLink className="w-4 h-4" />
@@ -525,7 +533,7 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8"
+                          className="h-10 w-10 sm:h-8 sm:w-8"
                           onClick={() => setPitchMapOuting(outing)}
                           title={outingPitchCounts[outing.id] ? `${outingPitchCounts[outing.id]} pitches mapped` : 'Add pitch map'}
                         >
@@ -534,7 +542,7 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8"
+                          className="h-10 w-10 sm:h-8 sm:w-8"
                           onClick={() => setEditingOuting(outing)}
                         >
                           <Pencil className="w-4 h-4" />
@@ -542,7 +550,7 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          className="h-10 w-10 sm:h-8 sm:w-8 text-destructive hover:text-destructive"
                           onClick={() => setDeletingOuting(outing)}
                         >
                           <Trash2 className="w-4 h-4" />
