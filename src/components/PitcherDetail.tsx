@@ -4,7 +4,7 @@ import { StatusBadge } from './StatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, Pencil, Trash2, Share2, Settings, MapPin, Play, Activity, ClipboardList, MessageSquare } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, Pencil, Trash2, Share2, Settings, MapPin, Play, Activity, ClipboardList, MessageSquare, Columns2, BarChart3 } from 'lucide-react';
 import { EditOutingDialog } from './EditOutingDialog';
 import { OutingForm } from './OutingForm';
 import { DeleteOutingDialog } from './DeleteOutingDialog';
@@ -12,6 +12,9 @@ import { OutingPitchMapDialog } from './OutingPitchMapDialog';
 import { OutingVideoSection } from './OutingVideoSection';
 import { PitchCountChart } from './PitchCountChart';
 import { VideoPlayer } from './VideoPlayer';
+import { EnhancedVideoPlayer } from './EnhancedVideoPlayer';
+import { VideoComparisonView } from './VideoComparisonView';
+import { SeasonStatsDashboard } from './SeasonStatsDashboard';
 import { StrikeLocationViewer } from './StrikeLocationViewer';
 import { PitchTypeConfigDialog } from './PitchTypeConfigDialog';
 import { HomeButton } from './HomeButton';
@@ -49,6 +52,8 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
   const [showPitchTypeConfig, setShowPitchTypeConfig] = useState(false);
   const [showLiveCharting, setShowLiveCharting] = useState(false);
   const [showLogOuting, setShowLogOuting] = useState(false);
+  const [showVideoComparison, setShowVideoComparison] = useState(false);
+  const [showSeasonDashboard, setShowSeasonDashboard] = useState(false);
   const [pitchTypes, setPitchTypes] = useState<PitchTypeConfig>(DEFAULT_PITCH_TYPES);
   const [outingPitchCounts, setOutingPitchCounts] = useState<Record<string, number>>({});
   const [refreshKey, setRefreshKey] = useState(0);
@@ -435,7 +440,7 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
                     </p>
                   </CardHeader>
                   <CardContent>
-                    <VideoPlayer
+                    <EnhancedVideoPlayer
                       url={latestVideoUrl!}
                       pitchType={latestPitchType}
                       velocity={latestVelocity}
@@ -473,11 +478,51 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
         return null;
       })()}
 
-      {/* Season Trends Chart */}
-      <SeasonTrendsChart outings={pitcher.outings} />
+      {/* Video Comparison & Season Dashboard Buttons */}
+      <div className="flex gap-3">
+        <Button
+          variant={showVideoComparison ? 'default' : 'outline'}
+          className="flex-1 h-11"
+          onClick={() => setShowVideoComparison(!showVideoComparison)}
+        >
+          <Columns2 className="w-4 h-4 mr-2" />
+          Compare Videos
+        </Button>
+        <Button
+          variant={showSeasonDashboard ? 'default' : 'outline'}
+          className="flex-1 h-11"
+          onClick={() => setShowSeasonDashboard(!showSeasonDashboard)}
+        >
+          <BarChart3 className="w-4 h-4 mr-2" />
+          Season Dashboard
+        </Button>
+      </div>
 
-      {/* Season Pitch Count Chart */}
-      <PitchCountChart outings={pitcher.outings} />
+      {/* Video Comparison View */}
+      {showVideoComparison && (
+        <VideoComparisonView
+          outings={pitcher.outings}
+          pitchTypes={pitchTypes}
+          onClose={() => setShowVideoComparison(false)}
+        />
+      )}
+
+      {/* Full Season Stats Dashboard */}
+      {showSeasonDashboard ? (
+        <SeasonStatsDashboard
+          outings={pitcher.outings}
+          pitchTypes={pitchTypes}
+          pitcherName={pitcher.name}
+        />
+      ) : (
+        <>
+          {/* Season Trends Chart */}
+          <SeasonTrendsChart outings={pitcher.outings} />
+
+          {/* Season Pitch Count Chart */}
+          <PitchCountChart outings={pitcher.outings} />
+        </>
+      )}
 
       {/* Strike Location Viewer */}
       <StrikeLocationViewer 
