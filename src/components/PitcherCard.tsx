@@ -38,10 +38,10 @@ export function PitcherCard({ pitcher, onClick, maxWeeklyPitches = DEFAULT_MAX_W
 
   return (
     <Card 
-      className="stat-card cursor-pointer hover:border-primary/50 transition-all duration-200 hover:shadow-lg hover:shadow-primary/5"
+      className="stat-card cursor-pointer hover:border-primary/50 active:scale-[0.98] transition-all duration-200 hover:shadow-lg hover:shadow-primary/5"
       onClick={onClick}
     >
-      <CardContent className="p-4">
+      <CardContent className="p-4 sm:p-4">
         <div className="flex items-start justify-between mb-4">
           <div className="min-w-0 flex-1">
             <h3 className="font-display font-semibold text-lg text-foreground truncate">{pitcher.name}</h3>
@@ -52,7 +52,7 @@ export function PitcherCard({ pitcher, onClick, maxWeeklyPitches = DEFAULT_MAX_W
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 shrink-0"
+            className="h-10 w-10 sm:h-8 sm:w-8 shrink-0"
             onClick={handleShare}
             title="Share player dashboard"
           >
