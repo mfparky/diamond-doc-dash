@@ -20,7 +20,11 @@ import { PitchLocation } from '@/types/pitch-location';
 import { useWorkouts } from '@/hooks/use-workouts';
 import { usePageMeta } from '@/hooks/use-page-meta';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
-import { TrendingUp, Target, Gauge, Calendar, Video, Shield, ArrowLeft, Play, MessageSquare, ClipboardCheck, Share2, Copy, Check } from 'lucide-react';
+import { ProgressReportCard } from '@/components/ProgressReportCard';
+import { generateReport } from '@/lib/generate-report';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { TrendingUp, Target, Gauge, Calendar, Video, Shield, ArrowLeft, Play, MessageSquare, ClipboardCheck, Share2, Copy, Check, Download, Star } from 'lucide-react';
 import hawksLogo from '@/assets/hawks-logo.png';
 
 export default function PlayerDashboard() {
@@ -36,6 +40,7 @@ export default function PlayerDashboard() {
   const [allPitchLocations, setAllPitchLocations] = useState<PitchLocation[]>([]);
   const { filterByWindow } = useAchievementWindow();
   const [linkCopied, setLinkCopied] = useState(false);
+  const [showEnhancedView, setShowEnhancedView] = useState(false);
 
   const {
     assignments,
@@ -250,6 +255,27 @@ export default function PlayerDashboard() {
                 <span className="hidden sm:inline">Accountability</span>
               </Button>
             )}
+            {/* Download Report */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const badgeResults = evaluateBadges(filterByWindow(pitcher.outings, 'date'), filterByWindow(allPitchLocations, 'createdAt'), pitchTypes);
+                generateReport({
+                  pitcherName: pitcher.name,
+                  outings: pitcher.outings,
+                  badges: badgeResults,
+                  sevenDayPulse: pitcher.sevenDayPulse,
+                  maxVelo: pitcher.maxVelo,
+                  strikePercentage: pitcher.strikePercentage,
+                  lastOuting: pitcher.lastOuting,
+                });
+              }}
+              className="flex items-center gap-1.5"
+            >
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">Report</span>
+            </Button>
             <StatusBadge status={pitcher.restStatus} />
           </div>
         </div>
@@ -365,6 +391,114 @@ export default function PlayerDashboard() {
                   </div>
                 </CardContent>
               </Card>
+            </div>
+          );
+        })()}
+
+        {/* Enhanced View Toggle */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Star className="w-4 h-4 text-yellow-500" />
+            <Label htmlFor="enhanced-view" className="text-sm font-medium cursor-pointer">
+              Enhanced View
+            </Label>
+          </div>
+          <Switch
+            id="enhanced-view"
+            checked={showEnhancedView}
+            onCheckedChange={setShowEnhancedView}
+          />
+        </div>
+
+        {/* Enhanced View: Report Card + Progress Timeline */}
+        {showEnhancedView && (() => {
+          const badgeResults = evaluateBadges(filterByWindow(pitcher.outings, 'date'), filterByWindow(allPitchLocations, 'createdAt'), pitchTypes);
+          const seasonOutings = pitcher.outings
+            .filter((o) => new Date(o.date).getFullYear() === 2026)
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+          return (
+            <div className="space-y-4">
+              <ProgressReportCard
+                outings={pitcher.outings}
+                badges={badgeResults}
+                pitcherName={pitcher.name}
+              />
+
+              {/* Progress Timeline */}
+              {seasonOutings.length >= 2 && (
+                <Card className="glass-card">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="font-display text-lg flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-primary" />
+                      Progress Timeline
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      Outing-by-outing performance this season
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="relative">
+                      {/* Timeline line */}
+                      <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-border" />
+
+                      <div className="space-y-4">
+                        {seasonOutings.map((outing, idx) => {
+                          const strikePct = outing.strikes !== null && outing.pitchCount > 0
+                            ? ((outing.strikes / outing.pitchCount) * 100)
+                            : null;
+                          const prevOuting = idx > 0 ? seasonOutings[idx - 1] : null;
+                          const prevStrikePct = prevOuting && prevOuting.strikes !== null && prevOuting.pitchCount > 0
+                            ? ((prevOuting.strikes / prevOuting.pitchCount) * 100)
+                            : null;
+                          const strikeDiff = strikePct !== null && prevStrikePct !== null
+                            ? strikePct - prevStrikePct
+                            : null;
+
+                          const dotColor = strikePct !== null
+                            ? strikePct >= 60 ? 'bg-[hsl(142,70%,45%)]'
+                              : strikePct >= 45 ? 'bg-[hsl(38,92%,50%)]'
+                              : 'bg-[hsl(0,72%,55%)]'
+                            : 'bg-muted-foreground';
+
+                          return (
+                            <div key={outing.id} className="relative flex items-start gap-4 pl-1">
+                              <div className={`relative z-10 w-7 h-7 rounded-full ${dotColor} flex items-center justify-center shrink-0`}>
+                                <span className="text-[10px] font-bold text-white">{idx + 1}</span>
+                              </div>
+                              <div className="flex-1 min-w-0 pb-1">
+                                <div className="flex items-baseline justify-between gap-2">
+                                  <p className="text-sm font-semibold text-foreground truncate">
+                                    {formatDate(outing.date)}
+                                  </p>
+                                  <span className="text-xs text-muted-foreground shrink-0">{outing.eventType}</span>
+                                </div>
+                                <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                                  <span>{outing.pitchCount} pitches</span>
+                                  {strikePct !== null && (
+                                    <span className="font-medium text-foreground">
+                                      {strikePct.toFixed(0)}% strikes
+                                    </span>
+                                  )}
+                                  {outing.maxVelo > 0 && <span>{outing.maxVelo} mph</span>}
+                                  {strikeDiff !== null && Math.abs(strikeDiff) >= 1 && (
+                                    <span className={strikeDiff > 0 ? 'text-[hsl(142,70%,45%)]' : 'text-[hsl(0,72%,55%)]'}>
+                                      {strikeDiff > 0 ? '+' : ''}{strikeDiff.toFixed(0)}%
+                                    </span>
+                                  )}
+                                </div>
+                                {outing.focus && (
+                                  <p className="text-xs text-primary mt-1 truncate">Focus: {outing.focus}</p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           );
         })()}

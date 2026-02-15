@@ -4,7 +4,7 @@ import { StatusBadge } from './StatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, Pencil, Trash2, Share2, Settings, MapPin, Play, Activity, ClipboardList, MessageSquare, Columns2, BarChart3 } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, Pencil, Trash2, Share2, Settings, MapPin, Play, Activity, ClipboardList, MessageSquare, Columns2, BarChart3, Download } from 'lucide-react';
 import { EditOutingDialog } from './EditOutingDialog';
 import { OutingForm } from './OutingForm';
 import { DeleteOutingDialog } from './DeleteOutingDialog';
@@ -28,6 +28,7 @@ import { SeasonTrendsChart } from './SeasonTrendsChart';
 import { ShareSummaryCard } from './ShareSummaryCard';
 import { evaluateBadges } from '@/types/badges';
 import { useAchievementWindow } from '@/hooks/use-achievement-window';
+import { generateReport } from '@/lib/generate-report';
 
 
 interface PitcherDetailProps {
@@ -208,6 +209,25 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
             title="Configure pitch types"
           >
             <Settings className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const badgeResults = evaluateBadges(filterByWindow(pitcher.outings, 'date'), filterByWindow(allPitchLocations, 'createdAt'), pitchTypes);
+              generateReport({
+                pitcherName: pitcher.name,
+                outings: pitcher.outings,
+                badges: badgeResults,
+                sevenDayPulse: pitcher.sevenDayPulse,
+                maxVelo: pitcher.maxVelo,
+                strikePercentage: pitcher.strikePercentage,
+                lastOuting: pitcher.lastOuting,
+              });
+            }}
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Report
           </Button>
           <Button variant="outline" size="sm" onClick={handleShare}>
             <Share2 className="w-4 h-4 mr-2" />
