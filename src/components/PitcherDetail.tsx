@@ -183,7 +183,7 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
   }
 
   return (
-    <div className="space-y-6 animate-slide-up">
+    <div className="space-y-6 animate-slide-up overflow-x-hidden">
       {/* Floating home button for mobile/tablet */}
       <button
         onClick={onBack}
@@ -193,18 +193,19 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
         <ArrowLeft className="h-5 w-5" />
       </button>
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
         <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0">
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <div className="flex-1">
-          <h2 className="font-display text-2xl font-bold text-foreground">{pitcher.name}</h2>
-          <StatusBadge status={pitcher.restStatus} className="mt-1" />
+        <div className="flex-1 min-w-0">
+          <h2 className="font-display text-2xl font-bold text-foreground truncate">{pitcher.name}</h2>
+          <StatusBadge status={pitcher.restStatus} className="mt-1" compact />
         </div>
-        <div className="flex gap-2 shrink-0">
-          <Button 
-            variant="outline" 
-            size="sm" 
+        <div className="flex gap-1.5 shrink-0">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
             onClick={() => setShowPitchTypeConfig(true)}
             title="Configure pitch types"
           >
@@ -212,7 +213,8 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
           </Button>
           <Button
             variant="outline"
-            size="sm"
+            size="icon"
+            className="h-8 w-8 sm:w-auto sm:px-3"
             onClick={() => {
               const badgeResults = evaluateBadges(filterByWindow(pitcher.outings, 'date'), filterByWindow(allPitchLocations, 'createdAt'), pitchTypes);
               generateReport({
@@ -226,12 +228,12 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
               });
             }}
           >
-            <Download className="w-4 h-4 mr-2" />
-            Report
+            <Download className="w-4 h-4 sm:mr-1.5" />
+            <span className="hidden sm:inline text-sm">Report</span>
           </Button>
-          <Button variant="outline" size="sm" onClick={handleShare}>
-            <Share2 className="w-4 h-4 mr-2" />
-            Share
+          <Button variant="outline" size="icon" className="h-8 w-8 sm:w-auto sm:px-3" onClick={handleShare}>
+            <Share2 className="w-4 h-4 sm:mr-1.5" />
+            <span className="hidden sm:inline text-sm">Share</span>
           </Button>
         </div>
       </div>
