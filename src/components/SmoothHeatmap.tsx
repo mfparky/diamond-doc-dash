@@ -64,7 +64,7 @@ export function SmoothHeatmap({
   const dimensions = useMemo(() => {
     switch (size) {
       case 'sm': return { width: 200, height: 259 };
-      case 'lg': return { width: 380, height: 492 };
+      case 'lg': return { width: 340, height: 440 };
       default: return { width: 300, height: 388 };
     }
   }, [size]);
@@ -289,11 +289,6 @@ export function SmoothHeatmap({
           className="block"
         />
         
-        {/* Zone labels */}
-        <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs text-muted-foreground">High</span>
-        <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-xs text-muted-foreground">Low</span>
-        <span className="absolute top-1/2 -left-6 -translate-y-1/2 text-xs text-muted-foreground">In</span>
-        <span className="absolute top-1/2 -right-8 -translate-y-1/2 text-xs text-muted-foreground">Out</span>
       </div>
 
       {/* Stats summary */}

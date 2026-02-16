@@ -308,7 +308,7 @@ export function StrikeLocationViewer({
           {isLoading ? (
             <div className="w-72 h-80 bg-secondary/30 rounded-lg animate-pulse" />
           ) : pitchLocations.length === 0 ? (
-            <div className="flex items-center justify-center text-center text-muted-foreground py-12" style={{ width: 380, height: 492 }}>
+            <div className="flex items-center justify-center text-center text-muted-foreground py-12 w-full max-w-[380px]" style={{ aspectRatio: '380/492' }}>
               <div>
                 <p>No pitch locations for this {viewMode === 'session' ? 'session' : 'period'}.</p>
                 <p className="text-sm mt-1">Use the pitch map button to add locations.</p>
