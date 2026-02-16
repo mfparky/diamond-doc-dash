@@ -231,34 +231,34 @@ export default function PlayerDashboard() {
   const daysRestNeeded = pitcher.lastPitchCount > 0 ? getDaysRestNeeded(pitcher.lastPitchCount) : 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
-        <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={hawksLogo} alt="Hawks" className="w-10 h-10 object-contain" />
-            <div>
-              <h1 className="font-display text-xl font-bold text-foreground">{pitcher.name}</h1>
+        <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3 min-w-0">
+            <img src={hawksLogo} alt="Hawks" className="w-10 h-10 object-contain shrink-0" />
+            <div className="min-w-0">
+              <h1 className="font-display text-xl font-bold text-foreground truncate">{pitcher.name}</h1>
               <p className="text-xs text-muted-foreground hidden md:block">Player Dashboard</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
             {/* Accountability Button */}
             {assignments.length > 0 && (
               <Button
                 variant="outline"
-                size="sm"
+                size="icon"
                 onClick={() => setShowAccountability(true)}
-                className="flex items-center gap-1.5"
+                className="h-8 w-8 sm:w-auto sm:px-3"
               >
-                <ClipboardCheck className="w-4 h-4" />
-                <span className="hidden sm:inline">Accountability</span>
+                <ClipboardCheck className="w-4 h-4 sm:mr-1.5" />
+                <span className="hidden sm:inline text-sm">Accountability</span>
               </Button>
             )}
             {/* Download Report */}
             <Button
               variant="outline"
-              size="sm"
+              size="icon"
               onClick={() => {
                 const badgeResults = evaluateBadges(filterByWindow(pitcher.outings, 'date'), filterByWindow(allPitchLocations, 'createdAt'), pitchTypes);
                 generateReport({
@@ -271,12 +271,12 @@ export default function PlayerDashboard() {
                   lastOuting: pitcher.lastOuting,
                 });
               }}
-              className="flex items-center gap-1.5"
+              className="h-8 w-8 sm:w-auto sm:px-3"
             >
-              <Download className="w-4 h-4" />
-              <span className="hidden sm:inline">Report</span>
+              <Download className="w-4 h-4 sm:mr-1.5" />
+              <span className="hidden sm:inline text-sm">Report</span>
             </Button>
-            <StatusBadge status={pitcher.restStatus} />
+            <StatusBadge status={pitcher.restStatus} compact />
           </div>
         </div>
       </header>
