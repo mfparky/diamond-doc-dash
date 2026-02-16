@@ -229,7 +229,7 @@ export function SeasonStatsDashboard({
             <p className="text-xs text-muted-foreground">Comparing first half vs second half of season</p>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <ImprovementCard
                 label="Avg Velocity"
                 first={improvements.velocity.first}

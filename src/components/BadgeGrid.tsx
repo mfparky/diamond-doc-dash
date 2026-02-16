@@ -25,7 +25,7 @@ export function BadgeGrid({ badges }: BadgeGridProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-5 gap-3">
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
             {badges.map(({ badge, earned, progress, detail }) => (
               <button
                 key={badge.id}
