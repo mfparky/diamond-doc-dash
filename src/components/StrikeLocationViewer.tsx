@@ -162,28 +162,6 @@ export function StrikeLocationViewer({
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  // Check if we should show the empty state (only for non-session views with no data at all)
-  const showFullEmptyState = pitchLocations.length === 0 && !isLoading && viewMode !== 'session';
-
-  if (showFullEmptyState) {
-    return (
-      <Card className="glass-card">
-        <CardHeader className="pb-2">
-          <CardTitle className="font-display text-lg flex items-center gap-2">
-            <Target className="w-5 h-5 text-primary" />
-            Strike Locations
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <p>No pitch location data recorded yet.</p>
-            <p className="text-sm mt-1">Use the pitch plotter when logging outings to track locations.</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <Card className="glass-card">
       <CardHeader className="pb-2">
@@ -273,6 +251,7 @@ export function StrikeLocationViewer({
         )}
 
         {/* Result Filter (Strike/Ball) */}
+        {pitchLocations.length > 0 && (
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Show:</span>
           <div className="flex gap-1">
@@ -302,6 +281,7 @@ export function StrikeLocationViewer({
             </Button>
           </div>
         </div>
+        )}
 
         {/* Visualization */}
         <div className="flex justify-center py-2">
@@ -331,6 +311,7 @@ export function StrikeLocationViewer({
         </div>
 
         {/* Summary Stats */}
+        {pitchLocations.length > 0 && (
         <div className="text-center text-sm text-muted-foreground border-t border-border/50 pt-3">
           Showing <span className="font-medium text-foreground">{filteredLocations.length}</span> pitches
           {filterPitchType !== null && (
@@ -340,6 +321,7 @@ export function StrikeLocationViewer({
             <span> • {resultFilter === 'strikes' ? 'Strikes only' : 'Balls only'}</span>
           )}
         </div>
+        )}
       </CardContent>
     </Card>
   );
