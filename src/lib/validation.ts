@@ -20,7 +20,7 @@ export const outingSchema = z.object({
     .max(100, 'Name too long'),
   date: z.string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
-  eventType: z.enum(['Bullpen', 'External', 'Game', 'Practice'], {
+  eventType: z.enum(['Bullpen', 'External', 'Game', 'Live ABs'], {
     errorMap: () => ({ message: 'Please select an event type' }),
   }),
   pitchCount: z.number()

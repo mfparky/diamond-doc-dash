@@ -11,14 +11,14 @@ const EVENT_COLORS: Record<string, string> = {
   'Bullpen': 'hsl(220, 70%, 45%)',      // dark blue
   'Game': 'hsl(142, 70%, 45%)',          // green
   'External': 'hsl(200, 80%, 60%)',      // light blue
-  'Practice': 'hsl(25, 90%, 55%)',       // orange
+  'Live ABs': 'hsl(25, 90%, 55%)',       // orange
 };
 
 const EVENT_LEGEND_COLORS: Record<string, string> = {
   'Bullpen': '220, 70%, 45%',            // dark blue
   'Game': '142, 70%, 45%',               // green
   'External': '200, 80%, 60%',           // light blue
-  'Practice': '25, 90%, 55%',            // orange
+  'Live ABs': '25, 90%, 55%',            // orange
 };
 
 export function PitchCountChart({ outings }: PitchCountChartProps) {
