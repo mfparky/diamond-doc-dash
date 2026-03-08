@@ -331,66 +331,24 @@ export default function PlayerDashboard() {
           const seasonStrikePercent = totalPitchesWithStrikes > 0 ? (totalStrikes / totalPitchesWithStrikes) * 100 : 0;
 
           return (
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <Card className="stat-card">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <TrendingUp className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">7-Day Pulse</p>
-                    <p className="text-2xl font-bold text-foreground">{pitcher.sevenDayPulse}</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="stat-card">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <TrendingUp className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Total Pitches</p>
-                    <p className="text-2xl font-bold text-foreground">{totalPitches}</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="stat-card">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-accent/10">
-                    <Target className="w-5 h-5 text-accent" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Strike %</p>
-                    <p className="text-2xl font-bold text-foreground">{seasonStrikePercent.toFixed(1)}%</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="stat-card">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-status-danger/10">
-                    <Gauge className="w-5 h-5 text-status-danger" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Max Velo</p>
-                    <p className="text-2xl font-bold text-foreground">{pitcher.maxVelo || '-'}</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="stat-card">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-muted">
-                    <Calendar className="w-5 h-5 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Last Outing</p>
-                    <p className="text-sm font-bold text-foreground">{formatDate(pitcher.lastOuting)}</p>
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-5 snap-x snap-mandatory">
+              {[
+                { label: '7-Day Pulse', value: String(pitcher.sevenDayPulse), icon: TrendingUp, iconClass: 'text-primary', bgClass: 'bg-primary/10' },
+                { label: 'Total Pitches', value: String(totalPitches), icon: TrendingUp, iconClass: 'text-primary', bgClass: 'bg-primary/10' },
+                { label: 'Strike %', value: `${seasonStrikePercent.toFixed(1)}%`, icon: Target, iconClass: 'text-accent', bgClass: 'bg-accent/10' },
+                { label: 'Max Velo', value: pitcher.maxVelo ? String(pitcher.maxVelo) : '-', icon: Gauge, iconClass: 'text-status-danger', bgClass: 'bg-status-danger/10' },
+                { label: 'Last Outing', value: formatDate(pitcher.lastOuting), icon: Calendar, iconClass: 'text-muted-foreground', bgClass: 'bg-muted', small: true },
+              ].map((stat) => (
+                <Card key={stat.label} className="stat-card min-w-[140px] flex-shrink-0 snap-start md:min-w-0 md:flex-shrink">
+                  <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+                    <div className={`p-2 rounded-lg ${stat.bgClass}`}>
+                      <stat.icon className={`w-5 h-5 ${stat.iconClass}`} />
+                    </div>
+                    <p className="text-xs text-muted-foreground">{stat.label}</p>
+                    <p className={`font-bold text-foreground ${stat.small ? 'text-sm' : 'text-2xl'}`}>{stat.value}</p>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           );
         })()}
