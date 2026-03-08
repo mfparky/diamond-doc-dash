@@ -9,9 +9,10 @@ import { PitcherDetail } from '@/components/PitcherDetail';
 import { OutingForm } from '@/components/OutingForm';
 import { AllTimeStats } from '@/components/AllTimeStats';
 import { RosterManagementDialog } from '@/components/RosterManagementDialog';
+import { PaperFormScanner } from '@/components/PaperFormScanner';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Settings } from 'lucide-react';
+import { Settings, Camera } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getDaysRestNeeded } from '@/types/pitcher';
 import { useOutings } from '@/hooks/use-outings';
@@ -36,6 +37,7 @@ const Index = () => {
   const [selectedPitcher, setSelectedPitcher] = useState<Pitcher | null>(null);
   const [showOutingForm, setShowOutingForm] = useState(false);
   const [showRosterManagement, setShowRosterManagement] = useState(false);
+  const [showFormScanner, setShowFormScanner] = useState(false);
   const { toast } = useToast();
 
   // Create a map of pitcher name to max weekly pitches
@@ -97,6 +99,17 @@ const Index = () => {
       return newOuting;
     }
     return null;
+  };
+
+  const handleScanSave = async (
+    outingData: Omit<Outing, 'id' | 'timestamp'>,
+    pitcherId: string,
+    pitchLocations: Array<{ pitchNumber: number; pitchType: number; xLocation: number; yLocation: number; isStrike: boolean }>
+  ) => {
+    const newOuting = await addOuting(outingData);
+    if (newOuting && pitchLocations.length > 0) {
+      await addPitchLocations(newOuting.id, pitcherId, pitchLocations);
+    }
   };
 
   const handlePitcherClick = (pitcher: Pitcher) => {
@@ -175,6 +188,14 @@ const Index = () => {
                     aria-label="Manage roster"
                   >
                     <Settings className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => setShowFormScanner(true)}
+                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                    aria-label="Scan paper form"
+                    title="Scan paper pitch form"
+                  >
+                    <Camera className="w-5 h-5" />
                   </button>
                 </div>
                 <p className="text-muted-foreground">
@@ -279,6 +300,14 @@ const Index = () => {
         onAddPitcher={addPitcher}
         onUpdatePitcher={updatePitcher}
         onDeletePitcher={deletePitcher}
+      />
+
+      {/* Paper Form Scanner */}
+      <PaperFormScanner
+        open={showFormScanner}
+        onClose={() => setShowFormScanner(false)}
+        pitchers={pitchers}
+        onSave={handleScanSave}
       />
     </div>
   );
