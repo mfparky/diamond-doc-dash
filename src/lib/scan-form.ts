@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
 
 export interface ScannedPitch {
   pitchNumber: number;
@@ -65,15 +65,22 @@ export async function scanPaperForm(
   mediaType: 'image/jpeg' | 'image/png' | 'image/webp',
   apiKey: string,
 ): Promise<ScannedOuting> {
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+  const client = new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
 
-  const result = await model.generateContent([
-    { inlineData: { data: imageBase64, mimeType: mediaType } },
-    SCAN_PROMPT,
-  ]);
+  const result = await client.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [
+      {
+        role: 'user',
+        content: [
+          { type: 'image_url', image_url: { url: `data:${mediaType};base64,${imageBase64}` } },
+          { type: 'text', text: SCAN_PROMPT },
+        ],
+      },
+    ],
+  });
 
-  let json = result.response.text().trim();
+  let json = (result.choices[0].message.content ?? '').trim();
   // Strip any accidental markdown fences
   json = json.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/i, '').trim();
 
@@ -86,7 +93,7 @@ export async function scanPaperForm(
   return parsed as ScannedOuting;
 }
 
-const API_KEY_STORAGE = 'gemini_api_key';
+const API_KEY_STORAGE = 'openai_api_key';
 
 export function getStoredApiKey(): string {
   return localStorage.getItem(API_KEY_STORAGE) ?? '';
