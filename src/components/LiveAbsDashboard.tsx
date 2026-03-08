@@ -1,11 +1,13 @@
 import { useMemo } from 'react';
 import { Outing } from '@/types/pitcher';
 import { parseLiveAbsData, AB_OUTCOME_COLOR, AB_OUTCOME_LABELS, AbOutcome } from '@/types/at-bats';
+import { PitchLocation } from '@/types/pitch-location';
 import { LiveAbsSummary } from './LiveAbsSummary';
-import { Card, CardContent } from '@/components/ui/card';
+import { LiveAbsSessionZone } from './LiveAbsSessionZone';
 
 interface LiveAbsDashboardProps {
   outings: Outing[];
+  pitchLocations: PitchLocation[];
   /** Pass formatDate from the parent so we don't duplicate it */
   formatDate: (d: string) => string;
 }
@@ -17,7 +19,7 @@ const OUTCOME_GROUPS: { label: string; outcomes: AbOutcome[] }[] = [
   { label: 'Outs in play', outcomes: ['GO', 'FO', 'LO', 'FC', 'E'] },
 ];
 
-export function LiveAbsDashboard({ outings, formatDate }: LiveAbsDashboardProps) {
+export function LiveAbsDashboard({ outings, pitchLocations, formatDate }: LiveAbsDashboardProps) {
   const liveAbOutings = useMemo(
     () => outings.filter((o) => o.eventType === 'Live ABs').sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -94,10 +96,7 @@ export function LiveAbsDashboard({ outings, formatDate }: LiveAbsDashboardProps)
                   <div
                     key={oc}
                     title={`${AB_OUTCOME_LABELS[oc]}: ${count}`}
-                    style={{
-                      flex: count,
-                      backgroundColor: AB_OUTCOME_COLOR[oc],
-                    }}
+                    style={{ flex: count, backgroundColor: AB_OUTCOME_COLOR[oc] }}
                   />
                 );
               })
@@ -121,15 +120,18 @@ export function LiveAbsDashboard({ outings, formatDate }: LiveAbsDashboardProps)
         </div>
       )}
 
-      {/* Per-outing list */}
-      <div className="space-y-3">
+      {/* Per-session list */}
+      <div className="space-y-4">
         {liveAbOutings.map((outing) => {
           const data = parseLiveAbsData(outing.notes);
           const strikePct = outing.strikes !== null && outing.pitchCount > 0
             ? ((outing.strikes / outing.pitchCount) * 100).toFixed(0)
             : null;
+          const sessionPitches = pitchLocations.filter((p) => p.outingId === outing.id);
+
           return (
-            <div key={outing.id} className="rounded-lg bg-secondary/50 border border-border/30 p-4 space-y-2">
+            <div key={outing.id} className="rounded-lg bg-secondary/50 border border-border/30 p-4 space-y-3">
+              {/* Session header */}
               <div className="flex items-center justify-between">
                 <p className="font-semibold text-foreground">{formatDate(outing.date)}</p>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -139,9 +141,15 @@ export function LiveAbsDashboard({ outings, formatDate }: LiveAbsDashboardProps)
                   {strikePct && <><span>·</span><span>{strikePct}% strikes</span></>}
                 </div>
               </div>
+
+              {/* Outcome chips */}
               <LiveAbsSummary notes={outing.notes} />
+
+              {/* Strike zone with batter selector */}
+              <LiveAbsSessionZone notes={outing.notes} pitchLocations={sessionPitches} />
+
               {outing.focus && (
-                <p className="text-xs text-primary pt-1">
+                <p className="text-xs text-primary border-t border-border/20 pt-2">
                   <span className="font-medium">Focus:</span> {outing.focus}
                 </p>
               )}

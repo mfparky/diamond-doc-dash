@@ -684,7 +684,7 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
             </TabsContent>
 
             <TabsContent value="live-abs">
-              <LiveAbsDashboard outings={pitcher.outings} formatDate={formatDate} />
+              <LiveAbsDashboard outings={pitcher.outings} pitchLocations={allPitchLocations} formatDate={formatDate} />
             </TabsContent>
           </Tabs>
         </CardContent>
