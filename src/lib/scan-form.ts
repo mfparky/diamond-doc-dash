@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { getScanExamples, buildFewShotMessages } from './scan-calibration';
 
 export interface ScannedPitch {
   pitchNumber: number;
@@ -119,10 +120,13 @@ export async function scanPaperForm(
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
   const compressed = await compressImage(imageBase64, mediaType);
 
+  const fewShot = buildFewShotMessages(getScanExamples());
+
   const result = await client.messages.create({
     model: 'claude-opus-4-6',
     max_tokens: 2048,
     messages: [
+      ...fewShot,
       {
         role: 'user',
         content: [

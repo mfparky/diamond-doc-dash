@@ -1,8 +1,9 @@
 import { Button } from '@/components/ui/button';
-import { Plus, LayoutGrid, BarChart3 } from 'lucide-react';
+import { Plus, LayoutGrid, BarChart3, ScanLine } from 'lucide-react';
 import hawksLogo from '@/assets/hawks-logo.png';
 import { useScrollDirection } from '@/hooks/use-scroll-direction';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   onAddOuting: () => void;
@@ -13,6 +14,7 @@ interface HeaderProps {
 export function Header({ onAddOuting, activeTab = 'players', onTabChange }: HeaderProps) {
   const scrollDirection = useScrollDirection();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   
   const isHidden = isMobile && scrollDirection === 'down';
   
@@ -69,8 +71,18 @@ export function Header({ onAddOuting, activeTab = 'players', onTabChange }: Head
               </Button>
             </div>
 
-            <Button 
-              onClick={onAddOuting} 
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2"
+              onClick={() => navigate('/calibrate')}
+              title="Scan Calibration"
+            >
+              <ScanLine className="w-4 h-4" />
+            </Button>
+
+            <Button
+              onClick={onAddOuting}
               size="sm"
               className="h-8 px-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
             >
