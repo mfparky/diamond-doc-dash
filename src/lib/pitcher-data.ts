@@ -57,7 +57,7 @@ export function calculatePitcherStats(pitcher: Pitcher, allOutings: Outing[]): P
   const lastOutingData = sortedOutings[0];
   const lastOuting = lastOutingData?.date || '';
   const lastPitchCount = lastOutingData?.pitchCount || 0;
-  const notes = lastOutingData?.notes || '';
+  const notes = sortedOutings.find(o => o.eventType !== 'Live ABs' && !!o.notes)?.notes || '';
 
   // Get the most recent focus (find the most recent outing that has a focus set)
   const mostRecentFocus = sortedOutings.find(o => o.focus)?.focus;
