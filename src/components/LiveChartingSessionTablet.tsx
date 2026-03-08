@@ -342,8 +342,8 @@ export function LiveChartingSessionTablet({
             {plottedPitches.map((pitch, idx) => (
               <div
                 key={idx}
-                className={`absolute w-7 h-7 rounded-full transform -translate-x-1/2 -translate-y-1/2 border-2 flex items-center justify-center text-xs text-white font-bold shadow-lg pointer-events-none ${
-                  pitch.hasVideo ? 'border-accent ring-2 ring-accent/50' : 'border-white/70'
+                className={`absolute w-5 h-5 rounded-full transform -translate-x-1/2 -translate-y-1/2 border flex items-center justify-center text-[9px] text-white font-bold shadow-lg pointer-events-none ${
+                  pitch.hasVideo ? 'border-accent ring-1 ring-accent/50' : 'border-white/70'
                 }`}
                 style={{
                   left: `${toPercent(pitch.xLocation)}%`,
