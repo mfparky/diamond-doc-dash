@@ -32,9 +32,6 @@ export function LiveAbsSummary({ notes, pitchCount }: LiveAbsSummaryProps) {
           );
         })}
       </div>
-      {data.text && (
-        <p className="text-xs text-muted-foreground">{data.text}</p>
-      )}
     </div>
   );
 }
