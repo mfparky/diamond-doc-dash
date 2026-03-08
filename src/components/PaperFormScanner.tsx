@@ -135,7 +135,7 @@ export function PaperFormScanner({ open, onClose, pitchers, pitchTypes = DEFAULT
       setError(err instanceof Error ? err.message : 'Failed to scan form');
       setStep('error');
     }
-  }, []);
+  }, [pitchers]);
 
   const handleSaveApiKey = useCallback(async () => {
     const key = apiKeyDraft.trim();
