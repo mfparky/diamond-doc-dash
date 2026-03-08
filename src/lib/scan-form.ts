@@ -1,4 +1,4 @@
-import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 
 export interface ScannedPitch {
   pitchNumber: number;
@@ -65,22 +65,24 @@ export async function scanPaperForm(
   mediaType: 'image/jpeg' | 'image/png' | 'image/webp',
   apiKey: string,
 ): Promise<ScannedOuting> {
-  const client = new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
+  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
 
-  const result = await client.chat.completions.create({
-    model: 'gpt-4o',
+  const result = await client.messages.create({
+    model: 'claude-opus-4-6',
+    max_tokens: 2048,
     messages: [
       {
         role: 'user',
         content: [
-          { type: 'image_url', image_url: { url: `data:${mediaType};base64,${imageBase64}` } },
+          { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageBase64 } },
           { type: 'text', text: SCAN_PROMPT },
         ],
       },
     ],
   });
 
-  let json = (result.choices[0].message.content ?? '').trim();
+  const textBlock = result.content.find((b) => b.type === 'text');
+  let json = (textBlock?.type === 'text' ? textBlock.text : '').trim();
   // Strip any accidental markdown fences
   json = json.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/i, '').trim();
 
@@ -93,7 +95,7 @@ export async function scanPaperForm(
   return parsed as ScannedOuting;
 }
 
-const API_KEY_STORAGE = 'openai_api_key';
+const API_KEY_STORAGE = 'anthropic_api_key';
 
 export function getStoredApiKey(): string {
   return localStorage.getItem(API_KEY_STORAGE) ?? '';

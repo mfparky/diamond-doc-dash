@@ -97,7 +97,7 @@ export function generateReport(data: ReportData): void {
 <head>
   <title>${pitcherName} - Season Report</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1a1a2e; background: #fff; padding: 40px; max-width: 800px; margin: 0 auto; }
     .header { text-align: center; margin-bottom: 32px; border-bottom: 3px solid #1a1a2e; padding-bottom: 16px; }
     .header h1 { font-size: 28px; font-weight: 800; }
@@ -116,8 +116,8 @@ export function generateReport(data: ReportData): void {
     .grade-label { font-size: 13px; font-weight: 600; }
     .grade-detail { font-size: 11px; color: #888; }
     .badge-list { display: flex; flex-wrap: wrap; gap: 8px; }
-    .badge-item { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 4px 10px; font-size: 12px; }
-    .badge-item.unearned { background: #f5f5f5; border-color: #e5e5e5; color: #aaa; }
+    .badge-item { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 4px 10px; font-size: 12px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .badge-item.unearned { background: #f5f5f5; border-color: #e5e5e5; color: #666; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .outing-table { width: 100%; border-collapse: collapse; font-size: 13px; }
     .outing-table th { background: #f5f5f5; text-align: left; padding: 8px 10px; font-weight: 600; border-bottom: 2px solid #ddd; }
     .outing-table td { padding: 8px 10px; border-bottom: 1px solid #eee; }
