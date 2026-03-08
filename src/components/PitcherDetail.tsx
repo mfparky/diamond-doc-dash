@@ -29,6 +29,8 @@ import { ShareSummaryCard } from './ShareSummaryCard';
 import { evaluateBadges } from '@/types/badges';
 import { useAchievementWindow } from '@/hooks/use-achievement-window';
 import { LiveAbsSummary } from './LiveAbsSummary';
+import { LiveAbsDashboard } from './LiveAbsDashboard';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { generateReport } from '@/lib/generate-report';
 
 
@@ -557,121 +559,134 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
 
       {/* Outing History */}
       <Card className="glass-card">
-        <CardHeader>
+        <CardHeader className="pb-2">
           <CardTitle className="font-display text-lg">Outing History</CardTitle>
         </CardHeader>
-        <CardContent>
-          {pitcher.outings.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">No outings recorded yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {pitcher.outings
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                .map((outing) => (
-                  <div 
-                    key={outing.id} 
-                    className="p-4 rounded-lg bg-secondary/50 border border-border/30"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <p className="font-semibold text-foreground">{formatDate(outing.date)}</p>
-                        <p className="text-sm text-accent">{outing.eventType}</p>
-                      </div>
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        {/* Video button */}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-10 w-10 sm:h-8 sm:w-8"
-                          onClick={() => setVideoOuting(outing)}
-                          title={outing.videoUrl1 || outing.videoUrl2 ? 'View/edit videos' : 'Add videos'}
-                        >
-                          <Video className={`w-4 h-4 ${outing.videoUrl1 || outing.videoUrl2 ? 'text-primary' : ''}`} />
-                        </Button>
-                        {outing.videoUrl && !outing.videoUrl1 && !outing.videoUrl2 && (
-                          <a
-                            href={outing.videoUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center justify-center h-10 w-10 sm:h-8 sm:w-8 text-sm text-primary hover:text-primary/80 transition-colors"
-                            title="External video link"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                          </a>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-10 w-10 sm:h-8 sm:w-8"
-                          onClick={() => setPitchMapOuting(outing)}
-                          title={outingPitchCounts[outing.id] ? `${outingPitchCounts[outing.id]} pitches mapped` : 'Add pitch map'}
-                        >
-                          <MapPin className={`w-4 h-4 ${outingPitchCounts[outing.id] ? 'text-primary' : ''}`} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-10 w-10 sm:h-8 sm:w-8"
-                          onClick={() => setEditingOuting(outing)}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-10 w-10 sm:h-8 sm:w-8 text-destructive hover:text-destructive"
-                          onClick={() => setDeletingOuting(outing)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Pitches: </span>
-                        <span className="font-medium text-foreground">{outing.pitchCount}</span>
-                        <span className="text-xs text-muted-foreground ml-1">
-                          ({getDaysRestNeeded(outing.pitchCount)}d rest)
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Strikes: </span>
-                        <span className="font-medium text-foreground">{outing.strikes}</span>
-                        <span className="text-xs text-muted-foreground ml-1">
-                          ({outing.pitchCount > 0 ? ((outing.strikes / outing.pitchCount) * 100).toFixed(0) : 0}%)
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Velo: </span>
-                        <span className="font-medium text-foreground">{outing.maxVelo}</span>
-                      </div>
-                    </div>
-                    {outing.focus && (
-                      <p className="mt-2 text-sm text-primary border-t border-border/30 pt-2">
-                        <span className="font-medium">Focus:</span> {outing.focus}
-                      </p>
-                    )}
-                    {outing.eventType === 'Live ABs'
-                      ? <LiveAbsSummary notes={outing.notes} />
-                      : outing.notes && (
-                          <p className="mt-2 text-sm text-muted-foreground border-t border-border/30 pt-2">
-                            {outing.notes}
-                          </p>
-                        )
-                    }
-                    {outing.coachNotes && (
-                      <div className="mt-2 text-sm border-t border-border/30 pt-2 flex items-start gap-2">
-                        <MessageSquare className="w-4 h-4 text-purple-500 shrink-0 mt-0.5" />
-                        <div>
-                          <span className="font-medium text-purple-500">Coach's Notes:</span>
-                          <p className="text-foreground mt-0.5">{outing.coachNotes}</p>
+        <CardContent className="pt-0">
+          <Tabs defaultValue="all">
+            <TabsList className="w-full mb-4">
+              <TabsTrigger value="all" className="flex-1">All Outings</TabsTrigger>
+              <TabsTrigger value="live-abs" className="flex-1">Live ABs</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="all">
+              {pitcher.outings.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">No outings recorded yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {pitcher.outings
+                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                    .map((outing) => (
+                      <div
+                        key={outing.id}
+                        className="p-4 rounded-lg bg-secondary/50 border border-border/30"
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <p className="font-semibold text-foreground">{formatDate(outing.date)}</p>
+                            <p className="text-sm text-accent">{outing.eventType}</p>
+                          </div>
+                          <div className="flex items-center gap-1 sm:gap-2">
+                            {/* Video button */}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-10 w-10 sm:h-8 sm:w-8"
+                              onClick={() => setVideoOuting(outing)}
+                              title={outing.videoUrl1 || outing.videoUrl2 ? 'View/edit videos' : 'Add videos'}
+                            >
+                              <Video className={`w-4 h-4 ${outing.videoUrl1 || outing.videoUrl2 ? 'text-primary' : ''}`} />
+                            </Button>
+                            {outing.videoUrl && !outing.videoUrl1 && !outing.videoUrl2 && (
+                              <a
+                                href={outing.videoUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-center h-10 w-10 sm:h-8 sm:w-8 text-sm text-primary hover:text-primary/80 transition-colors"
+                                title="External video link"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </a>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-10 w-10 sm:h-8 sm:w-8"
+                              onClick={() => setPitchMapOuting(outing)}
+                              title={outingPitchCounts[outing.id] ? `${outingPitchCounts[outing.id]} pitches mapped` : 'Add pitch map'}
+                            >
+                              <MapPin className={`w-4 h-4 ${outingPitchCounts[outing.id] ? 'text-primary' : ''}`} />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-10 w-10 sm:h-8 sm:w-8"
+                              onClick={() => setEditingOuting(outing)}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-10 w-10 sm:h-8 sm:w-8 text-destructive hover:text-destructive"
+                              onClick={() => setDeletingOuting(outing)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Pitches: </span>
+                            <span className="font-medium text-foreground">{outing.pitchCount}</span>
+                            <span className="text-xs text-muted-foreground ml-1">
+                              ({getDaysRestNeeded(outing.pitchCount)}d rest)
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Strikes: </span>
+                            <span className="font-medium text-foreground">{outing.strikes}</span>
+                            <span className="text-xs text-muted-foreground ml-1">
+                              ({outing.pitchCount > 0 ? ((outing.strikes / outing.pitchCount) * 100).toFixed(0) : 0}%)
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Velo: </span>
+                            <span className="font-medium text-foreground">{outing.maxVelo}</span>
+                          </div>
+                        </div>
+                        {outing.focus && (
+                          <p className="mt-2 text-sm text-primary border-t border-border/30 pt-2">
+                            <span className="font-medium">Focus:</span> {outing.focus}
+                          </p>
+                        )}
+                        {outing.eventType === 'Live ABs'
+                          ? <LiveAbsSummary notes={outing.notes} />
+                          : outing.notes && (
+                              <p className="mt-2 text-sm text-muted-foreground border-t border-border/30 pt-2">
+                                {outing.notes}
+                              </p>
+                            )
+                        }
+                        {outing.coachNotes && (
+                          <div className="mt-2 text-sm border-t border-border/30 pt-2 flex items-start gap-2">
+                            <MessageSquare className="w-4 h-4 text-purple-500 shrink-0 mt-0.5" />
+                            <div>
+                              <span className="font-medium text-purple-500">Coach's Notes:</span>
+                              <p className="text-foreground mt-0.5">{outing.coachNotes}</p>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                ))}
-            </div>
-          )}
+                    ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="live-abs">
+              <LiveAbsDashboard outings={pitcher.outings} formatDate={formatDate} />
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
