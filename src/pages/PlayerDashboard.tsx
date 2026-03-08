@@ -26,6 +26,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { TrendingUp, Target, Gauge, Calendar, Video, Shield, ArrowLeft, Play, MessageSquare, ClipboardCheck, Share2, Copy, Check, Download, Star } from 'lucide-react';
 import hawksLogo from '@/assets/hawks-logo.png';
+import { LiveAbsSummary } from '@/components/LiveAbsSummary';
 
 export default function PlayerDashboard() {
   const { playerId } = useParams<{ playerId: string }>();
@@ -645,11 +646,14 @@ export default function PlayerDashboard() {
                           <span className="font-medium">Focus:</span> {outing.focus}
                         </p>
                       )}
-                      {outing.notes && (
-                        <p className="mt-2 text-sm text-muted-foreground border-t border-border/30 pt-2">
-                          {outing.notes}
-                        </p>
-                      )}
+                      {outing.eventType === 'Live ABs'
+                        ? <LiveAbsSummary notes={outing.notes} />
+                        : outing.notes && (
+                            <p className="mt-2 text-sm text-muted-foreground border-t border-border/30 pt-2">
+                              {outing.notes}
+                            </p>
+                          )
+                      }
                       {outing.coachNotes && (
                         <div className="mt-2 text-sm border-t border-border/30 pt-2 flex items-start gap-2">
                           <MessageSquare className="w-4 h-4 text-purple-500 shrink-0 mt-0.5" />
