@@ -28,6 +28,7 @@ import { SeasonTrendsChart } from './SeasonTrendsChart';
 import { ShareSummaryCard } from './ShareSummaryCard';
 import { evaluateBadges } from '@/types/badges';
 import { useAchievementWindow } from '@/hooks/use-achievement-window';
+import { LiveAbsSummary } from './LiveAbsSummary';
 import { generateReport } from '@/lib/generate-report';
 
 
@@ -650,11 +651,14 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
                         <span className="font-medium">Focus:</span> {outing.focus}
                       </p>
                     )}
-                    {outing.notes && (
-                      <p className="mt-2 text-sm text-muted-foreground border-t border-border/30 pt-2">
-                        {outing.notes}
-                      </p>
-                    )}
+                    {outing.eventType === 'Live ABs'
+                      ? <LiveAbsSummary notes={outing.notes} />
+                      : outing.notes && (
+                          <p className="mt-2 text-sm text-muted-foreground border-t border-border/30 pt-2">
+                            {outing.notes}
+                          </p>
+                        )
+                    }
                     {outing.coachNotes && (
                       <div className="mt-2 text-sm border-t border-border/30 pt-2 flex items-start gap-2">
                         <MessageSquare className="w-4 h-4 text-purple-500 shrink-0 mt-0.5" />
