@@ -19,24 +19,39 @@ export interface ScannedOuting {
 }
 
 const SCAN_PROMPT = `You are an expert at reading baseball pitch-charting paper forms.
-Read this photo of a hand-filled pitch chart and extract all pitch data.
+Read this photo of a hand-filled pitch chart (approximately 8×10 inches) and extract all pitch data.
 
-Coordinate system for pitch locations:
-- The strike zone is a rectangle on the form
-- x axis: -1 = far inside (left edge), 0 = center, 1 = far outside (right edge)
-- y axis: -1 = low (bottom edge), 0 = center, 1 = high (top edge)
-- Estimate each plotted dot's position within the strike zone box to produce these normalized coordinates
-- Pitches outside the strike zone box get x/y values beyond ±0.5 (e.g., high and outside = x:0.8, y:0.8)
+## Form layout
+- **"Pitching count for today"** field → pitchCount
+- **"Focus for today"** field → notes (first line)
+- **"Post bullpen reflection"** field → notes (append after a newline)
+- **Strike zone box** with a 3×3 grid inside it (9 cells)
+- Pitches OUTSIDE the box are balls and have no grid — estimate their position relative to the box edges
 
-Pitch types to recognize (map to these abbreviations):
-- Fastball / FB / 4-seam / 2-seam → "FB"
-- Curveball / CB / Curve → "CB"
-- Changeup / CH / Change → "CH"
-- Slider / SL → "SL"
-- Cutter / CT / Cut → "CT"
-- Unknown or illegible → "?"
+## Pitch markers
+Each pitch is written as a number (1, 2, 3, …) corresponding to the pitcher's pitch type slot.
+Return that number as a string for pitchType (e.g., "1", "2", "3"). Use "?" only if completely illegible.
 
-isStrike: true if the pitch dot is inside the strike zone box, false if outside.
+## Ball/Strike sequence
+The form has a row of letters like: B, S, S, B, S, … — one per pitch in order.
+Use this sequence as the ground truth for isStrike (S = true, B = false).
+If this row is missing, fall back to whether the pitch number is written inside the zone box.
+
+## Coordinate system (normalized)
+The strike zone box is divided into a 3×3 grid. Map each cell center to these coordinates:
+
+         Left    Center   Right
+Top:   (-0.67, 0.67)  (0.00, 0.67)  (0.67, 0.67)
+Mid:   (-0.67, 0.00)  (0.00, 0.00)  (0.67, 0.00)
+Bot:   (-0.67,-0.67)  (0.00,-0.67)  (0.67,-0.67)
+
+- If a pitch number is written on a grid line between two cells, average the two cell centers
+- For pitches OUTSIDE the box (balls), estimate position relative to box edges:
+  - Just outside = ±1.1 on that axis; well outside = ±1.4; extreme = ±1.7
+  - Use the direction the number is written relative to the box (e.g., up-and-away = x:1.2, y:1.2)
+
+## Velocity
+If individual pitch velocities are written next to pitch numbers, capture them. Otherwise use the max written anywhere on the form.
 
 Return ONLY valid JSON matching this exact schema with no markdown fencing:
 {
@@ -44,13 +59,13 @@ Return ONLY valid JSON matching this exact schema with no markdown fencing:
   "strikes": <number of strikes or null if not written>,
   "maxVelocity": <highest velocity number found or null>,
   "eventType": <"Bullpen" | "Game" | "External" | "Practice" — infer from context or default to "Bullpen">,
-  "notes": "<any written notes, focus areas, coach comments — empty string if none>",
+  "notes": "<combine: Focus for today field + Post bullpen reflection field + any other coach comments, separated by newlines — empty string if none>",
   "pitches": [
     {
       "pitchNumber": <1-based sequential number>,
-      "pitchType": "<FB|CB|CH|SL|CT|?>",
-      "xLocation": <-1.0 to 1.0>,
-      "yLocation": <-1.0 to 1.0>,
+      "pitchType": "<digit as string, e.g. '1' | '2' | '3' | '?'>",
+      "xLocation": <number>,
+      "yLocation": <number>,
       "isStrike": <true|false>,
       "velocity": <number or null>
     }

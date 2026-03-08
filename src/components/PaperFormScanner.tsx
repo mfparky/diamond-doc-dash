@@ -12,8 +12,11 @@ import { PITCH_TYPE_COLORS, PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types
 import { Pitcher, Outing } from '@/types/pitcher';
 import { useToast } from '@/hooks/use-toast';
 
-// Map scanned string abbreviation → pitch type number using pitcher's config
+// Map scanned pitch type → pitch type number using pitcher's config.
+// The form uses numbers ("1", "2", "3") directly; fall back to label lookup for legacy data.
 function pitchLabelToNumber(label: string, pitchTypes: PitchTypeConfig): number {
+  const asInt = parseInt(label);
+  if (!isNaN(asInt) && asInt >= 1) return asInt;
   const upper = label.toUpperCase();
   for (const [key, val] of Object.entries(pitchTypes)) {
     if (val.toUpperCase() === upper) return parseInt(key);
