@@ -33,8 +33,9 @@ Read this photo of a hand-filled pitch chart (approximately 8×10 inches) and ex
 - Pitches OUTSIDE the box are balls and have no grid — estimate their position relative to the box edges
 
 ## Pitch markers
-Each pitch is written as a number (1, 2, 3, …) corresponding to the pitcher's pitch type slot.
-Return that number as a string for pitchType (e.g., "1", "2", "3"). Use "?" only if completely illegible.
+Each pitch is written as a **single digit number** (1, 2, 3, …) corresponding to the pitcher's pitch type slot.
+**Only digits are pitch markers inside the zone box** — any letters (B, S, etc.) visible near the zone are part of the Ball/Strike sequence list and must NOT be treated as pitch locations.
+Return that digit as a string for pitchType (e.g., "1", "2", "3"). Use "?" only if completely illegible.
 
 ## Ball/Strike sequence
 The form has a row of letters like: B, S, S, B, S, … — one per pitch in order.
@@ -44,17 +45,19 @@ If this row is missing, fall back to whether the pitch number is written inside 
 ## Coordinate system (normalized)
 The strike zone box is divided into a 3×3 grid. Map each cell center to these coordinates:
 
-         Left    Center   Right
-Top:   (-0.67, 0.67)  (0.00, 0.67)  (0.67, 0.67)
-Mid:   (-0.67, 0.00)  (0.00, 0.00)  (0.67, 0.00)
-Bot:   (-0.67,-0.67)  (0.00,-0.67)  (0.67,-0.67)
+         Left      Center    Right
+Top:   (-0.27, 0.30)  (0.00, 0.30)  (0.27, 0.30)
+Mid:   (-0.27, 0.00)  (0.00, 0.00)  (0.27, 0.00)
+Bot:   (-0.27,-0.30)  (0.00,-0.30)  (0.27,-0.30)
+
+The full coordinate display range is -1.0 to +1.0 on both axes. The strike zone occupies roughly x: -0.4 to 0.4 and y: -0.45 to 0.45. Cell centers above are the centers of the 9 sub-cells within that zone.
 
 - If a pitch number is written on a grid line between two cells, average the two cell centers
 - Multiple numbers can be stacked/crowded in the same cell — assign them all the same cell-center coordinates; do not try to sub-divide the cell
-- Ignore any numbers or annotations written in the margins outside the zone that are NOT pitch markers (e.g. count tallies, labels)
+- Ignore any numbers or annotations written in the margins outside the zone that are NOT pitch markers (e.g. count tallies, labels like "23 3")
 - For pitches OUTSIDE the box (balls), estimate position relative to box edges:
-  - Just outside = ±1.1 on that axis; well outside = ±1.4; extreme = ±1.7
-  - Use the direction the number is written relative to the box (e.g., up-and-away = x:1.2, y:1.2)
+  - Just outside = ±0.55 on that axis; well outside = ±0.70; extreme = ±0.85
+  - Use the direction the number is written relative to the box (e.g., up-and-away = x:0.60, y:0.60)
 
 ## Velocity
 If individual pitch velocities are written next to pitch numbers, capture them. Otherwise use the max written anywhere on the form.
@@ -83,12 +86,38 @@ Return ONLY valid JSON matching this exact schema with no markdown fencing:
 If pitch locations are not plotted on the form (only totals are written), return an empty pitches array.
 If the image is unreadable, return { "error": "Unable to read form" }.`;
 
+async function compressImage(
+  base64: string,
+  mediaType: string,
+): Promise<{ base64: string; mediaType: 'image/jpeg' }> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX_DIM = 1600;
+      let { width, height } = img;
+      if (width > MAX_DIM || height > MAX_DIM) {
+        const scale = MAX_DIM / Math.max(width, height);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      resolve({ base64: dataUrl.split(',')[1], mediaType: 'image/jpeg' });
+    };
+    img.src = `data:${mediaType};base64,${base64}`;
+  });
+}
+
 export async function scanPaperForm(
   imageBase64: string,
   mediaType: 'image/jpeg' | 'image/png' | 'image/webp',
   apiKey: string,
 ): Promise<ScannedOuting> {
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+  const compressed = await compressImage(imageBase64, mediaType);
 
   const result = await client.messages.create({
     model: 'claude-opus-4-6',
@@ -97,7 +126,7 @@ export async function scanPaperForm(
       {
         role: 'user',
         content: [
-          { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageBase64 } },
+          { type: 'image', source: { type: 'base64', media_type: compressed.mediaType, data: compressed.base64 } },
           { type: 'text', text: SCAN_PROMPT },
         ],
       },
