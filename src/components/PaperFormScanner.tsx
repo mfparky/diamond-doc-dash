@@ -127,8 +127,8 @@ export function PaperFormScanner({ open, onClose, pitchers, pitchTypes = DEFAULT
 
   const handleSaveApiKey = useCallback(async () => {
     const key = apiKeyDraft.trim();
-    if (!key.startsWith('AIza')) {
-      toast({ title: 'Invalid API key', description: 'Google AI API keys start with AIza', variant: 'destructive' });
+    if (!key.startsWith('sk-')) {
+      toast({ title: 'Invalid API key', description: 'OpenAI API keys start with sk-', variant: 'destructive' });
       return;
     }
     saveApiKey(key);
@@ -197,12 +197,12 @@ export function PaperFormScanner({ open, onClose, pitchers, pitchTypes = DEFAULT
         {showApiKeyInput && (
           <div className="space-y-3 py-2">
             <p className="text-sm text-muted-foreground">
-              Enter your Google AI API key to scan paper forms. It's stored locally on your device. Get one free at aistudio.google.com.
+              Enter your OpenAI API key to scan paper forms. It's stored locally on your device. Get one at platform.openai.com/api-keys.
             </p>
             <div className="flex gap-2">
               <Input
                 type="password"
-                placeholder="AIza..."
+                placeholder="sk-..."
                 value={apiKeyDraft}
                 onChange={e => setApiKeyDraft(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSaveApiKey()}
