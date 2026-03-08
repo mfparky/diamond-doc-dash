@@ -18,7 +18,7 @@ const EVENT_COLORS: Record<string, string> = {
   'Bullpen': 'hsl(220, 70%, 45%)',
   'Game': 'hsl(142, 70%, 45%)',
   'External': 'hsl(200, 80%, 60%)',
-  'Practice': 'hsl(25, 90%, 55%)',
+  'Live ABs': 'hsl(25, 90%, 55%)',
 };
 
 type ViewMode = '7-day' | 'season';

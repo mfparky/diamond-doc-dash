@@ -147,7 +147,7 @@ export function EditOutingDialog({ outing, open, onOpenChange, onSave }: EditOut
                 <SelectItem value="Bullpen">Bullpen</SelectItem>
                 <SelectItem value="External">External</SelectItem>
                 <SelectItem value="Game">Game</SelectItem>
-                <SelectItem value="Practice">Practice</SelectItem>
+                <SelectItem value="Live ABs">Live ABs</SelectItem>
               </SelectContent>
             </Select>
           </div>

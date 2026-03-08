@@ -18,8 +18,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { PitchPlotter } from './PitchPlotter';
+import { LiveAbCharter, LiveAbData } from './LiveAbCharter';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
+import { encodeLiveAbsData } from '@/types/at-bats';
 import { cn } from '@/lib/utils';
 
 interface PlottedPitch {
@@ -67,6 +69,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
   const [selectedDate, setSelectedDate] = useState<Date>(() => toLocalNoon(new Date()));
   const [showPitchPlotter, setShowPitchPlotter] = useState(false);
   const [plottedPitches, setPlottedPitches] = useState<PlottedPitch[]>([]);
+  const [liveAbData, setLiveAbData] = useState<LiveAbData>({ pitches: [], atBats: [] });
   const [pitchTypes, setPitchTypes] = useState<PitchTypeConfig>(DEFAULT_PITCH_TYPES);
   const { fetchPitchTypes } = usePitchLocations();
 
@@ -96,22 +99,32 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.pitcherName || !formData.eventType || !formData.pitchCount) {
-      return;
-    }
+    const isLiveAbs = formData.eventType === 'Live ABs';
+    if (!formData.pitcherName || !formData.eventType) return;
+    if (!isLiveAbs && !formData.pitchCount) return;
+
+    // For Live ABs: derive pitch count / strikes from charted data; encode AB structure in notes
+    const livePitchCount = isLiveAbs ? liveAbData.pitches.length : (parseInt(formData.pitchCount) || 0);
+    const liveStrikes = isLiveAbs ? liveAbData.pitches.filter(p => p.isStrike).length : (formData.strikesNotTracked ? null : (parseInt(formData.strikes) || 0));
+    const notesValue = isLiveAbs
+      ? encodeLiveAbsData({ text: formData.notes || undefined, atBats: liveAbData.atBats })
+      : formData.notes;
+    const pitchesToSave = isLiveAbs
+      ? (liveAbData.pitches.length > 0 ? liveAbData.pitches : undefined)
+      : (plottedPitches.length > 0 ? plottedPitches : undefined);
 
     onSubmit({
       pitcherName: formData.pitcherName,
       date: formData.date,
       eventType: formData.eventType as Outing['eventType'],
-      pitchCount: parseInt(formData.pitchCount) || 0,
-      strikes: formData.strikesNotTracked ? null : (parseInt(formData.strikes) || 0),
+      pitchCount: livePitchCount,
+      strikes: liveStrikes,
       maxVelo: parseInt(formData.maxVelo) || 0,
-      notes: formData.notes,
+      notes: notesValue,
       coachNotes: formData.coachNotes || undefined,
       videoUrl1: formData.videoUrl1 || undefined,
       focus: formData.focus || undefined,
-    }, plottedPitches.length > 0 ? plottedPitches : undefined);
+    }, pitchesToSave);
 
     // Reset form
     const today = toLocalNoon(new Date());
@@ -130,6 +143,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
     });
     setSelectedDate(today);
     setPlottedPitches([]);
+    setLiveAbData({ pitches: [], atBats: [] });
     setShowPitchPlotter(false);
   };
 
@@ -218,13 +232,31 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
                 <SelectItem value="Bullpen">Bullpen</SelectItem>
                 <SelectItem value="External">External</SelectItem>
                 <SelectItem value="Game">Game</SelectItem>
-                <SelectItem value="Practice">Practice</SelectItem>
+                <SelectItem value="Live ABs">Live ABs</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* Pitch Count & Strikes Row */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Live AB Charter — shown in place of pitch count/strikes/plotter for Live ABs */}
+          {formData.eventType === 'Live ABs' && formData.pitcherName && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Chart At-Bats</Label>
+              <LiveAbCharter
+                pitchTypes={pitchTypes}
+                onChange={setLiveAbData}
+                initialData={liveAbData}
+              />
+              {liveAbData.pitches.length > 0 && (
+                <p className="text-xs text-muted-foreground text-center">
+                  {liveAbData.pitches.length} pitches · {liveAbData.pitches.filter(p => p.isStrike).length} strikes
+                  {liveAbData.atBats.length > 0 && ` · ${liveAbData.atBats.length} ABs`}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Pitch Count & Strikes Row — hidden for Live ABs */}
+          {formData.eventType !== 'Live ABs' && <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="pitchCount" className="text-sm font-medium">Pitch Count</Label>
               <Input
@@ -266,7 +298,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
                 </Label>
               </div>
             </div>
-          </div>
+          </div>}
 
           {/* Max Velo */}
           <div className="space-y-2">
@@ -340,8 +372,8 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
             />
           </div>
 
-          {/* Plot Pitch Locations Button */}
-          {formData.pitcherName && (
+          {/* Plot Pitch Locations Button — only for non-Live-ABs outings */}
+          {formData.pitcherName && formData.eventType !== 'Live ABs' && (
             <div className="space-y-2">
               <Button
                 type="button"
@@ -361,7 +393,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
           <Button 
             type="submit" 
             className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground"
-            disabled={!formData.pitcherName || !formData.eventType || !formData.pitchCount}
+            disabled={!formData.pitcherName || !formData.eventType || (formData.eventType !== 'Live ABs' && !formData.pitchCount)}
           >
             <Send className="w-4 h-4 mr-2" />
             Log Outing

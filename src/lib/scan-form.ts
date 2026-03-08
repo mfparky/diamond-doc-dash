@@ -14,7 +14,7 @@ export interface ScannedOuting {
   pitchCount: number;
   strikes: number | null;
   maxVelocity: number | null;
-  eventType: 'Bullpen' | 'Game' | 'External' | 'Practice';
+  eventType: 'Bullpen' | 'Game' | "External" | "Live ABs";
   focus: string;
   notes: string;
   playerName: string;
@@ -68,7 +68,7 @@ Return ONLY valid JSON matching this exact schema with no markdown fencing:
   "pitchCount": <total number of pitches>,
   "strikes": <number of strikes or null if not written>,
   "maxVelocity": <highest velocity number found or null>,
-  "eventType": <"Bullpen" | "Game" | "External" | "Practice" — infer from context or default to "Bullpen">,
+  "eventType": <"Bullpen" | "Game" | "External" | "Live ABs" — infer from context or default to "Bullpen">,
   "playerName": "<name written on the Name field, empty string if not found>",
   "focus": "<exact text from Focus for Today field — empty string if blank>",
   "notes": "<Questions/Notes field + Post Bullpen Reflection field combined, separated by newline — empty string if both blank>",

@@ -389,7 +389,7 @@ export function PaperFormScanner({ open, onClose, pitchers, pitchTypes = DEFAULT
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(['Bullpen', 'Game', 'External', 'Practice'] as const).map(t => (
+                  {(['Bullpen', 'Game', 'External', 'Live ABs'] as const).map(t => (
                     <SelectItem key={t} value={t}>{t}</SelectItem>
                   ))}
                 </SelectContent>

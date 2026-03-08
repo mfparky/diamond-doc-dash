@@ -3,7 +3,7 @@ export interface Outing {
   timestamp: string;
   date: string;
   pitcherName: string;
-  eventType: 'Bullpen' | 'External' | 'Game' | 'Practice';
+  eventType: 'Bullpen' | 'External' | 'Game' | 'Live ABs';
   pitchCount: number;
   strikes: number | null;
   maxVelo: number;

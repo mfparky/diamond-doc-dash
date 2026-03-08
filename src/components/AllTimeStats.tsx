@@ -81,7 +81,7 @@ export function AllTimeStats({ outings, pitchers = [], pitcherMaxPitches = {}, o
         case 'External':
           existing.external += 1;
           break;
-        case 'Practice':
+        case 'Live ABs':
           existing.practices += 1;
           break;
       }
@@ -188,7 +188,7 @@ export function AllTimeStats({ outings, pitchers = [], pitcherMaxPitches = {}, o
                 <TableHead className="text-center font-semibold">Bullpens</TableHead>
                 <TableHead className="text-center font-semibold">Games</TableHead>
                 <TableHead className="text-center font-semibold">External</TableHead>
-                <TableHead className="text-center font-semibold">Practices</TableHead>
+                <TableHead className="text-center font-semibold">Live ABs</TableHead>
                 <TableHead className="text-center font-semibold">Total Outings</TableHead>
               </TableRow>
             </TableHeader>

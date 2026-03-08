@@ -144,29 +144,12 @@ function ExampleCard({ example, onUpdate, onDelete }: {
             </p>
           ) : (
             <>
-              {/* Side-by-side on wide, stacked on narrow */}
-              <div className="flex flex-col sm:flex-row gap-4">
-                {/* Form image */}
-                <div className="sm:w-1/2">
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Form Image</p>
-                  <img
-                    src={example.imageDataUrl}
-                    alt="Scanned form"
-                    className="w-full rounded border border-border object-contain max-h-64"
-                  />
-                </div>
-
-                {/* Interactive pitch plot */}
-                <div className="sm:w-1/2">
-                  <p className="text-xs font-medium text-muted-foreground mb-1">
-                    Pitch Plot — drag or tap to correct
-                  </p>
-                  <CalibrationPitchPlot
-                    pitches={localPitches}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
+              {/* Pitch dots overlaid directly on the form image */}
+              <CalibrationPitchPlot
+                imageDataUrl={example.imageDataUrl}
+                pitches={localPitches}
+                onChange={handleChange}
+              />
 
               {/* Action row */}
               <div className="flex flex-wrap gap-2 items-center justify-between">
