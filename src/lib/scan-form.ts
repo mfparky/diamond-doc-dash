@@ -14,7 +14,9 @@ export interface ScannedOuting {
   strikes: number | null;
   maxVelocity: number | null;
   eventType: 'Bullpen' | 'Game' | 'External' | 'Practice';
+  focus: string;
   notes: string;
+  playerName: string;
   pitches: ScannedPitch[];
 }
 
@@ -22,9 +24,11 @@ const SCAN_PROMPT = `You are an expert at reading baseball pitch-charting paper 
 Read this photo of a hand-filled pitch chart (approximately 8×10 inches) and extract all pitch data.
 
 ## Form layout
-- **"Pitching count for today"** field → pitchCount
-- **"Focus for today"** field → notes (first line)
-- **"Post bullpen reflection"** field → notes (append after a newline)
+- **"Pitch Count Today"** field → pitchCount
+- **"Name"** field → playerName
+- **"Focus for Today"** field → focus (exact text, separate from notes)
+- **"Questions/Notes"** field → notes
+- **"Post Bullpen Reflection"** field → append to notes after a newline
 - **Strike zone box** with a 3×3 grid inside it (9 cells)
 - Pitches OUTSIDE the box are balls and have no grid — estimate their position relative to the box edges
 
@@ -46,6 +50,8 @@ Mid:   (-0.67, 0.00)  (0.00, 0.00)  (0.67, 0.00)
 Bot:   (-0.67,-0.67)  (0.00,-0.67)  (0.67,-0.67)
 
 - If a pitch number is written on a grid line between two cells, average the two cell centers
+- Multiple numbers can be stacked/crowded in the same cell — assign them all the same cell-center coordinates; do not try to sub-divide the cell
+- Ignore any numbers or annotations written in the margins outside the zone that are NOT pitch markers (e.g. count tallies, labels)
 - For pitches OUTSIDE the box (balls), estimate position relative to box edges:
   - Just outside = ±1.1 on that axis; well outside = ±1.4; extreme = ±1.7
   - Use the direction the number is written relative to the box (e.g., up-and-away = x:1.2, y:1.2)
@@ -59,7 +65,9 @@ Return ONLY valid JSON matching this exact schema with no markdown fencing:
   "strikes": <number of strikes or null if not written>,
   "maxVelocity": <highest velocity number found or null>,
   "eventType": <"Bullpen" | "Game" | "External" | "Practice" — infer from context or default to "Bullpen">,
-  "notes": "<combine: Focus for today field + Post bullpen reflection field + any other coach comments, separated by newlines — empty string if none>",
+  "playerName": "<name written on the Name field, empty string if not found>",
+  "focus": "<exact text from Focus for Today field — empty string if blank>",
+  "notes": "<Questions/Notes field + Post Bullpen Reflection field combined, separated by newline — empty string if both blank>",
   "pitches": [
     {
       "pitchNumber": <1-based sequential number>,
