@@ -105,6 +105,7 @@ function LiveChartingSessionMobile({
   const velocityInputRef = useRef<HTMLInputElement>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggeredRef = useRef(false);
+  const lastTouchTimeRef = useRef<number>(0);
 
   const blurActiveElement = useCallback(() => {
     const el = document.activeElement as HTMLElement | null;
@@ -394,6 +395,8 @@ function LiveChartingSessionMobile({
               }`}
               style={getZoneAspectStyle('lg')}
               onClick={(e) => {
+                // Skip if a touchend just handled this tap (prevents double-fire)
+                if (Date.now() - lastTouchTimeRef.current < 300) return;
                 const rect = e.currentTarget.getBoundingClientRect();
                 const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
                 const y = 1 - ((e.clientY - rect.top) / rect.height) * 2;
@@ -405,6 +408,7 @@ function LiveChartingSessionMobile({
               }}
               onTouchEnd={(e) => {
                 e.preventDefault();
+                lastTouchTimeRef.current = Date.now();
                 const touch = e.changedTouches[0];
                 const rect = e.currentTarget.getBoundingClientRect();
                 const x = ((touch.clientX - rect.left) / rect.width) * 2 - 1;
@@ -446,8 +450,8 @@ function LiveChartingSessionMobile({
               {plottedPitches.map((pitch, idx) => (
                 <div
                   key={idx}
-                  className={`absolute w-6 h-6 rounded-full transform -translate-x-1/2 -translate-y-1/2 border-2 flex items-center justify-center text-[10px] text-white font-bold shadow-lg pointer-events-none ${
-                    pitch.hasVideo ? 'border-accent ring-2 ring-accent/50' : 'border-white/70'
+                  className={`absolute w-4 h-4 rounded-full transform -translate-x-1/2 -translate-y-1/2 border flex items-center justify-center text-[8px] text-white font-bold shadow-lg pointer-events-none ${
+                    pitch.hasVideo ? 'border-accent ring-1 ring-accent/50' : 'border-white/70'
                   }`}
                   style={{
                     left: `${toPercent(pitch.xLocation)}%`,
@@ -462,7 +466,7 @@ function LiveChartingSessionMobile({
               {/* Pending location indicator */}
               {pendingLocation && (
                 <div
-                  className="absolute w-6 h-6 rounded-full transform -translate-x-1/2 -translate-y-1/2 border-2 border-dashed border-foreground bg-foreground/20 pointer-events-none animate-pulse"
+                  className="absolute w-4 h-4 rounded-full transform -translate-x-1/2 -translate-y-1/2 border border-dashed border-foreground bg-foreground/20 pointer-events-none animate-pulse"
                   style={{
                     left: `${toPercent(pendingLocation.x)}%`,
                     top: `${100 - toPercent(pendingLocation.y)}%`,
