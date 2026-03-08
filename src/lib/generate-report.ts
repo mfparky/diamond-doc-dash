@@ -198,7 +198,7 @@ export function generateReport(data: ReportData): void {
   <div class="section">
     <div class="section-title">Achievements (${earnedBadges.length}/${badges.length})</div>
     <div class="badge-list">
-      ${badges.map((b) => `<span class="badge-item${b.earned ? '' : ' unearned'}">${b.earned ? '&#9733; ' : ''}${b.name}</span>`).join('')}
+      ${badges.map((b) => `<span class="badge-item${b.earned ? '' : ' unearned'}">${b.earned ? '&#9733; ' : ''}${b.badge.name}</span>`).join('')}
     </div>
   </div>
 
