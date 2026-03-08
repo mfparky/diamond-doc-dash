@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Camera, Loader2, CheckCircle, AlertCircle, Key, RefreshCw } from 'lucide-react';
 import { scanPaperForm, getStoredApiKey, saveApiKey, ScannedOuting, ScannedPitch } from '@/lib/scan-form';
+import { addScanExample } from '@/lib/scan-calibration';
 import { isStrike as computeIsStrike, getZoneAspectStyle, STRIKE_ZONE } from '@/lib/strike-zone';
 import { PITCH_TYPE_COLORS, PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
 import { Pitcher, Outing } from '@/types/pitcher';
@@ -117,6 +118,8 @@ export function PaperFormScanner({ open, onClose, pitchers, pitchTypes = DEFAULT
     try {
       const { base64, mediaType } = parseDataUrl(dataUrl);
       const result = await scanPaperForm(base64, mediaType, key);
+      // Save to calibration storage for later correction/few-shot use
+      addScanExample(dataUrl, result, result.playerName || undefined);
       setScanned(result);
       setEditPitchCount(result.pitchCount.toString());
       setEditStrikes(result.strikes?.toString() ?? '');
