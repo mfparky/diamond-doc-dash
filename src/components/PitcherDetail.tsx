@@ -122,6 +122,7 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
     strikes: number;
     eventType: Outing['eventType'];
     date: string;
+    notes?: string;
   }) => {
     if (!onAddOuting) {
       toast({
@@ -140,7 +141,7 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
       pitchCount: sessionData.pitchCount,
       strikes: sessionData.strikes,
       maxVelo: sessionData.maxVelo,
-      notes: `Live charted session - ${sessionData.pitches.length} pitches`,
+      notes: sessionData.notes ?? `Live charted session - ${sessionData.pitches.length} pitches`,
     });
 
     if (newOuting) {
