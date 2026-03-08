@@ -102,6 +102,7 @@ export async function scanPaperForm(
   json = json.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/i, '').trim();
 
   const parsed = JSON.parse(json);
+  console.log('[scan-form] raw response:', JSON.stringify(parsed, null, 2));
 
   if (parsed.error) {
     throw new Error(parsed.error);
