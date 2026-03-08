@@ -11,6 +11,8 @@ import { useVideoCapture } from '@/hooks/use-video-capture';
 import { VideoSaveDialog } from '@/components/VideoSaveDialog';
 import { PitchTypeConfigDialog } from '@/components/PitchTypeConfigDialog';
 import { LivePitch } from '@/components/LiveChartingSession';
+import { LiveAbCharter, LiveAbData } from '@/components/LiveAbCharter';
+import { encodeLiveAbsData } from '@/types/at-bats';
 
 interface LiveChartingSessionTabletProps {
   pitcher: Pitcher;
@@ -23,6 +25,7 @@ interface LiveChartingSessionTabletProps {
     strikes: number;
     eventType: Outing['eventType'];
     date: string;
+    notes?: string;
   }) => void;
   onCancel: () => void;
 }
@@ -47,6 +50,8 @@ export function LiveChartingSessionTablet({
   const [velocityInput, setVelocityInput] = useState('');
   const [showVideoDialog, setShowVideoDialog] = useState(false);
   const [showPitchTypeConfig, setShowPitchTypeConfig] = useState(false);
+  const [sessionType, setSessionType] = useState<'Bullpen' | 'Game' | 'Live ABs'>('Bullpen');
+  const [liveAbData, setLiveAbData] = useState<LiveAbData>({ pitches: [], atBats: [] });
   const velocityInputRef = useRef<HTMLInputElement>(null);
 
   const { isRecording, startRecording, stopRecording, cancelRecording, capturedVideos, pendingVideo, clearPendingVideo, isNative } = useVideoCapture();
@@ -129,17 +134,30 @@ export function LiveChartingSessionTablet({
   }, []);
 
   const handleComplete = useCallback(() => {
-    if (plottedPitches.length === 0) return;
-    
-    onComplete({
-      pitches: plottedPitches,
-      maxVelo,
-      pitchCount: plottedPitches.length,
-      strikes,
-      eventType: 'Bullpen',
-      date: getTodayDateString(),
-    });
-  }, [plottedPitches, maxVelo, strikes, onComplete]);
+    if (sessionType === 'Live ABs') {
+      if (liveAbData.pitches.length === 0) return;
+      const liveStrikes = liveAbData.pitches.filter(p => p.isStrike).length;
+      onComplete({
+        pitches: liveAbData.pitches as LivePitch[],
+        maxVelo: 0,
+        pitchCount: liveAbData.pitches.length,
+        strikes: liveStrikes,
+        eventType: 'Live ABs',
+        date: getTodayDateString(),
+        notes: encodeLiveAbsData({ atBats: liveAbData.atBats }),
+      });
+    } else {
+      if (plottedPitches.length === 0) return;
+      onComplete({
+        pitches: plottedPitches,
+        maxVelo,
+        pitchCount: plottedPitches.length,
+        strikes,
+        eventType: sessionType,
+        date: getTodayDateString(),
+      });
+    }
+  }, [sessionType, liveAbData, plottedPitches, maxVelo, strikes, onComplete]);
 
   // Convert normalized coordinates to percentage for positioning
   const toPercent = (val: number) => ((val + 1) / 2) * 100;
@@ -153,29 +171,41 @@ export function LiveChartingSessionTablet({
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-card">
+      <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-card gap-4">
         <div className="flex items-center gap-4">
           <h2 className="font-display text-2xl font-bold text-foreground">{pitcher.name}</h2>
-          <span className="text-lg text-muted-foreground">Live Session</span>
+          {/* Session type picker */}
+          <div className="flex bg-secondary rounded-lg p-0.5">
+            {(['Bullpen', 'Game', 'Live ABs'] as const).map(type => (
+              <button
+                key={type}
+                className={`text-sm font-medium px-3 py-1.5 rounded-md transition-colors ${
+                  sessionType === type ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground'
+                }`}
+                onClick={() => setSessionType(type)}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={handleUndo}
-            disabled={plottedPitches.length === 0}
-          >
-            <Undo2 className="w-5 h-5 mr-2" />
-            Undo
-          </Button>
+          {sessionType !== 'Live ABs' && (
+            <Button variant="outline" size="lg" onClick={handleUndo} disabled={plottedPitches.length === 0}>
+              <Undo2 className="w-5 h-5 mr-2" />
+              Undo
+            </Button>
+          )}
           <Button
             size="lg"
             onClick={handleComplete}
-            disabled={plottedPitches.length === 0}
+            disabled={sessionType === 'Live ABs' ? liveAbData.pitches.length === 0 : plottedPitches.length === 0}
             className="px-8"
           >
             <Save className="w-5 h-5 mr-2" />
-            Save ({plottedPitches.length})
+            {sessionType === 'Live ABs'
+              ? `Save (${liveAbData.pitches.length}p · ${liveAbData.atBats.length} ABs)`
+              : `Save (${plottedPitches.length})`}
           </Button>
           <Button variant="ghost" size="icon" onClick={onCancel}>
             <X className="w-6 h-6" />
@@ -282,10 +312,20 @@ export function LiveChartingSessionTablet({
           </Card>
         </div>
 
-        <div className="flex-1 flex flex-col items-center justify-center">
+        <div className="flex-1 flex flex-col items-center justify-center overflow-y-auto">
+          {sessionType === 'Live ABs' && (
+            <div className="w-full max-w-md p-4">
+              <LiveAbCharter
+                pitchTypes={pitchTypes}
+                onChange={setLiveAbData}
+                initialData={liveAbData}
+              />
+            </div>
+          )}
+          {sessionType !== 'Live ABs' && <>
           <Label className="text-sm font-medium mb-8">
-            {isRecording 
-              ? 'Tap to stop recording & plot pitch' 
+            {isRecording
+              ? 'Tap to stop recording & plot pitch'
               : `Tap to plot ${pitchTypes[selectedPitchType.toString()] || 'pitch'} #${plottedPitches.length + 1}`}
           </Label>
           <div
@@ -361,6 +401,7 @@ export function LiveChartingSessionTablet({
             <span className="absolute top-1/2 -left-8 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">In</span>
             <span className="absolute top-1/2 -right-10 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">Out</span>
           </div>
+          </>}
         </div>
 
         {/* Right Column - Stats & Recent Pitches */}

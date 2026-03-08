@@ -13,6 +13,8 @@ import { VideoSaveDialog } from '@/components/VideoSaveDialog';
 import { useIsTabletOrLarger } from '@/hooks/use-device';
 import { LiveChartingSessionTablet } from '@/components/LiveChartingSessionTablet';
 import { LiveCameraPreview } from '@/components/LiveCameraPreview';
+import { LiveAbCharter, LiveAbData } from '@/components/LiveAbCharter';
+import { encodeLiveAbsData } from '@/types/at-bats';
 
 export interface LivePitch {
   pitchNumber: number;
@@ -35,6 +37,7 @@ interface LiveChartingSessionProps {
     strikes: number;
     eventType: Outing['eventType'];
     date: string;
+    notes?: string;
   }) => void;
   onCancel: () => void;
 }
@@ -95,7 +98,9 @@ function LiveChartingSessionMobile({
 }: LiveChartingSessionProps) {
   const [plottedPitches, setPlottedPitches] = useState<LivePitch[]>([]);
   const [showVideoDialog, setShowVideoDialog] = useState(false);
-  
+  const [sessionType, setSessionType] = useState<'Bullpen' | 'Game' | 'Live ABs'>('Bullpen');
+  const [liveAbData, setLiveAbData] = useState<LiveAbData>({ pitches: [], atBats: [] });
+
   // Pitch entry flow state
   const [pitchEntryStep, setPitchEntryStep] = useState<PitchEntryStep>('idle');
   const [pendingLocation, setPendingLocation] = useState<{x: number, y: number} | null>(null);
@@ -274,17 +279,30 @@ function LiveChartingSessionMobile({
   }, []);
 
   const handleComplete = useCallback(() => {
-    if (plottedPitches.length === 0) return;
-    
-    onComplete({
-      pitches: plottedPitches,
-      maxVelo,
-      pitchCount: plottedPitches.length,
-      strikes,
-      eventType: 'Bullpen',
-      date: getTodayDateString(),
-    });
-  }, [plottedPitches, maxVelo, strikes, onComplete]);
+    if (sessionType === 'Live ABs') {
+      if (liveAbData.pitches.length === 0) return;
+      const liveStrikes = liveAbData.pitches.filter(p => p.isStrike).length;
+      onComplete({
+        pitches: liveAbData.pitches as LivePitch[],
+        maxVelo: 0,
+        pitchCount: liveAbData.pitches.length,
+        strikes: liveStrikes,
+        eventType: 'Live ABs',
+        date: getTodayDateString(),
+        notes: encodeLiveAbsData({ atBats: liveAbData.atBats }),
+      });
+    } else {
+      if (plottedPitches.length === 0) return;
+      onComplete({
+        pitches: plottedPitches,
+        maxVelo,
+        pitchCount: plottedPitches.length,
+        strikes,
+        eventType: sessionType,
+        date: getTodayDateString(),
+      });
+    }
+  }, [sessionType, liveAbData, plottedPitches, maxVelo, strikes, onComplete]);
 
   // Convert normalized coordinates to percentage for positioning
   const toPercent = (val: number) => ((val + 1) / 2) * 100;
@@ -310,18 +328,48 @@ function LiveChartingSessionMobile({
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border">
-        <div>
-          <h2 className="font-display text-xl font-bold text-foreground">{pitcher.name}</h2>
-          <p className="text-sm text-muted-foreground">Live Session</p>
+      <div className="border-b border-border">
+        <div className="flex items-center justify-between p-4 pb-2">
+          <div>
+            <h2 className="font-display text-xl font-bold text-foreground">{pitcher.name}</h2>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onCancel}>
+            <X className="w-6 h-6" />
+          </Button>
         </div>
-        <Button variant="ghost" size="icon" onClick={onCancel}>
-          <X className="w-6 h-6" />
-        </Button>
+        {/* Session type picker */}
+        <div className="px-4 pb-3">
+          <div className="flex bg-secondary rounded-lg p-0.5">
+            {(['Bullpen', 'Game', 'Live ABs'] as const).map(type => (
+              <button
+                key={type}
+                className={`flex-1 text-xs font-medium px-2 py-1.5 rounded-md transition-colors ${
+                  sessionType === type ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground'
+                }`}
+                onClick={() => setSessionType(type)}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Main Content - Scrollable */}
       <div className={`flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4 ${isRecording ? 'flex flex-col justify-center' : ''}`}>
+
+        {/* ── Live ABs mode ── */}
+        {sessionType === 'Live ABs' && (
+          <LiveAbCharter
+            pitchTypes={pitchTypes}
+            onChange={setLiveAbData}
+            initialData={liveAbData}
+          />
+        )}
+
+        {/* ── Regular pitch charting mode ── */}
+        {sessionType !== 'Live ABs' && <>
+
         {/* 1. Live Stats Bar */}
         {!isRecording && (
           <div className="grid grid-cols-4 gap-2">
@@ -501,39 +549,39 @@ function LiveChartingSessionMobile({
             </div>
           </div>
         )}
+        </>}
       </div>
 
       {/* Fixed Bottom Action Bar */}
       <div className="p-4 border-t border-border bg-background safe-area-bottom">
         {isRecording ? (
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={cancelRecording}
-            className="w-full h-14 text-muted-foreground"
-          >
+          <Button variant="outline" size="lg" onClick={cancelRecording} className="w-full h-14 text-muted-foreground">
             Cancel Recording
           </Button>
         ) : (
           <div className="flex gap-3">
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={handleUndo}
-              disabled={plottedPitches.length === 0}
-              className="flex-1 h-14"
-            >
-              <Undo2 className="w-5 h-5 mr-2" />
-              Undo
-            </Button>
+            {sessionType !== 'Live ABs' && (
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={handleUndo}
+                disabled={plottedPitches.length === 0}
+                className="flex-1 h-14"
+              >
+                <Undo2 className="w-5 h-5 mr-2" />
+                Undo
+              </Button>
+            )}
             <Button
               size="lg"
               onClick={handleComplete}
-              disabled={plottedPitches.length === 0}
+              disabled={sessionType === 'Live ABs' ? liveAbData.pitches.length === 0 : plottedPitches.length === 0}
               className="flex-[2] h-14 text-lg font-bold"
             >
               <Save className="w-5 h-5 mr-2" />
-              Save Session ({plottedPitches.length})
+              {sessionType === 'Live ABs'
+                ? `Save Session (${liveAbData.pitches.length} pitches · ${liveAbData.atBats.length} ABs)`
+                : `Save Session (${plottedPitches.length})`}
             </Button>
           </div>
         )}
