@@ -74,6 +74,7 @@ export function PaperFormScanner({ open, onClose, pitchers, pitchTypes = DEFAULT
   const [editPitchCount, setEditPitchCount] = useState('');
   const [editStrikes, setEditStrikes] = useState('');
   const [editMaxVelo, setEditMaxVelo] = useState('');
+  const [editFocus, setEditFocus] = useState('');
   const [editNotes, setEditNotes] = useState('');
   const [editEventType, setEditEventType] = useState<Outing['eventType']>('Bullpen');
   const [editDate, setEditDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -82,6 +83,7 @@ export function PaperFormScanner({ open, onClose, pitchers, pitchTypes = DEFAULT
     setStep('capture');
     setImageDataUrl(null);
     setScanned(null);
+    setEditFocus('');
     setError('');
   }, []);
 
@@ -119,8 +121,15 @@ export function PaperFormScanner({ open, onClose, pitchers, pitchTypes = DEFAULT
       setEditPitchCount(result.pitchCount.toString());
       setEditStrikes(result.strikes?.toString() ?? '');
       setEditMaxVelo(result.maxVelocity?.toString() ?? '');
+      setEditFocus(result.focus ?? '');
       setEditNotes(result.notes ?? '');
       setEditEventType(result.eventType ?? 'Bullpen');
+      // Auto-select pitcher if name matches
+      if (result.playerName) {
+        const nameLower = result.playerName.toLowerCase();
+        const match = pitchers.find(p => p.name.toLowerCase().includes(nameLower) || nameLower.includes(p.name.toLowerCase()));
+        if (match) setSelectedPitcherId(match.id);
+      }
       setStep('review');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to scan form');
@@ -164,7 +173,7 @@ export function PaperFormScanner({ open, onClose, pitchers, pitchTypes = DEFAULT
         strikes,
         maxVelo: maxVelocity,
         notes: editNotes,
-        focus: '',
+        focus: editFocus,
         coachNotes: '',
       };
 
@@ -184,7 +193,7 @@ export function PaperFormScanner({ open, onClose, pitchers, pitchTypes = DEFAULT
     } finally {
       setSaving(false);
     }
-  }, [scanned, selectedPitcherId, pitchers, editPitchCount, editStrikes, editMaxVelo, editNotes, editDate, editEventType, pitchTypes, onSave, handleClose, toast]);
+  }, [scanned, selectedPitcherId, pitchers, editPitchCount, editStrikes, editMaxVelo, editFocus, editNotes, editDate, editEventType, pitchTypes, onSave, handleClose, toast]);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -398,6 +407,12 @@ export function PaperFormScanner({ open, onClose, pitchers, pitchTypes = DEFAULT
                 <Label className="text-xs">Max Velo</Label>
                 <Input className="h-9 text-sm" type="number" placeholder="—" value={editMaxVelo} onChange={e => setEditMaxVelo(e.target.value)} />
               </div>
+            </div>
+
+            {/* Focus */}
+            <div className="space-y-1">
+              <Label className="text-xs">Focus for Today</Label>
+              <Input className="h-9 text-sm" placeholder="Focus…" value={editFocus} onChange={e => setEditFocus(e.target.value)} />
             </div>
 
             {/* Notes */}
