@@ -127,8 +127,8 @@ export function PaperFormScanner({ open, onClose, pitchers, pitchTypes = DEFAULT
 
   const handleSaveApiKey = useCallback(async () => {
     const key = apiKeyDraft.trim();
-    if (!key.startsWith('sk-ant-')) {
-      toast({ title: 'Invalid API key', description: 'Anthropic API keys start with sk-ant-', variant: 'destructive' });
+    if (!key.startsWith('AIza')) {
+      toast({ title: 'Invalid API key', description: 'Google AI API keys start with AIza', variant: 'destructive' });
       return;
     }
     saveApiKey(key);
@@ -197,12 +197,12 @@ export function PaperFormScanner({ open, onClose, pitchers, pitchTypes = DEFAULT
         {showApiKeyInput && (
           <div className="space-y-3 py-2">
             <p className="text-sm text-muted-foreground">
-              Enter your Anthropic API key to scan paper forms. It's stored locally on your device.
+              Enter your Google AI API key to scan paper forms. It's stored locally on your device. Get one free at aistudio.google.com.
             </p>
             <div className="flex gap-2">
               <Input
                 type="password"
-                placeholder="sk-ant-..."
+                placeholder="AIza..."
                 value={apiKeyDraft}
                 onChange={e => setApiKeyDraft(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSaveApiKey()}

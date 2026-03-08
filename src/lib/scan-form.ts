@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export interface ScannedPitch {
   pitchNumber: number;
@@ -18,8 +18,8 @@ export interface ScannedOuting {
   pitches: ScannedPitch[];
 }
 
-const SCAN_SYSTEM_PROMPT = `You are an expert at reading baseball pitch-charting paper forms.
-The user will provide a photo of a hand-filled pitch chart. Your job is to extract all pitch data from it and return a structured JSON object.
+const SCAN_PROMPT = `You are an expert at reading baseball pitch-charting paper forms.
+Read this photo of a hand-filled pitch chart and extract all pitch data.
 
 Coordinate system for pitch locations:
 - The strike zone is a rectangle on the form
@@ -65,42 +65,15 @@ export async function scanPaperForm(
   mediaType: 'image/jpeg' | 'image/png' | 'image/webp',
   apiKey: string,
 ): Promise<ScannedOuting> {
-  const client = new Anthropic({
-    apiKey,
-    dangerouslyAllowBrowser: true,
-  });
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
-  const stream = client.messages.stream({
-    model: 'claude-opus-4-6',
-    max_tokens: 4096,
-    thinking: { type: 'adaptive' },
-    system: SCAN_SYSTEM_PROMPT,
-    messages: [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'image',
-            source: { type: 'base64', media_type: mediaType, data: imageBase64 },
-          },
-          {
-            type: 'text',
-            text: 'Please read this pitch chart and extract all the data.',
-          },
-        ],
-      },
-    ],
-  });
+  const result = await model.generateContent([
+    { inlineData: { data: imageBase64, mimeType: mediaType } },
+    SCAN_PROMPT,
+  ]);
 
-  const message = await stream.finalMessage();
-
-  // Extract the text block (thinking blocks come first)
-  const textBlock = message.content.find(b => b.type === 'text');
-  if (!textBlock || textBlock.type !== 'text') {
-    throw new Error('No text response from Claude');
-  }
-
-  let json = textBlock.text.trim();
+  let json = result.response.text().trim();
   // Strip any accidental markdown fences
   json = json.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/i, '').trim();
 
@@ -113,7 +86,7 @@ export async function scanPaperForm(
   return parsed as ScannedOuting;
 }
 
-const API_KEY_STORAGE = 'anthropic_api_key';
+const API_KEY_STORAGE = 'gemini_api_key';
 
 export function getStoredApiKey(): string {
   return localStorage.getItem(API_KEY_STORAGE) ?? '';
