@@ -40,7 +40,7 @@ const toPercent = (v: number) => ((v + 1) / 2) * 100;
 const zoneLeft   = toPercent(STRIKE_ZONE.ZONE_LEFT);
 const zoneRight  = 100 - toPercent(STRIKE_ZONE.ZONE_RIGHT);
 const zoneTop    = 100 - toPercent(STRIKE_ZONE.ZONE_TOP);
-const zoneBottom = 100 - toPercent(STRIKE_ZONE.ZONE_BOTTOM);
+const zoneBottom = toPercent(STRIKE_ZONE.ZONE_BOTTOM);
 
 interface Props {
   open: boolean;
@@ -135,7 +135,7 @@ export function PaperFormScanner({ open, onClose, pitchers, pitchTypes = DEFAULT
       setError(err instanceof Error ? err.message : 'Failed to scan form');
       setStep('error');
     }
-  }, []);
+  }, [pitchers]);
 
   const handleSaveApiKey = useCallback(async () => {
     const key = apiKeyDraft.trim();
