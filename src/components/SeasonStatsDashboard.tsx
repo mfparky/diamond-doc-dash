@@ -30,6 +30,8 @@ export function SeasonStatsDashboard({
   pitcherName,
 }: SeasonStatsDashboardProps) {
   const [showAllOutings, setShowAllOutings] = useState(false);
+  const [sortKey, setSortKey] = useState<'date' | 'pitches' | 'strikePct' | 'maxVelo'>('date');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   // Filter to 2026 season
   const seasonOutings = useMemo(
@@ -175,13 +177,35 @@ export function SeasonStatsDashboard({
   }, [seasonOutings]);
 
   // Outing-by-outing table data
-  const outingTableData = useMemo(
-    () =>
-      [...seasonOutings]
-        .reverse()
-        .slice(0, showAllOutings ? undefined : 10),
-    [seasonOutings, showAllOutings]
-  );
+  const handleSort = (key: typeof sortKey) => {
+    if (key === sortKey) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('desc');
+    }
+  };
+
+  const outingTableData = useMemo(() => {
+    const sorted = [...seasonOutings].sort((a, b) => {
+      let av: number, bv: number;
+      if (sortKey === 'date') {
+        av = new Date(a.date).getTime();
+        bv = new Date(b.date).getTime();
+      } else if (sortKey === 'pitches') {
+        av = a.pitchCount;
+        bv = b.pitchCount;
+      } else if (sortKey === 'strikePct') {
+        av = a.strikes !== null && a.pitchCount > 0 ? a.strikes / a.pitchCount : -1;
+        bv = b.strikes !== null && b.pitchCount > 0 ? b.strikes / b.pitchCount : -1;
+      } else {
+        av = a.maxVelo ?? 0;
+        bv = b.maxVelo ?? 0;
+      }
+      return sortDir === 'asc' ? av - bv : bv - av;
+    });
+    return sorted.slice(0, showAllOutings ? undefined : 10);
+  }, [seasonOutings, showAllOutings, sortKey, sortDir]);
 
   if (seasonOutings.length === 0) {
     return (
@@ -415,13 +439,36 @@ export function SeasonStatsDashboard({
             <table className="w-full text-xs">
               <thead>
                 <tr className="text-muted-foreground border-b border-border/30">
-                  <th className="text-left py-2 font-medium">Date</th>
-                  <th className="text-left py-2 font-medium">Type</th>
-                  <th className="text-center py-2 font-medium">Pitches</th>
-                  <th className="text-center py-2 font-medium">Strikes</th>
-                  <th className="text-center py-2 font-medium">Strike %</th>
-                  <th className="text-center py-2 font-medium">Max Velo</th>
-                  <th className="text-left py-2 font-medium">Notes</th>
+                  {(
+                    [
+                      { label: 'Date',     key: 'date',      align: 'left'   },
+                      { label: 'Type',     key: null,        align: 'left'   },
+                      { label: 'Pitches',  key: 'pitches',   align: 'center' },
+                      { label: 'Strikes',  key: null,        align: 'center' },
+                      { label: 'Strike %', key: 'strikePct', align: 'center' },
+                      { label: 'Max Velo', key: 'maxVelo',   align: 'center' },
+                      { label: 'Notes',    key: null,        align: 'left'   },
+                    ] as { label: string; key: typeof sortKey | null; align: string }[]
+                  ).map(({ label, key, align }) =>
+                    key ? (
+                      <th
+                        key={label}
+                        className={`py-2 font-medium text-${align} cursor-pointer select-none hover:text-foreground transition-colors whitespace-nowrap`}
+                        onClick={() => handleSort(key)}
+                      >
+                        <span className="inline-flex items-center gap-0.5">
+                          {label}
+                          {sortKey === key ? (
+                            sortDir === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />
+                          ) : (
+                            <span className="w-3 h-3 opacity-30"><ChevronDown className="w-3 h-3" /></span>
+                          )}
+                        </span>
+                      </th>
+                    ) : (
+                      <th key={label} className={`py-2 font-medium text-${align}`}>{label}</th>
+                    )
+                  )}
                 </tr>
               </thead>
               <tbody>
