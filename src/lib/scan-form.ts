@@ -117,7 +117,8 @@ export async function scanPaperForm(
   mediaType: 'image/jpeg' | 'image/png' | 'image/webp',
   apiKey: string,
 ): Promise<ScannedOuting> {
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+  const baseURL = `${window.location.origin}/api/anthropic`;
+  const client = new Anthropic({ apiKey, baseURL, dangerouslyAllowBrowser: true });
   const compressed = await compressImage(imageBase64, mediaType);
 
   const fewShot = buildFewShotMessages(getScanExamples());
