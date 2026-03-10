@@ -120,7 +120,7 @@ export async function scanPaperForm(
 
   const fewShot = buildFewShotMessages(getScanExamples());
 
-  const response = await fetch('/api/anthropic/v1/messages', {
+  const response = await fetch(`${window.location.origin}/api/anthropic/v1/messages`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
