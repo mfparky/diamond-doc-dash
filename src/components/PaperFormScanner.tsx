@@ -337,11 +337,16 @@ export function PaperFormScanner({ open, onClose, pitchers, pitchTypes = DEFAULT
                     className="relative bg-secondary/30 border border-border rounded"
                     style={{ width: 160, height: 207 }}
                   >
-                    {/* Zone box */}
+                    {/* Zone box with inner 3×3 grid */}
                     <div
                       className="absolute border border-foreground/60 bg-primary/5 pointer-events-none"
                       style={{ left: `${zoneLeft}%`, right: `${zoneRight}%`, top: `${zoneTop}%`, bottom: `${zoneBottom}%` }}
-                    />
+                    >
+                      <div className="absolute top-0 bottom-0 border-l border-foreground/30" style={{ left: '33.33%' }} />
+                      <div className="absolute top-0 bottom-0 border-l border-foreground/30" style={{ left: '66.66%' }} />
+                      <div className="absolute left-0 right-0 border-t border-foreground/30" style={{ top: '33.33%' }} />
+                      <div className="absolute left-0 right-0 border-t border-foreground/30" style={{ top: '66.66%' }} />
+                    </div>
                     {/* Pitch dots */}
                     {scanned.pitches.map((pitch, idx) => (
                       <div

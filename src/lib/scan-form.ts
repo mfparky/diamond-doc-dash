@@ -54,10 +54,11 @@ The full coordinate display range is -1.0 to +1.0 on both axes. The strike zone 
 
 - If a pitch number is written on a grid line between two cells, average the two cell centers
 - Multiple numbers can be stacked/crowded in the same cell — assign them all the same cell-center coordinates; do not try to sub-divide the cell
-- Ignore any numbers or annotations written in the margins outside the zone that are NOT pitch markers (e.g. count tallies, labels like "23 3")
-- For pitches OUTSIDE the box (balls), estimate position relative to box edges:
+- **CRITICAL — inside vs. outside:** A pitch is INSIDE the zone only if it is clearly drawn within the rectangular box boundary. If a number touches or crosses the box edge, or is written just outside the line, treat it as a BALL outside the zone. When in doubt, call it outside.
+- For pitches OUTSIDE the box (balls), estimate position relative to box edges using the actual visual distance AND the pitch's height position:
   - Just outside = ±0.55 on that axis; well outside = ±0.70; extreme = ±0.85
-  - Use the direction the number is written relative to the box (e.g., up-and-away = x:0.60, y:0.60)
+  - Also estimate the y-position of each outside pitch based on where it sits vertically relative to the zone (top, middle, bottom, or below/above zone)
+  - Use the direction the number is written relative to the box (e.g., up-and-away = x:0.60, y:0.60; left-middle = x:-0.60, y:0.00)
 
 ## Velocity
 If individual pitch velocities are written next to pitch numbers, capture them. Otherwise use the max written anywhere on the form.

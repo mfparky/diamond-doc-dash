@@ -85,7 +85,7 @@ export function StrikeZone({
           </div>
         </div>
 
-        {/* Strike zone box - using accurate MLB proportions */}
+        {/* Strike zone box with inner 3×3 grid */}
         <div
           className="absolute border-2 border-foreground/80 bg-primary/5"
           style={{
@@ -94,7 +94,14 @@ export function StrikeZone({
             top: `${zoneTop}%`,
             bottom: `${zoneBottom}%`,
           }}
-        />
+        >
+          {/* Vertical dividers */}
+          <div className="absolute top-0 bottom-0 border-l border-foreground/30" style={{ left: '33.33%' }} />
+          <div className="absolute top-0 bottom-0 border-l border-foreground/30" style={{ left: '66.66%' }} />
+          {/* Horizontal dividers */}
+          <div className="absolute left-0 right-0 border-t border-foreground/30" style={{ top: '33.33%' }} />
+          <div className="absolute left-0 right-0 border-t border-foreground/30" style={{ top: '66.66%' }} />
+        </div>
 
         {/* Plotted pitches */}
         {pitchLocations.map((pitch) => (
