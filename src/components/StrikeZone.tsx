@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import { PitchLocation, PitchTypeConfig, PITCH_TYPE_COLORS, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
 import { getZoneSizeClasses, getZoneAspectStyle, STRIKE_ZONE, GRID_CONFIG } from '@/lib/strike-zone';
 
@@ -48,6 +48,23 @@ export function StrikeZone({
 
   // Convert normalized coordinates to percentage for positioning
   const toPercent = (val: number) => ((val + 1) / 2) * 100;
+
+  // Group pitches that share the same snapped position (within 0.05 of each other)
+  // This handles both 1-to-1 scanned pitches (exact same coords) and manually plotted ones
+  const pitchGroups = useMemo(() => {
+    const groups: Array<{ x: number; y: number; pitches: typeof pitchLocations }> = [];
+    for (const pitch of pitchLocations) {
+      const existing = groups.find(
+        g => Math.abs(g.x - pitch.xLocation) < 0.05 && Math.abs(g.y - pitch.yLocation) < 0.05
+      );
+      if (existing) {
+        existing.pitches.push(pitch);
+      } else {
+        groups.push({ x: pitch.xLocation, y: pitch.yLocation, pitches: [pitch] });
+      }
+    }
+    return groups;
+  }, [pitchLocations]);
 
   // Get unique pitch types in the data
   const usedPitchTypes = [...new Set(pitchLocations.map(p => p.pitchType))].sort();
@@ -103,19 +120,38 @@ export function StrikeZone({
           <div className="absolute left-0 right-0 border-t border-foreground/30" style={{ top: '66.66%' }} />
         </div>
 
-        {/* Plotted pitches */}
-        {pitchLocations.map((pitch) => (
-          <div
-            key={pitch.id}
-            className="absolute w-3 h-3 rounded-full transform -translate-x-1/2 -translate-y-1/2 border border-white/50"
-            style={{
-              left: `${toPercent(pitch.xLocation)}%`,
-              top: `${100 - toPercent(pitch.yLocation)}%`,
-              backgroundColor: PITCH_TYPE_COLORS[pitch.pitchType.toString()] || PITCH_TYPE_COLORS["1"],
-            }}
-            title={`#${pitch.pitchNumber} - ${pitchTypes[pitch.pitchType.toString()] || `P${pitch.pitchType}`} - ${pitch.isStrike ? 'Strike' : 'Ball'}`}
-          />
-        ))}
+        {/* Plotted pitches — grouped by position, count badge when stacked */}
+        {pitchGroups.map((group) => {
+          const count = group.pitches.length;
+          // Dominant pitch type = most frequent in this position
+          const typeFreq = group.pitches.reduce<Record<string, number>>((acc, p) => {
+            const k = p.pitchType.toString();
+            acc[k] = (acc[k] ?? 0) + 1;
+            return acc;
+          }, {});
+          const dominantType = Object.entries(typeFreq).sort((a, b) => b[1] - a[1])[0][0];
+          const color = PITCH_TYPE_COLORS[dominantType] || PITCH_TYPE_COLORS["1"];
+          // Scale dot size with count
+          const sizeClass = count === 1 ? 'w-3 h-3 text-[0px]' : count <= 3 ? 'w-5 h-5 text-[9px]' : 'w-6 h-6 text-[9px]';
+          const tooltip = group.pitches
+            .map(p => `#${p.pitchNumber} ${pitchTypes[p.pitchType.toString()] || `P${p.pitchType}`} – ${p.isStrike ? 'Strike' : 'Ball'}`)
+            .join('\n');
+
+          return (
+            <div
+              key={`${group.x.toFixed(3)},${group.y.toFixed(3)}`}
+              className={`absolute ${sizeClass} rounded-full transform -translate-x-1/2 -translate-y-1/2 border border-white/50 flex items-center justify-center font-bold text-white leading-none`}
+              style={{
+                left: `${toPercent(group.x)}%`,
+                top: `${100 - toPercent(group.y)}%`,
+                backgroundColor: color,
+              }}
+              title={tooltip}
+            >
+              {count > 1 ? count : null}
+            </div>
+          );
+        })}
 
         {/* Hover indicator */}
         {interactive && hoverPos && (
