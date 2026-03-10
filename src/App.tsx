@@ -9,6 +9,7 @@ import { HomeButton } from "@/components/HomeButton";
 import Index from "./pages/Index";
 import PlayerDashboard from "./pages/PlayerDashboard";
 import CalibratePage from "./pages/CalibratePage";
+import PrintFormPage from "./pages/PrintFormPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ function AppRoutes() {
         />
         
         <Route path="/calibrate" element={user ? <CalibratePage /> : <Auth />} />
+        <Route path="/print-form" element={user ? <PrintFormPage /> : <Auth />} />
 
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />

@@ -20,72 +20,137 @@ export interface ScannedOuting {
   pitches: ScannedPitch[];
 }
 
+// Coordinate lookup for structured form cell labels
+const STRUCTURED_CELL_COORDS: Record<string, { x: number; y: number; isStrike: boolean }> = {
+  // Strike zone (solid border cells)
+  'TL': { x: -0.27, y:  0.30, isStrike: true  },
+  'TC': { x:  0.00, y:  0.30, isStrike: true  },
+  'TR': { x:  0.27, y:  0.30, isStrike: true  },
+  'ML': { x: -0.27, y:  0.00, isStrike: true  },
+  'MC': { x:  0.00, y:  0.00, isStrike: true  },
+  'MR': { x:  0.27, y:  0.00, isStrike: true  },
+  'BL': { x: -0.27, y: -0.30, isStrike: true  },
+  'BC': { x:  0.00, y: -0.30, isStrike: true  },
+  'BR': { x:  0.27, y: -0.30, isStrike: true  },
+  // Ball regions (dashed border cells)
+  'HI-L':  { x: -0.27, y:  0.65, isStrike: false },
+  'HI-C':  { x:  0.00, y:  0.65, isStrike: false },
+  'HI-R':  { x:  0.27, y:  0.65, isStrike: false },
+  'L-HI':  { x: -0.65, y:  0.30, isStrike: false },
+  'L-MID': { x: -0.65, y:  0.00, isStrike: false },
+  'L-LO':  { x: -0.65, y: -0.30, isStrike: false },
+  'R-HI':  { x:  0.65, y:  0.30, isStrike: false },
+  'R-MID': { x:  0.65, y:  0.00, isStrike: false },
+  'R-LO':  { x:  0.65, y: -0.30, isStrike: false },
+  'LO-L':  { x: -0.27, y: -0.65, isStrike: false },
+  'LO-C':  { x:  0.00, y: -0.65, isStrike: false },
+  'LO-R':  { x:  0.27, y: -0.65, isStrike: false },
+};
+
+// Expand structured form tally data into individual pitch records
+export function expandStructuredTallies(
+  tallies: Record<string, Record<string, number>>
+): Array<{ pitchType: string; xLocation: number; yLocation: number; isStrike: boolean }> {
+  const pitches: Array<{ pitchType: string; xLocation: number; yLocation: number; isStrike: boolean }> = [];
+  for (const [cellLabel, typeCounts] of Object.entries(tallies)) {
+    const coords = STRUCTURED_CELL_COORDS[cellLabel];
+    if (!coords) continue;
+    for (const [pitchType, count] of Object.entries(typeCounts)) {
+      for (let i = 0; i < count; i++) {
+        pitches.push({ pitchType, xLocation: coords.x, yLocation: coords.y, isStrike: coords.isStrike });
+      }
+    }
+  }
+  return pitches;
+}
+
 const SCAN_PROMPT = `You are an expert at reading baseball pitch-charting paper forms.
-Read this photo of a hand-filled pitch chart (approximately 8×10 inches) and extract all pitch data.
+Read this photo of a pitch chart and extract all pitch data.
 
-## Form layout
-- **"Pitch Count Today"** field → pitchCount
-- **"Name"** field → playerName
-- **"Focus for Today"** field → focus (exact text, separate from notes)
-- **"Questions/Notes"** field → notes
+## Step 1 — Identify the form type
+
+**STRUCTURED form** (new design): Has pre-printed labeled regions with solid and dashed borders.
+Zone cells have labels like TL, TC, TR, ML, MC, MR, BL, BC, BR (solid border = strike zone).
+Ball regions have labels like HI-L, HI-C, HI-R, L-HI, L-MID, L-LO, R-HI, R-MID, R-LO, LO-L, LO-C, LO-R (dashed border).
+Each cell has lines like "1 FB: 3" meaning pitch type 1 was thrown 3 times to that region.
+
+**LEGACY form** (old design): Has a hand-drawn rectangular box with a freehand 3×3 grid.
+Coaches write individual pitch-type numbers (1, 2, 3…) scattered inside or outside the box.
+
+---
+
+## If STRUCTURED form
+
+Read each labeled cell. For every "N label: count" entry, record that pitch type was thrown <count> times to that cell.
+Return the tally data under "structuredTallies" as a nested object: { "TL": { "1": 3, "2": 1 }, "L-MID": { "1": 2 }, ... }
+Leave the "pitches" array empty — the app will expand tallies into individual records.
+
+---
+
+## If LEGACY form
+
+### Form layout
+- **"Pitch Count Today"** or **"Pitches:"** field → pitchCount
+- **"Name:"** field → playerName
+- **"Focus for Today"** or **"Focus:"** field → focus
+- **"Questions/Notes"** or **"Notes:"** field → notes
 - **"Post Bullpen Reflection"** field → append to notes after a newline
-- **Strike zone box** with a 3×3 grid inside it (9 cells)
-- Pitches OUTSIDE the box are balls and have no grid — estimate their position relative to the box edges
 
-## Pitch markers
-Each pitch is written as a **single digit number** (1, 2, 3, …) corresponding to the pitcher's pitch type slot.
-**Only digits are pitch markers inside the zone box** — any letters (B, S, etc.) visible near the zone are part of the Ball/Strike sequence list and must NOT be treated as pitch locations.
-Return that digit as a string for pitchType (e.g., "1", "2", "3"). Use "?" only if completely illegible.
+### Pitch markers
+Each pitch is a single digit (1, 2, 3…) = pitch type slot.
+Letters near the zone (B, S) are the ball/strike sequence — NOT pitch markers.
 
-## Ball/Strike sequence
-The form has a row of letters like: B, S, S, B, S, … — one per pitch in order.
-Use this sequence as the ground truth for isStrike (S = true, B = false).
-If this row is missing, fall back to whether the pitch number is written inside the zone box.
+### Ball/Strike sequence
+Row of B/S letters gives ground truth for isStrike. Fall back to inside/outside zone box if missing.
 
-## Coordinate system (normalized)
-The strike zone box is divided into a 3×3 grid. Map each cell center to these coordinates:
-
+### Coordinate system
+Strike zone 3×3 cell centers:
          Left      Center    Right
 Top:   (-0.27, 0.30)  (0.00, 0.30)  (0.27, 0.30)
 Mid:   (-0.27, 0.00)  (0.00, 0.00)  (0.27, 0.00)
 Bot:   (-0.27,-0.30)  (0.00,-0.30)  (0.27,-0.30)
 
-The full coordinate display range is -1.0 to +1.0 on both axes. The strike zone occupies roughly x: -0.4 to 0.4 and y: -0.45 to 0.45. Cell centers above are the centers of the 9 sub-cells within that zone.
+Full range: -1.0 to +1.0. Zone occupies x: -0.4 to 0.4, y: -0.45 to 0.45.
 
-- If a pitch number is written on a grid line between two cells, average the two cell centers
-- Multiple numbers can be stacked/crowded in the same cell — assign them all the same cell-center coordinates; do not try to sub-divide the cell
-- **CRITICAL — inside vs. outside:** A pitch is INSIDE the zone only if it is clearly drawn within the rectangular box boundary. If a number touches or crosses the box edge, or is written just outside the line, treat it as a BALL outside the zone. When in doubt, call it outside.
-- For pitches OUTSIDE the box (balls), estimate position relative to box edges using the actual visual distance AND the pitch's height position:
-  - Just outside = ±0.55 on that axis; well outside = ±0.70; extreme = ±0.85
-  - Also estimate the y-position of each outside pitch based on where it sits vertically relative to the zone (top, middle, bottom, or below/above zone)
-  - Use the direction the number is written relative to the box (e.g., up-and-away = x:0.60, y:0.60; left-middle = x:-0.60, y:0.00)
+- Numbers on a grid line → average the two adjacent cell centers
+- Multiple numbers in one cell → same cell-center coordinates for all
+- **CRITICAL — inside vs. outside:** A pitch is inside ONLY if clearly within the box. Numbers touching or crossing the edge = BALL outside. When in doubt, call it outside.
+- Outside ball positions: estimate x distance (±0.55 just outside, ±0.70 well outside, ±0.85 extreme) AND y position based on height relative to zone
 
-## Velocity
-If individual pitch velocities are written next to pitch numbers, capture them. Otherwise use the max written anywhere on the form.
+### Velocity
+Capture individual velocities if written next to pitch numbers. Otherwise use max found on form.
 
-Return ONLY valid JSON matching this exact schema with no markdown fencing:
+---
+
+## Output format
+
+Return ONLY valid JSON with no markdown fencing:
 {
+  "formType": "structured" | "legacy",
   "pitchCount": <total number of pitches>,
-  "strikes": <number of strikes or null if not written>,
-  "maxVelocity": <highest velocity number found or null>,
-  "eventType": <"Bullpen" | "Game" | "External" | "Live ABs" — infer from context or default to "Bullpen">,
-  "playerName": "<name written on the Name field, empty string if not found>",
-  "focus": "<exact text from Focus for Today field — empty string if blank>",
-  "notes": "<Questions/Notes field + Post Bullpen Reflection field combined, separated by newline — empty string if both blank>",
+  "strikes": <number of strikes or null>,
+  "maxVelocity": <highest velocity or null>,
+  "eventType": <"Bullpen" | "Game" | "External" | "Live ABs">,
+  "playerName": "<name or empty string>",
+  "focus": "<focus text or empty string>",
+  "notes": "<combined notes or empty string>",
+  "structuredTallies": { "<cellLabel>": { "<pitchType>": <count> } },
   "pitches": [
     {
-      "pitchNumber": <1-based sequential number>,
-      "pitchType": "<digit as string, e.g. '1' | '2' | '3' | '?'>",
+      "pitchNumber": <1-based>,
+      "pitchType": "<digit string>",
       "xLocation": <number>,
       "yLocation": <number>,
-      "isStrike": <true|false>,
+      "isStrike": <boolean>,
       "velocity": <number or null>
     }
   ]
 }
 
-If pitch locations are not plotted on the form (only totals are written), return an empty pitches array.
-If the image is unreadable, return { "error": "Unable to read form" }.`;
+For structured forms: fill structuredTallies, leave pitches [].
+For legacy forms: fill pitches[], leave structuredTallies {}.
+If unreadable: return { "error": "Unable to read form" }.
+If only totals visible (no pitch locations): return empty pitches and empty structuredTallies.`;
 
 async function compressImage(
   base64: string,
@@ -188,6 +253,19 @@ export async function scanPaperForm(
 
   if (parsed.error) {
     throw new Error(parsed.error);
+  }
+
+  // Structured form: expand tallies into individual pitch records
+  if (parsed.formType === 'structured' && parsed.structuredTallies) {
+    const expanded = expandStructuredTallies(parsed.structuredTallies as Record<string, Record<string, number>>);
+    parsed.pitches = expanded.map((p, i) => ({
+      pitchNumber: i + 1,
+      pitchType: p.pitchType,
+      xLocation: p.xLocation,
+      yLocation: p.yLocation,
+      isStrike: p.isStrike,
+      velocity: null,
+    }));
   }
 
   return parsed as ScannedOuting;
