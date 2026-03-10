@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Pitcher, getDaysRestNeeded } from '@/types/pitcher';
 import { StatusBadge } from './StatusBadge';
 import {
@@ -9,6 +10,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { getPulseLevel, getPulseColorClasses, DEFAULT_MAX_WEEKLY_PITCHES } from '@/lib/pulse-status';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+
+type SortKey = 'name' | 'pulse' | 'strikeRate' | 'maxVelo' | 'lastOuting' | 'lastPitches';
 
 interface PitcherTableProps {
   pitchers: Pitcher[];
@@ -17,6 +21,38 @@ interface PitcherTableProps {
 }
 
 export function PitcherTable({ pitchers, onPitcherClick, pitcherMaxPitches = {} }: PitcherTableProps) {
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir(key === 'name' ? 'asc' : 'desc');
+    }
+  };
+
+  const sortedPitchers = sortKey
+    ? [...pitchers].sort((a, b) => {
+        let av: number | string, bv: number | string;
+        if (sortKey === 'name') { av = a.name.toLowerCase(); bv = b.name.toLowerCase(); }
+        else if (sortKey === 'pulse') { av = a.sevenDayPulse; bv = b.sevenDayPulse; }
+        else if (sortKey === 'strikeRate') { av = a.strikePercentage; bv = b.strikePercentage; }
+        else if (sortKey === 'maxVelo') { av = a.maxVelo || 0; bv = b.maxVelo || 0; }
+        else if (sortKey === 'lastOuting') { av = a.lastOuting || ''; bv = b.lastOuting || ''; }
+        else { av = a.lastPitchCount; bv = b.lastPitchCount; }
+        if (av < bv) return sortDir === 'asc' ? -1 : 1;
+        if (av > bv) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+      })
+    : pitchers;
+
+  const SortIcon = ({ col }: { col: SortKey }) =>
+    sortKey === col
+      ? (sortDir === 'desc' ? <ChevronDown className="inline w-3 h-3 ml-0.5" /> : <ChevronUp className="inline w-3 h-3 ml-0.5" />)
+      : <ChevronDown className="inline w-3 h-3 ml-0.5 opacity-25" />;
+
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';
     const date = new Date(dateStr);
@@ -28,19 +64,29 @@ export function PitcherTable({ pitchers, onPitcherClick, pitcherMaxPitches = {} 
       <Table>
         <TableHeader>
           <TableRow className="border-border/50 hover:bg-transparent">
-            <TableHead className="text-primary font-display font-semibold">Pitcher Name</TableHead>
-            <TableHead className="text-primary font-display font-semibold">Focus</TableHead>
-            <TableHead className="text-primary font-display font-semibold text-center">7-Day Pulse</TableHead>
-            <TableHead className="text-primary font-display font-semibold text-center">Strike %</TableHead>
-            <TableHead className="text-primary font-display font-semibold text-center">Max Velo</TableHead>
-            <TableHead className="text-primary font-display font-semibold text-center">Last Outing</TableHead>
-            <TableHead className="text-primary font-display font-semibold text-center">Last Pitches</TableHead>
-            <TableHead className="text-primary font-display font-semibold text-center">Rest Status</TableHead>
-            <TableHead className="text-primary font-display font-semibold">Notes</TableHead>
+            {([
+              { label: 'Pitcher Name', col: 'name',        align: ''       },
+              { label: 'Focus',        col: null,           align: ''       },
+              { label: '7-Day Pulse',  col: 'pulse',        align: 'center' },
+              { label: 'Strike %',     col: 'strikeRate',   align: 'center' },
+              { label: 'Max Velo',     col: 'maxVelo',      align: 'center' },
+              { label: 'Last Outing',  col: 'lastOuting',   align: 'center' },
+              { label: 'Last Pitches', col: 'lastPitches',  align: 'center' },
+              { label: 'Rest Status',  col: null,           align: 'center' },
+              { label: 'Notes',        col: null,           align: ''       },
+            ] as { label: string; col: SortKey | null; align: string }[]).map(({ label, col, align }) => (
+              <TableHead
+                key={label}
+                className={`text-primary font-display font-semibold ${align === 'center' ? 'text-center' : ''} ${col ? 'cursor-pointer select-none hover:text-primary/70 transition-colors' : ''}`}
+                onClick={col ? () => handleSort(col) : undefined}
+              >
+                {label}{col && <SortIcon col={col} />}
+              </TableHead>
+            ))}
           </TableRow>
         </TableHeader>
         <TableBody>
-          {pitchers.map((pitcher) => {
+          {sortedPitchers.map((pitcher) => {
             const maxPitches = pitcherMaxPitches[pitcher.name] || DEFAULT_MAX_WEEKLY_PITCHES;
             const pulseLevel = getPulseLevel(pitcher.sevenDayPulse, maxPitches);
             const pulseColors = getPulseColorClasses(pulseLevel);
