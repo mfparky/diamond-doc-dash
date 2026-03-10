@@ -135,7 +135,15 @@ export function PaperFormScanner({ open, onClose, pitchers, pitchTypes = DEFAULT
       }
       setStep('review');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to scan form');
+      console.error('[PaperFormScanner] scan error:', err);
+      let message = 'Failed to scan form';
+      if (err instanceof Error) {
+        message = err.message;
+        // Append status code if present (Anthropic API errors)
+        const status = (err as { status?: number }).status;
+        if (status) message = `${message} (HTTP ${status})`;
+      }
+      setError(message);
       setStep('error');
     }
   }, [pitchers]);
