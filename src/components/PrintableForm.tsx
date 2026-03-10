@@ -158,8 +158,6 @@ export function PrintableForm({ pitchTypes }: PrintableFormProps) {
               </td>
               <td style={{ whiteSpace: 'nowrap', paddingLeft: 10, paddingRight: 6 }}>Session:</td>
               <td style={{ borderBottom: '1px solid #000', width: '18%' }}>&nbsp;</td>
-              <td style={{ whiteSpace: 'nowrap', paddingLeft: 10, paddingRight: 6 }}>Focus:</td>
-              <td style={{ borderBottom: '1px solid #000', width: '20%' }}>&nbsp;</td>
             </tr>
           </tbody>
         </table>
@@ -197,6 +195,12 @@ export function PrintableForm({ pitchTypes }: PrintableFormProps) {
             {/* Outcome key */}
             <div style={{ fontSize: 8, color: '#444', borderTop: '1px solid #eee', paddingTop: 6 }}>
               <strong>Out:</strong>&nbsp; S = Strike &nbsp; B = Ball &nbsp; W = Wild Pitch
+            </div>
+
+            {/* Focus */}
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, fontSize: 9 }}>
+              <span style={{ whiteSpace: 'nowrap', fontWeight: 700, fontSize: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Focus:</span>
+              <div style={{ flex: 1, borderBottom: '1px solid #000', height: 16 }} />
             </div>
 
             {/* Notes */}
