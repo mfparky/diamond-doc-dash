@@ -120,7 +120,12 @@ export async function scanPaperForm(
 
   const fewShot = buildFewShotMessages(getScanExamples());
 
-  const response = await fetch(`${window.location.origin}/api/anthropic/v1/messages`, {
+  const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const anthropicUrl = isLocalDev
+    ? `${window.location.origin}/api/anthropic/v1/messages`
+    : 'https://api.anthropic.com/v1/messages';
+
+  const response = await fetch(anthropicUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
