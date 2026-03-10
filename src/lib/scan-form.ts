@@ -42,45 +42,44 @@ The form has TWO borders around the zone:
 2. A dashed outer border = the outer limit of the ball tracking area
 
 **CRITICAL — strike vs ball:**
-- Number written INSIDE the solid inner box → STRIKE
-- Number written BETWEEN the dashed outer and solid inner borders → BALL
-- Number written OUTSIDE the dashed outer border entirely → BALL (wild pitch)
-- When in doubt, call it a BALL. Do not assume inside.
+- Number written INSIDE the solid inner box → STRIKE (isStrike: true)
+- Number written BETWEEN the dashed outer and solid inner borders → BALL (isStrike: false)
+- Number written OUTSIDE the dashed outer border entirely → BALL (isStrike: false)
+- When in doubt, call it a BALL.
 
-### 1-to-1 region mapping (use EXACTLY these coordinates — no estimation)
+### Coordinate system
+Full range: x and y each span -1.0 to +1.0 (centered on strike zone).
+The strike zone occupies: x ∈ [-0.4, 0.4], y ∈ [-0.45, 0.45].
 
-**Strike zone cells (inside solid border, isStrike = true):**
-Look for tiny corner labels TL/TC/TR/ML/MC/MR/BL/BC/BR to confirm which cell.
-| Cell | x       | y     |
-|------|---------|-------|
-| TL   | -0.27   |  0.30 |
-| TC   |  0.00   |  0.30 |
-| TR   |  0.27   |  0.30 |
-| ML   | -0.27   |  0.00 |
-| MC   |  0.00   |  0.00 |
-| MR   |  0.27   |  0.00 |
-| BL   | -0.27   | -0.30 |
-| BC   |  0.00   | -0.30 |
-| BR   |  0.27   | -0.30 |
+**Zone cell boundaries** (tiny corner labels TL/TC/TR/ML/MC/MR/BL/BC/BR confirm the cell):
+| Cell | x range         | y range          | center         |
+|------|-----------------|------------------|----------------|
+| TL   | -0.40 to -0.13  |  0.15 to  0.45   | (-0.27,  0.30) |
+| TC   | -0.13 to  0.13  |  0.15 to  0.45   | ( 0.00,  0.30) |
+| TR   |  0.13 to  0.40  |  0.15 to  0.45   | ( 0.27,  0.30) |
+| ML   | -0.40 to -0.13  | -0.15 to  0.15   | (-0.27,  0.00) |
+| MC   | -0.13 to  0.13  | -0.15 to  0.15   | ( 0.00,  0.00) |
+| MR   |  0.13 to  0.40  | -0.15 to  0.15   | ( 0.27,  0.00) |
+| BL   | -0.40 to -0.13  | -0.45 to -0.15   | (-0.27, -0.30) |
+| BC   | -0.13 to  0.13  | -0.45 to -0.15   | ( 0.00, -0.30) |
+| BR   |  0.13 to  0.40  | -0.45 to -0.15   | ( 0.27, -0.30) |
 
-**Ball regions (outside solid border, isStrike = false):**
-Assign each ball pitch to the NEAREST region based on its visual position:
-| Region       | Description                          | x     | y     |
-|--------------|--------------------------------------|-------|-------|
-| ABOVE-LEFT   | Above zone, left third              | -0.27 |  0.65 |
-| ABOVE-CENTER | Above zone, center                  |  0.00 |  0.65 |
-| ABOVE-RIGHT  | Above zone, right third             |  0.27 |  0.65 |
-| LEFT-HIGH    | Left of zone, upper third height    | -0.65 |  0.30 |
-| LEFT-MID     | Left of zone, middle height         | -0.65 |  0.00 |
-| LEFT-LOW     | Left of zone, lower third height    | -0.65 | -0.30 |
-| RIGHT-HIGH   | Right of zone, upper third height   |  0.65 |  0.30 |
-| RIGHT-MID    | Right of zone, middle height        |  0.65 |  0.00 |
-| RIGHT-LOW    | Right of zone, lower third height   |  0.65 | -0.30 |
-| BELOW-LEFT   | Below zone, left third              | -0.27 | -0.65 |
-| BELOW-CENTER | Below zone, center                  |  0.00 | -0.65 |
-| BELOW-RIGHT  | Below zone, right third             |  0.27 | -0.65 |
+**Sub-cell positioning:** For each pitch number inside the zone, estimate its position
+*within* the cell based on where it is visually written. Use the cell boundary ranges above:
+- Near top of cell → y close to upper boundary; near bottom → y close to lower boundary
+- Near left of cell → x close to left boundary; near right → x close to right boundary
+- Centered in cell → use cell center
 
-Do NOT interpolate or estimate. Every pitch gets exactly one of the 21 coordinates above.
+Example: pitch written in the top-right corner of TL → approximately x: -0.15, y: 0.43
+
+**Ball area positioning:** For balls (outside solid inner border), estimate based on
+direction from zone and visual distance from the zone edge:
+- x-axis: ±0.50 just outside zone edge → ±0.70 midway through ball area → ±0.85 near dashed border
+- y-axis: same scale vertically
+- Match both axes to the pitch's actual visual position in the ball area
+
+The sequential pitch numbers (1, 2, 3…) make each pitch unambiguous — use their exact
+visual location, not just which cell they fall in.
 
 ### Reading the list (right side)
 The list has pre-printed pitch numbers (1–50) with hand-written Type and Outcome columns.
