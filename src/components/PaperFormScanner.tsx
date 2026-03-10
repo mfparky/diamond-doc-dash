@@ -8,8 +8,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Camera, Loader2, CheckCircle, AlertCircle, Key, RefreshCw } from 'lucide-react';
 import { scanPaperForm, getStoredApiKey, saveApiKey, ScannedOuting, ScannedPitch } from '@/lib/scan-form';
 import { addScanExample } from '@/lib/scan-calibration';
-import { isStrike as computeIsStrike, getZoneAspectStyle, STRIKE_ZONE } from '@/lib/strike-zone';
-import { PITCH_TYPE_COLORS, PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
+import { isStrike as computeIsStrike } from '@/lib/strike-zone';
+import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
+import { CalibrationPitchPlot } from './CalibrationPitchPlot';
 import { Pitcher, Outing } from '@/types/pitcher';
 import { useToast } from '@/hooks/use-toast';
 
@@ -36,12 +37,6 @@ function parseDataUrl(dataUrl: string): { base64: string; mediaType: 'image/jpeg
   return { base64, mediaType };
 }
 
-const toPercent = (v: number) => ((v + 1) / 2) * 100;
-
-const zoneLeft   = toPercent(STRIKE_ZONE.ZONE_LEFT);
-const zoneRight  = 100 - toPercent(STRIKE_ZONE.ZONE_RIGHT);
-const zoneTop    = 100 - toPercent(STRIKE_ZONE.ZONE_TOP);
-const zoneBottom = toPercent(STRIKE_ZONE.ZONE_BOTTOM);
 
 interface Props {
   open: boolean;
@@ -71,6 +66,7 @@ export function PaperFormScanner({ open, onClose, pitchers, pitchTypes = DEFAULT
 
   // Scanned data (editable after review)
   const [scanned, setScanned] = useState<ScannedOuting | null>(null);
+  const [editPitches, setEditPitches] = useState<ScannedPitch[]>([]);
   const [selectedPitcherId, setSelectedPitcherId] = useState<string>('');
   const [editPitchCount, setEditPitchCount] = useState('');
   const [editStrikes, setEditStrikes] = useState('');
@@ -121,6 +117,7 @@ export function PaperFormScanner({ open, onClose, pitchers, pitchTypes = DEFAULT
       // Save to calibration storage for later correction/few-shot use
       addScanExample(dataUrl, result, result.playerName || undefined);
       setScanned(result);
+      setEditPitches(result.pitches);
       setEditPitchCount(result.pitchCount.toString());
       setEditStrikes(result.strikes?.toString() ?? '');
       setEditMaxVelo(result.maxVelocity?.toString() ?? '');
@@ -188,7 +185,7 @@ export function PaperFormScanner({ open, onClose, pitchers, pitchTypes = DEFAULT
         coachNotes: '',
       };
 
-      const pitchLocations = scanned.pitches.map(p => ({
+      const pitchLocations = editPitches.map(p => ({
         pitchNumber: p.pitchNumber,
         pitchType: pitchLabelToNumber(p.pitchType, pitchTypes),
         xLocation: p.xLocation,
@@ -204,7 +201,7 @@ export function PaperFormScanner({ open, onClose, pitchers, pitchTypes = DEFAULT
     } finally {
       setSaving(false);
     }
-  }, [scanned, selectedPitcherId, pitchers, editPitchCount, editStrikes, editMaxVelo, editFocus, editNotes, editDate, editEventType, pitchTypes, onSave, handleClose, toast]);
+  }, [scanned, editPitches, selectedPitcherId, pitchers, editPitchCount, editStrikes, editMaxVelo, editFocus, editNotes, editDate, editEventType, pitchTypes, onSave, handleClose, toast]);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -326,48 +323,22 @@ export function PaperFormScanner({ open, onClose, pitchers, pitchTypes = DEFAULT
               <img src={imageDataUrl} alt="Scanned form" className="w-full max-h-32 object-contain rounded-lg border" />
             )}
 
-            {/* Mini strike zone */}
-            {scanned.pitches.length > 0 && (
+            {/* Interactive pitch location editor */}
+            {imageDataUrl && editPitches.length > 0 && (
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-1">
-                  Extracted pitch locations ({scanned.pitches.length} pitches)
+                  {editPitches.length} pitch{editPitches.length !== 1 ? 'es' : ''} detected — tap a dot to select it, then drag or tap to move it
                 </p>
-                <div className="flex justify-center">
-                  <div
-                    className="relative bg-secondary/30 border border-border rounded"
-                    style={{ width: 160, height: 207 }}
-                  >
-                    {/* Zone box with inner 3×3 grid */}
-                    <div
-                      className="absolute border border-foreground/60 bg-primary/5 pointer-events-none"
-                      style={{ left: `${zoneLeft}%`, right: `${zoneRight}%`, top: `${zoneTop}%`, bottom: `${zoneBottom}%` }}
-                    >
-                      <div className="absolute top-0 bottom-0 border-l border-foreground/30" style={{ left: '33.33%' }} />
-                      <div className="absolute top-0 bottom-0 border-l border-foreground/30" style={{ left: '66.66%' }} />
-                      <div className="absolute left-0 right-0 border-t border-foreground/30" style={{ top: '33.33%' }} />
-                      <div className="absolute left-0 right-0 border-t border-foreground/30" style={{ top: '66.66%' }} />
-                    </div>
-                    {/* Pitch dots */}
-                    {scanned.pitches.map((pitch, idx) => (
-                      <div
-                        key={idx}
-                        className="absolute w-3 h-3 rounded-full border border-white/60 flex items-center justify-center text-[6px] text-white font-bold shadow pointer-events-none"
-                        style={{
-                          left: `${toPercent(pitch.xLocation)}%`,
-                          top: `${100 - toPercent(pitch.yLocation)}%`,
-                          transform: 'translate(-50%, -50%)',
-                          backgroundColor: PITCH_TYPE_COLORS[pitchLabelToNumber(pitch.pitchType, pitchTypes).toString()],
-                        }}
-                      >
-                        {pitch.pitchNumber}
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <CalibrationPitchPlot
+                  imageDataUrl={imageDataUrl}
+                  pitches={editPitches}
+                  onChange={setEditPitches}
+                  pitchTypes={pitchTypes}
+                />
               </div>
             )}
 
-            {scanned.pitches.length === 0 && (
+            {editPitches.length === 0 && (
               <p className="text-xs text-muted-foreground text-center">
                 No pitch locations found — only totals will be saved.
               </p>
@@ -438,13 +409,13 @@ export function PaperFormScanner({ open, onClose, pitchers, pitchTypes = DEFAULT
             </div>
 
             {/* Pitch list summary */}
-            {scanned.pitches.length > 0 && (
+            {editPitches.length > 0 && (
               <details className="text-xs text-muted-foreground">
                 <summary className="cursor-pointer hover:text-foreground">
-                  View pitch list ({scanned.pitches.length} pitches)
+                  View pitch list ({editPitches.length} pitches)
                 </summary>
                 <div className="mt-2 space-y-1 max-h-36 overflow-y-auto pl-2">
-                  {scanned.pitches.map((p, i) => (
+                  {editPitches.map((p, i) => (
                     <div key={i} className="flex gap-2 items-center">
                       <span className="w-6 text-right font-mono">#{p.pitchNumber}</span>
                       <span
