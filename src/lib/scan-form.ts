@@ -149,13 +149,28 @@ export async function scanPaperForm(
   }
 
   const result = await response.json();
-  const textBlock = (result.content as { type: string; text?: string }[]).find((b) => b.type === 'text');
-  let json = (textBlock?.type === 'text' ? textBlock.text : '').trim();
+  console.log('[scan-form] raw API result:', JSON.stringify(result, null, 2));
+
+  const content = result.content as { type: string; text?: string }[] | undefined;
+  if (!content || content.length === 0) {
+    throw new Error(`No content in response. stop_reason: ${result.stop_reason ?? 'unknown'}`);
+  }
+
+  const textBlock = content.find((b) => b.type === 'text');
+  if (!textBlock || !textBlock.text) {
+    throw new Error(`No text block in response. Block types: ${content.map(b => b.type).join(', ')}`);
+  }
+
+  let json = textBlock.text.trim();
   // Strip any accidental markdown fences
   json = json.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/i, '').trim();
 
+  if (!json) {
+    throw new Error('Empty text in API response');
+  }
+
   const parsed = JSON.parse(json);
-  console.log('[scan-form] raw response:', JSON.stringify(parsed, null, 2));
+  console.log('[scan-form] parsed response:', JSON.stringify(parsed, null, 2));
 
   if (parsed.error) {
     throw new Error(parsed.error);
