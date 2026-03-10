@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { Outing, Pitcher } from '@/types/pitcher';
 import { PitcherCard } from './PitcherCard';
 import { Button } from '@/components/ui/button';
-import { LayoutGrid, Table as TableIcon } from 'lucide-react';
+import { LayoutGrid, Table as TableIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -35,6 +35,23 @@ interface PitcherStats {
 
 export function AllTimeStats({ outings, pitchers = [], pitcherMaxPitches = {}, onPitcherClick }: AllTimeStatsProps) {
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  type SortKey = keyof Omit<PitcherStats, 'pitchesWithStrikesTracked'>;
+  const [sortKey, setSortKey] = useState<SortKey>('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir(key === 'name' ? 'asc' : 'desc');
+    }
+  };
+
+  const SortIcon = ({ col }: { col: SortKey }) =>
+    sortKey === col
+      ? (sortDir === 'desc' ? <ChevronDown className="inline w-3 h-3 ml-0.5" /> : <ChevronUp className="inline w-3 h-3 ml-0.5" />)
+      : <ChevronDown className="inline w-3 h-3 ml-0.5 opacity-25" />;
   // Filter outings to 2026 season (Jan 1 - Dec 31, 2026)
   const seasonOutings = useMemo(() => {
     return outings.filter(outing => {
@@ -180,16 +197,26 @@ export function AllTimeStats({ outings, pitchers = [], pitcherMaxPitches = {}, o
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
-                <TableHead className="font-semibold">Pitcher</TableHead>
-                <TableHead className="text-center font-semibold">Total Pitches</TableHead>
-                <TableHead className="text-center font-semibold">Total Strikes</TableHead>
-                <TableHead className="text-center font-semibold">Strike %</TableHead>
-                <TableHead className="text-center font-semibold">Max Velo</TableHead>
-                <TableHead className="text-center font-semibold">Bullpens</TableHead>
-                <TableHead className="text-center font-semibold">Games</TableHead>
-                <TableHead className="text-center font-semibold">External</TableHead>
-                <TableHead className="text-center font-semibold">Live ABs</TableHead>
-                <TableHead className="text-center font-semibold">Total Outings</TableHead>
+                {([
+                  { label: 'Pitcher',       col: 'name',          center: false },
+                  { label: 'Total Pitches', col: 'totalPitches',  center: true  },
+                  { label: 'Total Strikes', col: 'totalStrikes',  center: true  },
+                  { label: 'Strike %',      col: 'strikePercentage', center: true },
+                  { label: 'Max Velo',      col: 'maxVelocity',   center: true  },
+                  { label: 'Bullpens',      col: 'bullpens',      center: true  },
+                  { label: 'Games',         col: 'games',         center: true  },
+                  { label: 'External',      col: 'external',      center: true  },
+                  { label: 'Live ABs',      col: 'practices',     center: true  },
+                  { label: 'Total Outings', col: 'totalOutings',  center: true  },
+                ] as { label: string; col: SortKey; center: boolean }[]).map(({ label, col, center }) => (
+                  <TableHead
+                    key={col}
+                    className={`font-semibold cursor-pointer select-none hover:text-foreground transition-colors ${center ? 'text-center' : ''}`}
+                    onClick={() => handleSort(col)}
+                  >
+                    {label}<SortIcon col={col} />
+                  </TableHead>
+                ))}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -201,7 +228,12 @@ export function AllTimeStats({ outings, pitchers = [], pitcherMaxPitches = {}, o
                 </TableRow>
               ) : (
                 <>
-                  {pitcherStats.map((stats) => (
+                  {[...pitcherStats].sort((a, b) => {
+                    const av = a[sortKey], bv = b[sortKey];
+                    if (av < bv) return sortDir === 'asc' ? -1 : 1;
+                    if (av > bv) return sortDir === 'asc' ? 1 : -1;
+                    return 0;
+                  }).map((stats) => (
                     <TableRow key={stats.name} className="hover:bg-muted/30 transition-colors">
                       <TableCell className="font-medium">{stats.name}</TableCell>
                       <TableCell className="text-center">{stats.totalPitches}</TableCell>
