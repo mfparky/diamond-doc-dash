@@ -10,11 +10,11 @@ const ZONE_LABELS = [
   ['BL', 'BC', 'BR'],
 ];
 
-// Cell px: bigger than before for usability
 const CELL_W = 72;
 const CELL_H = 84;
-// Outer ball area padding
-const BALL_PAD = 12;
+// Full-cell-width buffer around the zone (matches one zone cell's dimension)
+const BALL_PAD_H = CELL_W;   // left/right: one full cell wide
+const BALL_PAD_V = CELL_H;   // top/bottom: one full cell tall
 
 function ZonePlot() {
   return (
@@ -23,10 +23,13 @@ function ZonePlot() {
         ← ARM &nbsp;&nbsp;&nbsp; GLOVE →
       </div>
 
-      {/* Outer dashed ball area */}
+      {/* Outer dashed ball area — full-cell buffer on all sides */}
       <div style={{
         border: '1.5px dashed #999',
-        padding: BALL_PAD,
+        paddingTop: BALL_PAD_V,
+        paddingBottom: BALL_PAD_V,
+        paddingLeft: BALL_PAD_H,
+        paddingRight: BALL_PAD_H,
         backgroundColor: '#fafafa',
         display: 'inline-flex',
       }}>
@@ -62,9 +65,9 @@ function ZonePlot() {
   );
 }
 
-// 3-column pitch list — 17 rows each (pitches 1-17, 18-34, 35-50)
-const COL_SIZE = 17;
-const COL_STARTS = [1, 18, 35];
+// 4-column pitch list — 13 rows each (pitches 1-13, 14-26, 27-39, 40-52 → capped at 50)
+const COL_SIZE = 13;
+const COL_STARTS = [1, 14, 27, 40];
 
 function PitchList() {
   const col = (start: number) => (
