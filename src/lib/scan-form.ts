@@ -123,15 +123,23 @@ export async function scanPaperForm(
   const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   const anthropicUrl = isLocalDev
     ? `${window.location.origin}/api/anthropic/v1/messages`
-    : 'https://api.anthropic.com/v1/messages';
+    : 'https://zhhqakxjywbipmeyvlum.supabase.co/functions/v1/anthropic-proxy';
+
+  const fetchHeaders: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'anthropic-version': '2023-06-01',
+  };
+  if (isLocalDev) {
+    fetchHeaders['x-api-key'] = apiKey;
+  } else {
+    // Supabase Edge Function: pass anon key for auth + API key forwarded server-side
+    fetchHeaders['apikey'] = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoaHFha3hqeXdiaXBtZXl2bHVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4NDgwMzAsImV4cCI6MjA4NDQyNDAzMH0.XPDfMQf60GuYZgnoBh4XLUD1Hc51XYORXuTMPPeN7Cs';
+    fetchHeaders['x-anthropic-key'] = apiKey;
+  }
 
   const response = await fetch(anthropicUrl, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-    },
+    headers: fetchHeaders,
     body: JSON.stringify({
       model: 'claude-opus-4-6',
       max_tokens: 2048,
