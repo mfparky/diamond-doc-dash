@@ -12,7 +12,8 @@ import { RosterManagementDialog } from '@/components/RosterManagementDialog';
 import { PaperFormScanner } from '@/components/PaperFormScanner';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Settings, Camera } from 'lucide-react';
+import { Settings, Camera, Printer } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { getDaysRestNeeded } from '@/types/pitcher';
 import { useOutings } from '@/hooks/use-outings';
@@ -38,6 +39,7 @@ const Index = () => {
   const [showOutingForm, setShowOutingForm] = useState(false);
   const [showRosterManagement, setShowRosterManagement] = useState(false);
   const [showFormScanner, setShowFormScanner] = useState(false);
+  const navigate = useNavigate();
   const { toast } = useToast();
 
   // Create a map of pitcher name to max weekly pitches
@@ -196,6 +198,14 @@ const Index = () => {
                     title="Scan paper pitch form"
                   >
                     <Camera className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => navigate('/print-form')}
+                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                    aria-label="Print pitch chart"
+                    title="Print structured pitch chart"
+                  >
+                    <Printer className="w-5 h-5" />
                   </button>
                 </div>
                 <p className="text-muted-foreground">
