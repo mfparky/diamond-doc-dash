@@ -1,4 +1,3 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { getScanExamples, buildFewShotMessages } from './scan-calibration';
 
 export interface ScannedPitch {
@@ -117,28 +116,40 @@ export async function scanPaperForm(
   mediaType: 'image/jpeg' | 'image/png' | 'image/webp',
   apiKey: string,
 ): Promise<ScannedOuting> {
-  const baseURL = `${window.location.origin}/api/anthropic`;
-  const client = new Anthropic({ apiKey, baseURL, dangerouslyAllowBrowser: true });
   const compressed = await compressImage(imageBase64, mediaType);
 
   const fewShot = buildFewShotMessages(getScanExamples());
 
-  const result = await client.messages.create({
-    model: 'claude-opus-4-6',
-    max_tokens: 2048,
-    messages: [
-      ...fewShot,
-      {
-        role: 'user',
-        content: [
-          { type: 'image', source: { type: 'base64', media_type: compressed.mediaType, data: compressed.base64 } },
-          { type: 'text', text: SCAN_PROMPT },
-        ],
-      },
-    ],
+  const response = await fetch('/api/anthropic/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-opus-4-6',
+      max_tokens: 2048,
+      messages: [
+        ...fewShot,
+        {
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: compressed.mediaType, data: compressed.base64 } },
+            { type: 'text', text: SCAN_PROMPT },
+          ],
+        },
+      ],
+    }),
   });
 
-  const textBlock = result.content.find((b) => b.type === 'text');
+  if (!response.ok) {
+    const errText = await response.text().catch(() => response.statusText);
+    throw new Error(`API error ${response.status}: ${errText}`);
+  }
+
+  const result = await response.json();
+  const textBlock = (result.content as { type: string; text?: string }[]).find((b) => b.type === 'text');
   let json = (textBlock?.type === 'text' ? textBlock.text : '').trim();
   // Strip any accidental markdown fences
   json = json.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/i, '').trim();
