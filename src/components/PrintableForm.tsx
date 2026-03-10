@@ -10,11 +10,11 @@ const ZONE_LABELS = [
   ['BL', 'BC', 'BR'],
 ];
 
-const CELL_W = 72;
-const CELL_H = 84;
-// Full-cell-width buffer around the zone (matches one zone cell's dimension)
-const BALL_PAD_H = CELL_W;   // left/right: one full cell wide
-const BALL_PAD_V = CELL_H;   // top/bottom: one full cell tall
+const CELL_W = 66;
+const CELL_H = 72;
+// ~half-cell buffer: enough room to write ball pitch numbers, keeps form on 1 page
+const BALL_PAD_H = 38;
+const BALL_PAD_V = 40;
 
 function ZonePlot() {
   return (
@@ -114,7 +114,7 @@ export function PrintableForm({ pitchTypes }: PrintableFormProps) {
         @media print {
           @page {
             size: letter portrait;
-            margin: 0.4in 0.5in;
+            margin: 0.3in 0.4in;
           }
           html, body {
             height: auto !important;
