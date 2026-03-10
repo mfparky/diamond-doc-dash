@@ -127,10 +127,10 @@ export async function scanPaperForm(
 
   const fetchHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
-    'anthropic-version': '2023-06-01',
   };
   if (isLocalDev) {
     fetchHeaders['x-api-key'] = apiKey;
+    fetchHeaders['anthropic-version'] = '2023-06-01';
   } else {
     // Supabase Edge Function: pass anon key for auth + API key forwarded server-side
     fetchHeaders['apikey'] = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoaHFha3hqeXdiaXBtZXl2bHVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4NDgwMzAsImV4cCI6MjA4NDQyNDAzMH0.XPDfMQf60GuYZgnoBh4XLUD1Hc51XYORXuTMPPeN7Cs';
