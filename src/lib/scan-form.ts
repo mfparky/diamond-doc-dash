@@ -37,16 +37,50 @@ Coaches write pitch-TYPE numbers (1, 2, 3…) scattered inside or outside the bo
 ## If PLOT-AND-LIST form
 
 ### Reading the plot (left side)
-The inner box is a 3×3 strike zone with thin cell labels: TL, TC, TR / ML, MC, MR / BL, BC, BR.
-Numbers written inside the inner box are strikes. Numbers in the outer dashed area are balls.
-Use cell-center coordinates:
-         Left      Center    Right
-Top:   (-0.27, 0.30)  (0.00, 0.30)  (0.27, 0.30)
-Mid:   (-0.27, 0.00)  (0.00, 0.00)  (0.27, 0.00)
-Bot:   (-0.27,-0.30)  (0.00,-0.30)  (0.27,-0.30)
-For numbers in the outer dashed ball area, estimate position by direction and distance from the box
-(±0.55 just outside, ±0.70 well outside, ±0.85 extreme). Match the pitch's y-position to the
-height it appears at relative to the zone.
+The form has TWO borders around the zone:
+1. A thick solid inner border = the strike zone boundary
+2. A dashed outer border = the outer limit of the ball tracking area
+
+**CRITICAL — strike vs ball:**
+- Number written INSIDE the solid inner box → STRIKE
+- Number written BETWEEN the dashed outer and solid inner borders → BALL
+- Number written OUTSIDE the dashed outer border entirely → BALL (wild pitch)
+- When in doubt, call it a BALL. Do not assume inside.
+
+### 1-to-1 region mapping (use EXACTLY these coordinates — no estimation)
+
+**Strike zone cells (inside solid border, isStrike = true):**
+Look for tiny corner labels TL/TC/TR/ML/MC/MR/BL/BC/BR to confirm which cell.
+| Cell | x       | y     |
+|------|---------|-------|
+| TL   | -0.27   |  0.30 |
+| TC   |  0.00   |  0.30 |
+| TR   |  0.27   |  0.30 |
+| ML   | -0.27   |  0.00 |
+| MC   |  0.00   |  0.00 |
+| MR   |  0.27   |  0.00 |
+| BL   | -0.27   | -0.30 |
+| BC   |  0.00   | -0.30 |
+| BR   |  0.27   | -0.30 |
+
+**Ball regions (outside solid border, isStrike = false):**
+Assign each ball pitch to the NEAREST region based on its visual position:
+| Region       | Description                          | x     | y     |
+|--------------|--------------------------------------|-------|-------|
+| ABOVE-LEFT   | Above zone, left third              | -0.27 |  0.65 |
+| ABOVE-CENTER | Above zone, center                  |  0.00 |  0.65 |
+| ABOVE-RIGHT  | Above zone, right third             |  0.27 |  0.65 |
+| LEFT-HIGH    | Left of zone, upper third height    | -0.65 |  0.30 |
+| LEFT-MID     | Left of zone, middle height         | -0.65 |  0.00 |
+| LEFT-LOW     | Left of zone, lower third height    | -0.65 | -0.30 |
+| RIGHT-HIGH   | Right of zone, upper third height   |  0.65 |  0.30 |
+| RIGHT-MID    | Right of zone, middle height        |  0.65 |  0.00 |
+| RIGHT-LOW    | Right of zone, lower third height   |  0.65 | -0.30 |
+| BELOW-LEFT   | Below zone, left third              | -0.27 | -0.65 |
+| BELOW-CENTER | Below zone, center                  |  0.00 | -0.65 |
+| BELOW-RIGHT  | Below zone, right third             |  0.27 | -0.65 |
+
+Do NOT interpolate or estimate. Every pitch gets exactly one of the 21 coordinates above.
 
 ### Reading the list (right side)
 The list has pre-printed pitch numbers (1–50) with hand-written Type and Outcome columns.
