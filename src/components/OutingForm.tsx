@@ -64,11 +64,13 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
     coachNotes: '',
     videoUrl1: '',
     focus: '',
+    battersFaced: '',
+    outcomeNotes: '',
   });
   const [selectedDate, setSelectedDate] = useState<Date>(() => toLocalNoon(new Date()));
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [showPitchPlotter, setShowPitchPlotter] = useState(false);
   const [plottedPitches, setPlottedPitches] = useState<PlottedPitch[]>([]);
-  const [liveAbData, setLiveAbData] = useState<LiveAbData>({ pitches: [], atBats: [] });
   const [pitchTypes, setPitchTypes] = useState<PitchTypeConfig>(DEFAULT_PITCH_TYPES);
   const { fetchPitchTypes } = usePitchLocations();
 
