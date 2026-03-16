@@ -90,11 +90,11 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
     const normalized = toLocalNoon(date);
     setSelectedDate(normalized);
 
-    // Format as YYYY-MM-DD using local date parts from the normalized date
     const year = normalized.getFullYear();
     const month = String(normalized.getMonth() + 1).padStart(2, '0');
     const day = String(normalized.getDate()).padStart(2, '0');
     setFormData((prev) => ({ ...prev, date: `${year}-${month}-${day}` }));
+    setDatePickerOpen(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
