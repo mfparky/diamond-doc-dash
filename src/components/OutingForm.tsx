@@ -200,7 +200,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
           {/* Date */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Date</Label>
-            <Popover>
+            <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
