@@ -18,10 +18,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { PitchPlotter } from './PitchPlotter';
-import { LiveAbCharter, LiveAbData } from './LiveAbCharter';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
-import { encodeLiveAbsData } from '@/types/at-bats';
+import { AB_OUTCOMES, AB_OUTCOME_LABELS } from '@/types/at-bats';
 import { cn } from '@/lib/utils';
 
 interface PlottedPitch {
