@@ -102,24 +102,29 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
     
     const isLiveAbs = formData.eventType === 'Live ABs';
     if (!formData.pitcherName || !formData.eventType) return;
-    if (!isLiveAbs && !formData.pitchCount) return;
+    if (!formData.pitchCount) return;
 
-    // For Live ABs: derive pitch count / strikes from charted data; encode AB structure in notes
-    const livePitchCount = isLiveAbs ? liveAbData.pitches.length : (parseInt(formData.pitchCount) || 0);
-    const liveStrikes = isLiveAbs ? liveAbData.pitches.filter(p => p.isStrike).length : (formData.strikesNotTracked ? null : (parseInt(formData.strikes) || 0));
-    const notesValue = isLiveAbs
-      ? encodeLiveAbsData({ text: formData.notes || undefined, atBats: liveAbData.atBats })
-      : formData.notes;
-    const pitchesToSave = isLiveAbs
-      ? (liveAbData.pitches.length > 0 ? liveAbData.pitches : undefined)
-      : (plottedPitches.length > 0 ? plottedPitches : undefined);
+    const pitchCount = parseInt(formData.pitchCount) || 0;
+    const strikes = formData.strikesNotTracked ? null : (parseInt(formData.strikes) || 0);
+
+    // For Live ABs, encode batters faced and outcome notes in notes JSON
+    let notesValue = formData.notes;
+    if (isLiveAbs) {
+      const liveAbsSummary: Record<string, unknown> = {};
+      if (formData.battersFaced) liveAbsSummary.battersFaced = parseInt(formData.battersFaced) || 0;
+      if (formData.outcomeNotes) liveAbsSummary.outcomeNotes = formData.outcomeNotes;
+      if (formData.notes) liveAbsSummary.text = formData.notes;
+      notesValue = Object.keys(liveAbsSummary).length > 0 ? JSON.stringify(liveAbsSummary) : formData.notes;
+    }
+
+    const pitchesToSave = plottedPitches.length > 0 ? plottedPitches : undefined;
 
     onSubmit({
       pitcherName: formData.pitcherName,
       date: formData.date,
       eventType: formData.eventType as Outing['eventType'],
-      pitchCount: livePitchCount,
-      strikes: liveStrikes,
+      pitchCount,
+      strikes,
       maxVelo: parseInt(formData.maxVelo) || 0,
       notes: notesValue,
       coachNotes: formData.coachNotes || undefined,
@@ -141,10 +146,11 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
       coachNotes: '',
       videoUrl1: '',
       focus: '',
+      battersFaced: '',
+      outcomeNotes: '',
     });
     setSelectedDate(today);
     setPlottedPitches([]);
-    setLiveAbData({ pitches: [], atBats: [] });
     setShowPitchPlotter(false);
   };
 
