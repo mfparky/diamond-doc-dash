@@ -460,7 +460,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
           <Button 
             type="submit" 
             className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground"
-            disabled={!formData.pitcherName || !formData.eventType || (formData.eventType !== 'Live ABs' && !formData.pitchCount)}
+            disabled={!formData.pitcherName || !formData.eventType || !formData.pitchCount}
           >
             <Send className="w-4 h-4 mr-2" />
             Log Outing
