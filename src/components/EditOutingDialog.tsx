@@ -110,7 +110,7 @@ export function EditOutingDialog({ outing, open, onOpenChange, onSave }: EditOut
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>Date</Label>
-            <Popover>
+            <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"

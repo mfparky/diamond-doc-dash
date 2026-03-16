@@ -244,21 +244,81 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
             </Select>
           </div>
 
-          {/* Live AB Charter — shown in place of pitch count/strikes/plotter for Live ABs */}
-          {formData.eventType === 'Live ABs' && formData.pitcherName && (
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Chart At-Bats</Label>
-              <LiveAbCharter
-                pitchTypes={pitchTypes}
-                onChange={setLiveAbData}
-                initialData={liveAbData}
-              />
-              {liveAbData.pitches.length > 0 && (
-                <p className="text-xs text-muted-foreground text-center">
-                  {liveAbData.pitches.length} pitches · {liveAbData.pitches.filter(p => p.isStrike).length} strikes
-                  {liveAbData.atBats.length > 0 && ` · ${liveAbData.atBats.length} ABs`}
-                </p>
-              )}
+          {/* Live ABs summary fields */}
+          {formData.eventType === 'Live ABs' && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="battersFaced" className="text-sm font-medium">Batters Faced</Label>
+                  <Input
+                    id="battersFaced"
+                    type="number"
+                    inputMode="numeric"
+                    placeholder="0"
+                    value={formData.battersFaced}
+                    onChange={(e) => setFormData(prev => ({ ...prev, battersFaced: e.target.value }))}
+                    className="mobile-input"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pitchCount" className="text-sm font-medium">Pitches</Label>
+                  <Input
+                    id="pitchCount"
+                    type="number"
+                    inputMode="numeric"
+                    placeholder="0"
+                    value={formData.pitchCount}
+                    onChange={(e) => setFormData(prev => ({ ...prev, pitchCount: e.target.value }))}
+                    className="mobile-input"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="strikes" className="text-sm font-medium">Strikes</Label>
+                  <Input
+                    id="strikes"
+                    type="number"
+                    inputMode="numeric"
+                    placeholder="0"
+                    value={formData.strikes}
+                    onChange={(e) => setFormData(prev => ({ ...prev, strikes: e.target.value }))}
+                    className="mobile-input"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Balls</Label>
+                  <Input
+                    type="number"
+                    value={
+                      formData.pitchCount && formData.strikes
+                        ? Math.max(0, (parseInt(formData.pitchCount) || 0) - (parseInt(formData.strikes) || 0))
+                        : ''
+                    }
+                    readOnly
+                    className="mobile-input bg-muted"
+                    placeholder="Auto"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="outcomeNotes" className="text-sm font-medium">Outcome Summary (optional)</Label>
+                <Select
+                  value={formData.outcomeNotes}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, outcomeNotes: value }))}
+                >
+                  <SelectTrigger className="mobile-input">
+                    <SelectValue placeholder="Select outcome..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    {AB_OUTCOMES.map((outcome) => (
+                      <SelectItem key={outcome} value={outcome}>
+                        {outcome} — {AB_OUTCOME_LABELS[outcome]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
 

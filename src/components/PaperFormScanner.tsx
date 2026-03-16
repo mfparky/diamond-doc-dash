@@ -9,7 +9,7 @@ import { Camera, Loader2, CheckCircle, AlertCircle, Key, RefreshCw } from 'lucid
 import { scanPaperForm, getStoredApiKey, saveApiKey, ScannedOuting, ScannedPitch } from '@/lib/scan-form';
 import { addScanExample } from '@/lib/scan-calibration';
 import { isStrike as computeIsStrike } from '@/lib/strike-zone';
-import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
+import { PitchTypeConfig, DEFAULT_PITCH_TYPES, PITCH_TYPE_COLORS } from '@/types/pitch-location';
 import { CalibrationPitchPlot } from './CalibrationPitchPlot';
 import { Pitcher, Outing } from '@/types/pitcher';
 import { useToast } from '@/hooks/use-toast';
