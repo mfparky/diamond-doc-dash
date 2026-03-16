@@ -34,6 +34,7 @@ export function EditOutingDialog({ outing, open, onOpenChange, onSave }: EditOut
     focus: '',
   });
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const normalizeDateOnly = (d: Date) => {
