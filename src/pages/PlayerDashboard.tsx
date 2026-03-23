@@ -103,6 +103,10 @@ export default function PlayerDashboard() {
           return;
         }
 
+        if (!cancelled && pitcherData.team_id) {
+          setTeamId(pitcherData.team_id);
+        }
+
         // Fetch outings for this pitcher
         const { data: outingsData, error: outingsError } = await supabase
           .from('outings')
