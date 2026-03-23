@@ -195,7 +195,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
       const strikePitches = withStrikes.reduce((s, o) => s + o.pitchCount, 0);
       const totalStrikes = withStrikes.reduce((s, o) => s + (o.strikes ?? 0), 0);
       const strikePercent = strikePitches > 0 ? (totalStrikes / strikePitches) * 100 : 0;
-      return { id: name, name, strikePercent, strikePitches };
+      return { id: name, name, strikePercent, strikePitches, totalStrikes };
     });
   }, [filteredOutings]);
 
