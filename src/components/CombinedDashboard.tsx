@@ -335,16 +335,18 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
               No outings in the selected {viewMode === '7-day' ? '7 days' : 'date range'}
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            {viewMode === 'season' && (
-              <DateRangePicker
-                startDate={seasonStart}
-                endDate={seasonEnd}
-                onRangeChange={handleDateRangeChange}
-              />
-            )}
-            <TimeTogglePills />
-          </div>
+          {!parentMode && (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              {viewMode === 'season' && (
+                <DateRangePicker
+                  startDate={seasonStart}
+                  endDate={seasonEnd}
+                  onRangeChange={handleDateRangeChange}
+                />
+              )}
+              <TimeTogglePills />
+            </div>
+          )}
         </div>
       </div>
     );
