@@ -239,22 +239,17 @@ export function SmoothHeatmap({
       }
     }
 
-    // Put image data
-    ctx.putImageData(imageData, 0, 0);
-
-    // Draw strike zone outline
+    // Draw strike zone outline and grid FIRST (underneath the heatmap)
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
     ctx.lineWidth = 1.5 * scale;
     ctx.strokeRect(zoneLeftPx, zoneTopPx, zoneRightPx - zoneLeftPx, zoneBottomPx - zoneTopPx);
 
-    // Draw grid lines within strike zone
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
     ctx.lineWidth = 0.5 * scale;
     
     const zoneWidth = zoneRightPx - zoneLeftPx;
     const zoneHeight = zoneBottomPx - zoneTopPx;
     
-    // Vertical lines (3 columns)
     for (let i = 1; i < 3; i++) {
       const x = zoneLeftPx + (zoneWidth / 3) * i;
       ctx.beginPath();
@@ -263,7 +258,6 @@ export function SmoothHeatmap({
       ctx.stroke();
     }
     
-    // Horizontal lines (3 rows)
     for (let i = 1; i < 3; i++) {
       const y = zoneTopPx + (zoneHeight / 3) * i;
       ctx.beginPath();
@@ -271,6 +265,17 @@ export function SmoothHeatmap({
       ctx.lineTo(zoneRightPx, y);
       ctx.stroke();
     }
+
+    // Now composite the heatmap ON TOP of the zone lines
+    // Use a temp canvas so putImageData doesn't erase the lines
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = renderWidth;
+    tempCanvas.height = renderHeight;
+    const tempCtx = tempCanvas.getContext('2d')!;
+    tempCtx.putImageData(imageData, 0, 0);
+
+    // Draw heatmap over the zone lines (only non-transparent pixels cover)
+    ctx.drawImage(tempCanvas, 0, 0);
 
   }, [pitchLocations, dimensions, zoneLeftPct, zoneRightPct, zoneTopPct, zoneBottomPct]);
 
