@@ -1,33 +1,18 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Outing } from '@/types/pitcher';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Users, Target, Gauge, Activity, Calendar, Trophy } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { usePageMeta } from '@/hooks/use-page-meta';
 import hawksLogo from '@/assets/hawks-logo.png';
-import { StrikePercentBar } from '@/components/StrikePercentBar';
-
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-} from 'recharts';
-
-interface PitcherSeason {
-  id: string;
-  name: string;
-  outings: Outing[];
-  totalPitches: number;
-  totalStrikes: number;
-  strikePitches: number;
-  strikePercent: number;
-  maxVelo: number;
-  outingCount: number;
-}
+import { CombinedDashboard } from '@/components/CombinedDashboard';
+import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
 
 export default function TeamDashboard() {
   const { teamId } = useParams<{ teamId: string }>();
   const [teamName, setTeamName] = useState('Team');
-  const [pitcherSeasons, setPitcherSeasons] = useState<PitcherSeason[]>([]);
+  const [outings, setOutings] = useState<Outing[]>([]);
+  const [pitcherPitchTypes, setPitcherPitchTypes] = useState<Record<string, PitchTypeConfig>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,14 +48,24 @@ export default function TeamDashboard() {
           .eq('team_id', teamId);
 
         if (pitchersError) throw pitchersError;
+
+        if (!cancelled) {
+          setTeamName(teamData?.name || 'Team');
+        }
+
         if (!pitchersData || pitchersData.length === 0) {
           if (!cancelled) {
-            setTeamName(teamData?.name || 'Team');
-            setPitcherSeasons([]);
+            setOutings([]);
             setIsLoading(false);
           }
           return;
         }
+
+        // Build pitch types map per pitcher
+        const ptMap: Record<string, PitchTypeConfig> = {};
+        pitchersData.forEach((p) => {
+          ptMap[p.name] = (p.pitch_types as PitchTypeConfig) || DEFAULT_PITCH_TYPES;
+        });
 
         // Fetch all outings for team pitchers
         const pitcherNames = pitchersData.map((p) => p.name);
@@ -97,41 +92,9 @@ export default function TeamDashboard() {
           coachNotes: row.coach_notes ?? undefined,
         }));
 
-        // Filter to 2026 season
-        const seasonOutings = mappedOutings.filter(
-          (o) => new Date(o.date).getFullYear() === 2026
-        );
-
-        // Build per-pitcher stats
-        const seasons: PitcherSeason[] = pitchersData.map((p) => {
-          const pOutings = seasonOutings.filter((o) => o.pitcherName === p.name);
-          const totalPitches = pOutings.reduce((s, o) => s + o.pitchCount, 0);
-          const withStrikes = pOutings.filter((o) => o.strikes !== null);
-          const strikePitches = withStrikes.reduce((s, o) => s + o.pitchCount, 0);
-          const totalStrikes = withStrikes.reduce((s, o) => s + (o.strikes ?? 0), 0);
-          const strikePercent = strikePitches > 0 ? (totalStrikes / strikePitches) * 100 : 0;
-          const velocities = pOutings.map((o) => o.maxVelo).filter((v) => v > 0);
-          const maxVelo = velocities.length > 0 ? Math.max(...velocities) : 0;
-
-          return {
-            id: p.id,
-            name: p.name,
-            outings: pOutings,
-            totalPitches,
-            totalStrikes,
-            strikePitches,
-            strikePercent,
-            maxVelo,
-            outingCount: pOutings.length,
-          };
-        });
-
-        // Sort by total pitches descending
-        seasons.sort((a, b) => b.totalPitches - a.totalPitches);
-
         if (!cancelled) {
-          setTeamName(teamData?.name || 'Team');
-          setPitcherSeasons(seasons);
+          setOutings(mappedOutings);
+          setPitcherPitchTypes(ptMap);
           setIsLoading(false);
         }
       } catch (err) {
@@ -146,33 +109,6 @@ export default function TeamDashboard() {
     fetchTeamData();
     return () => { cancelled = true; };
   }, [teamId]);
-
-  // Team-wide totals
-  const teamTotals = useMemo(() => {
-    const totalPitches = pitcherSeasons.reduce((s, p) => s + p.totalPitches, 0);
-    const totalStrikes = pitcherSeasons.reduce((s, p) => s + p.totalStrikes, 0);
-    const totalStrikePitches = pitcherSeasons.reduce((s, p) => s + p.strikePitches, 0);
-    const strikePercent = totalStrikePitches > 0 ? (totalStrikes / totalStrikePitches) * 100 : 0;
-    const totalOutings = pitcherSeasons.reduce((s, p) => s + p.outingCount, 0);
-    const velocities = pitcherSeasons.map((p) => p.maxVelo).filter((v) => v > 0);
-    const maxVelo = velocities.length > 0 ? Math.max(...velocities) : 0;
-    const activePitchers = pitcherSeasons.filter((p) => p.outingCount > 0).length;
-
-    return { totalPitches, totalStrikes, strikePercent, totalOutings, maxVelo, activePitchers };
-  }, [pitcherSeasons]);
-
-  // Pitch count bar chart data
-  const pitchCountChartData = useMemo(
-    () =>
-      pitcherSeasons
-        .filter((p) => p.totalPitches > 0)
-        .map((p) => ({
-          name: p.name.split(' ').pop() || p.name, // Last name for chart
-          pitches: p.totalPitches,
-          fullName: p.name,
-        })),
-    [pitcherSeasons]
-  );
 
   if (isLoading) {
     return (
@@ -206,121 +142,13 @@ export default function TeamDashboard() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {/* Team Summary Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-          <SummaryCard label="Pitchers" value={String(teamTotals.activePitchers)} icon={<Users className="w-4 h-4" />} />
-          <SummaryCard label="Outings" value={String(teamTotals.totalOutings)} icon={<Calendar className="w-4 h-4" />} />
-          <SummaryCard label="Total Pitches" value={String(teamTotals.totalPitches)} icon={<Activity className="w-4 h-4" />} />
-          <SummaryCard label="Strike %" value={`${teamTotals.strikePercent.toFixed(1)}%`} icon={<Target className="w-4 h-4" />} />
-          <SummaryCard label="Team Max Velo" value={teamTotals.maxVelo > 0 ? String(teamTotals.maxVelo) : '-'} icon={<Gauge className="w-4 h-4" />} />
-          <SummaryCard label="Total Strikes" value={String(teamTotals.totalStrikes)} icon={<Trophy className="w-4 h-4" />} />
-        </div>
-
-        {/* Total Pitches by Player Chart */}
-        {pitchCountChartData.length > 0 && (
-          <Card className="glass-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="font-display text-lg">Pitches by Player</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[250px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={pitchCountChartData} margin={{ top: 10, right: 10, left: -10, bottom: 40 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                    <XAxis
-                      dataKey="name"
-                      tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                      tickLine={{ stroke: 'hsl(var(--border))' }}
-                      axisLine={{ stroke: 'hsl(var(--border))' }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
-                    />
-                    <YAxis
-                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                      tickLine={{ stroke: 'hsl(var(--border))' }}
-                      axisLine={{ stroke: 'hsl(var(--border))' }}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'hsl(var(--card))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px',
-                        color: 'hsl(var(--foreground))',
-                      }}
-                      formatter={(value: number, _: string, props: any) => [
-                        `${value} pitches`,
-                        props.payload.fullName,
-                      ]}
-                    />
-                    <Bar dataKey="pitches" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Strike % Bar Chart */}
-        <StrikePercentBar pitcherSeasons={pitcherSeasons} />
-
-        {/* Player Roster Table */}
-        <Card className="glass-card">
-          <CardHeader className="pb-2">
-            <CardTitle className="font-display text-lg">Season Roster</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="text-muted-foreground border-b border-border/30">
-                    <th className="text-left py-2 font-medium">Player</th>
-                    <th className="text-center py-2 font-medium">Outings</th>
-                    <th className="text-center py-2 font-medium">Pitches</th>
-                    <th className="text-center py-2 font-medium">Strike %</th>
-                    <th className="text-center py-2 font-medium">Max Velo</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pitcherSeasons.map((p) => (
-                    <tr key={p.id} className="border-b border-border/20">
-                      <td className="py-2.5">
-                        <Link
-                          to={`/player/${p.id}`}
-                          className="font-medium text-primary hover:underline"
-                        >
-                          {p.name}
-                        </Link>
-                      </td>
-                      <td className="text-center text-foreground">{p.outingCount}</td>
-                      <td className="text-center text-foreground">{p.totalPitches}</td>
-                      <td className="text-center text-foreground">
-                        {p.strikePitches > 0 ? `${p.strikePercent.toFixed(1)}%` : '-'}
-                      </td>
-                      <td className="text-center text-foreground">
-                        {p.maxVelo > 0 ? p.maxVelo : '-'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+      <main className="max-w-4xl mx-auto px-4 py-6">
+        <CombinedDashboard
+          outings={outings}
+          pitcherPitchTypes={pitcherPitchTypes}
+          parentMode
+        />
       </main>
     </div>
-  );
-}
-
-function SummaryCard({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
-  return (
-    <Card className="glass-card">
-      <CardContent className="p-3 flex flex-col items-center text-center gap-1.5">
-        <div className="p-1.5 rounded-lg bg-primary/10 text-primary">{icon}</div>
-        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
-        <p className="font-bold text-foreground text-lg">{value}</p>
-      </CardContent>
-    </Card>
   );
 }

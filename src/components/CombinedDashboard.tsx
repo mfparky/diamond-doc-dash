@@ -14,6 +14,7 @@ import { Activity, Target, Calendar, Flame, TrendingUp, TrendingDown, Minus } fr
 interface CombinedDashboardProps {
   outings: Outing[];
   pitcherPitchTypes: Record<string, PitchTypeConfig>;
+  parentMode?: boolean; // Hides date picker and time toggle, locks to season view
 }
 
 const EVENT_COLORS: Record<string, string> = {
@@ -27,7 +28,7 @@ type ViewMode = '7-day' | 'season';
 
 type ResultFilter = 'all' | 'strikes' | 'balls';
 
-export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashboardProps) {
+export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = false }: CombinedDashboardProps) {
   const [pitchLocations, setPitchLocations] = useState<PitchLocation[]>([]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('season');
@@ -334,16 +335,18 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
               No outings in the selected {viewMode === '7-day' ? '7 days' : 'date range'}
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            {viewMode === 'season' && (
-              <DateRangePicker
-                startDate={seasonStart}
-                endDate={seasonEnd}
-                onRangeChange={handleDateRangeChange}
-              />
-            )}
-            <TimeTogglePills />
-          </div>
+          {!parentMode && (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              {viewMode === 'season' && (
+                <DateRangePicker
+                  startDate={seasonStart}
+                  endDate={seasonEnd}
+                  onRangeChange={handleDateRangeChange}
+                />
+              )}
+              <TimeTogglePills />
+            </div>
+          )}
         </div>
       </div>
     );
@@ -361,16 +364,18 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
             {stats.uniquePitchers} pitcher{stats.uniquePitchers !== 1 ? 's' : ''} • {stats.totalOutings} outing{stats.totalOutings !== 1 ? 's' : ''} • {stats.totalPitches} total pitches
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-          {viewMode === 'season' && (
-            <DateRangePicker
-              startDate={seasonStart}
-              endDate={seasonEnd}
-              onRangeChange={handleDateRangeChange}
-            />
-          )}
-          <TimeTogglePills />
-        </div>
+        {!parentMode && (
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            {viewMode === 'season' && (
+              <DateRangePicker
+                startDate={seasonStart}
+                endDate={seasonEnd}
+                onRangeChange={handleDateRangeChange}
+              />
+            )}
+            <TimeTogglePills />
+          </div>
+        )}
       </div>
 
       {/* Main Stats Grid */}
