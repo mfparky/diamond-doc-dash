@@ -45,6 +45,7 @@ export default function PlayerDashboard() {
   const { filterByWindow } = useAchievementWindow();
   const [linkCopied, setLinkCopied] = useState(false);
   const [teamId, setTeamId] = useState<string | null>(null);
+  const [ownerId, setOwnerId] = useState<string | null>(null);
 
   // Only show enhanced view (report card) when ?advanced=1 is in the URL
   const searchParams = new URLSearchParams(window.location.search);
@@ -105,6 +106,9 @@ export default function PlayerDashboard() {
 
         if (!cancelled && pitcherData.team_id) {
           setTeamId(pitcherData.team_id);
+        }
+        if (!cancelled && pitcherData.user_id) {
+          setOwnerId(pitcherData.user_id);
         }
 
         // Fetch outings for this pitcher
@@ -256,12 +260,12 @@ export default function PlayerDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            {/* Team Dashboard Link */}
-            {teamId && (
-              <Link to={`/team/${teamId}`}>
+            {/* All Pitchers Dashboard Link */}
+            {(teamId || ownerId) && (
+              <Link to={teamId ? `/team/${teamId}` : `/dashboard/${ownerId}`}>
                 <Button variant="outline" size="icon" className="h-8 w-8 sm:w-auto sm:px-3">
                   <Users className="w-4 h-4 sm:mr-1.5" />
-                  <span className="hidden sm:inline text-sm">Team</span>
+                  <span className="hidden sm:inline text-sm">All Pitchers</span>
                 </Button>
               </Link>
             )}
