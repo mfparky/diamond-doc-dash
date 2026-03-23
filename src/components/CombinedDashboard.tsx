@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Outing } from '@/types/pitcher';
 import { PitchLocation, PitchTypeConfig, DEFAULT_PITCH_TYPES, PITCH_TYPE_COLORS } from '@/types/pitch-location';
 import { SmoothHeatmap } from '@/components/SmoothHeatmap';
-import { StrikePercentRadar } from '@/components/StrikePercentRadar';
+import { StrikePercentBar } from '@/components/StrikePercentBar';
 import { VelocityScale } from '@/components/VelocityScale';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import { supabase } from '@/integrations/supabase/client';
