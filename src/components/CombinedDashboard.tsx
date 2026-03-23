@@ -562,10 +562,8 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
         {/* Right Column: Strike %, Event & Pitch Type Breakdown */}
         <div className="space-y-4 sm:space-y-6">
           {/* Strike % Bar Chart */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            <StrikePercentBar pitcherSeasons={pitcherRadarData} />
-            <StrikePercentBeeswarm pitcherSeasons={pitcherRadarData} />
-          </div>
+          <StrikePercentBar pitcherSeasons={pitcherRadarData} />
+          <StrikePercentBeeswarm pitcherSeasons={pitcherRadarData} />
 
           {/* Event Type Breakdown */}
           <Card className="glass-card">
