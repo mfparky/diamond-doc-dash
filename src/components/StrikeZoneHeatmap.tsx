@@ -112,13 +112,6 @@ export function StrikeZoneHeatmap({
       {/* Stats summary */}
       <div className="text-xs text-muted-foreground">
         <span className="font-medium text-foreground">{filteredPitches.length}</span> pitches plotted
-        {filteredPitches.length > 0 && (
-          <span className="ml-2">
-            • <span className="font-medium text-foreground">
-              {filteredPitches.filter(p => p.isStrike).length}
-            </span> strikes ({((filteredPitches.filter(p => p.isStrike).length / filteredPitches.length) * 100).toFixed(0)}%)
-          </span>
-        )}
       </div>
 
       {/* Legend */}

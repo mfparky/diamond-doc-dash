@@ -299,13 +299,6 @@ export function SmoothHeatmap({
       {/* Stats summary */}
       <div className="text-xs text-muted-foreground">
         <span className="font-medium text-foreground">{pitchLocations.length}</span> pitches plotted
-        {pitchLocations.length > 0 && (
-          <span className="ml-2">
-            • <span className="font-medium text-foreground">
-              {pitchLocations.filter(p => p.isStrike).length}
-            </span> strikes ({((pitchLocations.filter(p => p.isStrike).length / pitchLocations.length) * 100).toFixed(0)}%)
-          </span>
-        )}
       </div>
 
       {/* Color legend */}
