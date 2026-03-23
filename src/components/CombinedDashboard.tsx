@@ -426,8 +426,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
         <VelocityScale velocities={stats.velocities} />
       )}
 
-      {/* Strike % Radar */}
-      <StrikePercentRadar pitcherSeasons={pitcherRadarData} />
+
 
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
