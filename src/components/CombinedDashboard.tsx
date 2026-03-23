@@ -14,6 +14,7 @@ import { Activity, Target, Calendar, Flame, TrendingUp, TrendingDown, Minus } fr
 interface CombinedDashboardProps {
   outings: Outing[];
   pitcherPitchTypes: Record<string, PitchTypeConfig>;
+  parentMode?: boolean; // Hides date picker and time toggle, locks to season view
 }
 
 const EVENT_COLORS: Record<string, string> = {
