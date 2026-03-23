@@ -256,6 +256,15 @@ export default function PlayerDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
+            {/* Team Dashboard Link */}
+            {teamId && (
+              <Link to={`/team/${teamId}`}>
+                <Button variant="outline" size="icon" className="h-8 w-8 sm:w-auto sm:px-3">
+                  <Users className="w-4 h-4 sm:mr-1.5" />
+                  <span className="hidden sm:inline text-sm">Team</span>
+                </Button>
+              </Link>
+            )}
             {/* Accountability Button */}
             {assignments.length > 0 && (
               <Button
