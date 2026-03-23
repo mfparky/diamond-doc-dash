@@ -34,6 +34,7 @@ function AppRoutes() {
         {/* Public dashboards for parents */}
         <Route path="/player/:playerId" element={<PlayerDashboard />} />
         <Route path="/team/:teamId" element={<TeamDashboard />} />
+        <Route path="/dashboard/:userId" element={<CoachDashboard />} />
         
         {/* Protected routes require authentication */}
         <Route
