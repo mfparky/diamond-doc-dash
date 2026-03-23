@@ -7,6 +7,7 @@ import { ArrowLeft, Users, Target, Gauge, Activity, Calendar, Trophy } from 'luc
 import { usePageMeta } from '@/hooks/use-page-meta';
 import hawksLogo from '@/assets/hawks-logo.png';
 import { StrikePercentBar } from '@/components/StrikePercentBar';
+import { StrikePercentBeeswarm } from '@/components/StrikePercentBeeswarm';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
