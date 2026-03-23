@@ -44,6 +44,7 @@ export default function PlayerDashboard() {
   const [allPitchLocations, setAllPitchLocations] = useState<PitchLocation[]>([]);
   const { filterByWindow } = useAchievementWindow();
   const [linkCopied, setLinkCopied] = useState(false);
+  const [teamId, setTeamId] = useState<string | null>(null);
 
   // Only show enhanced view (report card) when ?advanced=1 is in the URL
   const searchParams = new URLSearchParams(window.location.search);
