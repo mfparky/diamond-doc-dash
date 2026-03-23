@@ -172,6 +172,19 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
   // Calculate aggregate stats for current period
   const stats = useMemo(() => calculateStats(filteredOutings), [filteredOutings]);
 
+  // Per-pitcher strike % data for radar chart
+  const pitcherRadarData = useMemo(() => {
+    const pitcherNames = [...new Set(filteredOutings.map((o) => o.pitcherName))];
+    return pitcherNames.map((name) => {
+      const pOutings = filteredOutings.filter((o) => o.pitcherName === name);
+      const withStrikes = pOutings.filter((o) => o.strikes !== null);
+      const strikePitches = withStrikes.reduce((s, o) => s + o.pitchCount, 0);
+      const totalStrikes = withStrikes.reduce((s, o) => s + (o.strikes ?? 0), 0);
+      const strikePercent = strikePitches > 0 ? (totalStrikes / strikePitches) * 100 : 0;
+      return { id: name, name, strikePercent, strikePitches };
+    });
+  }, [filteredOutings]);
+
   // Calculate stats for previous 7-day period (for trend comparison)
   const previousStats = useMemo(() => calculateStats(previousOutings), [previousOutings]);
 
