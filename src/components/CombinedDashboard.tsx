@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Outing } from '@/types/pitcher';
 import { PitchLocation, PitchTypeConfig, DEFAULT_PITCH_TYPES, PITCH_TYPE_COLORS } from '@/types/pitch-location';
 import { SmoothHeatmap } from '@/components/SmoothHeatmap';
-import { StrikePercentRadar } from '@/components/StrikePercentRadar';
+import { StrikePercentBar } from '@/components/StrikePercentBar';
 import { VelocityScale } from '@/components/VelocityScale';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import { supabase } from '@/integrations/supabase/client';
@@ -426,8 +426,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
         <VelocityScale velocities={stats.velocities} />
       )}
 
-      {/* Strike % Radar */}
-      <StrikePercentRadar pitcherSeasons={pitcherRadarData} />
+
 
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
@@ -540,8 +539,11 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
           </CardContent>
         </Card>
 
-        {/* Right Column: Event & Pitch Type Breakdown */}
+        {/* Right Column: Strike %, Event & Pitch Type Breakdown */}
         <div className="space-y-4 sm:space-y-6">
+          {/* Strike % Bar Chart */}
+          <StrikePercentBar pitcherSeasons={pitcherRadarData} />
+
           {/* Event Type Breakdown */}
           <Card className="glass-card">
             <CardHeader className="pb-2 px-3 sm:px-6">

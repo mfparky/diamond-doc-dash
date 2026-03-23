@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Users, Target, Gauge, Activity, Calendar, Trophy } from 'lucide-react';
 import { usePageMeta } from '@/hooks/use-page-meta';
 import hawksLogo from '@/assets/hawks-logo.png';
-import { StrikePercentRadar } from '@/components/StrikePercentRadar';
+import { StrikePercentBar } from '@/components/StrikePercentBar';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
@@ -261,8 +261,8 @@ export default function TeamDashboard() {
           </Card>
         )}
 
-        {/* Strike % Radar */}
-        <StrikePercentRadar pitcherSeasons={pitcherSeasons} />
+        {/* Strike % Bar Chart */}
+        <StrikePercentBar pitcherSeasons={pitcherSeasons} />
 
         {/* Player Roster Table */}
         <Card className="glass-card">
