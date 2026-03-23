@@ -243,13 +243,13 @@ export function SmoothHeatmap({
     ctx.putImageData(imageData, 0, 0);
 
     // Draw strike zone outline
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.lineWidth = 2 * scale;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+    ctx.lineWidth = 1.5 * scale;
     ctx.strokeRect(zoneLeftPx, zoneTopPx, zoneRightPx - zoneLeftPx, zoneBottomPx - zoneTopPx);
 
     // Draw grid lines within strike zone
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-    ctx.lineWidth = 1 * scale;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.lineWidth = 0.5 * scale;
     
     const zoneWidth = zoneRightPx - zoneLeftPx;
     const zoneHeight = zoneBottomPx - zoneTopPx;
