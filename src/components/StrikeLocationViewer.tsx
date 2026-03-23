@@ -23,7 +23,7 @@ export function StrikeLocationViewer({
   outings,
   pitchTypes = DEFAULT_PITCH_TYPES,
 }: StrikeLocationViewerProps) {
-  const [viewMode, setViewMode] = useState<ViewMode>('7-day');
+  const [viewMode, setViewMode] = useState<ViewMode>('year');
   const [selectedOutingId, setSelectedOutingId] = useState<string | null>(null);
   const [pitchLocations, setPitchLocations] = useState<PitchLocation[]>([]);
   const [filterPitchType, setFilterPitchType] = useState<number | null>(null);
