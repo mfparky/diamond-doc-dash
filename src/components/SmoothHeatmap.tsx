@@ -240,12 +240,12 @@ export function SmoothHeatmap({
     }
 
     // Draw strike zone outline and grid FIRST (underneath the heatmap)
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
-    ctx.lineWidth = 1.5 * scale;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.lineWidth = 2 * scale;
     ctx.strokeRect(zoneLeftPx, zoneTopPx, zoneRightPx - zoneLeftPx, zoneBottomPx - zoneTopPx);
 
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-    ctx.lineWidth = 0.5 * scale;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 1 * scale;
     
     const zoneWidth = zoneRightPx - zoneLeftPx;
     const zoneHeight = zoneBottomPx - zoneTopPx;
