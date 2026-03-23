@@ -5,7 +5,7 @@ import { Outing } from '@/types/pitcher';
 import { PitchLocation, PitchTypeConfig, DEFAULT_PITCH_TYPES, PITCH_TYPE_COLORS } from '@/types/pitch-location';
 import { SmoothHeatmap } from '@/components/SmoothHeatmap';
 import { StrikePercentBar } from '@/components/StrikePercentBar';
-import { StrikePercentBeeswarm } from '@/components/StrikePercentBeeswarm';
+
 import { VelocityScale } from '@/components/VelocityScale';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import { supabase } from '@/integrations/supabase/client';
@@ -434,10 +434,13 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
         </Card>
       </div>
 
-      {/* Velocity Distribution Chart */}
-      {stats.velocities.length > 0 && (
-        <VelocityScale velocities={stats.velocities} />
-      )}
+      {/* Velocity & Strike % Side by Side */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        {stats.velocities.length > 0 && (
+          <VelocityScale velocities={stats.velocities} />
+        )}
+        <StrikePercentBar pitcherSeasons={pitcherRadarData} />
+      </div>
 
 
 
@@ -561,9 +564,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
 
         {/* Right Column: Strike %, Event & Pitch Type Breakdown */}
         <div className="space-y-4 sm:space-y-6">
-          {/* Strike % Bar Chart */}
-          <StrikePercentBar pitcherSeasons={pitcherRadarData} />
-          <StrikePercentBeeswarm pitcherSeasons={pitcherRadarData} />
+          {/* Event Type Breakdown - was Strike % */}
 
           {/* Event Type Breakdown */}
           <Card className="glass-card">
