@@ -98,15 +98,27 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
     const fetchAllLocations = async () => {
       setIsLoadingLocations(true);
       try {
-        const { data, error } = await supabase
-          .from('pitch_locations')
-          .select('*')
-          .gte('created_at', `${dateRange.start}T00:00:00`)
-          .lte('created_at', `${dateRange.end}T23:59:59`);
+        // Paginate to avoid Supabase's 1000-row default limit
+        const allRows: any[] = [];
+        const PAGE_SIZE = 1000;
+        let from = 0;
+        let hasMore = true;
 
-        if (error) throw error;
+        while (hasMore) {
+          const { data, error } = await supabase
+            .from('pitch_locations')
+            .select('*')
+            .gte('created_at', `${dateRange.start}T00:00:00`)
+            .lte('created_at', `${dateRange.end}T23:59:59`)
+            .range(from, from + PAGE_SIZE - 1);
 
-        const locations: PitchLocation[] = (data || []).map((row) => ({
+          if (error) throw error;
+          allRows.push(...(data || []));
+          hasMore = (data?.length ?? 0) === PAGE_SIZE;
+          from += PAGE_SIZE;
+        }
+
+        const locations: PitchLocation[] = allRows.map((row) => ({
           id: row.id,
           outingId: row.outing_id,
           pitcherId: row.pitcher_id,
