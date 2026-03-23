@@ -524,7 +524,14 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
               )}
             </div>
 
-            {/* Summary Stats */}
+            {/* Coverage note */}
+            {pitchLocations.length > 0 && stats.totalPitches > pitchLocations.length && (
+              <p className="text-[10px] text-muted-foreground text-center">
+                {pitchLocations.length.toLocaleString()} of {stats.totalPitches.toLocaleString()} pitches have location data ({Math.round((pitchLocations.length / stats.totalPitches) * 100)}% charted)
+              </p>
+            )}
+
+            {/* Filter info */}
             {pitchLocations.length > 0 && (filterPitchType !== null || resultFilter !== 'all') && (
               <div className="text-center text-xs text-muted-foreground border-t border-border/50 pt-2">
                 Showing <span className="font-medium text-foreground">{filteredPitchLocations.length}</span> pitches
