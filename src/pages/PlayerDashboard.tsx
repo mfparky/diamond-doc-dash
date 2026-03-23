@@ -44,6 +44,10 @@ export default function PlayerDashboard() {
   const [allPitchLocations, setAllPitchLocations] = useState<PitchLocation[]>([]);
   const { filterByWindow } = useAchievementWindow();
   const [linkCopied, setLinkCopied] = useState(false);
+
+  // Only show enhanced view (report card) when ?advanced=1 is in the URL
+  const searchParams = new URLSearchParams(window.location.search);
+  const advancedEnabled = searchParams.get('advanced') === '1';
   const [showEnhancedView, setShowEnhancedView] = useState(false);
 
   const {
