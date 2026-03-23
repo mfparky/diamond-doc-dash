@@ -11,21 +11,6 @@ interface StrikePercentBarProps {
   pitcherSeasons: PitcherSeasonSummary[];
 }
 
-const ZONE_COLORS = [
-  { min: 0, max: 45, color: 'hsl(var(--destructive))' },
-  { min: 45, max: 50, color: 'hsl(var(--warning))' },
-  { min: 50, max: 55, color: 'hsl(38, 92%, 50%)' },
-  { min: 55, max: 60, color: 'hsl(var(--primary))' },
-  { min: 60, max: 100, color: 'hsl(142, 60%, 42%)' },
-];
-
-function getDotColor(pct: number) {
-  for (const zone of ZONE_COLORS) {
-    if (pct >= zone.min && pct < zone.max) return zone.color;
-  }
-  return ZONE_COLORS[ZONE_COLORS.length - 1].color;
-}
-
 export function StrikePercentBar({ pitcherSeasons }: StrikePercentBarProps) {
   const data = useMemo(() => {
     const eligible = pitcherSeasons
@@ -39,126 +24,128 @@ export function StrikePercentBar({ pitcherSeasons }: StrikePercentBarProps) {
     const min = eligible[0];
     const max = eligible[eligible.length - 1];
 
-    // Spread dots vertically to avoid overlap (beeswarm-style)
-    // Group by proximity and offset y
-    const dots: { x: number; y: number; color: string }[] = [];
-    const PROXIMITY = 2; // % proximity for stacking
-
-    eligible.forEach((pct) => {
-      // Count how many existing dots are near this value
-      const nearbyCount = dots.filter((d) => Math.abs(d.x - pct) < PROXIMITY).length;
-      // Alternate above/below center
-      const yOffset = nearbyCount === 0 ? 0 : (Math.ceil(nearbyCount / 2)) * (nearbyCount % 2 === 1 ? -1 : 1);
-      dots.push({ x: pct, y: yOffset, color: getDotColor(pct) });
-    });
-
-    return { dots, avg, min, max, count: eligible.length };
+    return { avg, min, max, count: eligible.length };
   }, [pitcherSeasons]);
 
   if (!data) return null;
 
-  // Chart bounds
-  const rangeMin = Math.max(0, Math.floor(data.min / 5) * 5 - 5);
-  const rangeMax = Math.min(100, Math.ceil(data.max / 5) * 5 + 5);
-  const ticks: number[] = [];
-  for (let t = rangeMin; t <= rangeMax; t += 5) ticks.push(t);
+  // Ring geometry
+  const size = 160;
+  const strokeWidth = 14;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const fillPercent = data.avg / 100;
+  const dashOffset = circumference * (1 - fillPercent);
 
-  const toX = (pct: number) => ((pct - rangeMin) / (rangeMax - rangeMin)) * 100;
-  const maxYOffset = Math.max(...data.dots.map((d) => Math.abs(d.y)), 1);
+  // Color based on avg
+  const avgColor =
+    data.avg >= 60 ? 'hsl(142, 60%, 42%)' : data.avg >= 50 ? 'hsl(38, 92%, 50%)' : 'hsl(var(--destructive))';
+
+  // Marker positions on the ring (angle in degrees, 0 = top, clockwise)
+  const pctToAngle = (pct: number) => (pct / 100) * 360 - 90; // -90 to start from top
+  const pctToXY = (pct: number) => {
+    const angle = (pct / 100) * 360 - 90;
+    const rad = (angle * Math.PI) / 180;
+    return {
+      x: size / 2 + (radius) * Math.cos(rad),
+      y: size / 2 + (radius) * Math.sin(rad),
+    };
+  };
+
+  const minPos = pctToXY(data.min);
+  const maxPos = pctToXY(data.max);
 
   return (
     <Card className="glass-card">
-      <CardHeader className="pb-2 px-3 sm:px-6">
-        <div className="flex items-center justify-between">
-          <CardTitle className="font-display text-base sm:text-lg flex items-center gap-2">
-            <Target className="w-4 h-4 sm:w-5 sm:h-5 text-accent" />
-            Team Strike %
-          </CardTitle>
-          <span className="text-xs text-muted-foreground">
-            Avg: <span className="font-semibold text-foreground">{data.avg}%</span>
-          </span>
-        </div>
+      <CardHeader className="pb-1 px-3 sm:px-6">
+        <CardTitle className="font-display text-base sm:text-lg flex items-center gap-2">
+          <Target className="w-4 h-4 sm:w-5 sm:h-5 text-accent" />
+          Team Strike %
+        </CardTitle>
       </CardHeader>
-      <CardContent className="px-3 sm:px-6">
-        {/* Dot strip chart */}
-        <div className="relative w-full" style={{ height: '100px' }}>
-          <svg
-            viewBox={`0 0 100 50`}
-            preserveAspectRatio="none"
-            className="w-full h-full"
-            style={{ overflow: 'visible' }}
-          >
-            {/* Background zones */}
-            {ZONE_COLORS.map((zone, i) => {
-              const x1 = toX(Math.max(zone.min, rangeMin));
-              const x2 = toX(Math.min(zone.max, rangeMax));
-              if (x2 <= x1) return null;
-              return (
-                <rect
-                  key={i}
-                  x={x1}
-                  y={10}
-                  width={x2 - x1}
-                  height={30}
-                  fill={zone.color}
-                  opacity={0.08}
-                  rx={0}
-                />
-              );
-            })}
+      <CardContent className="px-3 sm:px-6 flex flex-col items-center">
+        {/* Ring */}
+        <div className="relative" style={{ width: size, height: size }}>
+          <svg width={size} height={size} className="transform -rotate-90">
+            <defs>
+              <linearGradient id="strikeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="hsl(var(--destructive))" />
+                <stop offset="40%" stopColor="hsl(38, 92%, 50%)" />
+                <stop offset="70%" stopColor="hsl(var(--primary))" />
+                <stop offset="100%" stopColor="hsl(142, 60%, 42%)" />
+              </linearGradient>
+            </defs>
 
-            {/* Center line */}
-            <line x1={0} y1={25} x2={100} y2={25} stroke="hsl(var(--border))" strokeWidth={0.3} />
-
-            {/* Average marker */}
-            <line
-              x1={toX(data.avg)}
-              y1={8}
-              x2={toX(data.avg)}
-              y2={42}
-              stroke="hsl(var(--muted-foreground))"
-              strokeWidth={0.4}
-              strokeDasharray="1 1"
+            {/* Background track */}
+            <circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              fill="none"
+              stroke="hsl(var(--secondary))"
+              strokeWidth={strokeWidth}
             />
 
-            {/* Dots */}
-            {data.dots.map((dot, i) => {
-              const cx = toX(dot.x);
-              const cy = 25 + (dot.y / (maxYOffset + 0.5)) * 10;
-              return (
-                <circle
-                  key={i}
-                  cx={cx}
-                  cy={cy}
-                  r={2.2}
-                  fill={dot.color}
-                  stroke="hsl(var(--card))"
-                  strokeWidth={0.5}
-                  opacity={0.9}
-                >
-                  <title>{dot.x}%</title>
-                </circle>
-              );
-            })}
+            {/* Filled arc */}
+            <circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              fill="none"
+              stroke="url(#strikeGradient)"
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={dashOffset}
+              className="transition-all duration-1000 ease-out"
+            />
+
+            {/* Min marker */}
+            <circle
+              cx={minPos.x}
+              cy={minPos.y}
+              r={4}
+              fill="hsl(var(--card))"
+              stroke="hsl(var(--muted-foreground))"
+              strokeWidth={1.5}
+              className="rotate-90 origin-center"
+              style={{ transformOrigin: `${size / 2}px ${size / 2}px` }}
+            />
+
+            {/* Max marker */}
+            <circle
+              cx={maxPos.x}
+              cy={maxPos.y}
+              r={4}
+              fill="hsl(var(--card))"
+              stroke={avgColor}
+              strokeWidth={1.5}
+              className="rotate-90 origin-center"
+              style={{ transformOrigin: `${size / 2}px ${size / 2}px` }}
+            />
           </svg>
 
-          {/* Tick labels */}
-          <div className="absolute bottom-0 left-0 right-0 flex justify-between px-0">
-            {ticks.map((t) => (
-              <span
-                key={t}
-                className="text-[9px] text-muted-foreground"
-                style={{ position: 'absolute', left: `${toX(t)}%`, transform: 'translateX(-50%)' }}
-              >
-                {t}%
-              </span>
-            ))}
+          {/* Center text */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-3xl font-bold text-foreground leading-none">{data.avg}%</span>
+            <span className="text-[10px] text-muted-foreground mt-1">Team Avg</span>
           </div>
         </div>
 
-        <p className="text-[10px] text-muted-foreground mt-1 text-center">
-          {data.count} pitchers · each dot is one pitcher's season strike %
-        </p>
+        {/* Min / Max labels */}
+        <div className="flex justify-between w-full mt-3 text-xs text-muted-foreground">
+          <div className="text-center">
+            <span className="block text-[10px] uppercase tracking-wider">Low</span>
+            <span className="font-semibold text-foreground">{data.min}%</span>
+          </div>
+          <div className="text-center">
+            <span className="block text-[10px] uppercase tracking-wider">{data.count} Pitchers</span>
+          </div>
+          <div className="text-center">
+            <span className="block text-[10px] uppercase tracking-wider">High</span>
+            <span className="font-semibold text-foreground">{data.max}%</span>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
