@@ -361,7 +361,8 @@ export default function PlayerDashboard() {
           );
         })()}
 
-        {/* Enhanced View Toggle */}
+        {/* Enhanced View Toggle - only visible with ?advanced=1 URL param */}
+        {advancedEnabled && (
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Star className="w-4 h-4 text-yellow-500" />
@@ -375,6 +376,7 @@ export default function PlayerDashboard() {
             onCheckedChange={setShowEnhancedView}
           />
         </div>
+        )}
 
         {/* Enhanced View: Report Card + Progress Timeline */}
         {showEnhancedView && (() => {
