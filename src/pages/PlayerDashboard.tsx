@@ -107,6 +107,9 @@ export default function PlayerDashboard() {
         if (!cancelled && pitcherData.team_id) {
           setTeamId(pitcherData.team_id);
         }
+        if (!cancelled && pitcherData.user_id) {
+          setOwnerId(pitcherData.user_id);
+        }
 
         // Fetch outings for this pitcher
         const { data: outingsData, error: outingsError } = await supabase
