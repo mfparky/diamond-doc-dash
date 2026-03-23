@@ -9,6 +9,7 @@ import { HomeButton } from "@/components/HomeButton";
 import Index from "./pages/Index";
 import PlayerDashboard from "./pages/PlayerDashboard";
 import TeamDashboard from "./pages/TeamDashboard";
+import CoachDashboard from "./pages/CoachDashboard";
 import CalibratePage from "./pages/CalibratePage";
 import PrintFormPage from "./pages/PrintFormPage";
 import NotFound from "./pages/NotFound";
