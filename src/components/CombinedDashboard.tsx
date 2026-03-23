@@ -364,16 +364,18 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
             {stats.uniquePitchers} pitcher{stats.uniquePitchers !== 1 ? 's' : ''} • {stats.totalOutings} outing{stats.totalOutings !== 1 ? 's' : ''} • {stats.totalPitches} total pitches
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-          {viewMode === 'season' && (
-            <DateRangePicker
-              startDate={seasonStart}
-              endDate={seasonEnd}
-              onRangeChange={handleDateRangeChange}
-            />
-          )}
-          <TimeTogglePills />
-        </div>
+        {!parentMode && (
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            {viewMode === 'season' && (
+              <DateRangePicker
+                startDate={seasonStart}
+                endDate={seasonEnd}
+                onRangeChange={handleDateRangeChange}
+              />
+            )}
+            <TimeTogglePills />
+          </div>
+        )}
       </div>
 
       {/* Main Stats Grid */}
