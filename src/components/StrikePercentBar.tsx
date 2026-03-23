@@ -5,6 +5,7 @@ import { Target } from 'lucide-react';
 interface PitcherSeasonSummary {
   strikePercent: number;
   strikePitches: number;
+  totalStrikes?: number;
 }
 
 interface StrikePercentBarProps {
@@ -14,15 +15,21 @@ interface StrikePercentBarProps {
 export function StrikePercentBar({ pitcherSeasons }: StrikePercentBarProps) {
   const data = useMemo(() => {
     const eligible = pitcherSeasons
-      .filter((p) => p.strikePitches >= 10)
-      .map((p) => Math.round(p.strikePercent * 10) / 10)
-      .sort((a, b) => a - b);
+      .filter((p) => p.strikePitches >= 10);
 
     if (eligible.length < 2) return null;
 
-    const avg = Math.round((eligible.reduce((s, v) => s + v, 0) / eligible.length) * 10) / 10;
-    const min = eligible[0];
-    const max = eligible[eligible.length - 1];
+    const perPitcher = eligible
+      .map((p) => Math.round(p.strikePercent * 10) / 10)
+      .sort((a, b) => a - b);
+
+    // Weighted average: total strikes / total pitches (matches outings-based stat card)
+    const totalStrikesAll = eligible.reduce((s, p) => s + (p.totalStrikes ?? Math.round(p.strikePercent / 100 * p.strikePitches)), 0);
+    const totalPitchesAll = eligible.reduce((s, p) => s + p.strikePitches, 0);
+    const avg = totalPitchesAll > 0 ? Math.round((totalStrikesAll / totalPitchesAll) * 1000) / 10 : 0;
+
+    const min = perPitcher[0];
+    const max = perPitcher[perPitcher.length - 1];
 
     return { avg, min, max, count: eligible.length };
   }, [pitcherSeasons]);
