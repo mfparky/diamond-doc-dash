@@ -434,10 +434,13 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
         </Card>
       </div>
 
-      {/* Velocity Distribution Chart */}
-      {stats.velocities.length > 0 && (
-        <VelocityScale velocities={stats.velocities} />
-      )}
+      {/* Velocity & Strike % Side by Side */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        {stats.velocities.length > 0 && (
+          <VelocityScale velocities={stats.velocities} />
+        )}
+        <StrikePercentBar pitcherSeasons={pitcherRadarData} />
+      </div>
 
 
 
