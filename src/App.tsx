@@ -30,8 +30,9 @@ function AppRoutes() {
     <BrowserRouter>
       <HomeButton />
       <Routes>
-        {/* Player dashboard remains public for parents to view */}
+        {/* Public dashboards for parents */}
         <Route path="/player/:playerId" element={<PlayerDashboard />} />
+        <Route path="/team/:teamId" element={<TeamDashboard />} />
         
         {/* Protected routes require authentication */}
         <Route
