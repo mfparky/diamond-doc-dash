@@ -25,7 +25,7 @@ import { ProgressReportCard } from '@/components/ProgressReportCard';
 import { generateReport } from '@/lib/generate-report';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { TrendingUp, Target, Gauge, Calendar, Video, Shield, ArrowLeft, Play, MessageSquare, ClipboardCheck, Share2, Copy, Check, Download, Star } from 'lucide-react';
+import { TrendingUp, Target, Gauge, Calendar, Video, Shield, ArrowLeft, Play, MessageSquare, ClipboardCheck, Share2, Copy, Check, Download, Star, Users } from 'lucide-react';
 import hawksLogo from '@/assets/hawks-logo.png';
 import { LiveAbsSummary } from '@/components/LiveAbsSummary';
 import { LiveAbsDashboard } from '@/components/LiveAbsDashboard';
@@ -44,6 +44,7 @@ export default function PlayerDashboard() {
   const [allPitchLocations, setAllPitchLocations] = useState<PitchLocation[]>([]);
   const { filterByWindow } = useAchievementWindow();
   const [linkCopied, setLinkCopied] = useState(false);
+  const [teamId, setTeamId] = useState<string | null>(null);
 
   // Only show enhanced view (report card) when ?advanced=1 is in the URL
   const searchParams = new URLSearchParams(window.location.search);
@@ -100,6 +101,10 @@ export default function PlayerDashboard() {
           setError('Player not found');
           setIsLoading(false);
           return;
+        }
+
+        if (!cancelled && pitcherData.team_id) {
+          setTeamId(pitcherData.team_id);
         }
 
         // Fetch outings for this pitcher
@@ -251,6 +256,15 @@ export default function PlayerDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
+            {/* Team Dashboard Link */}
+            {teamId && (
+              <Link to={`/team/${teamId}`}>
+                <Button variant="outline" size="icon" className="h-8 w-8 sm:w-auto sm:px-3">
+                  <Users className="w-4 h-4 sm:mr-1.5" />
+                  <span className="hidden sm:inline text-sm">Team</span>
+                </Button>
+              </Link>
+            )}
             {/* Accountability Button */}
             {assignments.length > 0 && (
               <Button
