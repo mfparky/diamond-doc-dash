@@ -264,7 +264,6 @@ export default function TeamDashboard() {
 
         {/* Strike % Bar Chart */}
         <StrikePercentBar pitcherSeasons={pitcherSeasons} />
-        <StrikePercentBeeswarm pitcherSeasons={pitcherSeasons} />
 
         {/* Player Roster Table */}
         <Card className="glass-card">
