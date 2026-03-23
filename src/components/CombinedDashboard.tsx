@@ -5,7 +5,7 @@ import { Outing } from '@/types/pitcher';
 import { PitchLocation, PitchTypeConfig, DEFAULT_PITCH_TYPES, PITCH_TYPE_COLORS } from '@/types/pitch-location';
 import { SmoothHeatmap } from '@/components/SmoothHeatmap';
 import { StrikePercentBar } from '@/components/StrikePercentBar';
-import { StrikePercentBeeswarm } from '@/components/StrikePercentBeeswarm';
+
 import { VelocityScale } from '@/components/VelocityScale';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import { supabase } from '@/integrations/supabase/client';
