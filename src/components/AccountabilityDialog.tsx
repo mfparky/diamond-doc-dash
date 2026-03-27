@@ -141,10 +141,22 @@ export function AccountabilityDialog({
                 <div className="mb-3">
                   <h3 className="font-semibold text-foreground">{assignment.title}</h3>
                   {assignment.description && (
-                    <p className="text-sm text-muted-foreground mt-1">{assignment.description}</p>
+                    <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{assignment.description}</p>
+                  )}
+                  {assignment.attachmentUrl && (
+                    <a
+                      href={assignment.attachmentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1"
+                    >
+                      <Paperclip className="w-3 h-3" />
+                      View workout details
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
                   )}
                   <p className="text-xs text-primary mt-2">
-                    {completedDays}/7 days completed
+                    {completedDays}/{assignment.frequency ?? 7}x this week
                   </p>
                 </div>
 

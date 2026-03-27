@@ -150,7 +150,7 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
                     <p className="text-xs text-muted-foreground">{assignment.description}</p>
                   )}
                 </div>
-                <span className="text-xs font-medium text-primary">{completedDays}/7</span>
+                <span className="text-xs font-medium text-primary">{completedDays}/{assignment.frequency ?? 7}</span>
               </div>
 
               {/* Day grid */}
