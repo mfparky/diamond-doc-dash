@@ -224,15 +224,14 @@ interface SparklineProps {
 }
 
 function SparklineWithTooltip({ spark, sparkW, sparkH, sparkPad, trendData }: SparklineProps) {
-  const svgRef = useRef<SVGSVGElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    const svg = svgRef.current;
-    if (!svg || spark.points.length < 2) return;
-    const rect = svg.getBoundingClientRect();
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const el = containerRef.current;
+    if (!el || spark.points.length < 2) return;
+    const rect = el.getBoundingClientRect();
     const relX = (e.clientX - rect.left) / rect.width * sparkW;
-    // Find nearest point
     let closest = 0;
     let closestDist = Infinity;
     for (let i = 0; i < spark.points.length; i++) {
@@ -245,31 +244,38 @@ function SparklineWithTooltip({ spark, sparkW, sparkH, sparkPad, trendData }: Sp
   const hp = hoverIndex !== null ? spark.points[hoverIndex] : null;
   const hd = hoverIndex !== null ? trendData[hoverIndex] : null;
 
-  // Calculate 50% line position as a percentage of height
   const refYPercent = (spark.refY / sparkH) * 100;
+
+  // Convert point coords to CSS percentages for tooltip
+  const tooltipLeft = hp ? `${(hp.x / sparkW) * 100}%` : '0%';
+  const tooltipTop = hp ? `${(hp.y / sparkH) * 100}%` : '0%';
 
   return (
     <div className="w-full mt-4 pt-3 border-t border-border/40">
       <div className="flex items-center mb-1.5">
         <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Strike % Trend</p>
       </div>
-      <div className="relative" style={{ height: sparkH }}>
-        {/* 50% label positioned with CSS so it doesn't stretch */}
+      <div
+        ref={containerRef}
+        className="relative cursor-crosshair"
+        style={{ height: sparkH }}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={() => setHoverIndex(null)}
+      >
+        {/* 50% label */}
         <span
-          className="absolute right-0 text-[9px] text-muted-foreground/50 leading-none"
+          className="absolute right-0 text-[9px] text-muted-foreground/50 leading-none pointer-events-none"
           style={{ top: `${refYPercent}%`, transform: 'translateY(-50%)' }}
         >
           50%
         </span>
+
         <svg
-          ref={svgRef}
           width="100%"
           height={sparkH}
           viewBox={`0 0 ${sparkW} ${sparkH}`}
           preserveAspectRatio="none"
-          className="overflow-visible cursor-crosshair absolute inset-0"
-          onMouseMove={handleMouseMove}
-          onMouseLeave={() => setHoverIndex(null)}
+          className="overflow-visible absolute inset-0 pointer-events-none"
         >
           {/* 50% dotted reference line */}
           <line
@@ -284,62 +290,55 @@ function SparklineWithTooltip({ spark, sparkW, sparkH, sparkPad, trendData }: Sp
             opacity={0.35}
           />
 
-        {/* Trend line */}
-        <path
-          d={spark.path}
-          fill="none"
-          stroke="hsl(var(--primary))"
-          strokeWidth={1.5}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
+          {/* Trend line */}
+          <path
+            d={spark.path}
+            fill="none"
+            stroke="hsl(var(--primary))"
+            strokeWidth={1.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
 
-        {/* End dot (when not hovering) */}
+        {/* End dot (HTML, not stretched) */}
         {hoverIndex === null && spark.points.length > 0 && (
-          <circle
-            cx={spark.points[spark.points.length - 1].x}
-            cy={spark.points[spark.points.length - 1].y}
-            r={2.5}
-            fill="hsl(var(--primary))"
+          <div
+            className="absolute w-[5px] h-[5px] rounded-full bg-primary pointer-events-none"
+            style={{
+              left: `${(spark.points[spark.points.length - 1].x / sparkW) * 100}%`,
+              top: `${(spark.points[spark.points.length - 1].y / sparkH) * 100}%`,
+              transform: 'translate(-50%, -50%)',
+            }}
           />
         )}
 
-        {/* Hover indicator */}
+        {/* Hover tooltip (HTML overlay, never stretched) */}
         {hp && hd && (
           <>
-            <line
-              x1={hp.x}
-              x2={hp.x}
-              y1={0}
-              y2={sparkH}
-              stroke="hsl(var(--muted-foreground))"
-              strokeWidth={0.5}
-              opacity={0.4}
+            {/* Vertical guide line */}
+            <div
+              className="absolute w-px bg-muted-foreground/40 pointer-events-none"
+              style={{ left: tooltipLeft, top: 0, height: '100%' }}
             />
-            <circle cx={hp.x} cy={hp.y} r={3} fill="hsl(var(--primary))" />
-            <rect
-              x={Math.min(hp.x - 18, sparkW - 40)}
-              y={Math.max(hp.y - 18, 0)}
-              width={36}
-              height={14}
-              rx={3}
-              fill="hsl(var(--popover))"
-              stroke="hsl(var(--border))"
-              strokeWidth={0.5}
+            {/* Dot */}
+            <div
+              className="absolute w-[6px] h-[6px] rounded-full bg-primary pointer-events-none"
+              style={{ left: tooltipLeft, top: tooltipTop, transform: 'translate(-50%, -50%)' }}
             />
-            <text
-              x={Math.min(hp.x, sparkW - 22)}
-              y={Math.max(hp.y - 8, 10)}
-              fontSize={8}
-              fontWeight={600}
-              fill="hsl(var(--foreground))"
-              textAnchor="middle"
+            {/* Label */}
+            <div
+              className="absolute pointer-events-none px-1.5 py-0.5 rounded bg-popover border border-border text-[10px] font-semibold text-foreground whitespace-nowrap"
+              style={{
+                left: tooltipLeft,
+                top: tooltipTop,
+                transform: 'translate(-50%, calc(-100% - 6px))',
+              }}
             >
               {Math.round(hd.pct * 10) / 10}%
-            </text>
+            </div>
           </>
         )}
-      </svg>
       </div>
     </div>
   );
