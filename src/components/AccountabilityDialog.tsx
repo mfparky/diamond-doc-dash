@@ -48,10 +48,24 @@ export function AccountabilityDialog({
     );
   };
 
+  // Count completions for an assignment
+  const getCompletedCount = (assignmentId: string): number => {
+    return completions.filter((c) => c.assignmentId === assignmentId).length;
+  };
+
+  // Check if assignment has reached its frequency cap
+  const isAtFrequencyCap = (assignmentId: string, frequency: number): boolean => {
+    return getCompletedCount(assignmentId) >= frequency;
+  };
+
   // Handle day toggle
-  const handleToggle = async (assignmentId: string, dayOfWeek: number) => {
+  const handleToggle = async (assignmentId: string, dayOfWeek: number, frequency: number) => {
     const key = `${assignmentId}-${dayOfWeek}`;
     if (pendingToggles.has(key)) return;
+
+    // If trying to add and already at cap, block it
+    const alreadyCompleted = isCompleted(assignmentId, dayOfWeek);
+    if (!alreadyCompleted && isAtFrequencyCap(assignmentId, frequency)) return;
 
     setPendingToggles((prev) => new Set(prev).add(key));
     await onToggleDay(assignmentId, dayOfWeek);
