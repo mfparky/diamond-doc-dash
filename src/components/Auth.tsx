@@ -20,7 +20,7 @@ export function Auth() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const { toast } = useToast();
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, pendingApproval } = useAuth();
 
   const validateForm = () => {
     try {
@@ -70,13 +70,40 @@ export function Auth() {
       });
     } else if (isSignUp) {
       toast({
-        title: 'Check your email',
-        description: 'A confirmation link has been sent to your email address.',
+        title: 'Account created!',
+        description: 'Your account is pending admin approval. You will be notified when approved.',
       });
     }
     
     setIsLoading(false);
   };
+
+  if (pendingApproval) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <img src={hawksLogo} alt="Hawks Logo" className="h-16 w-auto" />
+            </div>
+            <CardTitle className="text-2xl">Account Pending Approval</CardTitle>
+            <CardDescription>
+              Your account has been created but requires admin approval before you can access the dashboard. You'll be notified once approved.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <Button
+              variant="outline"
+              onClick={() => window.location.reload()}
+              className="w-full"
+            >
+              Check Again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
