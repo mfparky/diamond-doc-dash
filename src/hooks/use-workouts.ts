@@ -8,6 +8,8 @@ export interface WorkoutAssignment {
   pitcherId: string;
   title: string;
   description: string | null;
+  frequency: number; // times per week (1-7)
+  attachmentUrl: string | null;
   createdAt: string;
 }
 
@@ -59,6 +61,8 @@ export function useWorkouts(pitcherId?: string) {
         pitcherId: row.pitcher_id,
         title: row.title,
         description: row.description,
+        frequency: row.frequency ?? 7,
+        attachmentUrl: row.attachment_url ?? null,
         createdAt: row.created_at,
       }));
 
@@ -105,7 +109,9 @@ export function useWorkouts(pitcherId?: string) {
   const addAssignment = useCallback(async (
     pitcherId: string,
     title: string,
-    description?: string
+    description?: string,
+    frequency?: number,
+    attachmentUrl?: string
   ): Promise<WorkoutAssignment | null> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -116,6 +122,8 @@ export function useWorkouts(pitcherId?: string) {
           pitcher_id: pitcherId,
           title,
           description: description || null,
+          frequency: frequency ?? 7,
+          attachment_url: attachmentUrl || null,
           user_id: user?.id || null,
         })
         .select()
@@ -128,6 +136,8 @@ export function useWorkouts(pitcherId?: string) {
         pitcherId: data.pitcher_id,
         title: data.title,
         description: data.description,
+        frequency: data.frequency ?? 7,
+        attachmentUrl: data.attachment_url ?? null,
         createdAt: data.created_at,
       };
 

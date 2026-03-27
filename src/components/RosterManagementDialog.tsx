@@ -80,6 +80,8 @@ export function RosterManagementDialog({
           pitcherId: row.pitcher_id,
           title: row.title,
           description: row.description,
+          frequency: row.frequency ?? 7,
+          attachmentUrl: row.attachment_url ?? null,
           createdAt: row.created_at,
         });
       });
@@ -96,7 +98,7 @@ export function RosterManagementDialog({
   }, [open, fetchAllWorkoutAssignments]);
 
   // Add assignment handler
-  const handleAddAssignment = async (pitcherId: string, title: string, description?: string): Promise<WorkoutAssignment | null> => {
+  const handleAddAssignment = async (pitcherId: string, title: string, description?: string, frequency?: number, attachmentUrl?: string): Promise<WorkoutAssignment | null> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -106,6 +108,8 @@ export function RosterManagementDialog({
           pitcher_id: pitcherId,
           title,
           description: description || null,
+          frequency: frequency ?? 7,
+          attachment_url: attachmentUrl || null,
           user_id: user?.id || null,
         })
         .select()
@@ -118,6 +122,8 @@ export function RosterManagementDialog({
         pitcherId: data.pitcher_id,
         title: data.title,
         description: data.description,
+        frequency: data.frequency ?? 7,
+        attachmentUrl: data.attachment_url ?? null,
         createdAt: data.created_at,
       };
 

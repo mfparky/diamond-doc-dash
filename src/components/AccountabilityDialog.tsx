@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { ClipboardCheck, Check, MessageSquare, Trophy } from 'lucide-react';
+import { ClipboardCheck, Check, MessageSquare, Trophy, Paperclip, ExternalLink } from 'lucide-react';
 import { TeamLeaderboardDialog } from '@/components/TeamLeaderboardDialog';
 import { WorkoutAssignment, WorkoutCompletion, getWeekDayLabels } from '@/hooks/use-workouts';
 import { format } from 'date-fns';
@@ -141,10 +141,22 @@ export function AccountabilityDialog({
                 <div className="mb-3">
                   <h3 className="font-semibold text-foreground">{assignment.title}</h3>
                   {assignment.description && (
-                    <p className="text-sm text-muted-foreground mt-1">{assignment.description}</p>
+                    <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{assignment.description}</p>
+                  )}
+                  {assignment.attachmentUrl && (
+                    <a
+                      href={assignment.attachmentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1"
+                    >
+                      <Paperclip className="w-3 h-3" />
+                      View workout details
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
                   )}
                   <p className="text-xs text-primary mt-2">
-                    {completedDays}/7 days completed
+                    {completedDays}/{assignment.frequency ?? 7}x this week
                   </p>
                 </div>
 

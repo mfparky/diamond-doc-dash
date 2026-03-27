@@ -12,6 +12,7 @@ interface WorkoutAssignment {
   id: string;
   title: string;
   description: string | null;
+  frequency: number;
 }
 
 interface WorkoutCompletion {
@@ -67,6 +68,7 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
             id: a.id,
             title: a.title,
             description: a.description,
+            frequency: (a as any).frequency ?? 7,
           }))
         );
 
@@ -119,8 +121,8 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
     return null; // Don't show anything if no workouts assigned
   }
 
-  // Calculate total progress
-  const totalPossible = assignments.length * 7;
+  // Calculate total progress using frequency
+  const totalPossible = assignments.reduce((sum, a) => sum + (a.frequency ?? 7), 0);
   const totalCompleted = completions.length;
   const completionRate = totalPossible > 0 ? Math.round((totalCompleted / totalPossible) * 100) : 0;
 
@@ -150,7 +152,7 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
                     <p className="text-xs text-muted-foreground">{assignment.description}</p>
                   )}
                 </div>
-                <span className="text-xs font-medium text-primary">{completedDays}/7</span>
+                <span className="text-xs font-medium text-primary">{completedDays}/{assignment.frequency ?? 7}</span>
               </div>
 
               {/* Day grid */}
