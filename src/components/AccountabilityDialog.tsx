@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { ClipboardCheck, Check, MessageSquare, Trophy } from 'lucide-react';
+import { ClipboardCheck, Check, MessageSquare, Trophy, Paperclip, ExternalLink } from 'lucide-react';
 import { TeamLeaderboardDialog } from '@/components/TeamLeaderboardDialog';
 import { WorkoutAssignment, WorkoutCompletion, getWeekDayLabels } from '@/hooks/use-workouts';
 import { format } from 'date-fns';
