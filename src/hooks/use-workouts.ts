@@ -8,6 +8,8 @@ export interface WorkoutAssignment {
   pitcherId: string;
   title: string;
   description: string | null;
+  frequency: number; // times per week (1-7)
+  attachmentUrl: string | null;
   createdAt: string;
 }
 
