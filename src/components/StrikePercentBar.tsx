@@ -268,10 +268,20 @@ function SparklineWithTooltip({ spark, sparkW, sparkH, sparkPad, trendData }: Sp
           y1={spark.refY}
           y2={spark.refY}
           stroke="hsl(var(--muted-foreground))"
-          strokeWidth={0.5}
-          strokeDasharray="3 3"
-          opacity={0.3}
+          strokeWidth={1}
+          strokeDasharray="4 3"
+          opacity={0.4}
         />
+        {/* 50% label on the line */}
+        <text
+          x={sparkPad}
+          y={spark.refY - 3}
+          fontSize={7}
+          fill="hsl(var(--muted-foreground))"
+          opacity={0.5}
+        >
+          50%
+        </text>
 
         {/* Trend line */}
         <path
