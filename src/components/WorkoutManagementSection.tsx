@@ -49,17 +49,23 @@ export function WorkoutManagementSection({
 
     // Upload file if provided
     if (attachmentFile) {
-      const ext = attachmentFile.name.split('.').pop();
-      const path = `workouts/${pitcherId}/${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from('outing-videos')
-        .upload(path, attachmentFile);
-
-      if (!uploadError) {
-        const { data: urlData } = supabase.storage
+      try {
+        const ext = attachmentFile.name.split('.').pop();
+        const path = `workouts/${pitcherId}/${Date.now()}.${ext}`;
+        const { error: uploadError } = await supabase.storage
           .from('outing-videos')
-          .getPublicUrl(path);
-        attachmentUrl = urlData.publicUrl;
+          .upload(path, attachmentFile);
+
+        if (uploadError) {
+          console.error('File upload error:', uploadError);
+        } else {
+          const { data: urlData } = supabase.storage
+            .from('outing-videos')
+            .getPublicUrl(path);
+          attachmentUrl = urlData.publicUrl;
+        }
+      } catch (err) {
+        console.error('File upload failed:', err);
       }
     }
 
