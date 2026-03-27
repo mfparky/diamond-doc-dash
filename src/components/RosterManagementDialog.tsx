@@ -98,7 +98,7 @@ export function RosterManagementDialog({
   }, [open, fetchAllWorkoutAssignments]);
 
   // Add assignment handler
-  const handleAddAssignment = async (pitcherId: string, title: string, description?: string): Promise<WorkoutAssignment | null> => {
+  const handleAddAssignment = async (pitcherId: string, title: string, description?: string, frequency?: number, attachmentUrl?: string): Promise<WorkoutAssignment | null> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -108,6 +108,8 @@ export function RosterManagementDialog({
           pitcher_id: pitcherId,
           title,
           description: description || null,
+          frequency: frequency ?? 7,
+          attachment_url: attachmentUrl || null,
           user_id: user?.id || null,
         })
         .select()
