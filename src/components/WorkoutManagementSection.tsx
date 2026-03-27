@@ -3,8 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, ClipboardCheck } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Trash2, ClipboardCheck, Paperclip, ExternalLink } from 'lucide-react';
 import { WorkoutAssignment } from '@/hooks/use-workouts';
+import { supabase } from '@/integrations/supabase/client';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +22,7 @@ interface WorkoutManagementSectionProps {
   pitcherId: string;
   pitcherName: string;
   assignments: WorkoutAssignment[];
-  onAddAssignment: (pitcherId: string, title: string, description?: string) => Promise<WorkoutAssignment | null>;
+  onAddAssignment: (pitcherId: string, title: string, description?: string, frequency?: number, attachmentUrl?: string) => Promise<WorkoutAssignment | null>;
   onDeleteAssignment: (id: string) => Promise<boolean>;
 }
 
@@ -34,16 +36,45 @@ export function WorkoutManagementSection({
   const [isAdding, setIsAdding] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [frequency, setFrequency] = useState('7');
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAdd = async () => {
     if (!title.trim()) return;
     setIsSubmitting(true);
-    const result = await onAddAssignment(pitcherId, title.trim(), description.trim() || undefined);
+
+    let attachmentUrl: string | undefined;
+
+    // Upload file if provided
+    if (attachmentFile) {
+      const ext = attachmentFile.name.split('.').pop();
+      const path = `workouts/${pitcherId}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('outing-videos')
+        .upload(path, attachmentFile);
+
+      if (!uploadError) {
+        const { data: urlData } = supabase.storage
+          .from('outing-videos')
+          .getPublicUrl(path);
+        attachmentUrl = urlData.publicUrl;
+      }
+    }
+
+    const result = await onAddAssignment(
+      pitcherId,
+      title.trim(),
+      description.trim() || undefined,
+      parseInt(frequency),
+      attachmentUrl
+    );
     if (result) {
       setTitle('');
       setDescription('');
+      setFrequency('7');
+      setAttachmentFile(null);
       setIsAdding(false);
     }
     setIsSubmitting(false);
@@ -75,9 +106,24 @@ export function WorkoutManagementSection({
           className="flex items-start gap-2 p-2 rounded-md bg-background/50 border border-border/30"
         >
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">{assignment.title}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-medium text-foreground truncate">{assignment.title}</p>
+              <span className="text-xs text-muted-foreground shrink-0">{assignment.frequency}x/wk</span>
+            </div>
             {assignment.description && (
-              <p className="text-xs text-muted-foreground truncate">{assignment.description}</p>
+              <p className="text-xs text-muted-foreground line-clamp-2">{assignment.description}</p>
+            )}
+            {assignment.attachmentUrl && (
+              <a
+                href={assignment.attachmentUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1"
+              >
+                <Paperclip className="w-3 h-3" />
+                View attachment
+                <ExternalLink className="w-3 h-3" />
+              </a>
             )}
           </div>
           <Button
@@ -114,6 +160,30 @@ export function WorkoutManagementSection({
               rows={2}
             />
           </div>
+          <div>
+            <Label className="text-xs">Frequency (days per week)</Label>
+            <Select value={frequency} onValueChange={setFrequency}>
+              <SelectTrigger className="h-8 mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {n}x per week
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Attachment (optional)</Label>
+            <Input
+              type="file"
+              accept="image/*,.pdf,.doc,.docx"
+              onChange={(e) => setAttachmentFile(e.target.files?.[0] || null)}
+              className="h-8 mt-1 text-xs"
+            />
+          </div>
           <div className="flex justify-end gap-2">
             <Button
               variant="outline"
@@ -122,6 +192,8 @@ export function WorkoutManagementSection({
                 setIsAdding(false);
                 setTitle('');
                 setDescription('');
+                setFrequency('7');
+                setAttachmentFile(null);
               }}
             >
               Cancel
@@ -131,7 +203,7 @@ export function WorkoutManagementSection({
               onClick={handleAdd}
               disabled={!title.trim() || isSubmitting}
             >
-              Add
+              {isSubmitting ? 'Adding...' : 'Add'}
             </Button>
           </div>
         </div>
