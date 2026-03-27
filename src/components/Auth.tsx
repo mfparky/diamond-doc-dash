@@ -70,8 +70,8 @@ export function Auth() {
       });
     } else if (isSignUp) {
       toast({
-        title: 'Check your email',
-        description: 'A confirmation link has been sent to your email address.',
+        title: 'Account created!',
+        description: 'Your account is pending admin approval. You will be notified when approved.',
       });
     }
     
