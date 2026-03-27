@@ -9,8 +9,8 @@ export interface PitcherRecord {
   name: string;
   maxWeeklyPitches: number;
   pitchTypes: PitchTypeConfig | null;
-  teamId: string | null;
-  userId: string | null;
+  teamId?: string | null;
+  userId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
