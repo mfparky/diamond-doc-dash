@@ -214,3 +214,121 @@ export function StrikePercentBar({ pitcherSeasons, outings }: StrikePercentBarPr
     </Card>
   );
 }
+
+interface SparklineProps {
+  spark: { path: string; refY: number; points: { x: number; y: number }[] };
+  sparkW: number;
+  sparkH: number;
+  sparkPad: number;
+  trendData: { date: string; pct: number }[];
+}
+
+function SparklineWithTooltip({ spark, sparkW, sparkH, sparkPad, trendData }: SparklineProps) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    const svg = svgRef.current;
+    if (!svg || spark.points.length < 2) return;
+    const rect = svg.getBoundingClientRect();
+    const relX = (e.clientX - rect.left) / rect.width * sparkW;
+    // Find nearest point
+    let closest = 0;
+    let closestDist = Infinity;
+    for (let i = 0; i < spark.points.length; i++) {
+      const d = Math.abs(spark.points[i].x - relX);
+      if (d < closestDist) { closestDist = d; closest = i; }
+    }
+    setHoverIndex(closest);
+  }, [spark.points, sparkW]);
+
+  const hp = hoverIndex !== null ? spark.points[hoverIndex] : null;
+  const hd = hoverIndex !== null ? trendData[hoverIndex] : null;
+
+  return (
+    <div className="w-full mt-4 pt-3 border-t border-border/40">
+      <div className="flex items-center justify-between mb-1.5">
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Strike % Trend</p>
+        <p className="text-[10px] text-muted-foreground opacity-50">50%</p>
+      </div>
+      <svg
+        ref={svgRef}
+        width="100%"
+        height={sparkH}
+        viewBox={`0 0 ${sparkW} ${sparkH}`}
+        preserveAspectRatio="none"
+        className="overflow-visible cursor-crosshair"
+        onMouseMove={handleMouseMove}
+        onMouseLeave={() => setHoverIndex(null)}
+      >
+        {/* 50% reference line */}
+        <line
+          x1={sparkPad}
+          x2={sparkW - sparkPad}
+          y1={spark.refY}
+          y2={spark.refY}
+          stroke="hsl(var(--muted-foreground))"
+          strokeWidth={0.5}
+          strokeDasharray="3 3"
+          opacity={0.3}
+        />
+
+        {/* Trend line */}
+        <path
+          d={spark.path}
+          fill="none"
+          stroke="hsl(var(--primary))"
+          strokeWidth={1.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
+        {/* End dot (when not hovering) */}
+        {hoverIndex === null && spark.points.length > 0 && (
+          <circle
+            cx={spark.points[spark.points.length - 1].x}
+            cy={spark.points[spark.points.length - 1].y}
+            r={2.5}
+            fill="hsl(var(--primary))"
+          />
+        )}
+
+        {/* Hover indicator */}
+        {hp && hd && (
+          <>
+            <line
+              x1={hp.x}
+              x2={hp.x}
+              y1={0}
+              y2={sparkH}
+              stroke="hsl(var(--muted-foreground))"
+              strokeWidth={0.5}
+              opacity={0.4}
+            />
+            <circle cx={hp.x} cy={hp.y} r={3} fill="hsl(var(--primary))" />
+            <rect
+              x={Math.min(hp.x - 18, sparkW - 40)}
+              y={Math.max(hp.y - 18, 0)}
+              width={36}
+              height={14}
+              rx={3}
+              fill="hsl(var(--popover))"
+              stroke="hsl(var(--border))"
+              strokeWidth={0.5}
+            />
+            <text
+              x={Math.min(hp.x, sparkW - 22)}
+              y={Math.max(hp.y - 8, 10)}
+              fontSize={8}
+              fontWeight={600}
+              fill="hsl(var(--foreground))"
+              textAnchor="middle"
+            >
+              {Math.round(hd.pct * 10) / 10}%
+            </text>
+          </>
+        )}
+      </svg>
+    </div>
+  );
+}
