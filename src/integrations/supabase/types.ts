@@ -251,6 +251,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_approvals: {
+        Row: {
+          approved_at: string | null
+          created_at: string
+          email: string
+          id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       workout_assignments: {
         Row: {
           attachment_url: string | null
