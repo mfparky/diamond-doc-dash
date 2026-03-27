@@ -340,6 +340,7 @@ function SparklineWithTooltip({ spark, sparkW, sparkH, sparkPad, trendData }: Sp
           </>
         )}
       </svg>
+      </div>
     </div>
   );
 }
