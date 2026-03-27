@@ -8,11 +8,18 @@ interface PitcherSeasonSummary {
   totalStrikes?: number;
 }
 
-interface StrikePercentBarProps {
-  pitcherSeasons: PitcherSeasonSummary[];
+interface OutingForTrend {
+  date: string;
+  strikes: number | null;
+  pitch_count: number;
 }
 
-export function StrikePercentBar({ pitcherSeasons }: StrikePercentBarProps) {
+interface StrikePercentBarProps {
+  pitcherSeasons: PitcherSeasonSummary[];
+  outings?: OutingForTrend[];
+}
+
+export function StrikePercentBar({ pitcherSeasons, outings }: StrikePercentBarProps) {
   const data = useMemo(() => {
     const eligible = pitcherSeasons
       .filter((p) => p.strikePitches >= 10);
@@ -23,7 +30,6 @@ export function StrikePercentBar({ pitcherSeasons }: StrikePercentBarProps) {
       .map((p) => Math.round(p.strikePercent * 10) / 10)
       .sort((a, b) => a - b);
 
-    // Weighted average: total strikes / total pitches (matches outings-based stat card)
     const totalStrikesAll = eligible.reduce((s, p) => s + (p.totalStrikes ?? Math.round(p.strikePercent / 100 * p.strikePitches)), 0);
     const totalPitchesAll = eligible.reduce((s, p) => s + p.strikePitches, 0);
     const avg = totalPitchesAll > 0 ? Math.round((totalStrikesAll / totalPitchesAll) * 1000) / 10 : 0;
@@ -33,6 +39,32 @@ export function StrikePercentBar({ pitcherSeasons }: StrikePercentBarProps) {
 
     return { avg, min, max, count: eligible.length };
   }, [pitcherSeasons]);
+
+  // Compute trend line data: rolling strike % by date
+  const trendData = useMemo(() => {
+    if (!outings || outings.length < 2) return null;
+
+    // Group by date, only outings with tracked strikes
+    const byDate = new Map<string, { strikes: number; pitches: number }>();
+    outings
+      .filter((o) => o.strikes !== null && o.pitch_count > 0)
+      .forEach((o) => {
+        const existing = byDate.get(o.date) || { strikes: 0, pitches: 0 };
+        existing.strikes += o.strikes!;
+        existing.pitches += o.pitch_count;
+        byDate.set(o.date, existing);
+      });
+
+    const sorted = Array.from(byDate.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, { strikes, pitches }]) => ({
+        date,
+        pct: pitches > 0 ? (strikes / pitches) * 100 : 0,
+      }));
+
+    if (sorted.length < 2) return null;
+    return sorted;
+  }, [outings]);
 
   if (!data) return null;
 
@@ -44,12 +76,9 @@ export function StrikePercentBar({ pitcherSeasons }: StrikePercentBarProps) {
   const fillPercent = data.avg / 100;
   const dashOffset = circumference * (1 - fillPercent);
 
-  // Color based on avg
   const avgColor =
     data.avg >= 60 ? 'hsl(142, 60%, 42%)' : data.avg >= 50 ? 'hsl(38, 92%, 50%)' : 'hsl(var(--destructive))';
 
-  // Marker positions on the ring (angle in degrees, 0 = top, clockwise)
-  const pctToAngle = (pct: number) => (pct / 100) * 360 - 90; // -90 to start from top
   const pctToXY = (pct: number) => {
     const angle = (pct / 100) * 360 - 90;
     const rad = (angle * Math.PI) / 180;
@@ -61,6 +90,34 @@ export function StrikePercentBar({ pitcherSeasons }: StrikePercentBarProps) {
 
   const minPos = pctToXY(data.min);
   const maxPos = pctToXY(data.max);
+
+  // Sparkline geometry
+  const sparkW = 220;
+  const sparkH = 40;
+  const sparkPad = 4;
+
+  const buildSparkPath = () => {
+    if (!trendData || trendData.length < 2) return null;
+
+    const minPct = Math.min(...trendData.map((d) => d.pct), 30);
+    const maxPct = Math.max(...trendData.map((d) => d.pct), 70);
+    const range = maxPct - minPct || 1;
+
+    const points = trendData.map((d, i) => {
+      const x = sparkPad + (i / (trendData.length - 1)) * (sparkW - sparkPad * 2);
+      const y = sparkH - sparkPad - ((d.pct - minPct) / range) * (sparkH - sparkPad * 2);
+      return { x, y };
+    });
+
+    const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+
+    // 50% reference line y position
+    const refY = sparkH - sparkPad - ((50 - minPct) / range) * (sparkH - sparkPad * 2);
+
+    return { path, refY, points };
+  };
+
+  const spark = buildSparkPath();
 
   return (
     <Card className="glass-card">
@@ -83,7 +140,6 @@ export function StrikePercentBar({ pitcherSeasons }: StrikePercentBarProps) {
               </linearGradient>
             </defs>
 
-            {/* Background track */}
             <circle
               cx={size / 2}
               cy={size / 2}
@@ -93,7 +149,6 @@ export function StrikePercentBar({ pitcherSeasons }: StrikePercentBarProps) {
               strokeWidth={strokeWidth}
             />
 
-            {/* Filled arc */}
             <circle
               cx={size / 2}
               cy={size / 2}
@@ -107,7 +162,6 @@ export function StrikePercentBar({ pitcherSeasons }: StrikePercentBarProps) {
               className="transition-all duration-1000 ease-out"
             />
 
-            {/* Min marker */}
             <circle
               cx={minPos.x}
               cy={minPos.y}
@@ -119,7 +173,6 @@ export function StrikePercentBar({ pitcherSeasons }: StrikePercentBarProps) {
               style={{ transformOrigin: `${size / 2}px ${size / 2}px` }}
             />
 
-            {/* Max marker */}
             <circle
               cx={maxPos.x}
               cy={maxPos.y}
@@ -132,7 +185,6 @@ export function StrikePercentBar({ pitcherSeasons }: StrikePercentBarProps) {
             />
           </svg>
 
-          {/* Center text */}
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className="text-3xl font-bold text-foreground leading-none">{data.avg}%</span>
             <span className="text-[10px] text-muted-foreground mt-1">Team Avg</span>
@@ -153,6 +205,61 @@ export function StrikePercentBar({ pitcherSeasons }: StrikePercentBarProps) {
             <span className="font-semibold text-foreground">{data.max}%</span>
           </div>
         </div>
+
+        {/* Trend sparkline */}
+        {spark && (
+          <div className="w-full mt-4 pt-3 border-t border-border/40">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Strike % Trend</p>
+            <svg
+              width="100%"
+              height={sparkH}
+              viewBox={`0 0 ${sparkW} ${sparkH}`}
+              preserveAspectRatio="none"
+              className="overflow-visible"
+            >
+              {/* 50% reference line */}
+              <line
+                x1={sparkPad}
+                x2={sparkW - sparkPad}
+                y1={spark.refY}
+                y2={spark.refY}
+                stroke="hsl(var(--muted-foreground))"
+                strokeWidth={0.5}
+                strokeDasharray="3 3"
+                opacity={0.5}
+              />
+              <text
+                x={sparkW - sparkPad + 2}
+                y={spark.refY + 3}
+                fontSize={8}
+                fill="hsl(var(--muted-foreground))"
+                opacity={0.6}
+              >
+                50%
+              </text>
+
+              {/* Trend line */}
+              <path
+                d={spark.path}
+                fill="none"
+                stroke="hsl(var(--primary))"
+                strokeWidth={1.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+
+              {/* End dot */}
+              {spark.points.length > 0 && (
+                <circle
+                  cx={spark.points[spark.points.length - 1].x}
+                  cy={spark.points[spark.points.length - 1].y}
+                  r={2.5}
+                  fill="hsl(var(--primary))"
+                />
+              )}
+            </svg>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
