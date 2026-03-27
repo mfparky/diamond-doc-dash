@@ -45,45 +45,50 @@ export function WorkoutManagementSection({
     if (!title.trim()) return;
     setIsSubmitting(true);
 
-    let attachmentUrl: string | undefined;
+    try {
+      let attachmentUrl: string | undefined;
 
-    // Upload file if provided
-    if (attachmentFile) {
-      try {
-        const ext = attachmentFile.name.split('.').pop();
-        const path = `workouts/${pitcherId}/${Date.now()}.${ext}`;
-        const { error: uploadError } = await supabase.storage
-          .from('outing-videos')
-          .upload(path, attachmentFile);
-
-        if (uploadError) {
-          console.error('File upload error:', uploadError);
-        } else {
-          const { data: urlData } = supabase.storage
+      // Upload file if provided
+      if (attachmentFile) {
+        try {
+          const ext = attachmentFile.name.split('.').pop();
+          const path = `workouts/${pitcherId}/${Date.now()}.${ext}`;
+          const { error: uploadError } = await supabase.storage
             .from('outing-videos')
-            .getPublicUrl(path);
-          attachmentUrl = urlData.publicUrl;
-        }
-      } catch (err) {
-        console.error('File upload failed:', err);
-      }
-    }
+            .upload(path, attachmentFile);
 
-    const result = await onAddAssignment(
-      pitcherId,
-      title.trim(),
-      description.trim() || undefined,
-      parseInt(frequency),
-      attachmentUrl
-    );
-    if (result) {
-      setTitle('');
-      setDescription('');
-      setFrequency('7');
-      setAttachmentFile(null);
-      setIsAdding(false);
+          if (uploadError) {
+            console.error('File upload error:', uploadError);
+          } else {
+            const { data: urlData } = supabase.storage
+              .from('outing-videos')
+              .getPublicUrl(path);
+            attachmentUrl = urlData.publicUrl;
+          }
+        } catch (err) {
+          console.error('File upload failed:', err);
+        }
+      }
+
+      const result = await onAddAssignment(
+        pitcherId,
+        title.trim(),
+        description.trim() || undefined,
+        parseInt(frequency),
+        attachmentUrl
+      );
+      if (result) {
+        setTitle('');
+        setDescription('');
+        setFrequency('7');
+        setAttachmentFile(null);
+        setIsAdding(false);
+      }
+    } catch (err) {
+      console.error('Error adding workout:', err);
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   const handleDelete = async () => {
