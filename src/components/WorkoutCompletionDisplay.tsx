@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ClipboardCheck, Check, MessageSquare } from 'lucide-react';
+import { ClipboardCheck, Check, MessageSquare, Paperclip, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { startOfWeek, format, addDays } from 'date-fns';
 
@@ -13,6 +13,7 @@ interface WorkoutAssignment {
   title: string;
   description: string | null;
   frequency: number;
+  attachmentUrl: string | null;
 }
 
 interface WorkoutCompletion {
@@ -51,7 +52,7 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
         const [assignmentsRes, completionsRes] = await Promise.all([
           supabase
             .from('workout_assignments')
-            .select('id, title, description')
+            .select('id, title, description, frequency, attachment_url')
             .eq('pitcher_id', pitcherId),
           supabase
             .from('workout_completions')
@@ -69,6 +70,7 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
             title: a.title,
             description: a.description,
             frequency: (a as any).frequency ?? 7,
+            attachmentUrl: (a as any).attachment_url ?? null,
           }))
         );
 
@@ -150,6 +152,18 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
                   <p className="font-medium text-sm text-foreground">{assignment.title}</p>
                   {assignment.description && (
                     <p className="text-xs text-muted-foreground">{assignment.description}</p>
+                  )}
+                  {assignment.attachmentUrl && (
+                    <a
+                      href={assignment.attachmentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-0.5"
+                    >
+                      <Paperclip className="w-3 h-3" />
+                      View details
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
                   )}
                 </div>
                 <span className="text-xs font-medium text-primary">{completedDays}/{assignment.frequency ?? 7}</span>

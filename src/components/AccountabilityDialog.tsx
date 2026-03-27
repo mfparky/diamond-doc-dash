@@ -48,10 +48,24 @@ export function AccountabilityDialog({
     );
   };
 
+  // Count completions for an assignment
+  const getCompletedCount = (assignmentId: string): number => {
+    return completions.filter((c) => c.assignmentId === assignmentId).length;
+  };
+
+  // Check if assignment has reached its frequency cap
+  const isAtFrequencyCap = (assignmentId: string, frequency: number): boolean => {
+    return getCompletedCount(assignmentId) >= frequency;
+  };
+
   // Handle day toggle
-  const handleToggle = async (assignmentId: string, dayOfWeek: number) => {
+  const handleToggle = async (assignmentId: string, dayOfWeek: number, frequency: number) => {
     const key = `${assignmentId}-${dayOfWeek}`;
     if (pendingToggles.has(key)) return;
+
+    // If trying to add and already at cap, block it
+    const alreadyCompleted = isCompleted(assignmentId, dayOfWeek);
+    if (!alreadyCompleted && isAtFrequencyCap(assignmentId, frequency)) return;
 
     setPendingToggles((prev) => new Set(prev).add(key));
     await onToggleDay(assignmentId, dayOfWeek);
@@ -169,24 +183,27 @@ export function AccountabilityDialog({
                     const future = isFuture(date);
                     const today = isToday(date);
 
+                    const atCap = !completed && isAtFrequencyCap(assignment.id, assignment.frequency ?? 7);
+                    const disabled = isPending || future || atCap;
+
                     return (
                       <div key={dayIndex} className="flex flex-col items-center gap-1">
                         <span className={`text-xs font-medium ${today ? 'text-primary' : 'text-muted-foreground'}`}>
                           {label}
                         </span>
                         <button
-                          onClick={() => !future && handleToggle(assignment.id, dayIndex)}
-                          disabled={isPending || future}
+                          onClick={() => !disabled && handleToggle(assignment.id, dayIndex, assignment.frequency ?? 7)}
+                          disabled={disabled}
                           className={`
                             w-10 h-10 rounded-lg border-2 flex items-center justify-center transition-all
                             ${completed
                               ? 'bg-primary border-primary text-primary-foreground'
-                              : future
-                                ? 'bg-muted/30 border-border/30 cursor-not-allowed'
+                              : disabled
+                                ? 'bg-muted/30 border-border/30 cursor-not-allowed opacity-40'
                                 : 'bg-background border-border hover:border-primary/50'
                             }
                             ${isPending ? 'opacity-50' : ''}
-                            ${today && !completed ? 'ring-2 ring-primary/30' : ''}
+                            ${today && !completed && !atCap ? 'ring-2 ring-primary/30' : ''}
                           `}
                         >
                           {completed && <Check className="w-5 h-5" />}
