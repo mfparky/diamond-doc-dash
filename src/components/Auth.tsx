@@ -20,7 +20,7 @@ export function Auth() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const { toast } = useToast();
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, pendingApproval } = useAuth();
 
   const validateForm = () => {
     try {
