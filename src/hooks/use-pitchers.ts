@@ -97,6 +97,8 @@ export function usePitchers() {
         name: data.name,
         maxWeeklyPitches: data.max_weekly_pitches,
         pitchTypes: data.pitch_types as PitchTypeConfig | null,
+        teamId: data.team_id ?? null,
+        userId: data.user_id ?? null,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
       };
