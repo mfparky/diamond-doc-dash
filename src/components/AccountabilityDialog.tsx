@@ -184,7 +184,7 @@ export function AccountabilityDialog({
                     const today = isToday(date);
 
                     const atCap = !completed && isAtFrequencyCap(assignment.id, assignment.frequency ?? 7);
-                    const disabled = isPending || future || atCap;
+                    const disabled = isPending || atCap;
 
                     return (
                       <div key={dayIndex} className="flex flex-col items-center gap-1">
