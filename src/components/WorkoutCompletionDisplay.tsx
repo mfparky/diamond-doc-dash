@@ -70,6 +70,7 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
             title: a.title,
             description: a.description,
             frequency: (a as any).frequency ?? 7,
+            attachmentUrl: (a as any).attachment_url ?? null,
           }))
         );
 
