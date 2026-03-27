@@ -12,6 +12,7 @@ interface WorkoutAssignment {
   id: string;
   title: string;
   description: string | null;
+  frequency: number;
 }
 
 interface WorkoutCompletion {
