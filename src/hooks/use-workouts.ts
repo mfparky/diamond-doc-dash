@@ -109,7 +109,9 @@ export function useWorkouts(pitcherId?: string) {
   const addAssignment = useCallback(async (
     pitcherId: string,
     title: string,
-    description?: string
+    description?: string,
+    frequency?: number,
+    attachmentUrl?: string
   ): Promise<WorkoutAssignment | null> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -120,6 +122,8 @@ export function useWorkouts(pitcherId?: string) {
           pitcher_id: pitcherId,
           title,
           description: description || null,
+          frequency: frequency ?? 7,
+          attachment_url: attachmentUrl || null,
           user_id: user?.id || null,
         })
         .select()
