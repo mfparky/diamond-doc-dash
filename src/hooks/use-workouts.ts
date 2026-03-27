@@ -136,6 +136,8 @@ export function useWorkouts(pitcherId?: string) {
         pitcherId: data.pitcher_id,
         title: data.title,
         description: data.description,
+        frequency: data.frequency ?? 7,
+        attachmentUrl: data.attachment_url ?? null,
         createdAt: data.created_at,
       };
 
