@@ -104,7 +104,7 @@ export function StrikeZone({
 
         {/* Strike zone box with inner 3×3 grid */}
         <div
-          className="absolute border-2 border-foreground/80 bg-primary/5"
+          className="absolute border-2 border-foreground/80 bg-primary/5 z-0"
           style={{
             left: `${zoneLeft}%`,
             right: `${zoneRight}%`,
@@ -140,7 +140,7 @@ export function StrikeZone({
           return (
             <div
               key={`${group.x.toFixed(3)},${group.y.toFixed(3)}`}
-              className={`absolute ${sizeClass} rounded-full transform -translate-x-1/2 -translate-y-1/2 border border-white/50 flex items-center justify-center font-bold text-white leading-none`}
+              className={`absolute ${sizeClass} rounded-full transform -translate-x-1/2 -translate-y-1/2 border border-white/50 flex items-center justify-center font-bold text-white leading-none z-10`}
               style={{
                 left: `${toPercent(group.x)}%`,
                 top: `${100 - toPercent(group.y)}%`,
