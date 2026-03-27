@@ -119,8 +119,8 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
     return null; // Don't show anything if no workouts assigned
   }
 
-  // Calculate total progress
-  const totalPossible = assignments.length * 7;
+  // Calculate total progress using frequency
+  const totalPossible = assignments.reduce((sum, a) => sum + (a.frequency ?? 7), 0);
   const totalCompleted = completions.length;
   const completionRate = totalPossible > 0 ? Math.round((totalCompleted / totalPossible) * 100) : 0;
 
