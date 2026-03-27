@@ -245,42 +245,44 @@ function SparklineWithTooltip({ spark, sparkW, sparkH, sparkPad, trendData }: Sp
   const hp = hoverIndex !== null ? spark.points[hoverIndex] : null;
   const hd = hoverIndex !== null ? trendData[hoverIndex] : null;
 
+  // Calculate 50% line position as a percentage of height
+  const refYPercent = (spark.refY / sparkH) * 100;
+
   return (
     <div className="w-full mt-4 pt-3 border-t border-border/40">
       <div className="flex items-center mb-1.5">
         <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Strike % Trend</p>
       </div>
-      <svg
-        ref={svgRef}
-        width="100%"
-        height={sparkH}
-        viewBox={`0 0 ${sparkW} ${sparkH}`}
-        preserveAspectRatio="none"
-        className="overflow-visible cursor-crosshair"
-        onMouseMove={handleMouseMove}
-        onMouseLeave={() => setHoverIndex(null)}
-      >
-        {/* 50% reference line */}
-        <line
-          x1={sparkPad}
-          x2={sparkW - sparkPad}
-          y1={spark.refY}
-          y2={spark.refY}
-          stroke="hsl(var(--muted-foreground))"
-          strokeWidth={1}
-          strokeDasharray="4 3"
-          opacity={0.4}
-        />
-        {/* 50% label on the line */}
-        <text
-          x={sparkPad}
-          y={spark.refY - 3}
-          fontSize={7}
-          fill="hsl(var(--muted-foreground))"
-          opacity={0.5}
+      <div className="relative" style={{ height: sparkH }}>
+        {/* 50% label positioned with CSS so it doesn't stretch */}
+        <span
+          className="absolute right-0 text-[9px] text-muted-foreground/50 leading-none"
+          style={{ top: `${refYPercent}%`, transform: 'translateY(-50%)' }}
         >
           50%
-        </text>
+        </span>
+        <svg
+          ref={svgRef}
+          width="100%"
+          height={sparkH}
+          viewBox={`0 0 ${sparkW} ${sparkH}`}
+          preserveAspectRatio="none"
+          className="overflow-visible cursor-crosshair absolute inset-0"
+          onMouseMove={handleMouseMove}
+          onMouseLeave={() => setHoverIndex(null)}
+        >
+          {/* 50% dotted reference line */}
+          <line
+            x1={sparkPad}
+            x2={sparkW - sparkPad - 20}
+            y1={spark.refY}
+            y2={spark.refY}
+            stroke="hsl(var(--muted-foreground))"
+            strokeWidth={1}
+            strokeDasharray="1 3"
+            strokeLinecap="round"
+            opacity={0.35}
+          />
 
         {/* Trend line */}
         <path
