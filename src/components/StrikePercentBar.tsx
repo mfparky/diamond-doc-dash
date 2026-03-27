@@ -208,57 +208,7 @@ export function StrikePercentBar({ pitcherSeasons, outings }: StrikePercentBarPr
 
         {/* Trend sparkline */}
         {spark && (
-          <div className="w-full mt-4 pt-3 border-t border-border/40">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Strike % Trend</p>
-            <svg
-              width="100%"
-              height={sparkH}
-              viewBox={`0 0 ${sparkW} ${sparkH}`}
-              preserveAspectRatio="none"
-              className="overflow-visible"
-            >
-              {/* 50% reference line */}
-              <line
-                x1={sparkPad}
-                x2={sparkW - sparkPad}
-                y1={spark.refY}
-                y2={spark.refY}
-                stroke="hsl(var(--muted-foreground))"
-                strokeWidth={0.5}
-                strokeDasharray="3 3"
-                opacity={0.5}
-              />
-              <text
-                x={sparkW - sparkPad + 2}
-                y={spark.refY + 3}
-                fontSize={8}
-                fill="hsl(var(--muted-foreground))"
-                opacity={0.6}
-              >
-                50%
-              </text>
-
-              {/* Trend line */}
-              <path
-                d={spark.path}
-                fill="none"
-                stroke="hsl(var(--primary))"
-                strokeWidth={1.5}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-
-              {/* End dot */}
-              {spark.points.length > 0 && (
-                <circle
-                  cx={spark.points[spark.points.length - 1].x}
-                  cy={spark.points[spark.points.length - 1].y}
-                  r={2.5}
-                  fill="hsl(var(--primary))"
-                />
-              )}
-            </svg>
-          </div>
+          <SparklineWithTooltip spark={spark} sparkW={sparkW} sparkH={sparkH} sparkPad={sparkPad} trendData={trendData!} />
         )}
       </CardContent>
     </Card>
