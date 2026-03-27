@@ -78,6 +78,33 @@ export function Auth() {
     setIsLoading(false);
   };
 
+  if (pendingApproval) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <img src={hawksLogo} alt="Hawks Logo" className="h-16 w-auto" />
+            </div>
+            <CardTitle className="text-2xl">Account Pending Approval</CardTitle>
+            <CardDescription>
+              Your account has been created but requires admin approval before you can access the dashboard. You'll be notified once approved.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <Button
+              variant="outline"
+              onClick={() => window.location.reload()}
+              className="w-full"
+            >
+              Check Again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
