@@ -153,6 +153,18 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
                   {assignment.description && (
                     <p className="text-xs text-muted-foreground">{assignment.description}</p>
                   )}
+                  {assignment.attachmentUrl && (
+                    <a
+                      href={assignment.attachmentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-0.5"
+                    >
+                      <Paperclip className="w-3 h-3" />
+                      View details
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
                 </div>
                 <span className="text-xs font-medium text-primary">{completedDays}/{assignment.frequency ?? 7}</span>
               </div>
