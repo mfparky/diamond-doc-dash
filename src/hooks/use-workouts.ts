@@ -61,6 +61,8 @@ export function useWorkouts(pitcherId?: string) {
         pitcherId: row.pitcher_id,
         title: row.title,
         description: row.description,
+        frequency: row.frequency ?? 7,
+        attachmentUrl: row.attachment_url ?? null,
         createdAt: row.created_at,
       }));
 
