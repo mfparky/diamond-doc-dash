@@ -444,7 +444,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
         {stats.velocities.length > 0 && (
           <VelocityScale velocities={stats.velocities} />
         )}
-        <StrikePercentBar pitcherSeasons={pitcherRadarData} />
+        <StrikePercentBar pitcherSeasons={pitcherRadarData} outings={filteredOutings.map(o => ({ date: o.date, strikes: o.strikes, pitch_count: o.pitchCount }))} />
       </div>
 
 
