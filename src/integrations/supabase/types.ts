@@ -253,8 +253,10 @@ export type Database = {
       }
       workout_assignments: {
         Row: {
+          attachment_url: string | null
           created_at: string
           description: string | null
+          frequency: number
           id: string
           pitcher_id: string
           team_id: string | null
@@ -263,8 +265,10 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          attachment_url?: string | null
           created_at?: string
           description?: string | null
+          frequency?: number
           id?: string
           pitcher_id: string
           team_id?: string | null
@@ -273,8 +277,10 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          attachment_url?: string | null
           created_at?: string
           description?: string | null
+          frequency?: number
           id?: string
           pitcher_id?: string
           team_id?: string | null
