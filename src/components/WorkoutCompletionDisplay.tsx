@@ -13,6 +13,7 @@ interface WorkoutAssignment {
   title: string;
   description: string | null;
   frequency: number;
+  attachmentUrl: string | null;
 }
 
 interface WorkoutCompletion {
