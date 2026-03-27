@@ -14,6 +14,7 @@ import { WorkoutManagementSection } from '@/components/WorkoutManagementSection'
 import { WorkoutLeaderboard } from '@/components/WorkoutLeaderboard';
 import { useWorkouts, WorkoutAssignment } from '@/hooks/use-workouts';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -58,6 +59,7 @@ export function RosterManagementDialog({
     const stored = localStorage.getItem('achievementStartDate');
     return stored ? new Date(stored) : undefined;
   });
+  const { toast } = useToast();
 
   // Fetch all workout assignments for all pitchers
   const fetchAllWorkoutAssignments = useCallback(async () => {
@@ -99,18 +101,39 @@ export function RosterManagementDialog({
 
   // Add assignment handler
   const handleAddAssignment = async (pitcherId: string, title: string, description?: string, frequency?: number, attachmentUrl?: string): Promise<WorkoutAssignment | null> => {
+    const pitcher = pitchers.find((item) => item.id === pitcherId);
+
+    if (!pitcher) {
+      toast({
+        title: 'Error adding workout',
+        description: 'Could not find the selected player.',
+        variant: 'destructive',
+      });
+      return null;
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        toast({
+          title: 'Authentication required',
+          description: 'Please sign in again before assigning workouts.',
+          variant: 'destructive',
+        });
+        return null;
+      }
       
       const { data, error } = await supabase
         .from('workout_assignments')
         .insert({
           pitcher_id: pitcherId,
+          team_id: pitcher.teamId,
           title,
           description: description || null,
           frequency: frequency ?? 7,
           attachment_url: attachmentUrl || null,
-          user_id: user?.id || null,
+          user_id: pitcher.teamId ? null : (pitcher.userId ?? user.id),
         })
         .select()
         .single();
@@ -133,8 +156,17 @@ export function RosterManagementDialog({
       }));
 
       return newAssignment;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding assignment:', error);
+      const message = error?.message?.toLowerCase()?.includes('row-level security')
+        ? 'You do not have permission to assign workouts for this player.'
+        : 'Could not save the workout. Please try again.';
+
+      toast({
+        title: 'Error adding workout',
+        description: message,
+        variant: 'destructive',
+      });
       return null;
     }
   };
