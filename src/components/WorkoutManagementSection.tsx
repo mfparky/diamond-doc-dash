@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Trash2, ClipboardCheck, Paperclip, ExternalLink } from 'lucide-react';
 import { WorkoutAssignment } from '@/hooks/use-workouts';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +34,7 @@ export function WorkoutManagementSection({
   onAddAssignment,
   onDeleteAssignment,
 }: WorkoutManagementSectionProps) {
+  const { toast } = useToast();
   const [isAdding, setIsAdding] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -50,24 +52,27 @@ export function WorkoutManagementSection({
 
       // Upload file if provided
       if (attachmentFile) {
-        try {
-          const ext = attachmentFile.name.split('.').pop();
-          const path = `workouts/${pitcherId}/${Date.now()}.${ext}`;
-          const { error: uploadError } = await supabase.storage
-            .from('outing-videos')
-            .upload(path, attachmentFile);
+        const { data: { user } } = await supabase.auth.getUser();
 
-          if (uploadError) {
-            console.error('File upload error:', uploadError);
-          } else {
-            const { data: urlData } = supabase.storage
-              .from('outing-videos')
-              .getPublicUrl(path);
-            attachmentUrl = urlData.publicUrl;
-          }
-        } catch (err) {
-          console.error('File upload failed:', err);
+        if (!user) {
+          throw new Error('Please sign in again before uploading attachments.');
         }
+
+        const ext = attachmentFile.name.split('.').pop() || 'file';
+        const path = `${user.id}/workouts/${pitcherId}/${Date.now()}.${ext}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('outing-videos')
+          .upload(path, attachmentFile);
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from('outing-videos')
+          .getPublicUrl(path);
+        attachmentUrl = urlData.publicUrl;
       }
 
       const result = await onAddAssignment(
@@ -86,6 +91,11 @@ export function WorkoutManagementSection({
       }
     } catch (err) {
       console.error('Error adding workout:', err);
+      toast({
+        title: 'Could not add workout',
+        description: err instanceof Error ? err.message : 'Attachment upload failed. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setIsSubmitting(false);
     }
