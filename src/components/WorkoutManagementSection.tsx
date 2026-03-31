@@ -192,6 +192,69 @@ export function WorkoutManagementSection({
 
       {/* Existing assignments */}
       {assignments.map((assignment) => (
+        editingId === assignment.id ? (
+          <div key={assignment.id} className="p-3 rounded-lg bg-primary/5 border border-primary/20 space-y-2">
+            <div>
+              <Label className="text-xs">Workout Title</Label>
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g., Band Work, Arm Care Routine"
+                className="h-8 mt-1"
+                autoFocus
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Description (optional)</Label>
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Details about the workout..."
+                className="mt-1"
+                rows={2}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Frequency (days per week)</Label>
+              <Select value={frequency} onValueChange={setFrequency}>
+                <SelectTrigger className="h-8 mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                    <SelectItem key={n} value={String(n)}>
+                      {n}x per week
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Replace Attachment (optional)</Label>
+              <Input
+                type="file"
+                accept="image/*,.pdf,.doc,.docx"
+                onChange={(e) => setAttachmentFile(e.target.files?.[0] || null)}
+                className="h-8 mt-1 text-xs"
+              />
+              {assignment.attachmentUrl && !attachmentFile && (
+                <p className="text-xs text-muted-foreground mt-1">Current attachment will be kept</p>
+              )}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={cancelEdit}>
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleEdit}
+                disabled={!title.trim() || isSubmitting}
+              >
+                {isSubmitting ? 'Saving...' : 'Save'}
+              </Button>
+            </div>
+          </div>
+        ) : (
         <div
           key={assignment.id}
           className="flex items-start gap-2 p-2 rounded-md bg-background/50 border border-border/30"
@@ -220,12 +283,21 @@ export function WorkoutManagementSection({
           <Button
             variant="ghost"
             size="icon"
+            onClick={() => startEdit(assignment)}
+            className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setDeleteId(assignment.id)}
             className="h-7 w-7 text-status-danger hover:text-status-danger shrink-0"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </Button>
         </div>
+        )
       ))}
 
       {/* Add new assignment form */}
