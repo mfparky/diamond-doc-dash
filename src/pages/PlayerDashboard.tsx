@@ -283,7 +283,7 @@ export default function PlayerDashboard() {
               </Button>
             )}
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => {
                 const badgeResults = evaluateBadges(filterByWindow(pitcher.outings, 'date'), filterByWindow(allPitchLocations, 'createdAt'), pitchTypes);
@@ -297,14 +297,12 @@ export default function PlayerDashboard() {
                   lastOuting: pitcher.lastOuting,
                 });
               }}
-              className="h-7 text-xs px-2"
+              className="h-7 w-7 p-0"
+              title="Download Report"
             >
-              <Download className="w-3.5 h-3.5 mr-1" />
-              Report
+              <Download className="w-3.5 h-3.5" />
             </Button>
-            <div className="ml-auto">
-              <ThemeToggle />
-            </div>
+            <ThemeToggle />
           </div>
         </div>
       </header>
