@@ -26,6 +26,7 @@ import { generateReport } from '@/lib/generate-report';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { TrendingUp, Target, Gauge, Calendar, Video, Shield, ArrowLeft, Play, MessageSquare, ClipboardCheck, Share2, Copy, Check, Download, Star, Users } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import hawksLogo from '@/assets/hawks-logo.png';
 import { LiveAbsSummary } from '@/components/LiveAbsSummary';
 import { LiveAbsDashboard } from '@/components/LiveAbsDashboard';
@@ -302,6 +303,7 @@ export default function PlayerDashboard() {
               <Download className="w-4 h-4 sm:mr-1.5" />
               <span className="hidden sm:inline text-sm">Report</span>
             </Button>
+            <ThemeToggle />
             <StatusBadge status={pitcher.restStatus} compact />
           </div>
         </div>

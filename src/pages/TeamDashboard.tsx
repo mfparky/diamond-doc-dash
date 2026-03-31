@@ -7,6 +7,7 @@ import { usePageMeta } from '@/hooks/use-page-meta';
 import hawksLogo from '@/assets/hawks-logo.png';
 import { CombinedDashboard } from '@/components/CombinedDashboard';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function TeamDashboard() {
   const { teamId } = useParams<{ teamId: string }>();
@@ -133,12 +134,15 @@ export default function TeamDashboard() {
     <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
-        <div className="max-w-4xl mx-auto px-4 h-16 flex items-center gap-3">
-          <img src={hawksLogo} alt="Team" className="w-10 h-10 object-contain shrink-0" />
-          <div className="min-w-0">
-            <h1 className="font-display text-xl font-bold text-foreground truncate">{teamName}</h1>
-            <p className="text-xs text-muted-foreground">2026 Season Dashboard</p>
+        <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <img src={hawksLogo} alt="Team" className="w-10 h-10 object-contain shrink-0" />
+            <div className="min-w-0">
+              <h1 className="font-display text-xl font-bold text-foreground truncate">{teamName}</h1>
+              <p className="text-xs text-muted-foreground">2026 Season Dashboard</p>
+            </div>
           </div>
+          <ThemeToggle />
         </div>
       </header>
 
