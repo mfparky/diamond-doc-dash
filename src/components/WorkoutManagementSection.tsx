@@ -33,10 +33,12 @@ export function WorkoutManagementSection({
   pitcherName,
   assignments,
   onAddAssignment,
+  onUpdateAssignment,
   onDeleteAssignment,
 }: WorkoutManagementSectionProps) {
   const { toast } = useToast();
   const [isAdding, setIsAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [frequency, setFrequency] = useState('7');
