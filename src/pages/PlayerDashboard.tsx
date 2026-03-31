@@ -252,40 +252,39 @@ export default function PlayerDashboard() {
     <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
-        <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-3 min-w-0">
-            <img src={hawksLogo} alt="Hawks" className="w-10 h-10 object-contain shrink-0" />
-            <div className="min-w-0">
-              <h1 className="font-display text-xl font-bold text-foreground truncate">{pitcher.name}</h1>
-              <p className="text-xs text-muted-foreground hidden md:block">Player Dashboard</p>
+        <div className="max-w-4xl mx-auto px-4 py-2 space-y-2">
+          {/* Row 1: Name + Status */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-3 min-w-0">
+              <img src={hawksLogo} alt="Hawks" className="w-9 h-9 object-contain shrink-0" />
+              <h1 className="font-display text-lg font-bold text-foreground truncate">{pitcher.name}</h1>
             </div>
+            <StatusBadge status={pitcher.restStatus} compact />
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            {/* All Pitchers Dashboard Link */}
+          {/* Row 2: Action buttons */}
+          <div className="flex items-center gap-1.5 flex-wrap">
             {(teamId || ownerId) && (
               <Link to={teamId ? `/team/${teamId}` : `/dashboard/${ownerId}`}>
-                <Button variant="outline" size="icon" className="h-8 w-8 sm:w-auto sm:px-3">
-                  <Users className="w-4 h-4 sm:mr-1.5" />
-                  <span className="hidden sm:inline text-sm">All Pitchers</span>
+                <Button variant="outline" size="sm" className="h-7 text-xs px-2">
+                  <Users className="w-3.5 h-3.5 mr-1" />
+                  All Pitchers
                 </Button>
               </Link>
             )}
-            {/* Accountability Button */}
             {assignments.length > 0 && (
               <Button
                 variant="outline"
-                size="icon"
+                size="sm"
                 onClick={() => setShowAccountability(true)}
-                className="h-8 w-8 sm:w-auto sm:px-3"
+                className="h-7 text-xs px-2"
               >
-                <ClipboardCheck className="w-4 h-4 sm:mr-1.5" />
-                <span className="hidden sm:inline text-sm">Accountability</span>
+                <ClipboardCheck className="w-3.5 h-3.5 mr-1" />
+                Accountability
               </Button>
             )}
-            {/* Download Report */}
             <Button
               variant="outline"
-              size="icon"
+              size="sm"
               onClick={() => {
                 const badgeResults = evaluateBadges(filterByWindow(pitcher.outings, 'date'), filterByWindow(allPitchLocations, 'createdAt'), pitchTypes);
                 generateReport({
@@ -298,13 +297,14 @@ export default function PlayerDashboard() {
                   lastOuting: pitcher.lastOuting,
                 });
               }}
-              className="h-8 w-8 sm:w-auto sm:px-3"
+              className="h-7 text-xs px-2"
             >
-              <Download className="w-4 h-4 sm:mr-1.5" />
-              <span className="hidden sm:inline text-sm">Report</span>
+              <Download className="w-3.5 h-3.5 mr-1" />
+              Report
             </Button>
-            <ThemeToggle />
-            <StatusBadge status={pitcher.restStatus} compact />
+            <div className="ml-auto">
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </header>

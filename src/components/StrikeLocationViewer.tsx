@@ -284,7 +284,7 @@ export function StrikeLocationViewer({
         )}
 
         {/* Visualization */}
-        <div className="flex justify-center py-2">
+        <div className="flex justify-center py-2 px-2">
           {isLoading ? (
             <div className="w-72 h-80 bg-secondary/30 rounded-lg animate-pulse" />
           ) : pitchLocations.length === 0 ? (

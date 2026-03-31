@@ -71,6 +71,8 @@ export function getZoneAspectStyle(size: 'sm' | 'md' | 'lg' = 'md'): React.CSSPr
   return {
     width: `${width}px`,
     height: `${height}px`,
+    maxWidth: '100%',
+    aspectRatio: `${width} / ${height}`,
   };
 }
 
