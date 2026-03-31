@@ -158,6 +158,50 @@ export function useWorkouts(pitcherId?: string) {
     }
   }, [toast]);
 
+  // Update a workout assignment
+  const updateAssignment = useCallback(async (
+    id: string,
+    updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null }
+  ): Promise<boolean> => {
+    try {
+      const dbUpdates: Record<string, unknown> = {};
+      if (updates.title !== undefined) dbUpdates.title = updates.title;
+      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.frequency !== undefined) dbUpdates.frequency = updates.frequency;
+      if (updates.attachmentUrl !== undefined) dbUpdates.attachment_url = updates.attachmentUrl;
+
+      const { error } = await supabase
+        .from('workout_assignments')
+        .update(dbUpdates)
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setAssignments((prev) =>
+        prev.map((a) => a.id === id ? {
+          ...a,
+          ...(updates.title !== undefined && { title: updates.title }),
+          ...(updates.description !== undefined && { description: updates.description }),
+          ...(updates.frequency !== undefined && { frequency: updates.frequency }),
+          ...(updates.attachmentUrl !== undefined && { attachmentUrl: updates.attachmentUrl }),
+        } : a)
+      );
+      toast({
+        title: 'Workout updated',
+        description: 'The workout assignment has been updated.',
+      });
+      return true;
+    } catch (error) {
+      console.error('Error updating workout assignment:', error);
+      toast({
+        title: 'Error updating workout',
+        description: 'Could not update the workout.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  }, [toast]);
+
   // Delete a workout assignment
   const deleteAssignment = useCallback(async (id: string): Promise<boolean> => {
     try {
@@ -284,6 +328,7 @@ export function useWorkouts(pitcherId?: string) {
     completions,
     isLoading,
     addAssignment,
+    updateAssignment,
     deleteAssignment,
     toggleCompletion,
     updateCompletionNotes,

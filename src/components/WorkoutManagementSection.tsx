@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, ClipboardCheck, Paperclip, ExternalLink } from 'lucide-react';
+import { Plus, Trash2, ClipboardCheck, Paperclip, ExternalLink, Pencil } from 'lucide-react';
 import { WorkoutAssignment } from '@/hooks/use-workouts';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -24,6 +24,7 @@ interface WorkoutManagementSectionProps {
   pitcherName: string;
   assignments: WorkoutAssignment[];
   onAddAssignment: (pitcherId: string, title: string, description?: string, frequency?: number, attachmentUrl?: string) => Promise<WorkoutAssignment | null>;
+  onUpdateAssignment: (id: string, updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null }) => Promise<boolean>;
   onDeleteAssignment: (id: string) => Promise<boolean>;
 }
 
@@ -32,10 +33,12 @@ export function WorkoutManagementSection({
   pitcherName,
   assignments,
   onAddAssignment,
+  onUpdateAssignment,
   onDeleteAssignment,
 }: WorkoutManagementSectionProps) {
   const { toast } = useToast();
   const [isAdding, setIsAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [frequency, setFrequency] = useState('7');
@@ -101,6 +104,73 @@ export function WorkoutManagementSection({
     }
   };
 
+  const startEdit = (assignment: WorkoutAssignment) => {
+    setEditingId(assignment.id);
+    setTitle(assignment.title);
+    setDescription(assignment.description || '');
+    setFrequency(String(assignment.frequency));
+    setAttachmentFile(null);
+    setIsAdding(false);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setTitle('');
+    setDescription('');
+    setFrequency('7');
+    setAttachmentFile(null);
+  };
+
+  const handleEdit = async () => {
+    if (!editingId || !title.trim()) return;
+    setIsSubmitting(true);
+
+    try {
+      let attachmentUrl: string | null | undefined;
+
+      if (attachmentFile) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Please sign in again before uploading attachments.');
+
+        const ext = attachmentFile.name.split('.').pop() || 'file';
+        const path = `${user.id}/workouts/${pitcherId}/${Date.now()}.${ext}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('outing-videos')
+          .upload(path, attachmentFile);
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('outing-videos')
+          .getPublicUrl(path);
+        attachmentUrl = urlData.publicUrl;
+      }
+
+      const updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null } = {
+        title: title.trim(),
+        description: description.trim() || null,
+        frequency: parseInt(frequency),
+      };
+      if (attachmentUrl !== undefined) {
+        updates.attachmentUrl = attachmentUrl;
+      }
+
+      const success = await onUpdateAssignment(editingId, updates);
+      if (success) {
+        cancelEdit();
+      }
+    } catch (err) {
+      console.error('Error updating workout:', err);
+      toast({
+        title: 'Could not update workout',
+        description: err instanceof Error ? err.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!deleteId) return;
     await onDeleteAssignment(deleteId);
@@ -122,6 +192,69 @@ export function WorkoutManagementSection({
 
       {/* Existing assignments */}
       {assignments.map((assignment) => (
+        editingId === assignment.id ? (
+          <div key={assignment.id} className="p-3 rounded-lg bg-primary/5 border border-primary/20 space-y-2">
+            <div>
+              <Label className="text-xs">Workout Title</Label>
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g., Band Work, Arm Care Routine"
+                className="h-8 mt-1"
+                autoFocus
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Description (optional)</Label>
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Details about the workout..."
+                className="mt-1"
+                rows={2}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Frequency (days per week)</Label>
+              <Select value={frequency} onValueChange={setFrequency}>
+                <SelectTrigger className="h-8 mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                    <SelectItem key={n} value={String(n)}>
+                      {n}x per week
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Replace Attachment (optional)</Label>
+              <Input
+                type="file"
+                accept="image/*,.pdf,.doc,.docx"
+                onChange={(e) => setAttachmentFile(e.target.files?.[0] || null)}
+                className="h-8 mt-1 text-xs"
+              />
+              {assignment.attachmentUrl && !attachmentFile && (
+                <p className="text-xs text-muted-foreground mt-1">Current attachment will be kept</p>
+              )}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={cancelEdit}>
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleEdit}
+                disabled={!title.trim() || isSubmitting}
+              >
+                {isSubmitting ? 'Saving...' : 'Save'}
+              </Button>
+            </div>
+          </div>
+        ) : (
         <div
           key={assignment.id}
           className="flex items-start gap-2 p-2 rounded-md bg-background/50 border border-border/30"
@@ -150,12 +283,21 @@ export function WorkoutManagementSection({
           <Button
             variant="ghost"
             size="icon"
+            onClick={() => startEdit(assignment)}
+            className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setDeleteId(assignment.id)}
             className="h-7 w-7 text-status-danger hover:text-status-danger shrink-0"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </Button>
         </div>
+        )
       ))}
 
       {/* Add new assignment form */}

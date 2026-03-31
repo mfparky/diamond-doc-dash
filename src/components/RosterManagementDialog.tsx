@@ -195,6 +195,43 @@ export function RosterManagementDialog({
       return false;
     }
   };
+
+  // Update assignment handler
+  const handleUpdateAssignment = async (
+    id: string,
+    updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null }
+  ): Promise<boolean> => {
+    try {
+      const dbUpdates: Record<string, unknown> = {};
+      if (updates.title !== undefined) dbUpdates.title = updates.title;
+      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.frequency !== undefined) dbUpdates.frequency = updates.frequency;
+      if (updates.attachmentUrl !== undefined) dbUpdates.attachment_url = updates.attachmentUrl;
+
+      const { error } = await supabase
+        .from('workout_assignments')
+        .update(dbUpdates)
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setWorkoutAssignments((prev) => {
+        const updated = { ...prev };
+        for (const pitcherId in updated) {
+          updated[pitcherId] = updated[pitcherId].map((a) =>
+            a.id === id ? { ...a, ...updates } : a
+          );
+        }
+        return updated;
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error updating assignment:', error);
+      return false;
+    }
+  };
+
   const toggleTheme = () => {
     const newIsDark = !isDark;
     setIsDark(newIsDark);
@@ -554,6 +591,7 @@ export function RosterManagementDialog({
                           pitcherName={pitcher.name}
                           assignments={workoutAssignments[pitcher.id] || []}
                           onAddAssignment={handleAddAssignment}
+                          onUpdateAssignment={handleUpdateAssignment}
                           onDeleteAssignment={handleDeleteAssignment}
                         />
                       </div>
