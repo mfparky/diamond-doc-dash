@@ -239,25 +239,19 @@ export function SmoothHeatmap({
       }
     }
 
-    // Composite the heatmap first
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = renderWidth;
-    tempCanvas.height = renderHeight;
-    const tempCtx = tempCanvas.getContext('2d')!;
-    tempCtx.putImageData(imageData, 0, 0);
-    ctx.drawImage(tempCanvas, 0, 0);
+    const zoneWidth = zoneRightPx - zoneLeftPx;
+    const zoneHeight = zoneBottomPx - zoneTopPx;
 
-    // Draw strike zone outline and grid ON TOP of the heatmap so they're visible
+    // Draw zone border and grid BEFORE the heatmap so heat renders on top.
+    // This mirrors the DOM fix (pitch dots above zone border) — border pitches
+    // should contribute visible heat at the zone edge, not be covered by the line.
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
     ctx.lineWidth = 2 * scale;
-    ctx.strokeRect(zoneLeftPx, zoneTopPx, zoneRightPx - zoneLeftPx, zoneBottomPx - zoneTopPx);
+    ctx.strokeRect(zoneLeftPx, zoneTopPx, zoneWidth, zoneHeight);
 
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
     ctx.lineWidth = 1 * scale;
-    
-    const zoneWidth = zoneRightPx - zoneLeftPx;
-    const zoneHeight = zoneBottomPx - zoneTopPx;
-    
+
     for (let i = 1; i < 3; i++) {
       const x = zoneLeftPx + (zoneWidth / 3) * i;
       ctx.beginPath();
@@ -265,7 +259,7 @@ export function SmoothHeatmap({
       ctx.lineTo(x, zoneBottomPx);
       ctx.stroke();
     }
-    
+
     for (let i = 1; i < 3; i++) {
       const y = zoneTopPx + (zoneHeight / 3) * i;
       ctx.beginPath();
@@ -273,6 +267,19 @@ export function SmoothHeatmap({
       ctx.lineTo(zoneRightPx, y);
       ctx.stroke();
     }
+
+    // Draw heatmap on top so density at the zone border is fully visible
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = renderWidth;
+    tempCanvas.height = renderHeight;
+    const tempCtx = tempCanvas.getContext('2d')!;
+    tempCtx.putImageData(imageData, 0, 0);
+    ctx.drawImage(tempCanvas, 0, 0);
+
+    // Faint zone outline on top so the boundary stays readable in dense areas
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+    ctx.lineWidth = 1.5 * scale;
+    ctx.strokeRect(zoneLeftPx, zoneTopPx, zoneWidth, zoneHeight);
 
   }, [pitchLocations, dimensions, zoneLeftPct, zoneRightPct, zoneTopPct, zoneBottomPct]);
 
