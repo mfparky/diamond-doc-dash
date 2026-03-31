@@ -498,7 +498,7 @@ function LiveChartingSessionMobile({
               {plottedPitches.map((pitch, idx) => (
                 <div
                   key={idx}
-                  className={`absolute w-4 h-4 rounded-full transform -translate-x-1/2 -translate-y-1/2 border flex items-center justify-center text-[8px] text-white font-bold shadow-lg pointer-events-none ${
+                  className={`absolute w-4 h-4 rounded-full transform -translate-x-1/2 -translate-y-1/2 border flex items-center justify-center text-[8px] text-white font-bold shadow-lg pointer-events-none z-10 ${
                     pitch.hasVideo ? 'border-accent ring-1 ring-accent/50' : 'border-white/70'
                   }`}
                   style={{
@@ -514,7 +514,7 @@ function LiveChartingSessionMobile({
               {/* Pending location indicator */}
               {pendingLocation && (
                 <div
-                  className="absolute w-4 h-4 rounded-full transform -translate-x-1/2 -translate-y-1/2 border border-dashed border-foreground bg-foreground/20 pointer-events-none animate-pulse"
+                  className="absolute w-4 h-4 rounded-full transform -translate-x-1/2 -translate-y-1/2 border border-dashed border-foreground bg-foreground/20 pointer-events-none animate-pulse z-10"
                   style={{
                     left: `${toPercent(pendingLocation.x)}%`,
                     top: `${100 - toPercent(pendingLocation.y)}%`,
