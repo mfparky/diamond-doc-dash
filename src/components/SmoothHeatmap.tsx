@@ -123,8 +123,10 @@ export function SmoothHeatmap({
       Array.from({ length: gridSize }, () => 0)
     );
 
-    // Smaller influence radius for more accurate pitch representation
-    const influenceRadius = 6;
+    // Influence radius controls how far each pitch spreads heat.
+    // Larger radius + looser sigma ensures pitches near the zone boundary
+    // still contribute visible density right at the edge (no gap ring).
+    const influenceRadius = 10;
 
     // Add density for each pitch with Gaussian falloff
     pitchLocations.forEach((pitch) => {
@@ -143,8 +145,8 @@ export function SmoothHeatmap({
           if (x >= 0 && x < gridSize && y >= 0 && y < gridSize) {
             const distance = Math.sqrt(dx * dx + dy * dy);
             if (distance <= influenceRadius) {
-              // Tighter Gaussian falloff for more accurate representation
-              const sigma = influenceRadius / 3;
+              // Looser sigma so density reaches the zone boundary from nearby pitches
+              const sigma = influenceRadius / 2.5;
               const weight = Math.exp(-(distance * distance) / (2 * sigma * sigma));
               densityGrid[y][x] += weight;
             }
@@ -242,14 +244,22 @@ export function SmoothHeatmap({
     const zoneWidth = zoneRightPx - zoneLeftPx;
     const zoneHeight = zoneBottomPx - zoneTopPx;
 
-    // Draw zone border and grid BEFORE the heatmap so heat renders on top.
-    // This mirrors the DOM fix (pitch dots above zone border) — border pitches
-    // should contribute visible heat at the zone edge, not be covered by the line.
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.lineWidth = 2 * scale;
+    // Draw heatmap first so heat accumulates all the way to the zone boundary
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = renderWidth;
+    tempCanvas.height = renderHeight;
+    const tempCtx = tempCanvas.getContext('2d')!;
+    tempCtx.putImageData(imageData, 0, 0);
+    ctx.drawImage(tempCanvas, 0, 0);
+
+    // Zone border drawn AFTER at low opacity — visible in empty areas,
+    // but won't mask heat that accumulates at the zone edges
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+    ctx.lineWidth = 1.5 * scale;
     ctx.strokeRect(zoneLeftPx, zoneTopPx, zoneWidth, zoneHeight);
 
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    // Inner 3×3 grid lines
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
     ctx.lineWidth = 1 * scale;
 
     for (let i = 1; i < 3; i++) {
@@ -267,19 +277,6 @@ export function SmoothHeatmap({
       ctx.lineTo(zoneRightPx, y);
       ctx.stroke();
     }
-
-    // Draw heatmap on top so density at the zone border is fully visible
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = renderWidth;
-    tempCanvas.height = renderHeight;
-    const tempCtx = tempCanvas.getContext('2d')!;
-    tempCtx.putImageData(imageData, 0, 0);
-    ctx.drawImage(tempCanvas, 0, 0);
-
-    // Faint zone outline on top so the boundary stays readable in dense areas
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
-    ctx.lineWidth = 1.5 * scale;
-    ctx.strokeRect(zoneLeftPx, zoneTopPx, zoneWidth, zoneHeight);
 
   }, [pitchLocations, dimensions, zoneLeftPct, zoneRightPct, zoneTopPct, zoneBottomPct]);
 
