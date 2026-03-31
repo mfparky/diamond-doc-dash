@@ -328,6 +328,7 @@ export function useWorkouts(pitcherId?: string) {
     completions,
     isLoading,
     addAssignment,
+    updateAssignment,
     deleteAssignment,
     toggleCompletion,
     updateCompletionNotes,
