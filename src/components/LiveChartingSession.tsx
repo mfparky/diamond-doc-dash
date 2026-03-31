@@ -428,13 +428,13 @@ function LiveChartingSessionMobile({
         )}
 
         {/* 3. Strike Zone */}
-        <div className={`space-y-2 ${isRecording ? 'flex-1 flex flex-col justify-center' : ''}`}>
+        <div className={`space-y-2 ${isRecording ? 'flex-1 flex flex-col justify-center' : ''} pb-2`}>
           <Label className="text-sm font-medium">
             {isRecording 
               ? 'Tap location to stop recording & plot pitch' 
               : `Tap to plot pitch #${plottedPitches.length + 1}`}
           </Label>
-          <div className="flex justify-center py-2">
+          <div className="flex justify-center py-2 px-2">
             <div
               className={`relative rounded-lg border-2 cursor-crosshair active:bg-secondary/50 touch-none ${
                 isRecording 
