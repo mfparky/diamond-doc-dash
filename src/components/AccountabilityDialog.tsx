@@ -170,7 +170,7 @@ export function AccountabilityDialog({
                     </a>
                   )}
                   <p className="text-xs text-primary mt-2">
-                    {completedDays}/{assignment.frequency ?? 7}x this week
+                    {completedDays}/{assignment.frequency ?? 7}x this week (max)
                   </p>
                 </div>
 
