@@ -591,6 +591,7 @@ export function RosterManagementDialog({
                           pitcherName={pitcher.name}
                           assignments={workoutAssignments[pitcher.id] || []}
                           onAddAssignment={handleAddAssignment}
+                          onUpdateAssignment={handleUpdateAssignment}
                           onDeleteAssignment={handleDeleteAssignment}
                         />
                       </div>
