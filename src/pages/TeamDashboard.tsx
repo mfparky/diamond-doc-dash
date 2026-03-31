@@ -7,6 +7,7 @@ import { usePageMeta } from '@/hooks/use-page-meta';
 import hawksLogo from '@/assets/hawks-logo.png';
 import { CombinedDashboard } from '@/components/CombinedDashboard';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function TeamDashboard() {
   const { teamId } = useParams<{ teamId: string }>();
