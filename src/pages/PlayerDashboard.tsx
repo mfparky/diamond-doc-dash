@@ -302,6 +302,7 @@ export default function PlayerDashboard() {
               <Download className="w-4 h-4 sm:mr-1.5" />
               <span className="hidden sm:inline text-sm">Report</span>
             </Button>
+            <ThemeToggle />
             <StatusBadge status={pitcher.restStatus} compact />
           </div>
         </div>
