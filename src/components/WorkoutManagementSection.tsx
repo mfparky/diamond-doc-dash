@@ -24,6 +24,7 @@ interface WorkoutManagementSectionProps {
   pitcherName: string;
   assignments: WorkoutAssignment[];
   onAddAssignment: (pitcherId: string, title: string, description?: string, frequency?: number, attachmentUrl?: string) => Promise<WorkoutAssignment | null>;
+  onUpdateAssignment: (id: string, updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null }) => Promise<boolean>;
   onDeleteAssignment: (id: string) => Promise<boolean>;
 }
 
