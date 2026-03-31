@@ -104,6 +104,73 @@ export function WorkoutManagementSection({
     }
   };
 
+  const startEdit = (assignment: WorkoutAssignment) => {
+    setEditingId(assignment.id);
+    setTitle(assignment.title);
+    setDescription(assignment.description || '');
+    setFrequency(String(assignment.frequency));
+    setAttachmentFile(null);
+    setIsAdding(false);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setTitle('');
+    setDescription('');
+    setFrequency('7');
+    setAttachmentFile(null);
+  };
+
+  const handleEdit = async () => {
+    if (!editingId || !title.trim()) return;
+    setIsSubmitting(true);
+
+    try {
+      let attachmentUrl: string | null | undefined;
+
+      if (attachmentFile) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Please sign in again before uploading attachments.');
+
+        const ext = attachmentFile.name.split('.').pop() || 'file';
+        const path = `${user.id}/workouts/${pitcherId}/${Date.now()}.${ext}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('outing-videos')
+          .upload(path, attachmentFile);
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('outing-videos')
+          .getPublicUrl(path);
+        attachmentUrl = urlData.publicUrl;
+      }
+
+      const updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null } = {
+        title: title.trim(),
+        description: description.trim() || null,
+        frequency: parseInt(frequency),
+      };
+      if (attachmentUrl !== undefined) {
+        updates.attachmentUrl = attachmentUrl;
+      }
+
+      const success = await onUpdateAssignment(editingId, updates);
+      if (success) {
+        cancelEdit();
+      }
+    } catch (err) {
+      console.error('Error updating workout:', err);
+      toast({
+        title: 'Could not update workout',
+        description: err instanceof Error ? err.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!deleteId) return;
     await onDeleteAssignment(deleteId);
