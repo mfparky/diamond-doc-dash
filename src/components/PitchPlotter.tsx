@@ -137,7 +137,7 @@ export function PitchPlotter({
               {plottedPitches.map((pitch, idx) => (
                 <div
                   key={idx}
-                  className="absolute w-4 h-4 rounded-full transform -translate-x-1/2 -translate-y-1/2 border border-white/50 flex items-center justify-center text-[8px] text-white font-bold"
+                  className="absolute w-4 h-4 rounded-full transform -translate-x-1/2 -translate-y-1/2 border border-white/50 flex items-center justify-center text-[8px] text-white font-bold z-10"
                   style={{
                     left: `${toPercent(pitch.xLocation)}%`,
                     top: `${100 - toPercent(pitch.yLocation)}%`,

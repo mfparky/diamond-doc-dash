@@ -104,7 +104,7 @@ export function StrikeZone({
 
         {/* Strike zone box with inner 3×3 grid */}
         <div
-          className="absolute border-2 border-foreground/80 bg-primary/5 z-0"
+          className="absolute border-2 border-foreground/80 bg-primary/5"
           style={{
             left: `${zoneLeft}%`,
             right: `${zoneRight}%`,
