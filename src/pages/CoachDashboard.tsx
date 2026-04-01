@@ -9,6 +9,7 @@ import { CombinedDashboard } from '@/components/CombinedDashboard';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
 
 export default function CoachDashboard() {
+  const navigate = useNavigate();
   const { userId } = useParams<{ userId: string }>();
   const [outings, setOutings] = useState<Outing[]>([]);
   const [pitcherPitchTypes, setPitcherPitchTypes] = useState<Record<string, PitchTypeConfig>>({});
