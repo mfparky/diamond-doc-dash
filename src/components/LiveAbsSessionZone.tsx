@@ -107,7 +107,7 @@ export function LiveAbsSessionZone({ notes, pitchLocations, pitchTypes = DEFAULT
 
           {/* Strike zone box */}
           <div
-            className="absolute border-2 border-foreground/70 bg-primary/5"
+            className="absolute border-[3px] border-foreground bg-primary/5"
             style={{ left: `${zoneLeft}%`, right: `${zoneRight}%`, top: `${zoneTop}%`, bottom: `${zoneBottom}%` }}
           />
 

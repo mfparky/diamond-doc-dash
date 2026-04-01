@@ -485,7 +485,7 @@ function LiveChartingSessionMobile({
 
               {/* Strike zone box */}
               <div
-                className="absolute border-2 border-foreground/80 bg-primary/5 pointer-events-none"
+                className="absolute border-[3px] border-foreground bg-primary/5 pointer-events-none"
                 style={{
                   left: `${zoneLeft}%`,
                   right: `${zoneRight}%`,

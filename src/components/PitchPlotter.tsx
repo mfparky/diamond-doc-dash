@@ -124,7 +124,7 @@ export function PitchPlotter({
 
               {/* Strike zone box - using accurate MLB proportions */}
               <div
-                className="absolute border-2 border-foreground/80 bg-primary/5"
+                className="absolute border-[3px] border-foreground bg-primary/5"
                 style={{
                   left: `${zoneLeft}%`,
                   right: `${zoneRight}%`,
