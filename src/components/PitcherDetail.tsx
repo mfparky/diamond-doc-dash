@@ -339,7 +339,6 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
             </div>
           </CardContent>
         </Card>
-      )}
 
       {/* Stats Grid */}
       {(() => {
