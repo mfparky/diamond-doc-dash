@@ -434,14 +434,14 @@ export function RosterManagementDialog({
                   <ChevronRight className="w-5 h-5 text-muted-foreground" />
                 </button>
 
-                {/* Achievement Window Option */}
+                {/* Achievement Window (per-player badges) */}
                 <div className="w-full p-4 rounded-lg bg-secondary/50 border border-border/50 space-y-3">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                       <Trophy className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">Achievement & Leaderboard Window</p>
+                      <p className="font-medium text-foreground">Achievement Window</p>
                       <p className="text-sm text-muted-foreground">
                         {achievementStartDate && achievementEndDate
                           ? `${format(achievementStartDate, 'MMM d')} – ${format(achievementEndDate, 'MMM d, yyyy')}`
@@ -451,86 +451,100 @@ export function RosterManagementDialog({
                       </p>
                     </div>
                   </div>
-                  {/* Start date */}
                   <div className="pl-[52px] space-y-2">
                     <p className="text-xs text-muted-foreground font-medium">Start Date</p>
                     <div className="flex items-center gap-2">
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className={cn(
-                              'justify-start text-left font-normal flex-1',
-                              !achievementStartDate && 'text-muted-foreground'
-                            )}
-                          >
+                          <Button variant="outline" size="sm" className={cn('justify-start text-left font-normal flex-1', !achievementStartDate && 'text-muted-foreground')}>
                             <CalendarIcon className="mr-2 h-4 w-4" />
                             {achievementStartDate ? format(achievementStartDate, 'PPP') : 'Pick start date'}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={achievementStartDate}
-                            onSelect={handleAchievementDateChange}
-                            disabled={(date) => date > new Date()}
-                            initialFocus
-                            className={cn('p-3 pointer-events-auto')}
-                          />
+                          <Calendar mode="single" selected={achievementStartDate} onSelect={handleAchievementDateChange} disabled={(date) => date > new Date()} initialFocus className={cn('p-3 pointer-events-auto')} />
                         </PopoverContent>
                       </Popover>
                       {achievementStartDate && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleAchievementDateChange(undefined)}
-                          className="text-muted-foreground"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleAchievementDateChange(undefined)} className="text-muted-foreground"><X className="w-4 h-4" /></Button>
                       )}
                     </div>
-
-                    {/* End date */}
                     {achievementStartDate && (
                       <>
                         <p className="text-xs text-muted-foreground font-medium">End Date</p>
                         <div className="flex items-center gap-2">
                           <Popover>
                             <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className={cn(
-                                  'justify-start text-left font-normal flex-1',
-                                  !achievementEndDate && 'text-muted-foreground'
-                                )}
-                              >
+                              <Button variant="outline" size="sm" className={cn('justify-start text-left font-normal flex-1', !achievementEndDate && 'text-muted-foreground')}>
                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                 {achievementEndDate ? format(achievementEndDate, 'PPP') : 'Pick end date (optional)'}
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={achievementEndDate}
-                                onSelect={handleAchievementEndDateChange}
-                                disabled={(date) => achievementStartDate ? date < achievementStartDate : false}
-                                initialFocus
-                                className={cn('p-3 pointer-events-auto')}
-                              />
+                              <Calendar mode="single" selected={achievementEndDate} onSelect={handleAchievementEndDateChange} disabled={(date) => achievementStartDate ? date < achievementStartDate : false} initialFocus className={cn('p-3 pointer-events-auto')} />
                             </PopoverContent>
                           </Popover>
                           {achievementEndDate && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleAchievementEndDateChange(undefined)}
-                              className="text-muted-foreground"
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleAchievementEndDateChange(undefined)} className="text-muted-foreground"><X className="w-4 h-4" /></Button>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Workout Leaderboard Window (team-wide) */}
+                <div className="w-full p-4 rounded-lg bg-secondary/50 border border-border/50 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <CalendarIcon className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">Workout Leaderboard Window</p>
+                      <p className="text-sm text-muted-foreground">
+                        {leaderboardStartDate && leaderboardEndDate
+                          ? `${format(leaderboardStartDate, 'MMM d')} – ${format(leaderboardEndDate, 'MMM d, yyyy')}`
+                          : leaderboardStartDate
+                          ? `From ${format(leaderboardStartDate, 'MMM d, yyyy')}`
+                          : 'Current month (default)'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="pl-[52px] space-y-2">
+                    <p className="text-xs text-muted-foreground font-medium">Start Date</p>
+                    <div className="flex items-center gap-2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" size="sm" className={cn('justify-start text-left font-normal flex-1', !leaderboardStartDate && 'text-muted-foreground')}>
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {leaderboardStartDate ? format(leaderboardStartDate, 'PPP') : 'Pick start date'}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" selected={leaderboardStartDate} onSelect={handleLeaderboardDateChange} disabled={(date) => date > new Date()} initialFocus className={cn('p-3 pointer-events-auto')} />
+                        </PopoverContent>
+                      </Popover>
+                      {leaderboardStartDate && (
+                        <Button variant="ghost" size="sm" onClick={() => handleLeaderboardDateChange(undefined)} className="text-muted-foreground"><X className="w-4 h-4" /></Button>
+                      )}
+                    </div>
+                    {leaderboardStartDate && (
+                      <>
+                        <p className="text-xs text-muted-foreground font-medium">End Date</p>
+                        <div className="flex items-center gap-2">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" size="sm" className={cn('justify-start text-left font-normal flex-1', !leaderboardEndDate && 'text-muted-foreground')}>
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {leaderboardEndDate ? format(leaderboardEndDate, 'PPP') : 'Pick end date'}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar mode="single" selected={leaderboardEndDate} onSelect={handleLeaderboardEndDateChange} disabled={(date) => leaderboardStartDate ? date < leaderboardStartDate : false} initialFocus className={cn('p-3 pointer-events-auto')} />
+                            </PopoverContent>
+                          </Popover>
+                          {leaderboardEndDate && (
+                            <Button variant="ghost" size="sm" onClick={() => handleLeaderboardEndDateChange(undefined)} className="text-muted-foreground"><X className="w-4 h-4" /></Button>
                           )}
                         </div>
                       </>

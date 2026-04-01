@@ -128,16 +128,18 @@ export default function PlayerDashboard() {
 
         if (!cancelled && pitcherData.team_id) {
           setTeamId(pitcherData.team_id);
-          // Fetch achievement window dates from team
+          // Fetch achievement + leaderboard window dates from team
           supabase
             .from('teams')
-            .select('leaderboard_from, leaderboard_to')
+            .select('leaderboard_from, leaderboard_to, achievement_from, achievement_to')
             .eq('id', pitcherData.team_id)
             .maybeSingle()
             .then(({ data: teamData }) => {
               if (!cancelled && teamData) {
-                if (teamData.leaderboard_from) setTeamAchievementStart(new Date(teamData.leaderboard_from + 'T00:00:00'));
-                if (teamData.leaderboard_to) setTeamAchievementEnd(new Date(teamData.leaderboard_to + 'T00:00:00'));
+                if ((teamData as any).achievement_from) setTeamAchievementStart(new Date((teamData as any).achievement_from + 'T00:00:00'));
+                if ((teamData as any).achievement_to) setTeamAchievementEnd(new Date((teamData as any).achievement_to + 'T00:00:00'));
+                if (teamData.leaderboard_from) setTeamLeaderboardStart(new Date(teamData.leaderboard_from + 'T00:00:00'));
+                if (teamData.leaderboard_to) setTeamLeaderboardEnd(new Date(teamData.leaderboard_to + 'T00:00:00'));
               }
             });
         }
