@@ -81,6 +81,7 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
             assignmentId: c.assignment_id,
             dayOfWeek: c.day_of_week,
             notes: c.notes,
+            photoUrl: (c as any).photo_url ?? null,
           }))
         );
       } catch (error) {
