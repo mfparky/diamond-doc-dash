@@ -13,6 +13,8 @@ interface WorkoutLeaderboardProps {
   pitchers: PitcherRecord[];
   initialFrom?: Date;
   initialTo?: Date;
+  maxEntries?: number;
+  highlightPitcherId?: string;
 }
 
 interface LeaderboardEntry {
