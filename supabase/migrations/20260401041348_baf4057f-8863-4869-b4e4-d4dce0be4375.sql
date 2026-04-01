@@ -1,1 +1,0 @@
-ALTER TABLE public.teams ADD COLUMN leaderboard_from date, ADD COLUMN leaderboard_to date;
