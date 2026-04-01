@@ -57,6 +57,8 @@ export function RosterManagementDialog({
   const [workoutAssignments, setWorkoutAssignments] = useState<Record<string, WorkoutAssignment[]>>({});
   const [achievementStartDate, setAchievementStartDate] = useState<Date | undefined>();
   const [achievementEndDate, setAchievementEndDate] = useState<Date | undefined>();
+  const [leaderboardStartDate, setLeaderboardStartDate] = useState<Date | undefined>();
+  const [leaderboardEndDate, setLeaderboardEndDate] = useState<Date | undefined>();
   const { toast } = useToast();
 
   // Fetch all workout assignments for all pitchers
