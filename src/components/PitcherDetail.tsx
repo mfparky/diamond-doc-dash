@@ -264,8 +264,7 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
         </div>
       )}
       {/* Arm Care Status + Share Buttons */}
-      {(pitcher.lastPitchCount > 0 || true) && (
-        <Card className="glass-card border-primary/30 bg-primary/5">
+      <Card className="glass-card border-primary/30 bg-primary/5">
           <CardContent className="p-4">
             <div className="flex items-start justify-between gap-4">
               {/* Arm Care Section */}
