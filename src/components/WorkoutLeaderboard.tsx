@@ -179,37 +179,44 @@ export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntrie
 
   return (
     <div className="space-y-4">
-      {/* Date Range Picker */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm text-muted-foreground">Date Range:</span>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
-              <CalendarIcon className="w-4 h-4" />
-              {format(dateRange.from, 'MMM d')} - {format(dateRange.to, 'MMM d, yyyy')}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="range"
-              selected={{ from: dateRange.from, to: dateRange.to }}
-              onSelect={(range) => {
-                if (range?.from && range?.to) {
-                  setDateRange({
-                    from: startOfWeek(range.from, { weekStartsOn: 1 }),
-                    to: endOfWeek(range.to, { weekStartsOn: 1 }),
-                  });
-                }
-              }}
-              numberOfMonths={1}
-              className={cn("p-3 pointer-events-auto")}
-            />
-          </PopoverContent>
-        </Popover>
-        <span className="text-xs text-muted-foreground">
-          ({weeksInRange} week{weeksInRange !== 1 ? 's' : ''})
-        </span>
-      </div>
+      {/* Date Range Picker - hidden for parent view */}
+      {!hideDatePicker && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm text-muted-foreground">Date Range:</span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <CalendarIcon className="w-4 h-4" />
+                {format(dateRange.from, 'MMM d')} - {format(dateRange.to, 'MMM d, yyyy')}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="range"
+                selected={{ from: dateRange.from, to: dateRange.to }}
+                onSelect={(range) => {
+                  if (range?.from && range?.to) {
+                    setDateRange({
+                      from: startOfWeek(range.from, { weekStartsOn: 1 }),
+                      to: endOfWeek(range.to, { weekStartsOn: 1 }),
+                    });
+                  }
+                }}
+                numberOfMonths={1}
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+          <span className="text-xs text-muted-foreground">
+            ({weeksInRange} week{weeksInRange !== 1 ? 's' : ''})
+          </span>
+        </div>
+      )}
+      {hideDatePicker && (
+        <p className="text-xs text-muted-foreground text-center">
+          {format(dateRange.from, 'MMM d')} – {format(dateRange.to, 'MMM d, yyyy')} ({weeksInRange} week{weeksInRange !== 1 ? 's' : ''})
+        </p>
+      )}
 
       {/* Leaderboard */}
       {isLoading ? (
