@@ -339,6 +339,7 @@ export type Database = {
           day_of_week: number
           id: string
           notes: string | null
+          photo_url: string | null
           pitcher_id: string
           week_start: string
         }
@@ -348,6 +349,7 @@ export type Database = {
           day_of_week: number
           id?: string
           notes?: string | null
+          photo_url?: string | null
           pitcher_id: string
           week_start: string
         }
@@ -357,6 +359,7 @@ export type Database = {
           day_of_week?: number
           id?: string
           notes?: string | null
+          photo_url?: string | null
           pitcher_id?: string
           week_start?: string
         }

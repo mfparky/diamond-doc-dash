@@ -1,0 +1,1 @@
+ALTER TABLE workout_completions ADD COLUMN photo_url text;

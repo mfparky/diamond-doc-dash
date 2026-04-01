@@ -20,6 +20,7 @@ export interface WorkoutCompletion {
   weekStart: string;
   dayOfWeek: number; // 0=Mon, 6=Sun
   notes: string | null;
+  photoUrl: string | null;
   createdAt: string;
 }
 
@@ -94,6 +95,7 @@ export function useWorkouts(pitcherId?: string) {
         weekStart: row.week_start,
         dayOfWeek: row.day_of_week,
         notes: row.notes,
+        photoUrl: (row as any).photo_url ?? null,
         createdAt: row.created_at,
       }));
 
@@ -277,6 +279,7 @@ export function useWorkouts(pitcherId?: string) {
           weekStart: data.week_start,
           dayOfWeek: data.day_of_week,
           notes: data.notes,
+          photoUrl: (data as any).photo_url ?? null,
           createdAt: data.created_at,
         };
 
@@ -312,6 +315,60 @@ export function useWorkouts(pitcherId?: string) {
     }
   }, []);
 
+  // Upload a photo for a workout completion
+  const uploadCompletionPhoto = useCallback(async (
+    pitcherId: string,
+    file: File
+  ): Promise<string | null> => {
+    try {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const path = `workouts/${pitcherId}/${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('outing-videos')
+        .upload(path, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('outing-videos')
+        .getPublicUrl(path);
+
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('Error uploading workout photo:', error);
+      toast({
+        title: 'Upload failed',
+        description: 'Could not upload the photo.',
+        variant: 'destructive',
+      });
+      return null;
+    }
+  }, [toast]);
+
+  // Update photo URL on a completion record
+  const updateCompletionPhoto = useCallback(async (
+    completionId: string,
+    photoUrl: string | null
+  ): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('workout_completions')
+        .update({ photo_url: photoUrl } as any)
+        .eq('id', completionId);
+
+      if (error) throw error;
+
+      setCompletions((prev) =>
+        prev.map((c) => (c.id === completionId ? { ...c, photoUrl } : c))
+      );
+      return true;
+    } catch (error) {
+      console.error('Error updating completion photo:', error);
+      return false;
+    }
+  }, []);
+
   // Load data on mount
   useEffect(() => {
     if (pitcherId) {
@@ -332,6 +389,8 @@ export function useWorkouts(pitcherId?: string) {
     deleteAssignment,
     toggleCompletion,
     updateCompletionNotes,
+    uploadCompletionPhoto,
+    updateCompletionPhoto,
     refetchAssignments: fetchAssignments,
     refetchCompletions: fetchCompletions,
   };
