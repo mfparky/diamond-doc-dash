@@ -16,6 +16,7 @@ interface WorkoutLeaderboardProps {
   maxEntries?: number;
   highlightPitcherId?: string;
   hideDatePicker?: boolean;
+  lockedToCoachDates?: boolean;
 }
 
 interface LeaderboardEntry {
