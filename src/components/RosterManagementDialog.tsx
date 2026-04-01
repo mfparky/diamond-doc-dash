@@ -784,7 +784,7 @@ export function RosterManagementDialog({
                 </TabsContent>
 
                 <TabsContent value="leaderboard" className="flex-1 overflow-y-auto py-4 mt-0">
-                  <WorkoutLeaderboard pitchers={pitchers} />
+                  <WorkoutLeaderboard pitchers={pitchers} initialFrom={leaderboardStartDate} initialTo={leaderboardEndDate} hideDatePicker />
                 </TabsContent>
               </Tabs>
             </>
