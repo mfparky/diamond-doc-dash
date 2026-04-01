@@ -4,7 +4,7 @@ import { StatusBadge } from './StatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, Pencil, Trash2, Share2, Settings, MapPin, Play, Activity, ClipboardList, MessageSquare, Columns2, BarChart3, Download } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, Pencil, Trash2, Share2, Settings, MapPin, Play, Activity, ClipboardList, MessageSquare, Columns2, BarChart3, Download, Copy, Check } from 'lucide-react';
 import { EditOutingDialog } from './EditOutingDialog';
 import { OutingForm } from './OutingForm';
 import { DeleteOutingDialog } from './DeleteOutingDialog';
