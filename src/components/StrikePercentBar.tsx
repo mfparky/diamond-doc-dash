@@ -194,14 +194,14 @@ export function StrikePercentBar({ pitcherSeasons, outings }: StrikePercentBarPr
         {/* Min / Max labels */}
         <div className="flex justify-between w-full mt-3 text-xs text-muted-foreground">
           <div className="text-center">
-            <span className="block text-[10px] uppercase tracking-wider">Low</span>
+            <span className="block text-[10px] uppercase tracking-wider">Player Low</span>
             <span className="font-semibold text-foreground">{data.min}%</span>
           </div>
           <div className="text-center">
             <span className="block text-[10px] uppercase tracking-wider">{data.count} Pitchers</span>
           </div>
           <div className="text-center">
-            <span className="block text-[10px] uppercase tracking-wider">High</span>
+            <span className="block text-[10px] uppercase tracking-wider">Player High</span>
             <span className="font-semibold text-foreground">{data.max}%</span>
           </div>
         </div>
