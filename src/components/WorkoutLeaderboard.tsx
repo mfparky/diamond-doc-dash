@@ -30,6 +30,45 @@ interface DateRange {
   to: Date;
 }
 
+function LeaderboardRow({ entry, index, getRankIcon, isHighlighted }: {
+  entry: LeaderboardEntry;
+  index: number;
+  getRankIcon: (i: number) => React.ReactNode;
+  isHighlighted?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-3 p-3 rounded-lg border',
+        isHighlighted ? 'ring-2 ring-primary/50' : '',
+        index === 0
+          ? 'bg-yellow-500/10 border-yellow-500/30'
+          : index === 1
+          ? 'bg-gray-400/10 border-gray-400/30'
+          : index === 2
+          ? 'bg-amber-600/10 border-amber-600/30'
+          : 'bg-secondary/50 border-border/50'
+      )}
+    >
+      <div className="shrink-0">{getRankIcon(index)}</div>
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-foreground truncate">{entry.pitcherName}</p>
+        <p className="text-xs text-muted-foreground">
+          {entry.assignmentCount} workout{entry.assignmentCount !== 1 ? 's' : ''} assigned
+        </p>
+      </div>
+      <div className="text-right shrink-0">
+        <p className="font-bold text-foreground">{entry.totalCompletions}</p>
+        <p className="text-xs text-muted-foreground">total</p>
+      </div>
+      <div className="text-right shrink-0 border-l border-border/50 pl-3">
+        <p className="font-semibold text-primary">{entry.weeklyAverage}</p>
+        <p className="text-xs text-muted-foreground">/week</p>
+      </div>
+    </div>
+  );
+}
+
 export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntries, highlightPitcherId }: WorkoutLeaderboardProps) {
   const [dateRange, setDateRange] = useState<DateRange>(() => {
     const now = new Date();
