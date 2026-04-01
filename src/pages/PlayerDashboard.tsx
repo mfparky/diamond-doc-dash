@@ -43,9 +43,24 @@ export default function PlayerDashboard() {
   const [showAccountability, setShowAccountability] = useState(false);
   const { fetchPitchTypes, fetchPitchLocationsForPitcher } = usePitchLocations();
   const [allPitchLocations, setAllPitchLocations] = useState<PitchLocation[]>([]);
-  const { filterByWindow } = useAchievementWindow();
+  const { filterByWindow: localFilterByWindow } = useAchievementWindow();
   const [teamAchievementStart, setTeamAchievementStart] = useState<Date | undefined>();
   const [teamAchievementEnd, setTeamAchievementEnd] = useState<Date | undefined>();
+
+  // Use team achievement dates if available, otherwise fall back to localStorage
+  const filterByWindow = useCallback(<T extends { date?: string; createdAt?: string }>(
+    items: T[],
+    dateField: 'date' | 'createdAt' = 'date'
+  ): T[] => {
+    const start = teamAchievementStart;
+    if (!start) return localFilterByWindow(items, dateField);
+    const startTime = start.getTime();
+    return items.filter(item => {
+      const val = dateField === 'date' ? (item as any).date : (item as any).createdAt;
+      if (!val) return true;
+      return new Date(val).getTime() >= startTime;
+    });
+  }, [teamAchievementStart, localFilterByWindow]);
   const [linkCopied, setLinkCopied] = useState(false);
   const [teamId, setTeamId] = useState<string | null>(null);
   const [ownerId, setOwnerId] = useState<string | null>(null);
