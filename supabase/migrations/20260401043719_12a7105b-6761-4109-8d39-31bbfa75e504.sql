@@ -1,0 +1,1 @@
+ALTER TABLE public.teams ADD COLUMN achievement_from date, ADD COLUMN achievement_to date;
