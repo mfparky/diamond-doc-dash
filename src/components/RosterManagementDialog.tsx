@@ -93,7 +93,7 @@ export function RosterManagementDialog({
     }
   }, [pitchers]);
 
-  // Load achievement dates from teams table when dialog opens
+  // Load achievement + leaderboard dates from teams table when dialog opens
   useEffect(() => {
     if (!open || pitchers.length === 0) return;
     const teamId = pitchers[0]?.teamId;
@@ -101,13 +101,15 @@ export function RosterManagementDialog({
 
     supabase
       .from('teams')
-      .select('leaderboard_from, leaderboard_to')
+      .select('leaderboard_from, leaderboard_to, achievement_from, achievement_to')
       .eq('id', teamId)
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
-          setAchievementStartDate(data.leaderboard_from ? new Date(data.leaderboard_from + 'T00:00:00') : undefined);
-          setAchievementEndDate(data.leaderboard_to ? new Date(data.leaderboard_to + 'T00:00:00') : undefined);
+          setAchievementStartDate((data as any).achievement_from ? new Date((data as any).achievement_from + 'T00:00:00') : undefined);
+          setAchievementEndDate((data as any).achievement_to ? new Date((data as any).achievement_to + 'T00:00:00') : undefined);
+          setLeaderboardStartDate(data.leaderboard_from ? new Date(data.leaderboard_from + 'T00:00:00') : undefined);
+          setLeaderboardEndDate(data.leaderboard_to ? new Date(data.leaderboard_to + 'T00:00:00') : undefined);
         }
       });
   }, [open, pitchers]);
