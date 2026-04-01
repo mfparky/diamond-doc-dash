@@ -91,6 +91,25 @@ export function RosterManagementDialog({
     }
   }, [pitchers]);
 
+  // Load achievement dates from teams table when dialog opens
+  useEffect(() => {
+    if (!open || pitchers.length === 0) return;
+    const teamId = pitchers[0]?.teamId;
+    if (!teamId) return;
+
+    supabase
+      .from('teams')
+      .select('leaderboard_from, leaderboard_to')
+      .eq('id', teamId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setAchievementStartDate(data.leaderboard_from ? new Date(data.leaderboard_from + 'T00:00:00') : undefined);
+          setAchievementEndDate(data.leaderboard_to ? new Date(data.leaderboard_to + 'T00:00:00') : undefined);
+        }
+      });
+  }, [open, pitchers]);
+
   useEffect(() => {
     if (open) {
       fetchAllWorkoutAssignments();
