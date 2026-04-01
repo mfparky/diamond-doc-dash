@@ -266,7 +266,7 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
       {/* Arm Care Status + Share Buttons */}
       <Card className="glass-card border-primary/30 bg-primary/5">
           <CardContent className="p-4">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
               {/* Arm Care Section */}
               {pitcher.lastPitchCount > 0 && (
                 <div className="flex items-start gap-3 flex-1">
@@ -295,11 +295,11 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
               )}
 
               {/* Compact Share Buttons */}
-              <div className="flex flex-col gap-2 shrink-0">
+              <div className="flex flex-row md:flex-col gap-2 shrink-0">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 text-xs gap-1.5"
+                  className="h-8 text-xs gap-1.5 flex-1 md:flex-none"
                   onClick={() => {
                     const url = `${window.location.origin}/player/${pitcher.id}`;
                     navigator.clipboard.writeText(url).then(() => {
@@ -314,7 +314,7 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 text-xs gap-1.5"
+                  className="h-8 text-xs gap-1.5 flex-1 md:flex-none"
                   onClick={() => {
                     const lines = [
                       `${pitcher.name} - Pitching Summary`,
