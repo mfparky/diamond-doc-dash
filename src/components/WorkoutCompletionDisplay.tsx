@@ -182,32 +182,40 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
               <div className="flex gap-1">
                 {weekDays.map((label, dayIndex) => {
                   const completed = isCompleted(assignment.id, dayIndex);
-                  const notes = getCompletionNotes(assignment.id, dayIndex);
+                    const notes = getCompletionNotes(assignment.id, dayIndex);
+                    const photoUrl = getCompletionPhotoUrl(assignment.id, dayIndex);
 
-                  return (
-                    <div key={dayIndex} className="flex flex-col items-center gap-0.5">
-                      <span className="text-[10px] text-muted-foreground">{label}</span>
-                      <div
-                        className={`
-                          w-7 h-7 rounded-md flex items-center justify-center text-xs font-medium
-                          ${completed
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted/50 text-muted-foreground'
-                          }
-                        `}
-                        title={notes ? `Notes: ${notes}` : undefined}
-                      >
-                        {completed ? (
-                          <Check className="w-4 h-4" />
-                        ) : (
-                          <span className="opacity-30">-</span>
-                        )}
+                    return (
+                      <div key={dayIndex} className="flex flex-col items-center gap-0.5">
+                        <span className="text-[10px] text-muted-foreground">{label}</span>
+                        <div
+                          className={`
+                            w-7 h-7 rounded-md flex items-center justify-center text-xs font-medium
+                            ${completed
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted/50 text-muted-foreground'
+                            }
+                          `}
+                          title={notes ? `Notes: ${notes}` : undefined}
+                        >
+                          {completed ? (
+                            <Check className="w-4 h-4" />
+                          ) : (
+                            <span className="opacity-30">-</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-0.5">
+                          {completed && notes && (
+                            <MessageSquare className="w-3 h-3 text-primary/60" />
+                          )}
+                          {completed && photoUrl && (
+                            <a href={photoUrl} target="_blank" rel="noopener noreferrer">
+                              <Camera className="w-3 h-3 text-primary/60 hover:text-primary" />
+                            </a>
+                          )}
+                        </div>
                       </div>
-                      {completed && notes && (
-                        <MessageSquare className="w-3 h-3 text-primary/60" />
-                      )}
-                    </div>
-                  );
+                    );
                 })}
               </div>
             </div>
