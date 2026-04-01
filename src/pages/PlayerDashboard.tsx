@@ -44,6 +44,8 @@ export default function PlayerDashboard() {
   const { fetchPitchTypes, fetchPitchLocationsForPitcher } = usePitchLocations();
   const [allPitchLocations, setAllPitchLocations] = useState<PitchLocation[]>([]);
   const { filterByWindow } = useAchievementWindow();
+  const [teamAchievementStart, setTeamAchievementStart] = useState<Date | undefined>();
+  const [teamAchievementEnd, setTeamAchievementEnd] = useState<Date | undefined>();
   const [linkCopied, setLinkCopied] = useState(false);
   const [teamId, setTeamId] = useState<string | null>(null);
   const [ownerId, setOwnerId] = useState<string | null>(null);
