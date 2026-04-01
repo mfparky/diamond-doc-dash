@@ -95,6 +95,7 @@ export function useWorkouts(pitcherId?: string) {
         weekStart: row.week_start,
         dayOfWeek: row.day_of_week,
         notes: row.notes,
+        photoUrl: (row as any).photo_url ?? null,
         createdAt: row.created_at,
       }));
 
