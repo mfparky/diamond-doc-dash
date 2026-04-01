@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      dashboard_settings: {
+        Row: {
+          achievement_from: string | null
+          achievement_to: string | null
+          created_at: string
+          id: string
+          leaderboard_from: string | null
+          leaderboard_to: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          achievement_from?: string | null
+          achievement_to?: string | null
+          created_at?: string
+          id?: string
+          leaderboard_from?: string | null
+          leaderboard_to?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          achievement_from?: string | null
+          achievement_to?: string | null
+          created_at?: string
+          id?: string
+          leaderboard_from?: string | null
+          leaderboard_to?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       outings: {
         Row: {
           coach_notes: string | null

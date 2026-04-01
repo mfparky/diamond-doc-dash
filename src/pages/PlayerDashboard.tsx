@@ -126,25 +126,38 @@ export default function PlayerDashboard() {
           return;
         }
 
-        if (!cancelled && pitcherData.team_id) {
-          setTeamId(pitcherData.team_id);
-          // Fetch achievement + leaderboard window dates from team
-          supabase
-            .from('teams')
-            .select('leaderboard_from, leaderboard_to, achievement_from, achievement_to')
-            .eq('id', pitcherData.team_id)
-            .maybeSingle()
-            .then(({ data: teamData }) => {
-              if (!cancelled && teamData) {
-                if ((teamData as any).achievement_from) setTeamAchievementStart(new Date((teamData as any).achievement_from + 'T00:00:00'));
-                if ((teamData as any).achievement_to) setTeamAchievementEnd(new Date((teamData as any).achievement_to + 'T00:00:00'));
-                if (teamData.leaderboard_from) setTeamLeaderboardStart(new Date(teamData.leaderboard_from + 'T00:00:00'));
-                if (teamData.leaderboard_to) setTeamLeaderboardEnd(new Date(teamData.leaderboard_to + 'T00:00:00'));
-              }
-            });
-        }
-        if (!cancelled && pitcherData.user_id) {
-          setOwnerId(pitcherData.user_id);
+        if (!cancelled) {
+          if (pitcherData.team_id) {
+            setTeamId(pitcherData.team_id);
+            supabase
+              .from('teams')
+              .select('leaderboard_from, leaderboard_to, achievement_from, achievement_to')
+              .eq('id', pitcherData.team_id)
+              .maybeSingle()
+              .then(({ data: teamData }) => {
+                if (!cancelled && teamData) {
+                  if ((teamData as any).achievement_from) setTeamAchievementStart(new Date((teamData as any).achievement_from + 'T00:00:00'));
+                  if ((teamData as any).achievement_to) setTeamAchievementEnd(new Date((teamData as any).achievement_to + 'T00:00:00'));
+                  if (teamData.leaderboard_from) setTeamLeaderboardStart(new Date(teamData.leaderboard_from + 'T00:00:00'));
+                  if (teamData.leaderboard_to) setTeamLeaderboardEnd(new Date(teamData.leaderboard_to + 'T00:00:00'));
+                }
+              });
+          } else if (pitcherData.user_id) {
+            setOwnerId(pitcherData.user_id);
+            supabase
+              .from('dashboard_settings' as any)
+              .select('leaderboard_from, leaderboard_to, achievement_from, achievement_to')
+              .eq('user_id', pitcherData.user_id)
+              .maybeSingle()
+              .then(({ data: settingsData }) => {
+                if (!cancelled && settingsData) {
+                  if ((settingsData as any).achievement_from) setTeamAchievementStart(new Date((settingsData as any).achievement_from + 'T00:00:00'));
+                  if ((settingsData as any).achievement_to) setTeamAchievementEnd(new Date((settingsData as any).achievement_to + 'T00:00:00'));
+                  if ((settingsData as any).leaderboard_from) setTeamLeaderboardStart(new Date((settingsData as any).leaderboard_from + 'T00:00:00'));
+                  if ((settingsData as any).leaderboard_to) setTeamLeaderboardEnd(new Date((settingsData as any).leaderboard_to + 'T00:00:00'));
+                }
+              });
+          }
         }
 
         // Fetch outings for this pitcher
