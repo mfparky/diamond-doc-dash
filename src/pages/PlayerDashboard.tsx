@@ -46,6 +46,8 @@ export default function PlayerDashboard() {
   const { filterByWindow: localFilterByWindow } = useAchievementWindow();
   const [teamAchievementStart, setTeamAchievementStart] = useState<Date | undefined>();
   const [teamAchievementEnd, setTeamAchievementEnd] = useState<Date | undefined>();
+  const [teamLeaderboardStart, setTeamLeaderboardStart] = useState<Date | undefined>();
+  const [teamLeaderboardEnd, setTeamLeaderboardEnd] = useState<Date | undefined>();
 
   // Use team achievement dates if available, otherwise fall back to localStorage
   const filterByWindow = useCallback(<T extends { date?: string; createdAt?: string }>(
