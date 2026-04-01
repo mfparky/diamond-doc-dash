@@ -347,7 +347,11 @@ function SparklineWithTooltip({ spark, sparkW, sparkH, sparkPad, trendData }: Sp
                 transform: 'translate(-50%, calc(-100% - 6px))',
               }}
             >
-              {Math.round(hd.pct * 10) / 10}%
+              {(() => {
+                const [y, m, d] = hd.date.split('-').map(Number);
+                const dt = new Date(y, m - 1, d);
+                return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+              })()}: {Math.round(hd.pct * 10) / 10}%
             </div>
           </>
         )}
