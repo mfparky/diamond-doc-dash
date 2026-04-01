@@ -1,36 +1,38 @@
 
 
-## Problem: App stuck on "Loading..." screen
+## Plan: Optional Photo Upload on Workout Completions
 
-### Root Cause
+### Summary
+Allow parents to optionally attach a photo when completing a workout day. Photos upload to the existing `outing-videos` storage bucket and the URL is stored on the completion record.
 
-The `useAuth` hook performs async work (`checkApproval` database query + potential `signOut`) inside the `onAuthStateChange` callback. Supabase docs warn against this — async operations in the callback can block the auth state machine, causing the listener to silently stall. The token refresh succeeds (visible in network logs) but no `user_approvals` query ever fires, confirming the callback is deadlocked.
-
-### Fix
-
-Refactor `src/hooks/use-auth.ts` to separate concerns:
-
-1. **`onAuthStateChange`**: Only do synchronous state updates (set session/user immediately). No database queries, no signOut calls inside the callback.
-
-2. **Separate approval check**: Use a `useEffect` that watches the `session` state. When a session exists, run `checkApproval`. If unapproved, sign out and set `pendingApproval`. This keeps async work outside the auth listener.
-
-3. **Loading state**: Start as `true`, set to `false` after the initial `getSession` + approval check completes. The `onAuthStateChange` listener only updates session/user reactively.
-
-```text
-Before (broken):
-  onAuthStateChange → async checkApproval → async signOut → deadlock
-
-After (fixed):
-  onAuthStateChange → set session (sync)
-  useEffect([session]) → checkApproval → signOut if needed
+### 1. Database Migration
+Add nullable `photo_url` column to `workout_completions`:
+```sql
+ALTER TABLE workout_completions ADD COLUMN photo_url text;
 ```
 
+### 2. Fix Build Error
+**`supabase/functions/manage-approvals/index.ts`** — Cast `error` to `Error`: `(error as Error).message`
+
+### 3. Hook Updates (`src/hooks/use-workouts.ts`)
+- Add `photoUrl` to `WorkoutCompletion` interface
+- Map `photo_url` in `fetchCompletions`
+- Add `uploadCompletionPhoto(pitcherId, file)` — uploads to `outing-videos` bucket at `workouts/{pitcherId}/{timestamp}.{ext}`, returns public URL
+- Add `updateCompletionPhoto(completionId, photoUrl)` — updates the record
+
+### 4. UI: AccountabilityDialog (`src/components/AccountabilityDialog.tsx`)
+- In the notes editing section (shown when tapping the comment icon on a completed day), add an optional "Add Photo" button with hidden file input (accept: image/*)
+- Show thumbnail preview if a photo exists or was just uploaded
+- Photo uploads immediately on selection; URL saved to completion record
+- Small camera icon indicator on days that have photos
+
+### 5. UI: WorkoutCompletionDisplay (`src/components/WorkoutCompletionDisplay.tsx`)
+- Show camera icon on completed days that have photos
+- Tapping opens photo in new tab
+
 ### Technical Details
-
-**File: `src/hooks/use-auth.ts`**
-
-- `onAuthStateChange` callback: just `setSession(session)` and `setUser(session?.user ?? null)`, plus `setLoading(false)` on first call
-- New `useEffect` watching `session`: if `session?.user`, call `checkApproval`. If not approved, call `signOut()` and set `pendingApproval = true`. If approved, clear pending state. Set `loading = false` after check.
-- `getSession` on mount: set session synchronously, let the effect handle approval
-- Keep `signIn`/`signUp`/`signOut` methods unchanged
+- Storage path: `workouts/{pitcherId}/{timestamp}.{ext}` (matches existing convention)
+- Accepted formats: JPEG, PNG, WebP, HEIC
+- Photo is fully optional — no changes to the core toggle flow
+- No file size limit enforced client-side beyond browser defaults
 
