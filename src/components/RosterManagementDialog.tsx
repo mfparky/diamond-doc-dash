@@ -756,7 +756,20 @@ export function RosterManagementDialog({
                         key={pitcher.id}
                         className="p-4 rounded-lg bg-secondary/50 border border-border/50"
                       >
-                        <h3 className="font-semibold text-foreground mb-3">{pitcher.name}</h3>
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="font-semibold text-foreground">{pitcher.name}</h3>
+                          {pitchers.length > 1 && (workoutAssignments[pitcher.id] || []).length > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1.5 text-xs text-muted-foreground"
+                              onClick={() => handleCascadeWorkouts(pitcher.id)}
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                              Copy to All
+                            </Button>
+                          )}
+                        </div>
                         <WorkoutManagementSection
                           pitcherId={pitcher.id}
                           pitcherName={pitcher.name}
