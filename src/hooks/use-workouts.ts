@@ -20,6 +20,7 @@ export interface WorkoutCompletion {
   weekStart: string;
   dayOfWeek: number; // 0=Mon, 6=Sun
   notes: string | null;
+  photoUrl: string | null;
   createdAt: string;
 }
 
