@@ -11,6 +11,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function TeamDashboard() {
   const { teamId } = useParams<{ teamId: string }>();
+  const navigate = useNavigate();
   const [teamName, setTeamName] = useState('Team');
   const [outings, setOutings] = useState<Outing[]>([]);
   const [pitcherPitchTypes, setPitcherPitchTypes] = useState<Record<string, PitchTypeConfig>>({});
