@@ -289,8 +289,8 @@ export function SmoothHeatmap({
         <canvas
           ref={canvasRef}
           style={{
-            width: dimensions.width,
-            height: dimensions.height,
+            width: '100%',
+            height: '100%',
           }}
           className="block"
         />

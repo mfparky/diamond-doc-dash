@@ -321,12 +321,8 @@ export function useWorkouts(pitcherId?: string) {
     file: File
   ): Promise<string | null> => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const userId = user?.id;
-      if (!userId) throw new Error('Not authenticated');
-
       const ext = file.name.split('.').pop() || 'jpg';
-      const path = `${userId}/workouts/${pitcherId}/${Date.now()}.${ext}`;
+      const path = `workouts/${pitcherId}/${Date.now()}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from('outing-videos')
