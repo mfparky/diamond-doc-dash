@@ -591,8 +591,10 @@ export default function PlayerDashboard() {
           return null;
         })()}
 
-        {/* Achievements */}
+        {/* Achievements & Accountability */}
         <BadgeGrid badges={evaluateBadges(filterByWindow(pitcher.outings, 'date'), filterByWindow(allPitchLocations, 'createdAt'), pitchTypes)} />
+
+        {playerId && <WorkoutCompletionDisplay pitcherId={playerId} />}
 
         {/* Season Trends Chart */}
         <SeasonTrendsChart outings={pitcher.outings} />
