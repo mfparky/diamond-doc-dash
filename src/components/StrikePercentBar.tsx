@@ -207,8 +207,8 @@ export function StrikePercentBar({ pitcherSeasons, outings }: StrikePercentBarPr
         </div>
 
         {/* Trend sparkline */}
-        {spark && (
-          <SparklineWithTooltip spark={spark} sparkW={sparkW} sparkH={sparkH} sparkPad={sparkPad} trendData={trendData!} />
+        {spark && trendData && (
+          <SparklineWithTooltip spark={spark} sparkW={sparkW} sparkH={sparkH} sparkPad={sparkPad} trendData={trendData} />
         )}
       </CardContent>
     </Card>
