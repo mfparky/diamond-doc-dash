@@ -70,13 +70,24 @@ function LeaderboardRow({ entry, index, getRankIcon, isHighlighted }: {
   );
 }
 
-export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntries, highlightPitcherId }: WorkoutLeaderboardProps) {
+export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntries, highlightPitcherId, hideDatePicker }: WorkoutLeaderboardProps) {
   const [dateRange, setDateRange] = useState<DateRange>(() => {
     const now = new Date();
     const from = initialFrom ?? startOfWeek(new Date(now.getFullYear(), now.getMonth(), 1), { weekStartsOn: 1 });
     const to = initialTo ?? endOfWeek(now, { weekStartsOn: 1 });
     return { from, to };
   });
+
+  // Sync dateRange when initialFrom/initialTo props arrive (async fetch)
+  useEffect(() => {
+    if (initialFrom || initialTo) {
+      const now = new Date();
+      setDateRange({
+        from: initialFrom ?? startOfWeek(new Date(now.getFullYear(), now.getMonth(), 1), { weekStartsOn: 1 }),
+        to: initialTo ?? endOfWeek(now, { weekStartsOn: 1 }),
+      });
+    }
+  }, [initialFrom, initialTo]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
