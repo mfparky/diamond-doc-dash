@@ -563,8 +563,8 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
           className="h-11 w-[40%] text-sm"
           onClick={() => setShowSeasonDashboard(!showSeasonDashboard)}
         >
-          <BarChart3 className="w-4 h-4 mr-2" />
-          Season Dashboard
+          <BarChart3 className="w-4 h-4 mr-1.5 shrink-0" />
+          <span className="truncate">Season Dashboard</span>
         </Button>
       </div>
 
