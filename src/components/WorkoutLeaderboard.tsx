@@ -15,6 +15,7 @@ interface WorkoutLeaderboardProps {
   initialTo?: Date;
   maxEntries?: number;
   highlightPitcherId?: string;
+  hideDatePicker?: boolean;
 }
 
 interface LeaderboardEntry {
@@ -69,13 +70,24 @@ function LeaderboardRow({ entry, index, getRankIcon, isHighlighted }: {
   );
 }
 
-export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntries, highlightPitcherId }: WorkoutLeaderboardProps) {
+export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntries, highlightPitcherId, hideDatePicker }: WorkoutLeaderboardProps) {
   const [dateRange, setDateRange] = useState<DateRange>(() => {
     const now = new Date();
     const from = initialFrom ?? startOfWeek(new Date(now.getFullYear(), now.getMonth(), 1), { weekStartsOn: 1 });
     const to = initialTo ?? endOfWeek(now, { weekStartsOn: 1 });
     return { from, to };
   });
+
+  // Sync dateRange when initialFrom/initialTo props arrive (async fetch)
+  useEffect(() => {
+    if (initialFrom || initialTo) {
+      const now = new Date();
+      setDateRange({
+        from: initialFrom ?? startOfWeek(new Date(now.getFullYear(), now.getMonth(), 1), { weekStartsOn: 1 }),
+        to: initialTo ?? endOfWeek(now, { weekStartsOn: 1 }),
+      });
+    }
+  }, [initialFrom, initialTo]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -167,37 +179,44 @@ export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntrie
 
   return (
     <div className="space-y-4">
-      {/* Date Range Picker */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm text-muted-foreground">Date Range:</span>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
-              <CalendarIcon className="w-4 h-4" />
-              {format(dateRange.from, 'MMM d')} - {format(dateRange.to, 'MMM d, yyyy')}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="range"
-              selected={{ from: dateRange.from, to: dateRange.to }}
-              onSelect={(range) => {
-                if (range?.from && range?.to) {
-                  setDateRange({
-                    from: startOfWeek(range.from, { weekStartsOn: 1 }),
-                    to: endOfWeek(range.to, { weekStartsOn: 1 }),
-                  });
-                }
-              }}
-              numberOfMonths={1}
-              className={cn("p-3 pointer-events-auto")}
-            />
-          </PopoverContent>
-        </Popover>
-        <span className="text-xs text-muted-foreground">
-          ({weeksInRange} week{weeksInRange !== 1 ? 's' : ''})
-        </span>
-      </div>
+      {/* Date Range Picker - hidden for parent view */}
+      {!hideDatePicker && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm text-muted-foreground">Date Range:</span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <CalendarIcon className="w-4 h-4" />
+                {format(dateRange.from, 'MMM d')} - {format(dateRange.to, 'MMM d, yyyy')}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="range"
+                selected={{ from: dateRange.from, to: dateRange.to }}
+                onSelect={(range) => {
+                  if (range?.from && range?.to) {
+                    setDateRange({
+                      from: startOfWeek(range.from, { weekStartsOn: 1 }),
+                      to: endOfWeek(range.to, { weekStartsOn: 1 }),
+                    });
+                  }
+                }}
+                numberOfMonths={1}
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+          <span className="text-xs text-muted-foreground">
+            ({weeksInRange} week{weeksInRange !== 1 ? 's' : ''})
+          </span>
+        </div>
+      )}
+      {hideDatePicker && (
+        <p className="text-xs text-muted-foreground text-center">
+          {format(dateRange.from, 'MMM d')} – {format(dateRange.to, 'MMM d, yyyy')} ({weeksInRange} week{weeksInRange !== 1 ? 's' : ''})
+        </p>
+      )}
 
       {/* Leaderboard */}
       {isLoading ? (
