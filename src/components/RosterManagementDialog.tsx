@@ -304,15 +304,26 @@ export function RosterManagementDialog({
     setDeleteConfirmId(null);
   };
 
-  const handleAchievementDateChange = (date: Date | undefined) => {
+  const handleAchievementDateChange = async (date: Date | undefined) => {
     setAchievementStartDate(date);
+    // Also persist to localStorage for the coach's own views
     if (date) {
       localStorage.setItem('achievementStartDate', date.toISOString());
     } else {
       localStorage.removeItem('achievementStartDate');
     }
-    // Dispatch storage event so other components pick up the change
     window.dispatchEvent(new Event('storage'));
+
+    // Persist to teams table so parents can see it
+    const teamId = pitchers[0]?.teamId;
+    if (teamId) {
+      await supabase
+        .from('teams')
+        .update({
+          leaderboard_from: date ? format(date, 'yyyy-MM-dd') : null,
+        })
+        .eq('id', teamId);
+    }
   };
 
   const pitcherToDelete = pitchers.find(p => p.id === deleteConfirmId);
