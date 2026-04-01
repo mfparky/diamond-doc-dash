@@ -21,6 +21,7 @@ interface WorkoutCompletion {
   assignmentId: string;
   dayOfWeek: number;
   notes: string | null;
+  photoUrl: string | null;
 }
 
 // Get the Monday of the current week
