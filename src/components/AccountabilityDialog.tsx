@@ -32,6 +32,8 @@ export function AccountabilityDialog({
   onUpdateNotes,
   onUploadPhoto,
   onUpdatePhoto,
+  achievementStart,
+  achievementEnd,
 }: AccountabilityDialogProps) {
   const weekDays = getWeekDayLabels();
   const [pendingToggles, setPendingToggles] = useState<Set<string>>(new Set());
