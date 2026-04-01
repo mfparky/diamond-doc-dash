@@ -167,6 +167,11 @@ export function AccountabilityDialog({
           </DialogTitle>
           <DialogDescription>
             Mark the days when workouts were completed this week.
+            {achievementStart && (
+              <span className="block mt-1 text-primary font-medium">
+                {format(achievementStart, 'MMM d')} – {achievementEnd ? format(achievementEnd, 'MMM d') : 'Present'}
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
 
