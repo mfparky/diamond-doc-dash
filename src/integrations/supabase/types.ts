@@ -226,6 +226,8 @@ export type Database = {
       }
       teams: {
         Row: {
+          achievement_from: string | null
+          achievement_to: string | null
           created_at: string
           id: string
           join_code: string
@@ -236,6 +238,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          achievement_from?: string | null
+          achievement_to?: string | null
           created_at?: string
           id?: string
           join_code?: string
@@ -246,6 +250,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          achievement_from?: string | null
+          achievement_to?: string | null
           created_at?: string
           id?: string
           join_code?: string
