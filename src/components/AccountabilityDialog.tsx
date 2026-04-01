@@ -18,6 +18,8 @@ interface AccountabilityDialogProps {
   onUpdateNotes?: (completionId: string, notes: string) => Promise<boolean>;
   onUploadPhoto?: (pitcherId: string, file: File) => Promise<string | null>;
   onUpdatePhoto?: (completionId: string, photoUrl: string | null) => Promise<boolean>;
+  achievementStart?: Date;
+  achievementEnd?: Date;
 }
 
 export function AccountabilityDialog({
