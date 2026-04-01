@@ -229,6 +229,8 @@ export type Database = {
           created_at: string
           id: string
           join_code: string
+          leaderboard_from: string | null
+          leaderboard_to: string | null
           name: string
           owner_id: string
           updated_at: string
@@ -237,6 +239,8 @@ export type Database = {
           created_at?: string
           id?: string
           join_code?: string
+          leaderboard_from?: string | null
+          leaderboard_to?: string | null
           name: string
           owner_id: string
           updated_at?: string
@@ -245,6 +249,8 @@ export type Database = {
           created_at?: string
           id?: string
           join_code?: string
+          leaderboard_from?: string | null
+          leaderboard_to?: string | null
           name?: string
           owner_id?: string
           updated_at?: string
