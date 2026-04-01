@@ -55,10 +55,8 @@ export function RosterManagementDialog({
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isDark, setIsDark] = useState(() => !document.documentElement.classList.contains('light'));
   const [workoutAssignments, setWorkoutAssignments] = useState<Record<string, WorkoutAssignment[]>>({});
-  const [achievementStartDate, setAchievementStartDate] = useState<Date | undefined>(() => {
-    const stored = localStorage.getItem('achievementStartDate');
-    return stored ? new Date(stored) : undefined;
-  });
+  const [achievementStartDate, setAchievementStartDate] = useState<Date | undefined>();
+  const [achievementEndDate, setAchievementEndDate] = useState<Date | undefined>();
   const { toast } = useToast();
 
   // Fetch all workout assignments for all pitchers

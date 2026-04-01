@@ -57,7 +57,7 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
             .eq('pitcher_id', pitcherId),
           supabase
             .from('workout_completions')
-            .select('id, assignment_id, day_of_week, notes')
+            .select('id, assignment_id, day_of_week, notes, photo_url')
             .eq('pitcher_id', pitcherId)
             .eq('week_start', weekStart),
         ]);
