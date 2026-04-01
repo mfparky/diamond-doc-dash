@@ -321,13 +321,35 @@ export function RosterManagementDialog({
     if (teamId) {
       await supabase
         .from('teams')
-        .update({ leaderboard_from: date ? format(date, 'yyyy-MM-dd') : null })
+        .update({ achievement_from: date ? format(date, 'yyyy-MM-dd') : null } as any)
         .eq('id', teamId);
     }
   };
 
   const handleAchievementEndDateChange = async (date: Date | undefined) => {
     setAchievementEndDate(date);
+    const teamId = pitchers[0]?.teamId;
+    if (teamId) {
+      await supabase
+        .from('teams')
+        .update({ achievement_to: date ? format(date, 'yyyy-MM-dd') : null } as any)
+        .eq('id', teamId);
+    }
+  };
+
+  const handleLeaderboardDateChange = async (date: Date | undefined) => {
+    setLeaderboardStartDate(date);
+    const teamId = pitchers[0]?.teamId;
+    if (teamId) {
+      await supabase
+        .from('teams')
+        .update({ leaderboard_from: date ? format(date, 'yyyy-MM-dd') : null })
+        .eq('id', teamId);
+    }
+  };
+
+  const handleLeaderboardEndDateChange = async (date: Date | undefined) => {
+    setLeaderboardEndDate(date);
     const teamId = pitchers[0]?.teamId;
     if (teamId) {
       await supabase
