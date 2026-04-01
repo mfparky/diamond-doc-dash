@@ -100,7 +100,7 @@ export function TeamLeaderboardDialog({ open, onOpenChange, pitcherId }: TeamLea
             No team data available.
           </div>
         ) : (
-          <WorkoutLeaderboard pitchers={teamPitchers} />
+          <WorkoutLeaderboard pitchers={teamPitchers} initialFrom={leaderboardFrom} initialTo={leaderboardTo} />
         )}
       </DialogContent>
     </Dialog>
