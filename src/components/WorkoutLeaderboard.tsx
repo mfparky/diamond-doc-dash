@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils';
 
 interface WorkoutLeaderboardProps {
   pitchers: PitcherRecord[];
+  initialFrom?: Date;
+  initialTo?: Date;
 }
 
 interface LeaderboardEntry {
