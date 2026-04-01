@@ -65,6 +65,7 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
   const { fetchPitchTypes, fetchPitchLocationsForOuting, fetchPitchLocationsForPitcher, addPitchLocations } = usePitchLocations();
   const { toast } = useToast();
   const { filterByWindow } = useAchievementWindow();
+  const [copyFeedback, setCopyFeedback] = useState<'link' | 'summary' | null>(null);
 
   // Load pitch location counts for each outing - fetch in parallel
   const loadOutingPitchCounts = useCallback(async () => {
