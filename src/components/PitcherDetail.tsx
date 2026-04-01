@@ -549,22 +549,22 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
       })()}
 
       {/* Video Comparison & Season Dashboard Buttons */}
-      <div className="flex gap-3">
+      <div className="flex justify-center gap-3">
         <Button
           variant={showVideoComparison ? 'default' : 'outline'}
-          className="flex-1 h-11"
+          className="h-11 w-[40%] text-sm"
           onClick={() => setShowVideoComparison(!showVideoComparison)}
         >
-          <Columns2 className="w-4 h-4 mr-2" />
-          Compare Videos
+          <Columns2 className="w-4 h-4 mr-1.5 shrink-0" />
+          <span className="truncate">Compare Videos</span>
         </Button>
         <Button
           variant={showSeasonDashboard ? 'default' : 'outline'}
-          className="flex-1 h-11"
+          className="h-11 w-[40%] text-sm"
           onClick={() => setShowSeasonDashboard(!showSeasonDashboard)}
         >
-          <BarChart3 className="w-4 h-4 mr-2" />
-          Season Dashboard
+          <BarChart3 className="w-4 h-4 mr-1.5 shrink-0" />
+          <span className="truncate">Season Dashboard</span>
         </Button>
       </div>
 
