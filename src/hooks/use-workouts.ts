@@ -389,6 +389,8 @@ export function useWorkouts(pitcherId?: string) {
     deleteAssignment,
     toggleCompletion,
     updateCompletionNotes,
+    uploadCompletionPhoto,
+    updateCompletionPhoto,
     refetchAssignments: fetchAssignments,
     refetchCompletions: fetchCompletions,
   };

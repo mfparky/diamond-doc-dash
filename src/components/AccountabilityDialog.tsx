@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { ClipboardCheck, Check, MessageSquare, Trophy, Paperclip, ExternalLink } from 'lucide-react';
+import { ClipboardCheck, Check, MessageSquare, Trophy, Paperclip, ExternalLink, Camera, X, Loader2 } from 'lucide-react';
 import { TeamLeaderboardDialog } from '@/components/TeamLeaderboardDialog';
 import { WorkoutAssignment, WorkoutCompletion, getWeekDayLabels } from '@/hooks/use-workouts';
 import { format } from 'date-fns';
@@ -17,6 +16,8 @@ interface AccountabilityDialogProps {
   pitcherId: string;
   onToggleDay: (assignmentId: string, dayOfWeek: number) => Promise<boolean>;
   onUpdateNotes?: (completionId: string, notes: string) => Promise<boolean>;
+  onUploadPhoto?: (pitcherId: string, file: File) => Promise<string | null>;
+  onUpdatePhoto?: (completionId: string, photoUrl: string | null) => Promise<boolean>;
 }
 
 export function AccountabilityDialog({
@@ -27,43 +28,41 @@ export function AccountabilityDialog({
   pitcherId,
   onToggleDay,
   onUpdateNotes,
+  onUploadPhoto,
+  onUpdatePhoto,
 }: AccountabilityDialogProps) {
   const weekDays = getWeekDayLabels();
   const [pendingToggles, setPendingToggles] = useState<Set<string>>(new Set());
   const [editingNotes, setEditingNotes] = useState<{ assignmentId: string; dayOfWeek: number } | null>(null);
   const [noteText, setNoteText] = useState('');
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Check if a day is completed for an assignment
   const isCompleted = (assignmentId: string, dayOfWeek: number): boolean => {
     return completions.some(
       (c) => c.assignmentId === assignmentId && c.dayOfWeek === dayOfWeek
     );
   };
 
-  // Get completion for a specific assignment and day
   const getCompletion = (assignmentId: string, dayOfWeek: number): WorkoutCompletion | undefined => {
     return completions.find(
       (c) => c.assignmentId === assignmentId && c.dayOfWeek === dayOfWeek
     );
   };
 
-  // Count completions for an assignment
   const getCompletedCount = (assignmentId: string): number => {
     return completions.filter((c) => c.assignmentId === assignmentId).length;
   };
 
-  // Check if assignment has reached its frequency cap
   const isAtFrequencyCap = (assignmentId: string, frequency: number): boolean => {
     return getCompletedCount(assignmentId) >= frequency;
   };
 
-  // Handle day toggle
   const handleToggle = async (assignmentId: string, dayOfWeek: number, frequency: number) => {
     const key = `${assignmentId}-${dayOfWeek}`;
     if (pendingToggles.has(key)) return;
 
-    // If trying to add and already at cap, block it
     const alreadyCompleted = isCompleted(assignmentId, dayOfWeek);
     if (!alreadyCompleted && isAtFrequencyCap(assignmentId, frequency)) return;
 
@@ -76,14 +75,12 @@ export function AccountabilityDialog({
     });
   };
 
-  // Open notes editor
   const handleOpenNotes = (assignmentId: string, dayOfWeek: number) => {
     const completion = getCompletion(assignmentId, dayOfWeek);
     setNoteText(completion?.notes || '');
     setEditingNotes({ assignmentId, dayOfWeek });
   };
 
-  // Save notes
   const handleSaveNotes = async () => {
     if (!editingNotes || !onUpdateNotes) return;
     const completion = getCompletion(editingNotes.assignmentId, editingNotes.dayOfWeek);
@@ -94,13 +91,37 @@ export function AccountabilityDialog({
     setNoteText('');
   };
 
-  // Check if today is the current day
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingNotes || !onUploadPhoto || !onUpdatePhoto) return;
+
+    const completion = getCompletion(editingNotes.assignmentId, editingNotes.dayOfWeek);
+    if (!completion) return;
+
+    setIsUploading(true);
+    const url = await onUploadPhoto(pitcherId, file);
+    if (url) {
+      await onUpdatePhoto(completion.id, url);
+    }
+    setIsUploading(false);
+
+    // Reset file input
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleRemovePhoto = async () => {
+    if (!editingNotes || !onUpdatePhoto) return;
+    const completion = getCompletion(editingNotes.assignmentId, editingNotes.dayOfWeek);
+    if (completion) {
+      await onUpdatePhoto(completion.id, null);
+    }
+  };
+
   const isToday = (date: Date): boolean => {
     const today = new Date();
     return format(date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd');
   };
 
-  // Check if day is in the future
   const isFuture = (date: Date): boolean => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -127,6 +148,10 @@ export function AccountabilityDialog({
       </Dialog>
     );
   }
+
+  const editingCompletion = editingNotes
+    ? getCompletion(editingNotes.assignmentId, editingNotes.dayOfWeek)
+    : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -180,7 +205,6 @@ export function AccountabilityDialog({
                     const completed = isCompleted(assignment.id, dayIndex);
                     const completion = getCompletion(assignment.id, dayIndex);
                     const isPending = pendingToggles.has(`${assignment.id}-${dayIndex}`);
-                    const future = isFuture(date);
                     const today = isToday(date);
 
                     const atCap = !completed && isAtFrequencyCap(assignment.id, assignment.frequency ?? 7);
@@ -208,15 +232,16 @@ export function AccountabilityDialog({
                         >
                           {completed && <Check className="w-5 h-5" />}
                         </button>
-                        {/* Notes indicator */}
+                        {/* Notes/photo indicator */}
                         {completed && (
                           <button
                             onClick={() => handleOpenNotes(assignment.id, dayIndex)}
-                            className={`p-1.5 -m-1 flex items-center justify-center rounded-md ${
-                              completion?.notes ? 'text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                            className={`p-1.5 -m-1 flex items-center justify-center gap-0.5 rounded-md ${
+                              completion?.notes || completion?.photoUrl ? 'text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                             }`}
                           >
                             <MessageSquare className="w-4 h-4" />
+                            {completion?.photoUrl && <Camera className="w-3 h-3" />}
                           </button>
                         )}
                       </div>
@@ -228,18 +253,65 @@ export function AccountabilityDialog({
           })}
         </div>
 
-        {/* Notes editing dialog */}
+        {/* Notes + photo editing section */}
         {editingNotes && (
-          <div className="border-t border-border pt-4 mt-4">
+          <div className="border-t border-border pt-4 mt-4 space-y-3">
             <Label className="text-sm font-medium">Add notes for this day</Label>
             <Textarea
               value={noteText}
               onChange={(e) => setNoteText(e.target.value)}
               placeholder="How did the workout go? Any feedback?"
-              className="mt-2"
               rows={3}
             />
-            <div className="flex justify-end gap-2 mt-2">
+
+            {/* Photo section */}
+            {onUploadPhoto && onUpdatePhoto && (
+              <div>
+                {editingCompletion?.photoUrl ? (
+                  <div className="relative inline-block">
+                    <a href={editingCompletion.photoUrl} target="_blank" rel="noopener noreferrer">
+                      <img
+                        src={editingCompletion.photoUrl}
+                        alt="Workout photo"
+                        className="w-24 h-24 object-cover rounded-lg border border-border"
+                      />
+                    </a>
+                    <button
+                      onClick={handleRemovePhoto}
+                      className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/heic"
+                      className="hidden"
+                      onChange={handlePhotoSelect}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                    >
+                      {isUploading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Camera className="w-4 h-4" />
+                      )}
+                      {isUploading ? 'Uploading...' : 'Add Photo'}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2">
               <Button variant="outline" size="sm" onClick={() => setEditingNotes(null)}>
                 Cancel
               </Button>
