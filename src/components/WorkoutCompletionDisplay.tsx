@@ -111,6 +111,13 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
     return completion?.notes ?? null;
   };
 
+  const getCompletionPhotoUrl = (assignmentId: string, dayOfWeek: number): string | null => {
+    const completion = completions.find(
+      (c) => c.assignmentId === assignmentId && c.dayOfWeek === dayOfWeek
+    );
+    return completion?.photoUrl ?? null;
+  };
+
   if (isLoading) {
     return (
       <Card className="glass-card">
