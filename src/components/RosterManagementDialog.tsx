@@ -253,6 +253,52 @@ export function RosterManagementDialog({
     }
   };
 
+  // Cascade workouts from one pitcher to all others
+  const handleCascadeWorkouts = async (sourcePitcherId: string) => {
+    const sourceAssignments = workoutAssignments[sourcePitcherId] || [];
+    if (sourceAssignments.length === 0) {
+      toast({ title: 'No workouts to copy', description: 'This player has no workouts assigned.', variant: 'destructive' });
+      return;
+    }
+
+    const sourcePitcher = pitchers.find(p => p.id === sourcePitcherId);
+    if (!sourcePitcher) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      let copiedCount = 0;
+      for (const targetPitcher of pitchers) {
+        if (targetPitcher.id === sourcePitcherId) continue;
+        const existingTitles = new Set((workoutAssignments[targetPitcher.id] || []).map(a => a.title));
+
+        for (const assignment of sourceAssignments) {
+          if (existingTitles.has(assignment.title)) continue;
+          await supabase.from('workout_assignments').insert({
+            pitcher_id: targetPitcher.id,
+            team_id: targetPitcher.teamId,
+            title: assignment.title,
+            description: assignment.description,
+            frequency: assignment.frequency,
+            attachment_url: assignment.attachmentUrl,
+            user_id: targetPitcher.teamId ? null : (targetPitcher.userId ?? user.id),
+          });
+          copiedCount++;
+        }
+      }
+
+      await fetchAllWorkoutAssignments();
+      toast({
+        title: 'Workouts copied',
+        description: `${copiedCount} workout${copiedCount !== 1 ? 's' : ''} copied to ${pitchers.length - 1} player${pitchers.length > 2 ? 's' : ''}.`,
+      });
+    } catch (error) {
+      console.error('Error cascading workouts:', error);
+      toast({ title: 'Error copying workouts', description: 'Something went wrong. Please try again.', variant: 'destructive' });
+    }
+  };
+
   const toggleTheme = () => {
     const newIsDark = !isDark;
     setIsDark(newIsDark);
