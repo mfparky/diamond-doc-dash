@@ -826,6 +826,8 @@ export default function PlayerDashboard() {
           toggleCompletion(assignmentId, playerId || '', dayOfWeek)
         }
         onUpdateNotes={updateCompletionNotes}
+        onUploadPhoto={uploadCompletionPhoto}
+        onUpdatePhoto={updateCompletionPhoto}
       />
     </div>
   );
