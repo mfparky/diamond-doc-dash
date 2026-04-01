@@ -857,6 +857,8 @@ export default function PlayerDashboard() {
         onUpdateNotes={updateCompletionNotes}
         onUploadPhoto={uploadCompletionPhoto}
         onUpdatePhoto={updateCompletionPhoto}
+        achievementStart={teamAchievementStart}
+        achievementEnd={teamAchievementEnd}
       />
     </div>
   );
