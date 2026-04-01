@@ -137,6 +137,12 @@ export default function TeamDashboard() {
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
+            <button
+              onClick={() => navigate(-1)}
+              className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full hover:bg-secondary/80 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4 text-foreground" />
+            </button>
             <img src={hawksLogo} alt="Team" className="w-10 h-10 object-contain shrink-0" />
             <div className="min-w-0">
               <h1 className="font-display text-xl font-bold text-foreground truncate">{teamName}</h1>
