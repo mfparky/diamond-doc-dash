@@ -286,27 +286,31 @@ export function StrikeLocationViewer({
         {/* Visualization */}
         <div className="flex justify-center py-2 px-2">
           {isLoading ? (
-            <div className="w-72 h-80 bg-secondary/30 rounded-lg animate-pulse" />
+            <div className="w-full max-w-[300px] aspect-[300/388] bg-secondary/30 rounded-lg animate-pulse" />
           ) : pitchLocations.length === 0 ? (
-            <div className="flex items-center justify-center text-center text-muted-foreground py-12 w-full max-w-[380px]" style={{ aspectRatio: '380/492' }}>
+            <div className="flex items-center justify-center text-center text-muted-foreground py-12 w-full max-w-[300px]" style={{ aspectRatio: '300/388' }}>
               <div>
                 <p>No pitch locations for this {viewMode === 'session' ? 'session' : 'period'}.</p>
                 <p className="text-sm mt-1">Use the pitch map button to add locations.</p>
               </div>
             </div>
           ) : viewMode === 'year' ? (
-            <SmoothHeatmap
-              pitchLocations={filteredLocations}
-              showLegend={false}
-              size="lg"
-            />
+            <div className="w-full max-w-[300px]">
+              <SmoothHeatmap
+                pitchLocations={filteredLocations}
+                showLegend={false}
+                size="md"
+              />
+            </div>
           ) : (
-            <StrikeZone
-              pitchLocations={filteredLocations}
-              pitchTypes={pitchTypes}
-              showLegend={false}
-              size="lg"
-            />
+            <div className="w-full max-w-[300px]">
+              <StrikeZone
+                pitchLocations={filteredLocations}
+                pitchTypes={pitchTypes}
+                showLegend={false}
+                size="md"
+              />
+            </div>
           )}
         </div>
 
