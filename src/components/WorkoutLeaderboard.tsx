@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils';
 
 interface WorkoutLeaderboardProps {
   pitchers: PitcherRecord[];
+  initialFrom?: Date;
+  initialTo?: Date;
 }
 
 interface LeaderboardEntry {
@@ -26,11 +28,11 @@ interface DateRange {
   to: Date;
 }
 
-export function WorkoutLeaderboard({ pitchers }: WorkoutLeaderboardProps) {
+export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo }: WorkoutLeaderboardProps) {
   const [dateRange, setDateRange] = useState<DateRange>(() => {
     const now = new Date();
-    const from = startOfWeek(new Date(now.getFullYear(), now.getMonth(), 1), { weekStartsOn: 1 });
-    const to = endOfWeek(now, { weekStartsOn: 1 });
+    const from = initialFrom ?? startOfWeek(new Date(now.getFullYear(), now.getMonth(), 1), { weekStartsOn: 1 });
+    const to = initialTo ?? endOfWeek(now, { weekStartsOn: 1 });
     return { from, to };
   });
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
