@@ -248,79 +248,81 @@ export function AccountabilityDialog({
                     );
                   })}
                 </div>
+
+                {/* Inline notes + photo editing for this assignment */}
+                {editingNotes && editingNotes.assignmentId === assignment.id && (
+                  <div className="border-t border-border/50 pt-3 mt-3 space-y-3">
+                    <Label className="text-sm font-medium">
+                      Notes for {weekDays[editingNotes.dayOfWeek]?.label}
+                    </Label>
+                    <Textarea
+                      value={noteText}
+                      onChange={(e) => setNoteText(e.target.value)}
+                      placeholder="How did the workout go? Any feedback?"
+                      rows={3}
+                    />
+
+                    {/* Photo section */}
+                    {onUploadPhoto && onUpdatePhoto && (
+                      <div>
+                        {editingCompletion?.photoUrl ? (
+                          <div className="relative inline-block">
+                            <a href={editingCompletion.photoUrl} target="_blank" rel="noopener noreferrer">
+                              <img
+                                src={editingCompletion.photoUrl}
+                                alt="Workout photo"
+                                className="w-24 h-24 object-cover rounded-lg border border-border"
+                              />
+                            </a>
+                            <button
+                              onClick={handleRemovePhoto}
+                              className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div>
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp,image/heic"
+                              className="hidden"
+                              onChange={handlePhotoSelect}
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1.5"
+                              onClick={() => fileInputRef.current?.click()}
+                              disabled={isUploading}
+                            >
+                              {isUploading ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Camera className="w-4 h-4" />
+                              )}
+                              {isUploading ? 'Uploading...' : 'Add Photo'}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setEditingNotes(null)}>
+                        Cancel
+                      </Button>
+                      <Button size="sm" onClick={handleSaveNotes}>
+                        Save Note
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
-
-        {/* Notes + photo editing section */}
-        {editingNotes && (
-          <div className="border-t border-border pt-4 mt-4 space-y-3">
-            <Label className="text-sm font-medium">Add notes for this day</Label>
-            <Textarea
-              value={noteText}
-              onChange={(e) => setNoteText(e.target.value)}
-              placeholder="How did the workout go? Any feedback?"
-              rows={3}
-            />
-
-            {/* Photo section */}
-            {onUploadPhoto && onUpdatePhoto && (
-              <div>
-                {editingCompletion?.photoUrl ? (
-                  <div className="relative inline-block">
-                    <a href={editingCompletion.photoUrl} target="_blank" rel="noopener noreferrer">
-                      <img
-                        src={editingCompletion.photoUrl}
-                        alt="Workout photo"
-                        className="w-24 h-24 object-cover rounded-lg border border-border"
-                      />
-                    </a>
-                    <button
-                      onClick={handleRemovePhoto}
-                      className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ) : (
-                  <div>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,image/heic"
-                      className="hidden"
-                      onChange={handlePhotoSelect}
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isUploading}
-                    >
-                      {isUploading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Camera className="w-4 h-4" />
-                      )}
-                      {isUploading ? 'Uploading...' : 'Add Photo'}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={() => setEditingNotes(null)}>
-                Cancel
-              </Button>
-              <Button size="sm" onClick={handleSaveNotes}>
-                Save Note
-              </Button>
-            </div>
-          </div>
-        )}
 
         {/* Team Leaderboard Link */}
         <div className="border-t border-border pt-4">
