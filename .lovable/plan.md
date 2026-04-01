@@ -1,38 +1,50 @@
 
 
-## Plan: Optional Photo Upload on Workout Completions
+## Plan: Three Dashboard Improvements
 
-### Summary
-Allow parents to optionally attach a photo when completing a workout day. Photos upload to the existing `outing-videos` storage bucket and the URL is stored on the completion record.
+### 1. Coach sees workout photos (WorkoutCompletionDisplay)
 
-### 1. Database Migration
-Add nullable `photo_url` column to `workout_completions`:
-```sql
-ALTER TABLE workout_completions ADD COLUMN photo_url text;
-```
+**Problem**: The query on line 60 of `WorkoutCompletionDisplay.tsx` selects `'id, assignment_id, day_of_week, notes'` — missing `photo_url`.
 
-### 2. Fix Build Error
-**`supabase/functions/manage-approvals/index.ts`** — Cast `error` to `Error`: `(error as Error).message`
+**Fix**: Add `photo_url` to the select string. The mapping at line 84 already handles `(c as any).photo_url`, so photos will render once fetched.
 
-### 3. Hook Updates (`src/hooks/use-workouts.ts`)
-- Add `photoUrl` to `WorkoutCompletion` interface
-- Map `photo_url` in `fetchCompletions`
-- Add `uploadCompletionPhoto(pitcherId, file)` — uploads to `outing-videos` bucket at `workouts/{pitcherId}/{timestamp}.{ext}`, returns public URL
-- Add `updateCompletionPhoto(completionId, photoUrl)` — updates the record
+**File**: `src/components/WorkoutCompletionDisplay.tsx` (1-line change)
 
-### 4. UI: AccountabilityDialog (`src/components/AccountabilityDialog.tsx`)
-- In the notes editing section (shown when tapping the comment icon on a completed day), add an optional "Add Photo" button with hidden file input (accept: image/*)
-- Show thumbnail preview if a photo exists or was just uploaded
-- Photo uploads immediately on selection; URL saved to completion record
-- Small camera icon indicator on days that have photos
+---
 
-### 5. UI: WorkoutCompletionDisplay (`src/components/WorkoutCompletionDisplay.tsx`)
-- Show camera icon on completed days that have photos
-- Tapping opens photo in new tab
+### 2. Parent sees coach-set achievement window dates
 
-### Technical Details
-- Storage path: `workouts/{pitcherId}/{timestamp}.{ext}` (matches existing convention)
-- Accepted formats: JPEG, PNG, WebP, HEIC
-- Photo is fully optional — no changes to the core toggle flow
-- No file size limit enforced client-side beyond browser defaults
+**Problem**: The achievement window is stored only in `localStorage` on the coach's browser. Parents on public dashboards never see it. The `teams` table already has `leaderboard_from` and `leaderboard_to` date columns — these are the right place to persist the window.
+
+**Changes**:
+
+- **RosterManagementDialog**: When coach changes the achievement date, also write it to the `teams` table (`leaderboard_from` column). On dialog open, read from `teams` table to initialize the date.
+
+- **PlayerDashboard**: After fetching pitcher data (which already gets `team_id`), also fetch the team's `leaderboard_from` and `leaderboard_to`. Pass these dates to the `AccountabilityDialog` and `BadgeGrid` to use instead of the localStorage-based `useAchievementWindow`.
+
+- **AccountabilityDialog**: Accept optional `achievementStart`/`achievementEnd` props and display the date range as a subtitle (e.g., "Apr 1 – May 1") in the dialog header.
+
+**Files**: `src/components/RosterManagementDialog.tsx`, `src/pages/PlayerDashboard.tsx`, `src/components/AccountabilityDialog.tsx`
+
+No migration needed — `leaderboard_from` and `leaderboard_to` already exist on the `teams` table.
+
+---
+
+### 3. Reorder coach player dashboard sections
+
+**Problem**: Stats grid and focus/notes are below badges and accountability. Coach wants them higher.
+
+**Current order in `PitcherDetail.tsx`** (lines 296–500+):
+1. Share with Parents (line 297)
+2. Badges + Accountability + Coach Notes (lines 299–325)
+3. Stats Grid (lines 327–399)
+4. Focus/Notes & Latest Video (lines 401+)
+
+**New order**:
+1. Share with Parents
+2. Stats Grid (moved up)
+3. Focus/Notes & Latest Video (moved up)
+4. Badges + Accountability + Coach Notes (moved down)
+
+**File**: `src/components/PitcherDetail.tsx` (block reorder, no logic changes)
 
