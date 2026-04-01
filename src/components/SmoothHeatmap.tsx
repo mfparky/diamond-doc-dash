@@ -111,8 +111,8 @@ export function SmoothHeatmap({
 
     if (pitchLocations.length === 0) {
       // Draw strike zone outline even with no data
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-      ctx.lineWidth = 2 * scale;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.lineWidth = 2.5 * scale;
       ctx.strokeRect(zoneLeftPx, zoneTopPx, zoneRightPx - zoneLeftPx, zoneBottomPx - zoneTopPx);
       return;
     }
@@ -254,8 +254,8 @@ export function SmoothHeatmap({
 
     // Zone border drawn AFTER at low opacity — visible in empty areas,
     // but won't mask heat that accumulates at the zone edges
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
-    ctx.lineWidth = 1.5 * scale;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+    ctx.lineWidth = 2.5 * scale;
     ctx.strokeRect(zoneLeftPx, zoneTopPx, zoneWidth, zoneHeight);
 
     // Inner 3×3 grid lines

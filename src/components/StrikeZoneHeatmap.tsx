@@ -98,7 +98,7 @@ export function StrikeZoneHeatmap({
 
         {/* Strike zone box overlay - using accurate MLB proportions */}
         <div
-          className="absolute border-2 border-foreground/80 pointer-events-none"
+          className="absolute border-[3px] border-foreground pointer-events-none"
           style={{
             left: `${zoneLeft}%`,
             right: `${zoneRight}%`,

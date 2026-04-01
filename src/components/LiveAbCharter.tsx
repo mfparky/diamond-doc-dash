@@ -162,7 +162,7 @@ export function LiveAbCharter({ pitchTypes = DEFAULT_PITCH_TYPES, onChange, init
           </div>
 
           {/* Strike zone box */}
-          <div className="absolute border-2 border-foreground/80 bg-primary/5"
+          <div className="absolute border-[3px] border-foreground bg-primary/5"
             style={{ left: `${zoneLeft}%`, right: `${zoneRight}%`, top: `${zoneTop}%`, bottom: `${zoneBottom}%` }} />
 
           {/* Completed AB pitches — shown faded */}
