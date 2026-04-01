@@ -30,7 +30,7 @@ interface DateRange {
   to: Date;
 }
 
-export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo }: WorkoutLeaderboardProps) {
+export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntries, highlightPitcherId }: WorkoutLeaderboardProps) {
   const [dateRange, setDateRange] = useState<DateRange>(() => {
     const now = new Date();
     const from = initialFrom ?? startOfWeek(new Date(now.getFullYear(), now.getMonth(), 1), { weekStartsOn: 1 });
