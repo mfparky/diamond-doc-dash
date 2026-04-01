@@ -385,44 +385,64 @@ export function RosterManagementDialog({
     window.dispatchEvent(new Event('storage'));
 
     const teamId = pitchers[0]?.teamId;
+    const userId = pitchers[0]?.userId;
     if (teamId) {
       await supabase
         .from('teams')
         .update({ achievement_from: date ? format(date, 'yyyy-MM-dd') : null } as any)
         .eq('id', teamId);
+    } else if (userId) {
+      await supabase
+        .from('dashboard_settings' as any)
+        .upsert({ user_id: userId, achievement_from: date ? format(date, 'yyyy-MM-dd') : null }, { onConflict: 'user_id' });
     }
   };
 
   const handleAchievementEndDateChange = async (date: Date | undefined) => {
     setAchievementEndDate(date);
     const teamId = pitchers[0]?.teamId;
+    const userId = pitchers[0]?.userId;
     if (teamId) {
       await supabase
         .from('teams')
         .update({ achievement_to: date ? format(date, 'yyyy-MM-dd') : null } as any)
         .eq('id', teamId);
+    } else if (userId) {
+      await supabase
+        .from('dashboard_settings' as any)
+        .upsert({ user_id: userId, achievement_to: date ? format(date, 'yyyy-MM-dd') : null }, { onConflict: 'user_id' });
     }
   };
 
   const handleLeaderboardDateChange = async (date: Date | undefined) => {
     setLeaderboardStartDate(date);
     const teamId = pitchers[0]?.teamId;
+    const userId = pitchers[0]?.userId;
     if (teamId) {
       await supabase
         .from('teams')
         .update({ leaderboard_from: date ? format(date, 'yyyy-MM-dd') : null })
         .eq('id', teamId);
+    } else if (userId) {
+      await supabase
+        .from('dashboard_settings' as any)
+        .upsert({ user_id: userId, leaderboard_from: date ? format(date, 'yyyy-MM-dd') : null }, { onConflict: 'user_id' });
     }
   };
 
   const handleLeaderboardEndDateChange = async (date: Date | undefined) => {
     setLeaderboardEndDate(date);
     const teamId = pitchers[0]?.teamId;
+    const userId = pitchers[0]?.userId;
     if (teamId) {
       await supabase
         .from('teams')
         .update({ leaderboard_to: date ? format(date, 'yyyy-MM-dd') : null })
         .eq('id', teamId);
+    } else if (userId) {
+      await supabase
+        .from('dashboard_settings' as any)
+        .upsert({ user_id: userId, leaderboard_to: date ? format(date, 'yyyy-MM-dd') : null }, { onConflict: 'user_id' });
     }
   };
 
