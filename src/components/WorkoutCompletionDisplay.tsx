@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ClipboardCheck, Check, MessageSquare, Paperclip, ExternalLink } from 'lucide-react';
+import { ClipboardCheck, Check, MessageSquare, Paperclip, ExternalLink, Camera } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { startOfWeek, format, addDays } from 'date-fns';
 
