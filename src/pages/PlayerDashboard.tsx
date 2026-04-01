@@ -59,6 +59,8 @@ export default function PlayerDashboard() {
     isLoading: workoutsLoading,
     toggleCompletion,
     updateCompletionNotes,
+    uploadCompletionPhoto,
+    updateCompletionPhoto,
   } = useWorkouts(playerId);
 
   const withTimeout = <T,>(promise: Promise<T>, ms = 8000): Promise<T> => {
