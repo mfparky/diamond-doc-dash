@@ -415,49 +415,99 @@ export function RosterManagementDialog({
                       <Trophy className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">Achievement Window</p>
+                      <p className="font-medium text-foreground">Achievement & Leaderboard Window</p>
                       <p className="text-sm text-muted-foreground">
-                        {achievementStartDate
+                        {achievementStartDate && achievementEndDate
+                          ? `${format(achievementStartDate, 'MMM d')} – ${format(achievementEndDate, 'MMM d, yyyy')}`
+                          : achievementStartDate
                           ? `From ${format(achievementStartDate, 'MMM d, yyyy')}`
                           : 'All time (no filter)'}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 pl-[52px]">
-                    <Popover>
-                      <PopoverTrigger asChild>
+                  {/* Start date */}
+                  <div className="pl-[52px] space-y-2">
+                    <p className="text-xs text-muted-foreground font-medium">Start Date</p>
+                    <div className="flex items-center gap-2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className={cn(
+                              'justify-start text-left font-normal flex-1',
+                              !achievementStartDate && 'text-muted-foreground'
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {achievementStartDate ? format(achievementStartDate, 'PPP') : 'Pick start date'}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={achievementStartDate}
+                            onSelect={handleAchievementDateChange}
+                            disabled={(date) => date > new Date()}
+                            initialFocus
+                            className={cn('p-3 pointer-events-auto')}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      {achievementStartDate && (
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="sm"
-                          className={cn(
-                            'justify-start text-left font-normal flex-1',
-                            !achievementStartDate && 'text-muted-foreground'
-                          )}
+                          onClick={() => handleAchievementDateChange(undefined)}
+                          className="text-muted-foreground"
                         >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {achievementStartDate ? format(achievementStartDate, 'PPP') : 'Pick start date'}
+                          <X className="w-4 h-4" />
                         </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={achievementStartDate}
-                          onSelect={handleAchievementDateChange}
-                          disabled={(date) => date > new Date()}
-                          initialFocus
-                          className={cn('p-3 pointer-events-auto')}
-                        />
-                      </PopoverContent>
-                    </Popover>
+                      )}
+                    </div>
+
+                    {/* End date */}
                     {achievementStartDate && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleAchievementDateChange(undefined)}
-                        className="text-muted-foreground"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
+                      <>
+                        <p className="text-xs text-muted-foreground font-medium">End Date</p>
+                        <div className="flex items-center gap-2">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className={cn(
+                                  'justify-start text-left font-normal flex-1',
+                                  !achievementEndDate && 'text-muted-foreground'
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {achievementEndDate ? format(achievementEndDate, 'PPP') : 'Pick end date (optional)'}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={achievementEndDate}
+                                onSelect={handleAchievementEndDateChange}
+                                disabled={(date) => achievementStartDate ? date < achievementStartDate : false}
+                                initialFocus
+                                className={cn('p-3 pointer-events-auto')}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          {achievementEndDate && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleAchievementEndDateChange(undefined)}
+                              className="text-muted-foreground"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>
