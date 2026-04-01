@@ -55,10 +55,8 @@ export function RosterManagementDialog({
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isDark, setIsDark] = useState(() => !document.documentElement.classList.contains('light'));
   const [workoutAssignments, setWorkoutAssignments] = useState<Record<string, WorkoutAssignment[]>>({});
-  const [achievementStartDate, setAchievementStartDate] = useState<Date | undefined>(() => {
-    const stored = localStorage.getItem('achievementStartDate');
-    return stored ? new Date(stored) : undefined;
-  });
+  const [achievementStartDate, setAchievementStartDate] = useState<Date | undefined>();
+  const [achievementEndDate, setAchievementEndDate] = useState<Date | undefined>();
   const { toast } = useToast();
 
   // Fetch all workout assignments for all pitchers
@@ -92,6 +90,25 @@ export function RosterManagementDialog({
       console.error('Error fetching workout assignments:', error);
     }
   }, [pitchers]);
+
+  // Load achievement dates from teams table when dialog opens
+  useEffect(() => {
+    if (!open || pitchers.length === 0) return;
+    const teamId = pitchers[0]?.teamId;
+    if (!teamId) return;
+
+    supabase
+      .from('teams')
+      .select('leaderboard_from, leaderboard_to')
+      .eq('id', teamId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setAchievementStartDate(data.leaderboard_from ? new Date(data.leaderboard_from + 'T00:00:00') : undefined);
+          setAchievementEndDate(data.leaderboard_to ? new Date(data.leaderboard_to + 'T00:00:00') : undefined);
+        }
+      });
+  }, [open, pitchers]);
 
   useEffect(() => {
     if (open) {
@@ -287,15 +304,26 @@ export function RosterManagementDialog({
     setDeleteConfirmId(null);
   };
 
-  const handleAchievementDateChange = (date: Date | undefined) => {
+  const handleAchievementDateChange = async (date: Date | undefined) => {
     setAchievementStartDate(date);
+    // Also persist to localStorage for the coach's own views
     if (date) {
       localStorage.setItem('achievementStartDate', date.toISOString());
     } else {
       localStorage.removeItem('achievementStartDate');
     }
-    // Dispatch storage event so other components pick up the change
     window.dispatchEvent(new Event('storage'));
+
+    // Persist to teams table so parents can see it
+    const teamId = pitchers[0]?.teamId;
+    if (teamId) {
+      await supabase
+        .from('teams')
+        .update({
+          leaderboard_from: date ? format(date, 'yyyy-MM-dd') : null,
+        })
+        .eq('id', teamId);
+    }
   };
 
   const pitcherToDelete = pitchers.find(p => p.id === deleteConfirmId);

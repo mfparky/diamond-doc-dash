@@ -18,6 +18,8 @@ interface AccountabilityDialogProps {
   onUpdateNotes?: (completionId: string, notes: string) => Promise<boolean>;
   onUploadPhoto?: (pitcherId: string, file: File) => Promise<string | null>;
   onUpdatePhoto?: (completionId: string, photoUrl: string | null) => Promise<boolean>;
+  achievementStart?: Date;
+  achievementEnd?: Date;
 }
 
 export function AccountabilityDialog({
@@ -30,6 +32,8 @@ export function AccountabilityDialog({
   onUpdateNotes,
   onUploadPhoto,
   onUpdatePhoto,
+  achievementStart,
+  achievementEnd,
 }: AccountabilityDialogProps) {
   const weekDays = getWeekDayLabels();
   const [pendingToggles, setPendingToggles] = useState<Set<string>>(new Set());
@@ -163,6 +167,11 @@ export function AccountabilityDialog({
           </DialogTitle>
           <DialogDescription>
             Mark the days when workouts were completed this week.
+            {achievementStart && (
+              <span className="block mt-1 text-primary font-medium">
+                {format(achievementStart, 'MMM d')} – {achievementEnd ? format(achievementEnd, 'MMM d') : 'Present'}
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
 
