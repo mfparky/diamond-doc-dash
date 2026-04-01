@@ -262,39 +262,84 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
           </Button>
         </div>
       )}
-      {/* Arm Care Status Card */}
-      {pitcher.lastPitchCount > 0 && (
+      {/* Arm Care Status + Share Buttons */}
+      {(pitcher.lastPitchCount > 0 || true) && (
         <Card className="glass-card border-primary/30 bg-primary/5">
           <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Shield className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <h4 className="font-display font-semibold text-foreground">Arm Care Status</h4>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Last outing: <span className="text-foreground font-medium">{pitcher.lastPitchCount} pitches</span>
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Rest required: <span className="text-foreground font-medium">{daysRestNeeded} day{daysRestNeeded !== 1 ? 's' : ''}</span>
-                </p>
-                <div className="mt-2 text-xs text-muted-foreground">
-                  <p className="font-medium mb-1">Pitch Count Rules:</p>
-                  <div className="grid grid-cols-2 gap-1">
-                    <span>76+ pitches → 4 days</span>
-                    <span>61-75 pitches → 3 days</span>
-                    <span>46-60 pitches → 2 days</span>
-                    <span>31-45 pitches → 1 day</span>
+            <div className="flex items-start justify-between gap-4">
+              {/* Arm Care Section */}
+              {pitcher.lastPitchCount > 0 && (
+                <div className="flex items-start gap-3 flex-1">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Shield className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-display font-semibold text-foreground">Arm Care Status</h4>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Last outing: <span className="text-foreground font-medium">{pitcher.lastPitchCount} pitches</span>
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Rest required: <span className="text-foreground font-medium">{daysRestNeeded} day{daysRestNeeded !== 1 ? 's' : ''}</span>
+                    </p>
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      <p className="font-medium mb-1">Pitch Count Rules:</p>
+                      <div className="grid grid-cols-2 gap-1">
+                        <span>76+ pitches → 4 days</span>
+                        <span>61-75 pitches → 3 days</span>
+                        <span>46-60 pitches → 2 days</span>
+                        <span>31-45 pitches → 1 day</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
+              )}
+
+              {/* Compact Share Buttons */}
+              <div className="flex flex-col gap-2 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs gap-1.5"
+                  onClick={() => {
+                    const url = `${window.location.origin}/player/${pitcher.id}`;
+                    navigator.clipboard.writeText(url).then(() => {
+                      setCopyFeedback('link');
+                      setTimeout(() => setCopyFeedback(null), 2000);
+                    });
+                  }}
+                >
+                  {copyFeedback === 'link' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  Copy Link
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs gap-1.5"
+                  onClick={() => {
+                    const lines = [
+                      `${pitcher.name} - Pitching Summary`,
+                      '',
+                      `7-Day Pulse: ${pitcher.sevenDayPulse} pitches`,
+                      pitcher.strikePercentage > 0 ? `Strike %: ${pitcher.strikePercentage.toFixed(1)}%` : '',
+                      pitcher.maxVelo > 0 ? `Max Velocity: ${pitcher.maxVelo} mph` : '',
+                      `Total Outings: ${pitcher.outings.length}`,
+                      '',
+                      `Full dashboard: ${window.location.origin}/player/${pitcher.id}`,
+                    ].filter(Boolean).join('\n');
+                    navigator.clipboard.writeText(lines).then(() => {
+                      setCopyFeedback('summary');
+                      setTimeout(() => setCopyFeedback(null), 2000);
+                    });
+                  }}
+                >
+                  {copyFeedback === 'summary' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  Copy Summary
+                </Button>
               </div>
             </div>
           </CardContent>
         </Card>
       )}
-
-      {/* Share with Parents */}
-      <ShareSummaryCard pitcher={pitcher} outingsCount={pitcher.outings.length} />
 
       {/* Stats Grid */}
       {(() => {
