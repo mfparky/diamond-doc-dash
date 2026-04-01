@@ -22,7 +22,6 @@ import { useWorkouts } from '@/hooks/use-workouts';
 import { usePageMeta } from '@/hooks/use-page-meta';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
 import { ProgressReportCard } from '@/components/ProgressReportCard';
-import { WorkoutCompletionDisplay } from '@/components/WorkoutCompletionDisplay';
 import { generateReport } from '@/lib/generate-report';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -591,10 +590,8 @@ export default function PlayerDashboard() {
           return null;
         })()}
 
-        {/* Achievements & Accountability */}
+        {/* Achievements */}
         <BadgeGrid badges={evaluateBadges(filterByWindow(pitcher.outings, 'date'), filterByWindow(allPitchLocations, 'createdAt'), pitchTypes)} />
-
-        {playerId && <WorkoutCompletionDisplay pitcherId={playerId} />}
 
         {/* Season Trends Chart */}
         <SeasonTrendsChart outings={pitcher.outings} />
