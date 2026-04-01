@@ -16,6 +16,7 @@ interface WorkoutLeaderboardProps {
   maxEntries?: number;
   highlightPitcherId?: string;
   hideDatePicker?: boolean;
+  lockedToCoachDates?: boolean;
 }
 
 interface LeaderboardEntry {
@@ -70,7 +71,7 @@ function LeaderboardRow({ entry, index, getRankIcon, isHighlighted }: {
   );
 }
 
-export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntries, highlightPitcherId, hideDatePicker }: WorkoutLeaderboardProps) {
+export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntries, highlightPitcherId, hideDatePicker, lockedToCoachDates }: WorkoutLeaderboardProps) {
   const [dateRange, setDateRange] = useState<DateRange>(() => {
     const now = new Date();
     const from = initialFrom ?? startOfWeek(new Date(now.getFullYear(), now.getMonth(), 1), { weekStartsOn: 1 });
@@ -213,9 +214,15 @@ export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntrie
         </div>
       )}
       {hideDatePicker && (
-        <p className="text-xs text-muted-foreground text-center">
-          {format(dateRange.from, 'MMM d')} – {format(dateRange.to, 'MMM d, yyyy')} ({weeksInRange} week{weeksInRange !== 1 ? 's' : ''})
-        </p>
+        lockedToCoachDates && !initialFrom && !initialTo ? (
+          <p className="text-xs text-muted-foreground text-center italic">
+            Date range not set by coach yet — showing current week.
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground text-center">
+            {format(dateRange.from, 'MMM d')} – {format(dateRange.to, 'MMM d, yyyy')} ({weeksInRange} week{weeksInRange !== 1 ? 's' : ''})
+          </p>
+        )
       )}
 
       {/* Leaderboard */}

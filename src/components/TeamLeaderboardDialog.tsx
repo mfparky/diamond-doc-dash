@@ -100,7 +100,7 @@ export function TeamLeaderboardDialog({ open, onOpenChange, pitcherId }: TeamLea
             No team data available.
           </div>
         ) : (
-          <WorkoutLeaderboard pitchers={teamPitchers} initialFrom={leaderboardFrom} initialTo={leaderboardTo} maxEntries={5} highlightPitcherId={pitcherId} hideDatePicker />
+          <WorkoutLeaderboard pitchers={teamPitchers} initialFrom={leaderboardFrom} initialTo={leaderboardTo} maxEntries={5} highlightPitcherId={pitcherId} hideDatePicker lockedToCoachDates />
         )}
       </DialogContent>
     </Dialog>
