@@ -187,14 +187,10 @@ export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntrie
                     from: startOfWeek(range.from, { weekStartsOn: 1 }),
                     to: endOfWeek(range.to, { weekStartsOn: 1 }),
                   });
-                } else if (range?.from) {
-                  setDateRange({
-                    from: startOfWeek(range.from, { weekStartsOn: 1 }),
-                    to: endOfWeek(range.from, { weekStartsOn: 1 }),
-                  });
                 }
               }}
               numberOfMonths={1}
+              className={cn("p-3 pointer-events-auto")}
             />
           </PopoverContent>
         </Popover>
