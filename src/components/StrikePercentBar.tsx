@@ -252,8 +252,20 @@ function SparklineWithTooltip({ spark, sparkW, sparkH, sparkPad, trendData }: Sp
 
   return (
     <div className="w-full mt-4 pt-3 border-t border-border/40">
-      <div className="flex items-center mb-1.5">
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Strike % Trend</p>
+      <div className="flex items-center justify-between mb-1.5">
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Team Daily Strike % Trend</p>
+        {trendData.length > 0 && (() => {
+          const pcts = trendData.map(d => d.pct);
+          const lo = Math.round(Math.min(...pcts) * 10) / 10;
+          const hi = Math.round(Math.max(...pcts) * 10) / 10;
+          return (
+            <p className="text-[10px] text-muted-foreground">
+              <span className="font-semibold text-foreground">{lo}%</span>
+              <span className="mx-1">–</span>
+              <span className="font-semibold text-foreground">{hi}%</span>
+            </p>
+          );
+        })()}
       </div>
       <div
         ref={containerRef}
