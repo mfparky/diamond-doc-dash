@@ -123,10 +123,7 @@ export function SmoothHeatmap({
       Array.from({ length: gridSize }, () => 0)
     );
 
-    // Influence radius controls how far each pitch spreads heat.
-    // Larger radius + looser sigma ensures pitches near the zone boundary
-    // still contribute visible density right at the edge (no gap ring).
-    const influenceRadius = 10;
+    const influenceRadius = 8;
 
     // Add density for each pitch with Gaussian falloff
     pitchLocations.forEach((pitch) => {
@@ -163,8 +160,7 @@ export function SmoothHeatmap({
       }
     }
 
-    // Apply fewer blur passes for more accurate representation
-    const blurPasses = 2;
+    const blurPasses = 1;
     for (let pass = 0; pass < blurPasses; pass++) {
       const tempGrid: number[][] = Array.from({ length: gridSize }, () => 
         Array.from({ length: gridSize }, () => 0)
@@ -229,8 +225,12 @@ export function SmoothHeatmap({
           densityGrid[y1][x0] * (1 - xFrac) * yFrac +
           densityGrid[y1][x1] * xFrac * yFrac;
         
-        // Normalize with slight gamma correction for better visual distribution
-        const normalizedDensity = maxDensity > 0 ? Math.pow(density / maxDensity, 0.8) : 0;
+        // Log normalization: compresses hot spots and lifts sparse areas so
+        // even a few pitches on the zone boundary are visible alongside
+        // dense clusters elsewhere in the zone.
+        const normalizedDensity = maxDensity > 0
+          ? Math.log(1 + density) / Math.log(1 + maxDensity)
+          : 0;
         const [r, g, b, a] = interpolateColor(normalizedDensity);
         
         const idx = (py * renderWidth + px) * 4;
