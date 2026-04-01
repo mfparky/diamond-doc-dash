@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Pencil, Trash2, Plus, Check, X, Sun, Moon, ChevronRight, ArrowLeft, Users, Palette, ClipboardCheck, Trophy, CalendarIcon } from 'lucide-react';
+import { Pencil, Trash2, Plus, Check, X, Sun, Moon, ChevronRight, ArrowLeft, Users, Palette, ClipboardCheck, Trophy, CalendarIcon, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
@@ -250,6 +250,52 @@ export function RosterManagementDialog({
     } catch (error) {
       console.error('Error updating assignment:', error);
       return false;
+    }
+  };
+
+  // Cascade workouts from one pitcher to all others
+  const handleCascadeWorkouts = async (sourcePitcherId: string) => {
+    const sourceAssignments = workoutAssignments[sourcePitcherId] || [];
+    if (sourceAssignments.length === 0) {
+      toast({ title: 'No workouts to copy', description: 'This player has no workouts assigned.', variant: 'destructive' });
+      return;
+    }
+
+    const sourcePitcher = pitchers.find(p => p.id === sourcePitcherId);
+    if (!sourcePitcher) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      let copiedCount = 0;
+      for (const targetPitcher of pitchers) {
+        if (targetPitcher.id === sourcePitcherId) continue;
+        const existingTitles = new Set((workoutAssignments[targetPitcher.id] || []).map(a => a.title));
+
+        for (const assignment of sourceAssignments) {
+          if (existingTitles.has(assignment.title)) continue;
+          await supabase.from('workout_assignments').insert({
+            pitcher_id: targetPitcher.id,
+            team_id: targetPitcher.teamId,
+            title: assignment.title,
+            description: assignment.description,
+            frequency: assignment.frequency,
+            attachment_url: assignment.attachmentUrl,
+            user_id: targetPitcher.teamId ? null : (targetPitcher.userId ?? user.id),
+          });
+          copiedCount++;
+        }
+      }
+
+      await fetchAllWorkoutAssignments();
+      toast({
+        title: 'Workouts copied',
+        description: `${copiedCount} workout${copiedCount !== 1 ? 's' : ''} copied to ${pitchers.length - 1} player${pitchers.length > 2 ? 's' : ''}.`,
+      });
+    } catch (error) {
+      console.error('Error cascading workouts:', error);
+      toast({ title: 'Error copying workouts', description: 'Something went wrong. Please try again.', variant: 'destructive' });
     }
   };
 
@@ -710,7 +756,20 @@ export function RosterManagementDialog({
                         key={pitcher.id}
                         className="p-4 rounded-lg bg-secondary/50 border border-border/50"
                       >
-                        <h3 className="font-semibold text-foreground mb-3">{pitcher.name}</h3>
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="font-semibold text-foreground">{pitcher.name}</h3>
+                          {pitchers.length > 1 && (workoutAssignments[pitcher.id] || []).length > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1.5 text-xs text-muted-foreground"
+                              onClick={() => handleCascadeWorkouts(pitcher.id)}
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                              Copy to All
+                            </Button>
+                          )}
+                        </div>
                         <WorkoutManagementSection
                           pitcherId={pitcher.id}
                           pitcherName={pitcher.name}
