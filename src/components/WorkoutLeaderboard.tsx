@@ -214,9 +214,15 @@ export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntrie
         </div>
       )}
       {hideDatePicker && (
-        <p className="text-xs text-muted-foreground text-center">
-          {format(dateRange.from, 'MMM d')} – {format(dateRange.to, 'MMM d, yyyy')} ({weeksInRange} week{weeksInRange !== 1 ? 's' : ''})
-        </p>
+        lockedToCoachDates && !initialFrom && !initialTo ? (
+          <p className="text-xs text-muted-foreground text-center italic">
+            Date range not set by coach yet — showing current week.
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground text-center">
+            {format(dateRange.from, 'MMM d')} – {format(dateRange.to, 'MMM d, yyyy')} ({weeksInRange} week{weeksInRange !== 1 ? 's' : ''})
+          </p>
+        )
       )}
 
       {/* Leaderboard */}
