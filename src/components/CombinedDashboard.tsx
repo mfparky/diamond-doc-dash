@@ -5,11 +5,12 @@ import { Outing } from '@/types/pitcher';
 import { PitchLocation, PitchTypeConfig, DEFAULT_PITCH_TYPES, PITCH_TYPE_COLORS } from '@/types/pitch-location';
 import { SmoothHeatmap } from '@/components/SmoothHeatmap';
 import { StrikePercentBar } from '@/components/StrikePercentBar';
+import { FlipCounter } from '@/components/FlipCounter';
 
 import { VelocityScale } from '@/components/VelocityScale';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import { supabase } from '@/integrations/supabase/client';
-import { Activity, Target, Calendar, Flame, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Activity, Target, Calendar, Flame, TrendingUp, TrendingDown, Minus, Dumbbell } from 'lucide-react';
 
 interface CombinedDashboardProps {
   outings: Outing[];
