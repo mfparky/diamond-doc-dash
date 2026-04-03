@@ -636,6 +636,21 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
             </CardContent>
           </Card>
 
+          {/* Total Workouts Completed Counter */}
+          {parentMode && totalWorkoutsCompleted > 0 && (
+            <Card className="glass-card border-accent/30 bg-accent/5">
+              <CardContent className="p-4 sm:p-6 flex items-center gap-4">
+                <div className="p-2.5 rounded-lg bg-accent/10">
+                  <Dumbbell className="w-6 h-6 text-accent" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Season Workouts Completed</p>
+                  <FlipCounter value={totalWorkoutsCompleted} label="" />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Pitch Type Breakdown */}
           {pitchTypeBreakdown.length > 0 && (
             <Card className="glass-card">
