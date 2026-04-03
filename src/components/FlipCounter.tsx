@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 
 interface FlipCounterProps {
   value: number;
-  label: string;
+  label?: string;
 }
 
 function FlipDigit({ digit, delay }: { digit: string; delay: number }) {
@@ -24,9 +24,9 @@ function FlipDigit({ digit, delay }: { digit: string; delay: number }) {
   }, [digit, delay]);
 
   return (
-    <div className="relative w-8 sm:w-10 h-12 sm:h-14 overflow-hidden">
+    <div className="relative w-9 sm:w-11 h-12 sm:h-14">
       <div
-        className={`absolute inset-0 flex items-center justify-center rounded-md bg-secondary border border-border/50 text-xl sm:text-2xl font-mono font-bold text-foreground transition-transform duration-300 ${
+        className={`absolute inset-0 flex items-center justify-center rounded-md bg-secondary border border-border/50 text-2xl sm:text-3xl font-mono font-bold text-foreground transition-transform duration-300 ${
           flipping ? 'scale-y-0' : 'scale-y-100'
         }`}
         style={{ transformOrigin: 'center bottom' }}
@@ -38,14 +38,19 @@ function FlipDigit({ digit, delay }: { digit: string; delay: number }) {
 }
 
 export function FlipCounter({ value, label }: FlipCounterProps) {
-  const digits = String(value).padStart(3, '0').split('');
+  // Determine padding: at least 3 digits, but grow for larger numbers
+  const str = String(value);
+  const padded = str.length < 3 ? str.padStart(3, '0') : str;
+  const digits = padded.split('');
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <p className="text-xs sm:text-sm font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+      {label && (
+        <p className="text-xs sm:text-sm font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+      )}
       <div className="flex items-center gap-1">
         {digits.map((d, i) => (
-          <FlipDigit key={i} digit={d} delay={i * 100} />
+          <FlipDigit key={`${i}-${digits.length}`} digit={d} delay={i * 120} />
         ))}
       </div>
     </div>
