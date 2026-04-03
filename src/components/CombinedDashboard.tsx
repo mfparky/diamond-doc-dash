@@ -40,6 +40,40 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
   const currentYear = new Date().getFullYear();
   const [seasonStart, setSeasonStart] = useState<Date>(new Date(currentYear, 0, 1));
   const [seasonEnd, setSeasonEnd] = useState<Date>(new Date());
+  const [totalWorkoutsCompleted, setTotalWorkoutsCompleted] = useState(0);
+
+  // Fetch total workout completions for the season (parent mode)
+  useEffect(() => {
+    if (!parentMode) return;
+    const pitcherNames = [...new Set(outings.map(o => o.pitcherName))];
+    if (pitcherNames.length === 0) return;
+
+    async function fetchWorkoutCount() {
+      try {
+        // Get pitcher IDs from names
+        const { data: pitchers } = await supabase
+          .from('pitchers')
+          .select('id')
+          .in('name', pitcherNames);
+
+        if (!pitchers || pitchers.length === 0) return;
+
+        const ids = pitchers.map(p => p.id);
+        const { count, error } = await supabase
+          .from('workout_completions')
+          .select('*', { count: 'exact', head: true })
+          .in('pitcher_id', ids);
+
+        if (!error && count !== null) {
+          setTotalWorkoutsCompleted(count);
+        }
+      } catch (err) {
+        console.error('Error fetching workout count:', err);
+      }
+    }
+
+    fetchWorkoutCount();
+  }, [parentMode, outings]);
 
   // Calculate date range based on view mode
   const dateRange = useMemo(() => {
