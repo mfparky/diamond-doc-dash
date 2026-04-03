@@ -5,11 +5,12 @@ import { Outing } from '@/types/pitcher';
 import { PitchLocation, PitchTypeConfig, DEFAULT_PITCH_TYPES, PITCH_TYPE_COLORS } from '@/types/pitch-location';
 import { SmoothHeatmap } from '@/components/SmoothHeatmap';
 import { StrikePercentBar } from '@/components/StrikePercentBar';
+import { FlipCounter } from '@/components/FlipCounter';
 
 import { VelocityScale } from '@/components/VelocityScale';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import { supabase } from '@/integrations/supabase/client';
-import { Activity, Target, Calendar, Flame, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Activity, Target, Calendar, Flame, TrendingUp, TrendingDown, Minus, Dumbbell } from 'lucide-react';
 
 interface CombinedDashboardProps {
   outings: Outing[];
@@ -39,6 +40,40 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
   const currentYear = new Date().getFullYear();
   const [seasonStart, setSeasonStart] = useState<Date>(new Date(currentYear, 0, 1));
   const [seasonEnd, setSeasonEnd] = useState<Date>(new Date());
+  const [totalWorkoutsCompleted, setTotalWorkoutsCompleted] = useState(0);
+
+  // Fetch total workout completions for the season (parent mode)
+  useEffect(() => {
+    if (!parentMode) return;
+    const pitcherNames = [...new Set(outings.map(o => o.pitcherName))];
+    if (pitcherNames.length === 0) return;
+
+    async function fetchWorkoutCount() {
+      try {
+        // Get pitcher IDs from names
+        const { data: pitchers } = await supabase
+          .from('pitchers')
+          .select('id')
+          .in('name', pitcherNames);
+
+        if (!pitchers || pitchers.length === 0) return;
+
+        const ids = pitchers.map(p => p.id);
+        const { count, error } = await supabase
+          .from('workout_completions')
+          .select('*', { count: 'exact', head: true })
+          .in('pitcher_id', ids);
+
+        if (!error && count !== null) {
+          setTotalWorkoutsCompleted(count);
+        }
+      } catch (err) {
+        console.error('Error fetching workout count:', err);
+      }
+    }
+
+    fetchWorkoutCount();
+  }, [parentMode, outings]);
 
   // Calculate date range based on view mode
   const dateRange = useMemo(() => {
@@ -600,6 +635,21 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
               </div>
             </CardContent>
           </Card>
+
+          {/* Total Workouts Completed Counter */}
+          {parentMode && totalWorkoutsCompleted > 0 && (
+            <Card className="glass-card border-accent/30 bg-accent/5">
+              <CardContent className="p-4 sm:p-6 flex items-center gap-4">
+                <div className="p-2.5 rounded-lg bg-accent/10">
+                  <Dumbbell className="w-6 h-6 text-accent" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Season Workouts Completed</p>
+                  <FlipCounter value={totalWorkoutsCompleted} label="" />
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Pitch Type Breakdown */}
           {pitchTypeBreakdown.length > 0 && (
