@@ -25,12 +25,13 @@ import { ProgressReportCard } from '@/components/ProgressReportCard';
 import { generateReport } from '@/lib/generate-report';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { TrendingUp, Target, Gauge, Calendar, Video, Shield, ArrowLeft, Play, MessageSquare, ClipboardCheck, Share2, Copy, Check, Download, Star, Users } from 'lucide-react';
+import { TrendingUp, Target, Gauge, Calendar, Video, Shield, ArrowLeft, Play, MessageSquare, ClipboardCheck, Share2, Copy, Check, Download, Star, Users, Camera } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import hawksLogo from '@/assets/hawks-logo.png';
 import { LiveAbsSummary } from '@/components/LiveAbsSummary';
 import { LiveAbsDashboard } from '@/components/LiveAbsDashboard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { WorkoutGallery } from '@/components/WorkoutGallery';
 
 export default function PlayerDashboard() {
   const { playerId } = useParams<{ playerId: string }>();
@@ -757,6 +758,21 @@ export default function PlayerDashboard() {
             </Tabs>
           </CardContent>
         </Card>
+
+        {/* Workout Photo Gallery */}
+        {playerId && (
+          <Card className="glass-card border-primary/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Camera className="w-4 h-4 text-primary" />
+                Workout Gallery
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <WorkoutGallery pitcherId={playerId} pitcherName={pitcher?.name} />
+            </CardContent>
+          </Card>
+        )}
 
         {/* Share & Footer */}
         <Card className="glass-card border-primary/20">
