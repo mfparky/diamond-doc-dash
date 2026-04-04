@@ -315,18 +315,57 @@ export function useWorkouts(pitcherId?: string) {
     }
   }, []);
 
+  // Compress an image to max 1024px on either dimension, output as JPEG
+  const compressImage = useCallback((file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        const MAX = 1024;
+        let { width, height } = img;
+        if (width > MAX || height > MAX) {
+          if (width >= height) {
+            height = Math.round((height * MAX) / width);
+            width = MAX;
+          } else {
+            width = Math.round((width * MAX) / height);
+            height = MAX;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
+            } else {
+              resolve(file);
+            }
+          },
+          'image/jpeg',
+          0.85
+        );
+      };
+      img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(file); };
+      img.src = objectUrl;
+    });
+  }, []);
+
   // Upload a photo for a workout completion
   const uploadCompletionPhoto = useCallback(async (
     pitcherId: string,
     file: File
   ): Promise<string | null> => {
     try {
-      const ext = file.name.split('.').pop() || 'jpg';
-      const path = `workouts/${pitcherId}/${Date.now()}.${ext}`;
+      const compressed = await compressImage(file);
+      const path = `workouts/${pitcherId}/${Date.now()}.jpg`;
 
       const { error: uploadError } = await supabase.storage
         .from('outing-videos')
-        .upload(path, file);
+        .upload(path, compressed, { contentType: 'image/jpeg' });
 
       if (uploadError) throw uploadError;
 
@@ -344,7 +383,7 @@ export function useWorkouts(pitcherId?: string) {
       });
       return null;
     }
-  }, [toast]);
+  }, [toast, compressImage]);
 
   // Update photo URL on a completion record
   const updateCompletionPhoto = useCallback(async (
