@@ -320,6 +320,9 @@ const Index = () => {
         pitchers={pitchers}
         onSave={handleScanSave}
       />
+
+      {/* What's New Release Notes */}
+      <WhatsNewDialog />
     </div>
   );
 };
