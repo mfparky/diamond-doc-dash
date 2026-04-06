@@ -200,6 +200,46 @@ export const DESIGN_SYSTEMS: DesignSystemTheme[] = [
       borderSolid: '#2a2c38', isDark: true,
     },
   },
+  {
+    id: 'spotify',
+    name: 'Spotify',
+    radius: '9999px',
+    font: "system-ui, 'Helvetica Neue', Arial, sans-serif",
+    dark: {
+      bg: '#121212', surface: '#181818', surfaceElevated: '#252525',
+      textPrimary: '#ffffff', textSecondary: '#b3b3b3', textMuted: '#727272',
+      accent: '#1ed760', accentBg: '#1ed760', accentText: '#000000',
+      statusGreen: '#1ed760', statusYellow: '#ffa42b', statusRed: '#f3727f',
+      borderSolid: '#333333', isDark: true,
+    },
+    light: {
+      bg: '#ffffff', surface: '#f6f6f6', surfaceElevated: '#eeeeee',
+      textPrimary: '#121212', textSecondary: '#535353', textMuted: '#888888',
+      accent: '#1db954', accentBg: '#1db954', accentText: '#ffffff',
+      statusGreen: '#1db954', statusYellow: '#e8a700', statusRed: '#e22134',
+      borderSolid: '#d9d9d9', isDark: false,
+    },
+  },
+  {
+    id: 'supabase',
+    name: 'Supabase',
+    radius: '0.375rem',
+    font: "'Inter', system-ui, sans-serif",
+    dark: {
+      bg: '#171717', surface: '#1f1f1f', surfaceElevated: '#2a2a2a',
+      textPrimary: '#fafafa', textSecondary: '#b4b4b4', textMuted: '#898989',
+      accent: '#3ecf8e', accentBg: '#3ecf8e', accentText: '#0f0f0f',
+      statusGreen: '#3ecf8e', statusYellow: '#f5a623', statusRed: '#ef4444',
+      borderSolid: '#2e2e2e', isDark: true,
+    },
+    light: {
+      bg: '#f8f8f8', surface: '#ffffff', surfaceElevated: '#f0f0f0',
+      textPrimary: '#171717', textSecondary: '#4d4d4d', textMuted: '#898989',
+      accent: '#00c573', accentBg: '#00c573', accentText: '#ffffff',
+      statusGreen: '#00c573', statusYellow: '#c47a00', statusRed: '#c0392b',
+      borderSolid: '#e0e0e0', isDark: false,
+    },
+  },
 ];
 
 // ─── Apply / Clear Theme ────────────────────────────────────────────────────────
