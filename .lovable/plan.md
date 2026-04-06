@@ -1,50 +1,45 @@
 
 
-## Plan: Three Dashboard Improvements
+## Plan: Coach Workout Notifications + Image Compression
 
-### 1. Coach sees workout photos (WorkoutCompletionDisplay)
+### Two Features
 
-**Problem**: The query on line 60 of `WorkoutCompletionDisplay.tsx` selects `'id, assignment_id, day_of_week, notes'` — missing `photo_url`.
+**1. Workout Activity Notifications on Coach Player Dashboard**
 
-**Fix**: Add `photo_url` to the select string. The mapping at line 84 already handles `(c as any).photo_url`, so photos will render once fetched.
+The coach views a player via `PitcherDetail.tsx`, which already renders `WorkoutCompletionDisplay`. Currently, completed days show a checkmark with tiny icons for notes/photos, but:
+- Notes are only visible via hover `title` attribute (not clickable/readable)
+- No notification indicator that new activity has happened
+- Photos open in a new tab with no context
 
-**File**: `src/components/WorkoutCompletionDisplay.tsx` (1-line change)
+**Changes:**
 
----
+- **`WorkoutCompletionDisplay.tsx`**: Add a clickable interaction on completed day cells. When a day has notes or a photo, tapping opens a small popover/dialog showing:
+  - The note text (readable, not just a tooltip)
+  - The photo inline (thumbnail that can be tapped to enlarge)
+  - Timestamp context (which day, which workout)
 
-### 2. Parent sees coach-set achievement window dates
+- **`WorkoutCompletionDisplay.tsx`**: Add a simple "new activity" indicator. Query `workout_completions` for the pitcher, ordered by `created_at DESC`, and show a small dot/badge on days that have completions from the last 48 hours (or since the coach last viewed). For MVP simplicity, we'll use a "recent" approach — highlight completions from the last 48 hours with a pulsing dot, no server-side read tracking needed.
 
-**Problem**: The achievement window is stored only in `localStorage` on the coach's browser. Parents on public dashboards never see it. The `teams` table already has `leaderboard_from` and `leaderboard_to` date columns — these are the right place to persist the window.
+- **`PitcherDetail.tsx`**: Add a small notification badge next to the "Weekly Accountability" section header showing count of recent completions (e.g., "3 new this week").
 
-**Changes**:
+**2. Image Compression — Down-res Parent Uploads**
 
-- **RosterManagementDialog**: When coach changes the achievement date, also write it to the `teams` table (`leaderboard_from` column). On dialog open, read from `teams` table to initialize the date.
+Currently in `use-workouts.ts`, `compressImage` resizes to max 1024px and uses JPEG quality 0.85. For a 3-5MB target that still looks good on mobile:
+- **Resolution**: Increase max dimension to ~1920px (full HD on longest side)
+- **JPEG quality**: 0.80
+- This produces images around 1-4MB depending on content — well within the 3-5MB range while looking sharp on any phone screen.
 
-- **PlayerDashboard**: After fetching pitcher data (which already gets `team_id`), also fetch the team's `leaderboard_from` and `leaderboard_to`. Pass these dates to the `AccountabilityDialog` and `BadgeGrid` to use instead of the localStorage-based `useAchievementWindow`.
+If the goal is to keep images *under* 3-5MB (not targeting that size), then the current 1024px is actually already very aggressive. The better approach: bump to 1920px max, quality 0.80, producing high-quality photos that stay under 5MB.
 
-- **AccountabilityDialog**: Accept optional `achievementStart`/`achievementEnd` props and display the date range as a subtitle (e.g., "Apr 1 – May 1") in the dialog header.
+**Changes:**
+- **`src/hooks/use-workouts.ts`**: Update `compressImage`:
+  - `MAX` from 1024 → 1920
+  - Quality from 0.85 → 0.80
+  - Add a secondary check: if the resulting blob is still > 5MB, re-compress at lower quality (0.65)
 
-**Files**: `src/components/RosterManagementDialog.tsx`, `src/pages/PlayerDashboard.tsx`, `src/components/AccountabilityDialog.tsx`
+### Files to Modify
 
-No migration needed — `leaderboard_from` and `leaderboard_to` already exist on the `teams` table.
-
----
-
-### 3. Reorder coach player dashboard sections
-
-**Problem**: Stats grid and focus/notes are below badges and accountability. Coach wants them higher.
-
-**Current order in `PitcherDetail.tsx`** (lines 296–500+):
-1. Share with Parents (line 297)
-2. Badges + Accountability + Coach Notes (lines 299–325)
-3. Stats Grid (lines 327–399)
-4. Focus/Notes & Latest Video (lines 401+)
-
-**New order**:
-1. Share with Parents
-2. Stats Grid (moved up)
-3. Focus/Notes & Latest Video (moved up)
-4. Badges + Accountability + Coach Notes (moved down)
-
-**File**: `src/components/PitcherDetail.tsx` (block reorder, no logic changes)
+1. **`src/components/WorkoutCompletionDisplay.tsx`** — Add clickable day cells with popover showing notes/photo; add "recent" pulsing dot on new completions; fetch `created_at` with completion data
+2. **`src/components/PitcherDetail.tsx`** — Add recent activity count badge near the Accountability header
+3. **`src/hooks/use-workouts.ts`** — Update `compressImage` to 1920px max, 0.80 quality, with 5MB fallback re-compression
 
