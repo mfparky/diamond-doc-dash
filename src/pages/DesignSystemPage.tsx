@@ -979,30 +979,38 @@ export default function DesignSystemPage() {
 
         {/* Apply / Reset button */}
         <button
-          onClick={() => {
+          onClick={async () => {
+            if (!isCoach) {
+              toast.error('Sign in as a coach to change the global theme.');
+              return;
+            }
             if (isApplied && activeSystemId !== 'default') {
-              resetToDefault();
+              await resetToDefault(teamId!);
+              toast.success('Design system reset to default for all users.');
             } else {
-              setSystem(currentSystemId);
+              await setSystem(currentSystemId, teamId!);
+              toast.success(`"${DESIGN_SYSTEMS.find(s => s.id === currentSystemId)?.name}" applied for all users.`);
             }
           }}
           style={{
             display: 'flex', alignItems: 'center', gap: '6px',
             padding: '6px 14px', borderRadius: '6px', flexShrink: 0,
-            background: isApplied ? 'rgba(74,190,122,0.15)' : 'rgba(255,255,255,0.06)',
-            border: `1px solid ${isApplied ? 'rgba(74,190,122,0.4)' : 'rgba(255,255,255,0.12)'}`,
-            color: isApplied ? '#4abe7a' : 'rgba(255,255,255,0.7)',
-            fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+            background: !isCoach ? 'rgba(255,255,255,0.03)' : isApplied ? 'rgba(74,190,122,0.15)' : 'rgba(255,255,255,0.06)',
+            border: `1px solid ${!isCoach ? 'rgba(255,255,255,0.06)' : isApplied ? 'rgba(74,190,122,0.4)' : 'rgba(255,255,255,0.12)'}`,
+            color: !isCoach ? 'rgba(255,255,255,0.3)' : isApplied ? '#4abe7a' : 'rgba(255,255,255,0.7)',
+            fontSize: '12px', fontWeight: 600, cursor: isCoach ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
           }}
         >
-          {isApplied ? (
+          {!isCoach ? (
+            <><Lock size={13} /> Sign in to apply</>
+          ) : isApplied ? (
             activeSystemId === 'default' ? (
               <><Check size={13} /> Default</>
             ) : (
               <><RotateCcw size={13} /> Reset</>
             )
           ) : (
-            <><Paintbrush size={13} /> Apply</>
+            <><Paintbrush size={13} /> Apply globally</>
           )}
         </button>
 
