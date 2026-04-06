@@ -974,6 +974,8 @@ export default function DesignSystemPage() {
     apple: 'apple',
     stripe: 'stripe',
     athlete: 'athlete',
+    spotify: 'spotify',
+    supabase: 'supabase',
   };
 
   const currentSystemId = themeKeyToSystemId[active];
