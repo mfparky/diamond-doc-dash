@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import PlayerDashboard from "./pages/PlayerDashboard";
 import TeamDashboard from "./pages/TeamDashboard";
 import CoachDashboard from "./pages/CoachDashboard";
+import TeamWallPage from "./pages/TeamWallPage";
 import CalibratePage from "./pages/CalibratePage";
 import PrintFormPage from "./pages/PrintFormPage";
 import DesignSystemPage from "./pages/DesignSystemPage";
@@ -35,6 +36,7 @@ function AppRoutes() {
         {/* Public dashboards for parents */}
         <Route path="/player/:playerId" element={<PlayerDashboard />} />
         <Route path="/team/:teamId" element={<TeamDashboard />} />
+        <Route path="/team/:teamId/wall" element={<TeamWallPage />} />
         <Route path="/dashboard/:userId" element={<CoachDashboard />} />
         
         {/* Protected routes require authentication */}
