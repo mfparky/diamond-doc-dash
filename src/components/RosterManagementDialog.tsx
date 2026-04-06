@@ -784,8 +784,6 @@ export function RosterManagementDialog({
                   <TabsTrigger value="leaderboard" className="gap-2">
                     <Trophy className="w-4 h-4" />
                     Leaderboard
-                  </TabsTrigger>
-                  </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="assignments" className="flex-1 overflow-y-auto space-y-4 py-4 mt-0">
