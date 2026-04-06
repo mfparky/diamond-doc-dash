@@ -834,12 +834,7 @@ export function RosterManagementDialog({
                 </TabsContent>
 
                 <TabsContent value="gallery" className="flex-1 overflow-y-auto py-4 mt-0">
-                  <WorkoutGalleryDialog
-                    open={true}
-                    onOpenChange={() => {}}
-                    teamId={pitchers[0]?.teamId}
-                    title="Team Workout Gallery"
-                  />
+                  <WorkoutGallery teamId={pitchers[0]?.teamId} />
                 </TabsContent>
               </Tabs>
             </>
