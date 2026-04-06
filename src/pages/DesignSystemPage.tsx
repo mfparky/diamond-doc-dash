@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Users, BarChart3, TrendingUp, Target, Gauge, Calendar, Share2, Check, X, Sun, Moon } from 'lucide-react';
+import { ArrowLeft, Plus, Users, BarChart3, TrendingUp, Target, Gauge, Calendar, Share2, Check, X, Sun, Moon, Paintbrush, RotateCcw } from 'lucide-react';
+import { useDesignSystem } from '@/contexts/DesignSystemContext';
 
 // ─── Theme Definitions ────────────────────────────────────────────────────────
 
@@ -874,6 +875,19 @@ export default function DesignSystemPage() {
   const [darkMode, setDarkMode] = useState(true);
   const pair = THEME_PAIRS[active];
   const t = darkMode ? pair.dark : pair.light;
+  const { activeSystemId, setSystem, resetToDefault, systems } = useDesignSystem();
+
+  // Map preview theme keys to design system IDs
+  const themeKeyToSystemId: Record<ThemeKey, string> = {
+    current: 'default',
+    linear: 'linear',
+    apple: 'apple',
+    stripe: 'stripe',
+    athlete: 'athlete',
+  };
+
+  const currentSystemId = themeKeyToSystemId[active];
+  const isApplied = activeSystemId === currentSystemId;
 
   return (
     <div style={{ minHeight: '100vh', background: '#000' }}>
@@ -915,6 +929,60 @@ export default function DesignSystemPage() {
             );
           })}
         </div>
+
+        {/* Extra systems not in preview tabs */}
+        <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
+
+        {systems.filter(s => !Object.values(themeKeyToSystemId).includes(s.id) || false).length > 0 && (
+          <select
+            onChange={(e) => {
+              setSystem(e.target.value);
+            }}
+            value={activeSystemId}
+            style={{
+              padding: '5px 8px', borderRadius: '6px', flexShrink: 0,
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              color: 'rgba(255,255,255,0.6)',
+              fontSize: '12px', fontFamily: 'inherit', cursor: 'pointer',
+            }}
+          >
+            {systems.map(s => (
+              <option key={s.id} value={s.id} style={{ background: '#1a1a1a', color: '#fff' }}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {/* Apply / Reset button */}
+        <button
+          onClick={() => {
+            if (isApplied && activeSystemId !== 'default') {
+              resetToDefault();
+            } else {
+              setSystem(currentSystemId);
+            }
+          }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            padding: '6px 14px', borderRadius: '6px', flexShrink: 0,
+            background: isApplied ? 'rgba(74,190,122,0.15)' : 'rgba(255,255,255,0.06)',
+            border: `1px solid ${isApplied ? 'rgba(74,190,122,0.4)' : 'rgba(255,255,255,0.12)'}`,
+            color: isApplied ? '#4abe7a' : 'rgba(255,255,255,0.7)',
+            fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >
+          {isApplied ? (
+            activeSystemId === 'default' ? (
+              <><Check size={13} /> Default</>
+            ) : (
+              <><RotateCcw size={13} /> Reset</>
+            )
+          ) : (
+            <><Paintbrush size={13} /> Apply</>
+          )}
+        </button>
 
         {/* Light / Dark toggle */}
         <button
