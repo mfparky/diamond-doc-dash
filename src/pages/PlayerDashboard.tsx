@@ -35,6 +35,7 @@ import { WorkoutGallery } from '@/components/WorkoutGallery';
 
 export default function PlayerDashboard() {
   const { playerId } = useParams<{ playerId: string }>();
+  const navigate = useNavigate();
   const [pitcher, setPitcher] = useState<Pitcher | null>(null);
   const [outings, setOutings] = useState<Outing[]>([]);
   const [pitchTypes, setPitchTypes] = useState<PitchTypeConfig>(DEFAULT_PITCH_TYPES);
