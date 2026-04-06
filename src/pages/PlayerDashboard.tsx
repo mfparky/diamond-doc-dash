@@ -762,14 +762,22 @@ export default function PlayerDashboard() {
         {/* Workout Photo Gallery */}
         {playerId && (
           <Card className="glass-card border-primary/20">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-3 flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Camera className="w-4 h-4 text-primary" />
                 Workout Gallery
               </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-primary gap-1"
+                onClick={() => navigate('/wall/hawks12uAA')}
+              >
+                View Team Wall <ArrowRight className="w-3 h-3" />
+              </Button>
             </CardHeader>
             <CardContent className="pt-0">
-              <WorkoutGallery pitcherId={playerId} />
+              <WorkoutGallery pitcherId={playerId} disableLightbox />
             </CardContent>
           </Card>
         )}

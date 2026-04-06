@@ -20,9 +20,10 @@ interface WorkoutGalleryProps {
   pitcherIds?: string[];
   teamId?: string;
   onPhotoCount?: (count: number) => void;
+  disableLightbox?: boolean;
 }
 
-export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, onPhotoCount }: WorkoutGalleryProps) {
+export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, onPhotoCount, disableLightbox = false }: WorkoutGalleryProps) {
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
   const [loading, setLoading] = useState(true);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
