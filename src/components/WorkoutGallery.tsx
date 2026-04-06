@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { format, parseISO } from 'date-fns';
-import { Camera, X, ChevronLeft, ChevronRight, Flame } from 'lucide-react';
+import { useEffect, useState, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { format, parseISO } from "date-fns";
+import { Camera, X, ChevronLeft, ChevronRight, Flame } from "lucide-react";
 
 interface GalleryPhoto {
   id: string;
@@ -13,7 +13,7 @@ interface GalleryPhoto {
   pitcherName?: string;
 }
 
-const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 interface WorkoutGalleryProps {
   pitcherId?: string;
@@ -23,7 +23,13 @@ interface WorkoutGalleryProps {
   disableLightbox?: boolean;
 }
 
-export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, onPhotoCount, disableLightbox = false }: WorkoutGalleryProps) {
+export function WorkoutGallery({
+  pitcherId,
+  pitcherIds: propPitcherIds,
+  teamId,
+  onPhotoCount,
+  disableLightbox = false,
+}: WorkoutGalleryProps) {
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
   const [loading, setLoading] = useState(true);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -36,18 +42,12 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
 
     if (propPitcherIds && propPitcherIds.length > 0) {
       pitcherIds = propPitcherIds;
-      const { data: pitchers } = await supabase
-        .from('pitchers')
-        .select('id, name')
-        .in('id', propPitcherIds);
+      const { data: pitchers } = await supabase.from("pitchers").select("id, name").in("id", propPitcherIds);
       if (pitchers) {
         pitcherNameMap = Object.fromEntries(pitchers.map((p) => [p.id, p.name]));
       }
     } else if (teamId) {
-      const { data: pitchers } = await supabase
-        .from('pitchers')
-        .select('id, name')
-        .eq('team_id', teamId);
+      const { data: pitchers } = await supabase.from("pitchers").select("id, name").eq("team_id", teamId);
       if (pitchers) {
         pitcherIds = pitchers.map((p) => p.id);
         pitcherNameMap = Object.fromEntries(pitchers.map((p) => [p.id, p.name]));
@@ -64,8 +64,9 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
     }
 
     const { data, error } = await supabase
-      .from('workout_completions')
-      .select(`
+      .from("workout_completions")
+      .select(
+        `
         id,
         photo_url,
         notes,
@@ -73,11 +74,12 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
         day_of_week,
         pitcher_id,
         workout_assignments ( title )
-      `)
-      .in('pitcher_id', pitcherIds)
-      .not('photo_url', 'is', null)
-      .order('week_start', { ascending: false })
-      .order('day_of_week', { ascending: false });
+      `,
+      )
+      .in("pitcher_id", pitcherIds)
+      .not("photo_url", "is", null)
+      .order("week_start", { ascending: false })
+      .order("day_of_week", { ascending: false });
 
     if (!error && data) {
       const mapped = data.map((row: any) => ({
@@ -86,7 +88,7 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
         notes: row.notes,
         weekStart: row.week_start,
         dayOfWeek: row.day_of_week,
-        workoutTitle: row.workout_assignments?.title ?? 'Workout',
+        workoutTitle: row.workout_assignments?.title ?? "Workout",
         pitcherName: pitcherNameMap[row.pitcher_id],
       }));
       setPhotos(mapped);
@@ -137,7 +139,7 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
         <div className="flex items-center gap-1.5 text-primary">
           <Flame className="w-5 h-5" />
           <span className="text-sm font-bold">{photos.length}</span>
-          <span className="text-xs text-muted-foreground font-medium">check-in{photos.length !== 1 ? 's' : ''}</span>
+          <span className="text-xs text-muted-foreground font-medium">check-in{photos.length !== 1 ? "s" : ""}</span>
         </div>
         <div className="flex-1 h-px bg-border" />
         <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Team Wall</span>
@@ -150,16 +152,44 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
           const sponsorIndex = Math.floor(Math.random() * (photos.length + 1));
 
           const sponsorTile = (
-            <div key="sponsor-tile" className="break-inside-avoid rounded-2xl overflow-hidden" style={{ backgroundColor: '#ffffff', minHeight: '280px' }}>
+            <div
+              key="sponsor-tile"
+              className="break-inside-avoid rounded-2xl overflow-hidden"
+              style={{ backgroundColor: "#ffffff", minHeight: "280px" }}
+            >
               <div className="h-full flex flex-col items-center justify-center px-4 py-4 gap-4">
-                <p className="text-[10px] uppercase tracking-wider font-semibold text-center" style={{ color: '#6b7280' }}>
+                <p
+                  className="text-[10px] uppercase tracking-wider font-semibold text-center"
+                  style={{ color: "#6b7280" }}
+                >
                   Thank you to our sponsors
                 </p>
                 <div className="grid grid-cols-2 gap-4 place-items-center w-full">
-                  <img src="/sponsors/AVP-Logo_Black.png" alt="AVP" className="h-10 w-20 object-contain" loading="lazy" />
+                  <img
+                    src="/sponsors/AVP-Logo_Black.png"
+                    alt="AVP"
+                    className="h-10 w-20 object-contain"
+                    loading="lazy"
+                  />
                   <img src="/sponsors/BYPVector.png" alt="BYP" className="h-10 w-20 object-contain" loading="lazy" />
-                  <img src="/sponsors/HVACTRUST.png" alt="HVAC Trust" className="h-10 w-20 object-contain" loading="lazy" />
-                  <img src="/sponsors/TremcarLOGO.png" alt="Tremcar" className="h-10 w-20 object-contain" loading="lazy" />
+                  <img
+                    src="/sponsors/HVACTRUST.png"
+                    alt="HVAC Trust"
+                    className="h-10 w-20 object-contain"
+                    loading="lazy"
+                  />
+                  <img
+                    src="/sponsors/TremcarLOGO.png"
+                    alt="Tremcar"
+                    className="h-10 w-20 object-contain"
+                    loading="lazy"
+                  />
+                  <img
+                    src="/sponsors/reliance-new-logo.png"
+                    alt="Reliance Home Comfort"
+                    className="h-10 w-20 object-contain"
+                    loading="lazy"
+                  />
                 </div>
               </div>
             </div>
@@ -170,26 +200,26 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
             if (idx === sponsorIndex) items.push(sponsorTile);
 
             const weekDate = parseISO(photo.weekStart);
-            const dayLabel = DAY_LABELS[photo.dayOfWeek] ?? '';
-            const dateLabel = format(weekDate, 'MMM d');
-            const initials = (photo.pitcherName || 'P')
-              .split(' ')
+            const dayLabel = DAY_LABELS[photo.dayOfWeek] ?? "";
+            const dateLabel = format(weekDate, "MMM d");
+            const initials = (photo.pitcherName || "P")
+              .split(" ")
               .map((w) => w[0])
-              .join('')
+              .join("")
               .toUpperCase()
               .slice(0, 2);
 
-            const Wrapper = disableLightbox ? 'div' as const : 'button' as const;
+            const Wrapper = disableLightbox ? ("div" as const) : ("button" as const);
 
             items.push(
               <Wrapper
                 key={photo.id}
-                className={`group relative w-full rounded-2xl overflow-hidden bg-muted/30 break-inside-avoid ${disableLightbox ? '' : 'focus:outline-none focus:ring-2 focus:ring-primary/50 transition-transform hover:scale-[1.02]'}`}
+                className={`group relative w-full rounded-2xl overflow-hidden bg-muted/30 break-inside-avoid ${disableLightbox ? "" : "focus:outline-none focus:ring-2 focus:ring-primary/50 transition-transform hover:scale-[1.02]"}`}
                 {...(!disableLightbox ? { onClick: () => setLightboxIndex(idx) } : {})}
               >
                 <img
                   src={photo.photoUrl}
-                  alt={`${photo.pitcherName || 'Player'} – ${photo.workoutTitle}`}
+                  alt={`${photo.pitcherName || "Player"} – ${photo.workoutTitle}`}
                   className="w-full object-cover"
                   loading="lazy"
                 />
@@ -207,7 +237,7 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-xs font-semibold leading-tight truncate">
-                        {photo.pitcherName || 'Player'}
+                        {photo.pitcherName || "Player"}
                       </p>
                       <p className="text-white/60 text-[10px] leading-tight">
                         {dayLabel} · {dateLabel}
@@ -215,9 +245,7 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
                     </div>
                   </div>
                   {photo.notes && (
-                    <p className="text-white/70 text-[10px] mt-1.5 leading-snug line-clamp-2 italic">
-                      "{photo.notes}"
-                    </p>
+                    <p className="text-white/70 text-[10px] mt-1.5 leading-snug line-clamp-2 italic">"{photo.notes}"</p>
                   )}
                 </div>
 
@@ -225,7 +253,7 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
                 <div className="absolute top-2 right-2 bg-black/40 backdrop-blur-sm text-white text-[9px] font-medium px-2 py-0.5 rounded-full">
                   {photo.workoutTitle}
                 </div>
-              </Wrapper>
+              </Wrapper>,
             );
           });
 
@@ -252,7 +280,10 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
           {lightboxIndex! > 0 && (
             <button
               className="absolute left-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white z-10"
-              onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex! - 1); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex(lightboxIndex! - 1);
+              }}
             >
               <ChevronLeft className="w-8 h-8" />
             </button>
@@ -260,7 +291,10 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
           {lightboxIndex! < photos.length - 1 && (
             <button
               className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white z-10"
-              onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex! + 1); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex(lightboxIndex! + 1);
+              }}
             >
               <ChevronRight className="w-8 h-8" />
             </button>
@@ -278,7 +312,7 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
                 {lightboxPhoto.workoutTitle}
               </p>
               <p className="text-white/50 text-xs">
-                {DAY_LABELS[lightboxPhoto.dayOfWeek]} · {format(parseISO(lightboxPhoto.weekStart), 'MMM d, yyyy')}
+                {DAY_LABELS[lightboxPhoto.dayOfWeek]} · {format(parseISO(lightboxPhoto.weekStart), "MMM d, yyyy")}
               </p>
               {lightboxPhoto.notes && (
                 <p className="text-white/70 text-xs mt-1 max-w-sm mx-auto italic">"{lightboxPhoto.notes}"</p>
