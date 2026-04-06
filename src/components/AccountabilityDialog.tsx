@@ -1,10 +1,12 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ClipboardCheck, Check, MessageSquare, Trophy, Paperclip, ExternalLink, Camera, X, Loader2 } from 'lucide-react';
 import { TeamLeaderboardDialog } from '@/components/TeamLeaderboardDialog';
+import { WorkoutGalleryDialog } from '@/components/WorkoutGalleryDialog';
 import { WorkoutAssignment, WorkoutCompletion, getWeekDayLabels } from '@/hooks/use-workouts';
 import { format } from 'date-fns';
 
@@ -40,8 +42,22 @@ export function AccountabilityDialog({
   const [editingNotes, setEditingNotes] = useState<{ assignmentId: string; dayOfWeek: number } | null>(null);
   const [noteText, setNoteText] = useState('');
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
+  const [galleryPhotoCount, setGalleryPhotoCount] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      const { count } = await supabase
+        .from('workout_completions')
+        .select('*', { count: 'exact', head: true })
+        .eq('pitcher_id', pitcherId)
+        .not('photo_url', 'is', null);
+      if (count !== null) setGalleryPhotoCount(count);
+    })();
+  }, [open, pitcherId]);
 
   const isCompleted = (assignmentId: string, dayOfWeek: number): boolean => {
     return completions.some(
@@ -333,8 +349,8 @@ export function AccountabilityDialog({
           })}
         </div>
 
-        {/* Team Leaderboard Link */}
-        <div className="border-t border-border pt-4">
+        {/* Team Leaderboard & Gallery Links */}
+        <div className="border-t border-border pt-4 space-y-2">
           <Button
             variant="outline"
             className="w-full gap-2"
@@ -343,13 +359,33 @@ export function AccountabilityDialog({
             <Trophy className="w-4 h-4" />
             View Team Leaderboard
           </Button>
+
+          {galleryPhotoCount >= 10 && (
+            <Button
+              variant="outline"
+              className="w-full gap-2"
+              onClick={() => setShowGallery(true)}
+            >
+              <Camera className="w-4 h-4" />
+              Workout Gallery
+              <span className="ml-auto text-xs text-muted-foreground">{galleryPhotoCount} photos</span>
+            </Button>
+          )}
         </div>
+
       </DialogContent>
 
       <TeamLeaderboardDialog
         open={showLeaderboard}
         onOpenChange={setShowLeaderboard}
         pitcherId={pitcherId}
+      />
+
+      <WorkoutGalleryDialog
+        open={showGallery}
+        onOpenChange={setShowGallery}
+        pitcherId={pitcherId}
+        title="Workout Gallery"
       />
     </Dialog>
   );
