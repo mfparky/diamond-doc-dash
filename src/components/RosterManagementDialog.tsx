@@ -776,7 +776,7 @@ export function RosterManagementDialog({
               </DialogHeader>
 
               <Tabs defaultValue="assignments" className="flex-1 flex flex-col overflow-hidden">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="assignments" className="gap-2">
                     <ClipboardCheck className="w-4 h-4" />
                     Assignments
@@ -785,9 +785,6 @@ export function RosterManagementDialog({
                     <Trophy className="w-4 h-4" />
                     Leaderboard
                   </TabsTrigger>
-                  <TabsTrigger value="gallery" className="gap-2">
-                    <Camera className="w-4 h-4" />
-                    Gallery
                   </TabsTrigger>
                 </TabsList>
 
@@ -833,28 +830,19 @@ export function RosterManagementDialog({
                   <WorkoutLeaderboard pitchers={pitchers} initialFrom={leaderboardStartDate} initialTo={leaderboardEndDate} hideDatePicker />
                 </TabsContent>
 
-                <TabsContent value="gallery" className="flex-1 overflow-y-auto py-4 mt-0">
-                  {pitchers[0]?.teamId ? (
-                    <div className="flex flex-col items-center gap-4 py-8">
-                      <WorkoutGallery
-                        teamId={pitchers[0]?.teamId}
-                        pitcherIds={pitchers.map((p) => p.id)}
-                      />
-                      <a
-                        href={`/team/${pitchers[0].teamId}/wall`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 text-sm text-primary hover:underline font-medium"
-                      >
-                        Open full Workout Wall →
-                      </a>
-                    </div>
-                  ) : (
-                    <WorkoutGallery
-                      pitcherIds={pitchers.map((p) => p.id)}
-                    />
-                  )}
-                </TabsContent>
+                {pitchers[0]?.teamId && (
+                  <div className="px-4 pb-3">
+                    <a
+                      href={`/team/${pitchers[0].teamId}/wall`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-sm text-primary hover:underline font-medium"
+                    >
+                      <Camera className="w-4 h-4" />
+                      Open Workout Wall →
+                    </a>
+                  </div>
+                )}
               </Tabs>
             </>
           )}
