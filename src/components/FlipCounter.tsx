@@ -3,6 +3,8 @@ import { useEffect, useState, useRef } from 'react';
 interface FlipCounterProps {
   value: number;
   label?: string;
+  /** If set, the counter will animate counting up from this number to `value` on mount */
+  countUpFrom?: number;
 }
 
 function FlipDigit({ digit, delay }: { digit: string; delay: number }) {
@@ -37,9 +39,32 @@ function FlipDigit({ digit, delay }: { digit: string; delay: number }) {
   );
 }
 
-export function FlipCounter({ value, label }: FlipCounterProps) {
+export function FlipCounter({ value, label, countUpFrom }: FlipCounterProps) {
+  const [displayValue, setDisplayValue] = useState(countUpFrom ?? value);
+  const hasAnimated = useRef(false);
+
+  useEffect(() => {
+    if (countUpFrom === undefined || countUpFrom >= value || hasAnimated.current) {
+      setDisplayValue(value);
+      return;
+    }
+
+    hasAnimated.current = true;
+    let current = countUpFrom;
+    const step = () => {
+      current += 1;
+      setDisplayValue(current);
+      if (current < value) {
+        setTimeout(step, 350);
+      }
+    };
+    // Start after a short delay so the initial render is visible
+    const timer = setTimeout(step, 600);
+    return () => clearTimeout(timer);
+  }, [value, countUpFrom]);
+
   // Determine padding: at least 3 digits, but grow for larger numbers
-  const str = String(value);
+  const str = String(displayValue);
   const padded = str.length < 3 ? str.padStart(3, '0') : str;
   const digits = padded.split('');
 

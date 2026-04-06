@@ -35,6 +35,10 @@ export function TeamLeaderboardDialog({ open, onOpenChange, pitcherId }: TeamLea
         }
 
         // Fetch leaderboard date range from team, or fall back to owner settings
+        // Try team-level settings first, then user-level fallback
+        let lbFrom: string | null = null;
+        let lbTo: string | null = null;
+
         if (pitcher.team_id) {
           const { data: team } = await supabase
             .from('teams')
@@ -43,21 +47,27 @@ export function TeamLeaderboardDialog({ open, onOpenChange, pitcherId }: TeamLea
             .maybeSingle();
 
           if (team) {
-            setLeaderboardFrom(team.leaderboard_from ? new Date(team.leaderboard_from + 'T00:00:00') : undefined);
-            setLeaderboardTo(team.leaderboard_to ? new Date(team.leaderboard_to + 'T00:00:00') : undefined);
+            lbFrom = team.leaderboard_from;
+            lbTo = team.leaderboard_to;
           }
-        } else if (pitcher.user_id) {
+        }
+
+        // Fallback to dashboard_settings if team didn't have dates
+        if (!lbFrom && !lbTo && pitcher.user_id) {
           const { data: settings } = await supabase
-            .from('dashboard_settings' as any)
+            .from('dashboard_settings')
             .select('leaderboard_from, leaderboard_to')
             .eq('user_id', pitcher.user_id)
             .maybeSingle();
 
           if (settings) {
-            setLeaderboardFrom((settings as any).leaderboard_from ? new Date((settings as any).leaderboard_from + 'T00:00:00') : undefined);
-            setLeaderboardTo((settings as any).leaderboard_to ? new Date((settings as any).leaderboard_to + 'T00:00:00') : undefined);
+            lbFrom = settings.leaderboard_from;
+            lbTo = settings.leaderboard_to;
           }
         }
+
+        setLeaderboardFrom(lbFrom ? new Date(lbFrom + 'T00:00:00') : undefined);
+        setLeaderboardTo(lbTo ? new Date(lbTo + 'T00:00:00') : undefined);
 
         // Fetch teammates by team_id, or fall back to user_id grouping
         let query = supabase.from('pitchers').select('*');
