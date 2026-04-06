@@ -153,11 +153,11 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-3 px-3 pb-3">
-            <img src="/src/sponsors/AVP-Logo_Black.png" alt="AVP" className="h-8 w-auto object-contain dark:invert" loading="lazy" />
-            <img src="/src/sponsors/BYPVector.png" alt="BYP" className="h-8 w-auto object-contain" loading="lazy" />
-            <img src="/src/sponsors/HVACTRUST.png" alt="HVAC Trust" className="h-8 w-auto object-contain" loading="lazy" />
-            <img src="/src/sponsors/ReliancelogoKO.png" alt="Reliance" className="h-8 w-auto object-contain dark:invert" loading="lazy" />
-            <img src="/src/sponsors/TremcarLOGO.png" alt="Tremcar" className="h-8 w-auto object-contain" loading="lazy" />
+            <img src="/sponsors/AVP-Logo_Black.png" alt="AVP" className="h-8 w-auto object-contain dark:invert" loading="lazy" />
+            <img src="/sponsors/BYPVector.png" alt="BYP" className="h-8 w-auto object-contain" loading="lazy" />
+            <img src="/sponsors/HVACTRUST.png" alt="HVAC Trust" className="h-8 w-auto object-contain" loading="lazy" />
+            <img src="/sponsors/ReliancelogoKO.png" alt="Reliance" className="h-8 w-auto object-contain dark:invert" loading="lazy" />
+            <img src="/sponsors/TremcarLOGO.png" alt="Tremcar" className="h-8 w-auto object-contain" loading="lazy" />
           </div>
         </div>
 
