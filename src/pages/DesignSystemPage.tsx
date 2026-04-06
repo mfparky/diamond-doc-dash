@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Plus, Users, BarChart3, TrendingUp, Target, Gauge, Calendar, Share2, Check, X, Sun, Moon, Paintbrush, RotateCcw, Lock } from 'lucide-react';
-import { useDesignSystem } from '@/contexts/DesignSystemContext';
+import { useDesignSystem, DESIGN_SYSTEMS } from '@/contexts/DesignSystemContext';
 import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
