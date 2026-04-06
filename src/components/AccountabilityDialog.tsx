@@ -47,6 +47,18 @@ export function AccountabilityDialog({
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      const { count } = await supabase
+        .from('workout_completions')
+        .select('*', { count: 'exact', head: true })
+        .eq('pitcher_id', pitcherId)
+        .not('photo_url', 'is', null);
+      if (count !== null) setGalleryPhotoCount(count);
+    })();
+  }, [open, pitcherId]);
+
   const isCompleted = (assignmentId: string, dayOfWeek: number): boolean => {
     return completions.some(
       (c) => c.assignmentId === assignmentId && c.dayOfWeek === dayOfWeek
