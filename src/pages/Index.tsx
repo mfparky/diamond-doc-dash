@@ -24,6 +24,7 @@ import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
 import { useSwipeGesture } from '@/hooks/use-swipe-gesture';
 
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
+import { WhatsNewDialog } from '@/components/WhatsNewDialog';
 
 type View = 'dashboard' | 'detail';
 type TimeView = '7day' | 'alltime';
