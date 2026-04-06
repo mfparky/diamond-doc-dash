@@ -145,6 +145,22 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
 
       {/* Masonry layout */}
       <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 gap-3 space-y-3">
+        {/* Sponsor tile – same footprint as one photo card */}
+        <div className="break-inside-avoid rounded-2xl bg-card border border-border overflow-hidden">
+          <div className="px-3 pt-3 pb-1.5">
+            <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground text-center">
+              Thank you to our sponsors
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3 px-3 pb-3">
+            <img src="/sponsors/AVP-Logo_Black.png" alt="AVP" className="h-8 w-auto object-contain dark:invert" loading="lazy" />
+            <img src="/sponsors/BYPVector.png" alt="BYP" className="h-8 w-auto object-contain" loading="lazy" />
+            <img src="/sponsors/HVACTRUST.png" alt="HVAC Trust" className="h-8 w-auto object-contain" loading="lazy" />
+            <img src="/sponsors/ReliancelogoKO.png" alt="Reliance" className="h-8 w-auto object-contain dark:invert" loading="lazy" />
+            <img src="/sponsors/TremcarLOGO.png" alt="Tremcar" className="h-8 w-auto object-contain" loading="lazy" />
+          </div>
+        </div>
+
         {photos.map((photo, idx) => {
           const weekDate = parseISO(photo.weekStart);
           const dayLabel = DAY_LABELS[photo.dayOfWeek] ?? '';
