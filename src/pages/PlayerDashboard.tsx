@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Pitcher, Outing, getDaysRestNeeded, calculateRestStatus } from '@/types/pitcher';
 import { calculatePitcherStats } from '@/lib/pitcher-data';
@@ -25,7 +25,7 @@ import { ProgressReportCard } from '@/components/ProgressReportCard';
 import { generateReport } from '@/lib/generate-report';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { TrendingUp, Target, Gauge, Calendar, Video, Shield, ArrowLeft, Play, MessageSquare, ClipboardCheck, Share2, Copy, Check, Download, Star, Users, Camera } from 'lucide-react';
+import { TrendingUp, Target, Gauge, Calendar, Video, Shield, ArrowLeft, ArrowRight, Play, MessageSquare, ClipboardCheck, Share2, Copy, Check, Download, Star, Users, Camera } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import hawksLogo from '@/assets/hawks-logo.png';
 import { LiveAbsSummary } from '@/components/LiveAbsSummary';
