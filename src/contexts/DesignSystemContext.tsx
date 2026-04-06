@@ -128,12 +128,10 @@ export const DESIGN_SYSTEMS: DesignSystemTheme[] = [
   },
 ];
 
-function applyThemeToDOM(theme: DesignSystemTheme) {
-  const root = document.documentElement;
+const STYLE_TAG_ID = 'design-system-theme';
 
-  // Don't override the light/dark class — that's controlled by ThemeToggle
-
-  const vars: Record<string, string> = {
+function buildVarsMap(theme: DesignSystemTheme): Record<string, string> {
+  return {
     '--background': hexToHSL(theme.bg),
     '--foreground': hexToHSL(theme.textPrimary),
     '--card': hexToHSL(theme.surface),
@@ -165,32 +163,65 @@ function applyThemeToDOM(theme: DesignSystemTheme) {
     '--sidebar-ring': hexToHSL(theme.accent),
     '--radius': theme.radius,
   };
+}
 
-  for (const [key, value] of Object.entries(vars)) {
-    root.style.setProperty(key, value);
+function varsToCSS(vars: Record<string, string>): string {
+  return Object.entries(vars).map(([k, v]) => `  ${k}: ${v};`).join('\n');
+}
+
+// Generate a light-mode variant by lightening/adjusting the theme colors
+function buildLightVars(theme: DesignSystemTheme): Record<string, string> {
+  // For light themes, use the same vars. For dark themes, invert bg/text.
+  // Since each theme has a fixed isDark, we provide sensible light overrides.
+  // The .light class in index.css already has default light values,
+  // so we only inject this block to keep accent/brand colors consistent.
+  return {
+    '--primary': hexToHSL(theme.accentBg),
+    '--primary-foreground': hexToHSL(theme.accentText),
+    '--accent': hexToHSL(theme.accent),
+    '--accent-foreground': hexToHSL(theme.accentText),
+    '--ring': hexToHSL(theme.accent),
+    '--status-active': hexToHSL(theme.statusGreen),
+    '--status-warning': hexToHSL(theme.statusYellow),
+    '--status-caution': hexToHSL(theme.statusYellow),
+    '--status-danger': hexToHSL(theme.statusRed),
+    '--radius': theme.radius,
+  };
+}
+
+function applyThemeToDOM(theme: DesignSystemTheme) {
+  // Remove any existing injected style
+  let styleEl = document.getElementById(STYLE_TAG_ID) as HTMLStyleElement | null;
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = STYLE_TAG_ID;
+    document.head.appendChild(styleEl);
   }
+
+  const darkVars = buildVarsMap(theme);
+  const lightVars = buildLightVars(theme);
+
+  // Write CSS rules so the cascade works: .light overrides :root
+  styleEl.textContent = `
+:root {
+${varsToCSS(darkVars)}
+}
+.light {
+${varsToCSS(lightVars)}
+}
+`;
 
   document.body.style.fontFamily = theme.font;
   if (theme.displayFont) {
-    root.style.setProperty('--font-display', theme.displayFont);
+    document.documentElement.style.setProperty('--font-display', theme.displayFont);
   }
 }
 
 function clearThemeFromDOM() {
-  const root = document.documentElement;
-  const varsToClear = [
-    '--background', '--foreground', '--card', '--card-foreground',
-    '--popover', '--popover-foreground', '--primary', '--primary-foreground',
-    '--secondary', '--secondary-foreground', '--muted', '--muted-foreground',
-    '--accent', '--accent-foreground', '--border', '--input', '--ring',
-    '--status-active', '--status-warning', '--status-caution', '--status-danger',
-    '--sidebar-background', '--sidebar-foreground', '--sidebar-primary',
-    '--sidebar-primary-foreground', '--sidebar-accent', '--sidebar-accent-foreground',
-    '--sidebar-border', '--sidebar-ring', '--radius',
-  ];
-  varsToClear.forEach(v => root.style.removeProperty(v));
+  const styleEl = document.getElementById(STYLE_TAG_ID);
+  if (styleEl) styleEl.remove();
   document.body.style.fontFamily = '';
-  root.style.removeProperty('--font-display');
+  document.documentElement.style.removeProperty('--font-display');
 }
 
 interface DesignSystemContextValue {
