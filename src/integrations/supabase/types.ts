@@ -262,6 +262,7 @@ export type Database = {
           achievement_from: string | null
           achievement_to: string | null
           created_at: string
+          design_system: string | null
           id: string
           join_code: string
           leaderboard_from: string | null
@@ -274,6 +275,7 @@ export type Database = {
           achievement_from?: string | null
           achievement_to?: string | null
           created_at?: string
+          design_system?: string | null
           id?: string
           join_code?: string
           leaderboard_from?: string | null
@@ -286,6 +288,7 @@ export type Database = {
           achievement_from?: string | null
           achievement_to?: string | null
           created_at?: string
+          design_system?: string | null
           id?: string
           join_code?: string
           leaderboard_from?: string | null
