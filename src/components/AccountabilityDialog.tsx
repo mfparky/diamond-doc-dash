@@ -361,32 +361,19 @@ export function AccountabilityDialog({
           )}
         </div>
 
-        {/* Hidden gallery count fetcher */}
-        {open && (
-          <div className="hidden">
-            <img
-              src=""
-              alt=""
-              ref={() => {
-                // Fetch photo count on mount
-                (async () => {
-                  const { count } = await (await import('@/integrations/supabase/client')).supabase
-                    .from('workout_completions')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('pitcher_id', pitcherId)
-                    .not('photo_url', 'is', null);
-                  if (count !== null) setGalleryPhotoCount(count);
-                })();
-              }}
-            />
-          </div>
-        )
       </DialogContent>
 
       <TeamLeaderboardDialog
         open={showLeaderboard}
         onOpenChange={setShowLeaderboard}
         pitcherId={pitcherId}
+      />
+
+      <WorkoutGalleryDialog
+        open={showGallery}
+        onOpenChange={setShowGallery}
+        pitcherId={pitcherId}
+        title="Workout Gallery"
       />
     </Dialog>
   );
