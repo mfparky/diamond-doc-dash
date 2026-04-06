@@ -1,39 +1,52 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Camera } from 'lucide-react';
+import { Flame } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { WorkoutGallery } from '@/components/WorkoutGallery';
 
 interface WorkoutGalleryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   pitcherId?: string;
+  pitcherIds?: string[];
   teamId?: string;
   title?: string;
 }
 
-export function WorkoutGalleryDialog({ open, onOpenChange, pitcherId, teamId, title }: WorkoutGalleryDialogProps) {
+export function WorkoutGalleryDialog({ open, onOpenChange, pitcherId, pitcherIds, teamId, title }: WorkoutGalleryDialogProps) {
   const [photoCount, setPhotoCount] = useState(0);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Camera className="w-5 h-5 text-primary" />
-            {title || 'Workout Gallery'}
-          </DialogTitle>
-          <DialogDescription>
-            {photoCount} photo{photoCount !== 1 ? 's' : ''} from workout check-ins.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-xl max-h-[90vh] p-0 gap-0 overflow-hidden">
+        {/* Sticky header */}
+        <div className="px-6 pt-5 pb-3 border-b bg-card">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <Flame className="w-4 h-4 text-primary" />
+              </div>
+              {title || 'Workout Wall'}
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Celebrating {photoCount} check-in{photoCount !== 1 ? 's' : ''} from the team.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        {open && (
-          <WorkoutGallery
-            pitcherId={pitcherId}
-            teamId={teamId}
-            onPhotoCount={setPhotoCount}
-          />
-        )}
+        {/* Scrollable feed */}
+        <ScrollArea className="max-h-[calc(90vh-100px)]">
+          <div className="p-4">
+            {open && (
+              <WorkoutGallery
+                pitcherId={pitcherId}
+                pitcherIds={pitcherIds}
+                teamId={teamId}
+                onPhotoCount={setPhotoCount}
+              />
+            )}
+          </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );

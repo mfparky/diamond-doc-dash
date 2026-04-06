@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { format, parseISO } from 'date-fns';
-import { Camera, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Camera, X, ChevronLeft, ChevronRight, Flame } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface GalleryPhoto {
   id: string;
@@ -36,7 +37,6 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
 
     if (propPitcherIds && propPitcherIds.length > 0) {
       pitcherIds = propPitcherIds;
-      // Fetch names for these pitcher IDs
       const { data: pitchers } = await supabase
         .from('pitchers')
         .select('id, name')
@@ -102,57 +102,103 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
 
   const lightboxPhoto = lightboxIndex !== null ? photos[lightboxIndex] : null;
 
+  /* ── Loading skeleton ── */
   if (loading) {
     return (
-      <div className="grid grid-cols-3 gap-2">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className="aspect-square rounded-xl bg-muted/40 animate-pulse" />
+      <div className="space-y-6 px-1">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="rounded-2xl bg-muted/30 animate-pulse">
+            <div className="h-10 rounded-t-2xl bg-muted/40" />
+            <div className="aspect-[4/3] bg-muted/20" />
+            <div className="h-8 rounded-b-2xl bg-muted/40" />
+          </div>
         ))}
       </div>
     );
   }
 
+  /* ── Empty state ── */
   if (photos.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
-        <Camera className="w-8 h-8 opacity-30" />
-        <p className="text-sm">No workout photos yet</p>
+      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
+        <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center">
+          <Camera className="w-8 h-8 opacity-40" />
+        </div>
+        <p className="text-sm font-medium">No workout photos yet</p>
+        <p className="text-xs text-muted-foreground/60">Photos will appear here as players check in</p>
       </div>
     );
   }
 
+  /* ── Social feed ── */
   return (
     <>
-      <div className="grid grid-cols-3 gap-2">
+      {/* Header stats bar */}
+      <div className="flex items-center gap-3 mb-5 px-1">
+        <div className="flex items-center gap-1.5 text-primary">
+          <Flame className="w-5 h-5" />
+          <span className="text-sm font-bold">{photos.length}</span>
+          <span className="text-xs text-muted-foreground font-medium">check-in{photos.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div className="flex-1 h-px bg-border" />
+        <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Team Wall</span>
+      </div>
+
+      {/* Feed */}
+      <div className="space-y-5 px-1">
         {photos.map((photo, idx) => {
           const weekDate = parseISO(photo.weekStart);
           const dayLabel = DAY_LABELS[photo.dayOfWeek] ?? '';
-          const dateLabel = format(weekDate, 'MMM d');
+          const dateLabel = format(weekDate, 'MMM d, yyyy');
+          const initials = (photo.pitcherName || 'P')
+            .split(' ')
+            .map((w) => w[0])
+            .join('')
+            .toUpperCase()
+            .slice(0, 2);
 
           return (
-            <button
-              key={photo.id}
-              className="group relative aspect-square rounded-xl overflow-hidden bg-muted/40 focus:outline-none focus:ring-2 focus:ring-primary transition-transform hover:scale-[1.03]"
-              onClick={() => setLightboxIndex(idx)}
-            >
-              <img
-                src={photo.photoUrl}
-                alt={photo.workoutTitle}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-2 py-1.5">
-                <p className="text-white text-[10px] font-semibold leading-tight truncate">
-                  {photo.pitcherName || photo.workoutTitle}
-                </p>
-                <p className="text-white/60 text-[9px] leading-tight">
-                  {dayLabel} · {dateLabel}
-                </p>
+            <div key={photo.id} className="rounded-2xl border bg-card overflow-hidden shadow-sm">
+              {/* Card header – player info */}
+              <div className="flex items-center gap-3 px-4 py-3">
+                <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+                  {initials}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground truncate">
+                    {photo.pitcherName || 'Player'}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {dayLabel} · {dateLabel}
+                  </p>
+                </div>
+                <span className="text-[10px] text-muted-foreground/60 bg-muted/40 px-2 py-0.5 rounded-full font-medium">
+                  {photo.workoutTitle}
+                </span>
               </div>
+
+              {/* Photo */}
+              <button
+                className="w-full focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-inset"
+                onClick={() => setLightboxIndex(idx)}
+              >
+                <img
+                  src={photo.photoUrl}
+                  alt={`${photo.pitcherName || 'Player'} – ${photo.workoutTitle}`}
+                  className="w-full aspect-[4/3] object-cover"
+                  loading="lazy"
+                />
+              </button>
+
+              {/* Notes */}
               {photo.notes && (
-                <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary shadow-sm" />
+                <div className="px-4 py-3 border-t">
+                  <p className="text-sm text-foreground/80 italic leading-relaxed">
+                    "{photo.notes}"
+                  </p>
+                </div>
               )}
-            </button>
+            </div>
           );
         })}
       </div>
