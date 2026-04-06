@@ -145,84 +145,95 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
 
       {/* Masonry layout */}
       <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 gap-3 space-y-3">
-        {/* Sponsor tile – same footprint as one photo card */}
-        <div className="break-inside-avoid rounded-2xl overflow-hidden" style={{ backgroundColor: '#ffffff', maxHeight: '160px' }}>
-          <div className="px-3 pt-3 pb-1">
-            <p className="text-[10px] uppercase tracking-wider font-semibold text-center" style={{ color: '#6b7280' }}>
-              Thank you to our sponsors
-            </p>
-          </div>
-          <div className="grid grid-cols-3 gap-2 px-3 pb-3 place-items-center">
-            <img src="/sponsors/AVP-Logo_Black.png" alt="AVP" className="h-7 w-14 object-contain" loading="lazy" />
-            <img src="/sponsors/BYPVector.png" alt="BYP" className="h-7 w-14 object-contain" loading="lazy" />
-            <img src="/sponsors/HVACTRUST.png" alt="HVAC Trust" className="h-7 w-14 object-contain" loading="lazy" />
-            <div className="rounded-md p-1" style={{ backgroundColor: '#1a1a2e' }}>
-              <img src="/sponsors/ReliancelogoKO.png" alt="Reliance" className="h-6 w-12 object-contain" loading="lazy" />
-            </div>
-            <img src="/sponsors/TremcarLOGO.png" alt="Tremcar" className="h-7 w-14 object-contain" loading="lazy" />
-          </div>
-        </div>
+        {(() => {
+          // Pick a random insertion index for the sponsor tile (stable per render)
+          const sponsorIndex = Math.floor(Math.random() * (photos.length + 1));
 
-        {photos.map((photo, idx) => {
-          const weekDate = parseISO(photo.weekStart);
-          const dayLabel = DAY_LABELS[photo.dayOfWeek] ?? '';
-          const dateLabel = format(weekDate, 'MMM d');
-          const initials = (photo.pitcherName || 'P')
-            .split(' ')
-            .map((w) => w[0])
-            .join('')
-            .toUpperCase()
-            .slice(0, 2);
-
-          const Wrapper = disableLightbox ? 'div' as const : 'button' as const;
-
-          return (
-            <Wrapper
-              key={photo.id}
-              className={`group relative w-full rounded-2xl overflow-hidden bg-muted/30 break-inside-avoid ${disableLightbox ? '' : 'focus:outline-none focus:ring-2 focus:ring-primary/50 transition-transform hover:scale-[1.02]'}`}
-              {...(!disableLightbox ? { onClick: () => setLightboxIndex(idx) } : {})}
-            >
-              <img
-                src={photo.photoUrl}
-                alt={`${photo.pitcherName || 'Player'} – ${photo.workoutTitle}`}
-                className="w-full object-cover"
-                loading="lazy"
-              />
-
-              {/* Overlay */}
-              {!disableLightbox && (
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              )}
-
-              {/* Bottom info — always visible */}
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-3 py-2.5">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-white/20 text-white flex items-center justify-center text-[9px] font-bold shrink-0 backdrop-blur-sm">
-                    {initials}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white text-xs font-semibold leading-tight truncate">
-                      {photo.pitcherName || 'Player'}
-                    </p>
-                    <p className="text-white/60 text-[10px] leading-tight">
-                      {dayLabel} · {dateLabel}
-                    </p>
-                  </div>
+          const sponsorTile = (
+            <div key="sponsor-tile" className="break-inside-avoid rounded-2xl overflow-hidden" style={{ backgroundColor: '#ffffff', minHeight: '280px' }}>
+              <div className="h-full flex flex-col items-center justify-center px-4 py-4 gap-4">
+                <p className="text-[10px] uppercase tracking-wider font-semibold text-center" style={{ color: '#6b7280' }}>
+                  Thank you to our sponsors
+                </p>
+                <div className="grid grid-cols-2 gap-4 place-items-center w-full">
+                  <img src="/sponsors/AVP-Logo_Black.png" alt="AVP" className="h-10 w-20 object-contain" loading="lazy" />
+                  <img src="/sponsors/BYPVector.png" alt="BYP" className="h-10 w-20 object-contain" loading="lazy" />
+                  <img src="/sponsors/HVACTRUST.png" alt="HVAC Trust" className="h-10 w-20 object-contain" loading="lazy" />
+                  <img src="/sponsors/TremcarLOGO.png" alt="Tremcar" className="h-10 w-20 object-contain" loading="lazy" />
                 </div>
-                {photo.notes && (
-                  <p className="text-white/70 text-[10px] mt-1.5 leading-snug line-clamp-2 italic">
-                    "{photo.notes}"
-                  </p>
-                )}
               </div>
-
-              {/* Workout badge */}
-              <div className="absolute top-2 right-2 bg-black/40 backdrop-blur-sm text-white text-[9px] font-medium px-2 py-0.5 rounded-full">
-                {photo.workoutTitle}
-              </div>
-            </Wrapper>
+            </div>
           );
-        })}
+
+          const items: React.ReactNode[] = [];
+          photos.forEach((photo, idx) => {
+            if (idx === sponsorIndex) items.push(sponsorTile);
+
+            const weekDate = parseISO(photo.weekStart);
+            const dayLabel = DAY_LABELS[photo.dayOfWeek] ?? '';
+            const dateLabel = format(weekDate, 'MMM d');
+            const initials = (photo.pitcherName || 'P')
+              .split(' ')
+              .map((w) => w[0])
+              .join('')
+              .toUpperCase()
+              .slice(0, 2);
+
+            const Wrapper = disableLightbox ? 'div' as const : 'button' as const;
+
+            items.push(
+              <Wrapper
+                key={photo.id}
+                className={`group relative w-full rounded-2xl overflow-hidden bg-muted/30 break-inside-avoid ${disableLightbox ? '' : 'focus:outline-none focus:ring-2 focus:ring-primary/50 transition-transform hover:scale-[1.02]'}`}
+                {...(!disableLightbox ? { onClick: () => setLightboxIndex(idx) } : {})}
+              >
+                <img
+                  src={photo.photoUrl}
+                  alt={`${photo.pitcherName || 'Player'} – ${photo.workoutTitle}`}
+                  className="w-full object-cover"
+                  loading="lazy"
+                />
+
+                {/* Overlay */}
+                {!disableLightbox && (
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                )}
+
+                {/* Bottom info — always visible */}
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-3 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-white/20 text-white flex items-center justify-center text-[9px] font-bold shrink-0 backdrop-blur-sm">
+                      {initials}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-xs font-semibold leading-tight truncate">
+                        {photo.pitcherName || 'Player'}
+                      </p>
+                      <p className="text-white/60 text-[10px] leading-tight">
+                        {dayLabel} · {dateLabel}
+                      </p>
+                    </div>
+                  </div>
+                  {photo.notes && (
+                    <p className="text-white/70 text-[10px] mt-1.5 leading-snug line-clamp-2 italic">
+                      "{photo.notes}"
+                    </p>
+                  )}
+                </div>
+
+                {/* Workout badge */}
+                <div className="absolute top-2 right-2 bg-black/40 backdrop-blur-sm text-white text-[9px] font-medium px-2 py-0.5 rounded-full">
+                  {photo.workoutTitle}
+                </div>
+              </Wrapper>
+            );
+          });
+
+          // If sponsor index is at the end
+          if (sponsorIndex >= photos.length) items.push(sponsorTile);
+
+          return items;
+        })()}
       </div>
 
       {/* Lightbox */}
