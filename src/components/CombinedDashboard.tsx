@@ -617,7 +617,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
                 </div>
                 <div className="flex-1">
                   <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Season Workouts Completed</p>
-                  <FlipCounter value={totalWorkoutsCompleted} countUpFrom={Math.max(0, totalWorkoutsCompleted - 5)} />
+                  <FlipCounter value={totalWorkoutsCompleted} countUpFrom={Math.max(0, totalWorkoutsCompleted - 3)} />
                 </div>
               </CardContent>
             </Card>
