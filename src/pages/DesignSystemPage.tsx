@@ -958,7 +958,11 @@ export default function DesignSystemPage() {
         {systems.filter(s => !Object.values(themeKeyToSystemId).includes(s.id) || false).length > 0 && (
           <select
             onChange={(e) => {
-              setSystem(e.target.value);
+              if (isCoach && teamId) {
+                setSystem(e.target.value, teamId);
+              } else {
+                setSystem(e.target.value);
+              }
             }}
             value={activeSystemId}
             style={{
