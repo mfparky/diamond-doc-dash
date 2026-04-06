@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Users, BarChart3, TrendingUp, Target, Gauge, Calendar, Share2, Check, X } from 'lucide-react';
+import { ArrowLeft, Plus, Users, BarChart3, TrendingUp, Target, Gauge, Calendar, Share2, Check, X, Sun, Moon } from 'lucide-react';
 
 // ─── Theme Definitions ────────────────────────────────────────────────────────
 
@@ -170,6 +170,99 @@ const ATHLETE = {
   labelTracking: '0.1em',
 
   shadow: '0 0 0 1px rgba(198,241,53,0.12), 0 4px 20px rgba(0,0,0,0.6)',
+};
+
+// ─── Current App Design System (field green + warm gold + Space Grotesk) ─────
+
+const CURRENT_DARK = {
+  name: 'Current',
+  tagline: 'Existing app — baseball field green, warm gold, Space Grotesk headings, dark-native',
+  font: `'Space Grotesk', 'Inter', system-ui, sans-serif`,
+  isDark: true,
+  bg: '#0f1517', surface: '#1b2022', surfaceElevated: '#242c2f',
+  border: 'rgba(255,255,255,0.08)', borderSolid: '#2d3436',
+  textPrimary: '#f4f4ef', textSecondary: '#b8c2c5', textMuted: '#7f9295', textSubtle: '#4a5c5f',
+  accent: '#4abe7a', accentBg: '#2d8c4e', accentText: '#f4f4ef',
+  statusGreen: '#4abe7a', statusGreenBg: 'rgba(74,190,122,0.15)',
+  statusYellow: '#f59e0a', statusYellowBg: 'rgba(245,158,10,0.15)',
+  statusRed: '#ef4444', statusRedBg: 'rgba(239,68,68,0.15)',
+  radius: '12px', radiusSm: '8px', radiusLg: '16px', radiusBtn: '12px',
+  displayWeight: 700, displayTracking: '-0.3px',
+  labelUppercase: false, labelTracking: 'normal',
+  shadow: '0 0 0 1px rgba(255,255,255,0.06), 0 4px 20px rgba(0,0,0,0.3)',
+};
+
+const CURRENT_LIGHT = {
+  ...CURRENT_DARK,
+  tagline: 'Existing app — baseball field green, warm gold, Space Grotesk headings, light mode',
+  isDark: false,
+  bg: '#faf9f5', surface: '#ffffff', surfaceElevated: '#f0efea',
+  border: 'rgba(0,0,0,0.08)', borderSolid: '#dde0e2',
+  textPrimary: '#141e22', textSecondary: '#3d5055', textMuted: '#7a8c90', textSubtle: '#b0bcbf',
+  accent: '#3db36a', accentBg: '#2d8c4e', accentText: '#ffffff',
+  statusGreen: '#2d8c4e', statusGreenBg: 'rgba(45,140,78,0.10)',
+  statusYellow: '#c47a00', statusYellowBg: 'rgba(196,122,0,0.10)',
+  statusRed: '#c0392b', statusRedBg: 'rgba(192,57,43,0.10)',
+  shadow: 'rgba(0,0,0,0.08) 0px 4px 20px',
+};
+
+// ─── Light variants for the other 4 systems ───────────────────────────────────
+
+const LINEAR_LIGHT = {
+  ...LINEAR,
+  tagline: 'Precision engineering — light mode, indigo accent on clean white surfaces',
+  isDark: false,
+  bg: '#f7f8f8', surface: '#ffffff', surfaceElevated: '#f3f4f5',
+  border: '#d0d6e0', borderSolid: '#e6e6e6',
+  textPrimary: '#1d1f24', textSecondary: '#4e5460', textMuted: '#8a8f98', textSubtle: '#c0c4cc',
+  statusGreen: '#1a7f37', statusGreenBg: 'rgba(26,127,55,0.10)',
+  statusYellow: '#8c5a00', statusYellowBg: 'rgba(140,90,0,0.10)',
+  statusRed: '#c9252d', statusRedBg: 'rgba(201,37,45,0.10)',
+  shadow: '0 0 0 1px #d0d6e0, 0 4px 16px rgba(0,0,0,0.06)',
+};
+
+const APPLE_DARK = {
+  ...APPLE,
+  tagline: 'iOS dark mode — pure black canvas, elevated grey surfaces, vibrant accent blue',
+  isDark: true,
+  bg: '#000000', surface: '#1c1c1e', surfaceElevated: '#2c2c2e',
+  border: 'rgba(255,255,255,0.12)', borderSolid: 'rgba(255,255,255,0.18)',
+  textPrimary: '#ffffff', textSecondary: 'rgba(255,255,255,0.60)',
+  textMuted: 'rgba(255,255,255,0.40)', textSubtle: 'rgba(255,255,255,0.20)',
+  accent: '#0a84ff', accentBg: '#0a84ff', accentText: '#ffffff',
+  statusGreen: '#30d158', statusGreenBg: 'rgba(48,209,88,0.15)',
+  statusYellow: '#ffd60a', statusYellowBg: 'rgba(255,214,10,0.15)',
+  statusRed: '#ff453a', statusRedBg: 'rgba(255,69,58,0.15)',
+  shadow: '0 4px 24px rgba(0,0,0,0.6)',
+};
+
+const STRIPE_DARK = {
+  ...STRIPE,
+  tagline: 'Stripe brand dark — deep indigo canvas, lavender text, purple glow shadows',
+  isDark: true,
+  bg: '#1c1e54', surface: '#14163c', surfaceElevated: '#1e2060',
+  border: 'rgba(185,185,249,0.15)', borderSolid: 'rgba(185,185,249,0.25)',
+  textPrimary: '#ffffff', textSecondary: '#b9b9f9',
+  textMuted: 'rgba(185,185,249,0.55)', textSubtle: 'rgba(185,185,249,0.28)',
+  accent: '#665efd', accentBg: '#533afd', accentText: '#ffffff',
+  statusGreen: '#15be53', statusGreenBg: 'rgba(21,190,83,0.15)',
+  statusYellow: '#fcd34d', statusYellowBg: 'rgba(252,211,77,0.12)',
+  statusRed: '#ea2261', statusRedBg: 'rgba(234,34,97,0.12)',
+  shadow: 'rgba(83,58,253,0.35) 0px 6px 20px -2px, rgba(0,0,0,0.5) 0px 4px 12px -3px',
+};
+
+const ATHLETE_LIGHT = {
+  ...ATHLETE,
+  tagline: 'Nike/UA gameday light — white canvas, electric green, all-caps, sunlight-ready',
+  isDark: false,
+  bg: '#ffffff', surface: '#f5f5f5', surfaceElevated: '#ebebeb',
+  border: 'rgba(0,0,0,0.08)', borderSolid: '#d0d0d0',
+  textPrimary: '#000000', textSecondary: '#3d3d3d', textMuted: '#707070', textSubtle: '#b0b0b0',
+  accent: '#76b900', accentBg: '#76b900', accentText: '#000000',
+  statusGreen: '#4a7a00', statusGreenBg: 'rgba(74,122,0,0.10)',
+  statusYellow: '#c47f00', statusYellowBg: 'rgba(196,127,0,0.10)',
+  statusRed: '#cc1a1a', statusRedBg: 'rgba(204,26,26,0.10)',
+  shadow: 'rgba(0,0,0,0.10) 0px 4px 20px',
 };
 
 type Theme = typeof LINEAR;
@@ -766,19 +859,21 @@ function DesignShowcase({ t }: { t: Theme }) {
 
 // ─── Page Shell ────────────────────────────────────────────────────────────────
 
-type ThemeKey = 'linear' | 'apple' | 'stripe' | 'athlete';
-const THEMES: Record<ThemeKey, Theme> = { linear: LINEAR, apple: APPLE, stripe: STRIPE, athlete: ATHLETE };
+type ThemeKey = 'current' | 'linear' | 'apple' | 'stripe' | 'athlete';
 
-const TAB_META: Record<ThemeKey, { label: string; sublabel: string; accent: string }> = {
-  linear:  { label: 'Linear',  sublabel: 'Dark · Indigo',  accent: '#7170ff' },
-  apple:   { label: 'Apple',   sublabel: 'Light · Blue',   accent: '#0071e3' },
-  stripe:  { label: 'Stripe',  sublabel: 'Light · Purple', accent: '#533afd' },
-  athlete: { label: 'Athlete', sublabel: 'Dark · Volt',    accent: '#c6f135' },
+const THEME_PAIRS: Record<ThemeKey, { light: Theme; dark: Theme; label: string; accent: string }> = {
+  current: { light: CURRENT_LIGHT, dark: CURRENT_DARK, label: 'Current', accent: '#4abe7a' },
+  linear:  { light: LINEAR_LIGHT,  dark: LINEAR,       label: 'Linear',  accent: '#7170ff' },
+  apple:   { light: APPLE,         dark: APPLE_DARK,   label: 'Apple',   accent: '#0071e3' },
+  stripe:  { light: STRIPE,        dark: STRIPE_DARK,  label: 'Stripe',  accent: '#533afd' },
+  athlete: { light: ATHLETE_LIGHT, dark: ATHLETE,      label: 'Athlete', accent: '#c6f135' },
 };
 
 export default function DesignSystemPage() {
-  const [active, setActive] = useState<ThemeKey>('linear');
-  const t = THEMES[active];
+  const [active, setActive] = useState<ThemeKey>('current');
+  const [darkMode, setDarkMode] = useState(true);
+  const pair = THEME_PAIRS[active];
+  const t = darkMode ? pair.dark : pair.light;
 
   return (
     <div style={{ minHeight: '100vh', background: '#000' }}>
@@ -787,57 +882,55 @@ export default function DesignSystemPage() {
         position: 'sticky', top: 0, zIndex: 100,
         background: '#0a0a0a',
         borderBottom: '1px solid rgba(255,255,255,0.08)',
-        padding: '0 16px',
-        display: 'flex', alignItems: 'center', gap: '16px',
+        padding: '0 12px',
+        display: 'flex', alignItems: 'center', gap: '12px',
         height: '56px',
       }}>
         <Link to="/" style={{
-          color: 'rgba(255,255,255,0.45)',
-          textDecoration: 'none',
-          display: 'flex', alignItems: 'center', gap: '6px',
+          color: 'rgba(255,255,255,0.45)', textDecoration: 'none',
+          display: 'flex', alignItems: 'center', gap: '5px',
           fontSize: '13px', flexShrink: 0,
         }}>
-          <ArrowLeft size={15} /> Back
+          <ArrowLeft size={14} /> Back
         </Link>
 
-        <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.1)' }} />
+        <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
 
-        <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '13px', flexShrink: 0, display: 'none' }}>
-          Design System Evaluation
-        </span>
-
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
-          {(Object.keys(TAB_META) as ThemeKey[]).map(key => {
-            const meta = TAB_META[key];
+        {/* System tabs */}
+        <div style={{ display: 'flex', gap: '3px', flex: 1, overflowX: 'auto' }}>
+          {(Object.keys(THEME_PAIRS) as ThemeKey[]).map(key => {
+            const p = THEME_PAIRS[key];
             const isActive = active === key;
             return (
-              <button
-                key={key}
-                onClick={() => setActive(key)}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: '6px',
-                  border: isActive ? `1px solid ${meta.accent}45` : '1px solid transparent',
-                  background: isActive ? `${meta.accent}15` : 'transparent',
-                  color: isActive ? meta.accent : 'rgba(255,255,255,0.40)',
-                  fontSize: '13px',
-                  fontWeight: isActive ? 700 : 400,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  fontFamily: 'inherit',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  lineHeight: 1.3,
-                  gap: '1px',
-                }}
-              >
-                <span>{meta.label}</span>
-                <span style={{ fontSize: '10px', opacity: 0.6, fontWeight: 400 }}>{meta.sublabel}</span>
+              <button key={key} onClick={() => setActive(key)} style={{
+                padding: '5px 12px', borderRadius: '6px', border: 'none',
+                background: isActive ? `${p.accent}18` : 'transparent',
+                color: isActive ? p.accent : 'rgba(255,255,255,0.38)',
+                fontSize: '13px', fontWeight: isActive ? 700 : 400,
+                cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+                outline: isActive ? `1px solid ${p.accent}40` : 'none',
+              }}>
+                {p.label}
               </button>
             );
           })}
         </div>
+
+        {/* Light / Dark toggle */}
+        <button
+          onClick={() => setDarkMode(!darkMode)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            padding: '6px 12px', borderRadius: '6px', flexShrink: 0,
+            background: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.12)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            color: darkMode ? 'rgba(255,255,255,0.6)' : '#ffd60a',
+            fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >
+          {darkMode ? <Moon size={13} /> : <Sun size={13} />}
+          {darkMode ? 'Dark' : 'Light'}
+        </button>
       </div>
 
       <DesignShowcase t={t} />
