@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Pencil, Trash2, Plus, Check, X, Sun, Moon, ChevronRight, ArrowLeft, Users, Palette, ClipboardCheck, Trophy, CalendarIcon, Copy } from 'lucide-react';
+import { Pencil, Trash2, Plus, Check, X, Sun, Moon, ChevronRight, ArrowLeft, Users, Palette, ClipboardCheck, Trophy, CalendarIcon, Copy, Camera } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { PitcherRecord } from '@/hooks/use-pitchers';
 import { WorkoutManagementSection } from '@/components/WorkoutManagementSection';
 import { WorkoutLeaderboard } from '@/components/WorkoutLeaderboard';
+import { WorkoutGalleryDialog } from '@/components/WorkoutGalleryDialog';
 import { useWorkouts, WorkoutAssignment } from '@/hooks/use-workouts';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -775,7 +776,7 @@ export function RosterManagementDialog({
               </DialogHeader>
 
               <Tabs defaultValue="assignments" className="flex-1 flex flex-col overflow-hidden">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="assignments" className="gap-2">
                     <ClipboardCheck className="w-4 h-4" />
                     Assignments
@@ -783,6 +784,10 @@ export function RosterManagementDialog({
                   <TabsTrigger value="leaderboard" className="gap-2">
                     <Trophy className="w-4 h-4" />
                     Leaderboard
+                  </TabsTrigger>
+                  <TabsTrigger value="gallery" className="gap-2">
+                    <Camera className="w-4 h-4" />
+                    Gallery
                   </TabsTrigger>
                 </TabsList>
 
@@ -826,6 +831,15 @@ export function RosterManagementDialog({
 
                 <TabsContent value="leaderboard" className="flex-1 overflow-y-auto py-4 mt-0">
                   <WorkoutLeaderboard pitchers={pitchers} initialFrom={leaderboardStartDate} initialTo={leaderboardEndDate} hideDatePicker />
+                </TabsContent>
+
+                <TabsContent value="gallery" className="flex-1 overflow-y-auto py-4 mt-0">
+                  <WorkoutGalleryDialog
+                    open={true}
+                    onOpenChange={() => {}}
+                    teamId={pitchers[0]?.teamId}
+                    title="Team Workout Gallery"
+                  />
                 </TabsContent>
               </Tabs>
             </>
