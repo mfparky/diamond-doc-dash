@@ -131,11 +131,7 @@ export const DESIGN_SYSTEMS: DesignSystemTheme[] = [
 function applyThemeToDOM(theme: DesignSystemTheme) {
   const root = document.documentElement;
 
-  if (theme.isDark) {
-    root.classList.remove('light');
-  } else {
-    root.classList.add('light');
-  }
+  // Don't override the light/dark class — that's controlled by ThemeToggle
 
   const vars: Record<string, string> = {
     '--background': hexToHSL(theme.bg),
