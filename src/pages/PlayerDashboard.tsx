@@ -769,7 +769,7 @@ export default function PlayerDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <WorkoutGallery pitcherId={playerId} pitcherName={pitcher?.name} />
+              <WorkoutGallery pitcherId={playerId} />
             </CardContent>
           </Card>
         )}
