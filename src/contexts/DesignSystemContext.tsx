@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 // Hex → HSL conversion
 function hexToHSL(hex: string): string {
@@ -28,33 +29,25 @@ function hexToHSL(hex: string): string {
 export interface DesignSystemTheme {
   id: string;
   name: string;
-  // Surface colors (hex)
   bg: string;
   surface: string;
   surfaceElevated: string;
-  // Text colors
   textPrimary: string;
   textSecondary: string;
   textMuted: string;
-  // Brand accent
   accent: string;
   accentBg: string;
   accentText: string;
-  // Status
   statusGreen: string;
   statusYellow: string;
   statusRed: string;
-  // Border
   borderSolid: string;
-  // Radius
   radius: string;
-  // Font
   font: string;
   displayFont?: string;
   isDark: boolean;
 }
 
-// Curated themes that map to CSS variables
 export const DESIGN_SYSTEMS: DesignSystemTheme[] = [
   {
     id: 'default',
@@ -135,19 +128,15 @@ export const DESIGN_SYSTEMS: DesignSystemTheme[] = [
   },
 ];
 
-const STORAGE_KEY = 'arm-stats-design-system';
-
 function applyThemeToDOM(theme: DesignSystemTheme) {
   const root = document.documentElement;
 
-  // Determine light/dark class
   if (theme.isDark) {
     root.classList.remove('light');
   } else {
     root.classList.add('light');
   }
 
-  // Map theme hex colors → HSL CSS variables
   const vars: Record<string, string> = {
     '--background': hexToHSL(theme.bg),
     '--foreground': hexToHSL(theme.textPrimary),
@@ -185,7 +174,6 @@ function applyThemeToDOM(theme: DesignSystemTheme) {
     root.style.setProperty(key, value);
   }
 
-  // Apply font
   document.body.style.fontFamily = theme.font;
   if (theme.displayFont) {
     root.style.setProperty('--font-display', theme.displayFont);
@@ -212,36 +200,74 @@ function clearThemeFromDOM() {
 interface DesignSystemContextValue {
   activeSystemId: string;
   activeSystem: DesignSystemTheme;
-  setSystem: (id: string) => void;
-  resetToDefault: () => void;
+  setSystem: (id: string, teamId?: string) => Promise<void>;
+  resetToDefault: (teamId?: string) => Promise<void>;
   systems: DesignSystemTheme[];
+  loading: boolean;
 }
 
 const DesignSystemContext = createContext<DesignSystemContextValue | null>(null);
 
 export function DesignSystemProvider({ children }: { children: React.ReactNode }) {
-  const [activeId, setActiveId] = useState<string>(() => {
-    return localStorage.getItem(STORAGE_KEY) || 'default';
-  });
+  const [activeId, setActiveId] = useState<string>('default');
+  const [loading, setLoading] = useState(true);
 
   const activeSystem = DESIGN_SYSTEMS.find(s => s.id === activeId) || DESIGN_SYSTEMS[0];
 
+  // On mount, fetch team's design_system from DB
+  useEffect(() => {
+    async function fetchTheme() {
+      try {
+        // Get first team's design_system (works for both anon and authenticated)
+        const { data } = await supabase
+          .from('teams')
+          .select('design_system')
+          .limit(1)
+          .maybeSingle();
+
+        if (data?.design_system) {
+          setActiveId(data.design_system);
+        }
+      } catch {
+        // Fall back to default
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchTheme();
+  }, []);
+
+  // Apply theme to DOM whenever it changes
   useEffect(() => {
     if (activeId === 'default') {
       clearThemeFromDOM();
-      localStorage.removeItem(STORAGE_KEY);
     } else {
       applyThemeToDOM(activeSystem);
-      localStorage.setItem(STORAGE_KEY, activeId);
     }
   }, [activeId, activeSystem]);
 
-  const setSystem = useCallback((id: string) => {
+  const setSystem = useCallback(async (id: string, teamId?: string) => {
     setActiveId(id);
+
+    // If teamId provided, persist to DB (coach only)
+    if (teamId) {
+      await supabase
+        .from('teams')
+        .update({ design_system: id } as any)
+        .eq('id', teamId);
+    }
   }, []);
 
-  const resetToDefault = useCallback(() => {
+  const resetToDefault = useCallback(async (teamId?: string) => {
     setActiveId('default');
+    clearThemeFromDOM();
+
+    if (teamId) {
+      await supabase
+        .from('teams')
+        .update({ design_system: 'default' } as any)
+        .eq('id', teamId);
+    }
   }, []);
 
   return (
@@ -251,6 +277,7 @@ export function DesignSystemProvider({ children }: { children: React.ReactNode }
       setSystem,
       resetToDefault,
       systems: DESIGN_SYSTEMS,
+      loading,
     }}>
       {children}
     </DesignSystemContext.Provider>
