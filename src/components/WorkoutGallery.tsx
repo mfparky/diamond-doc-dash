@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { format, parseISO } from 'date-fns';
 import { Camera, X, ChevronLeft, ChevronRight, Flame } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface GalleryPhoto {
   id: string;
@@ -20,7 +19,6 @@ interface WorkoutGalleryProps {
   pitcherId?: string;
   pitcherIds?: string[];
   teamId?: string;
-  /** Called with photo count when data loads */
   onPhotoCount?: (count: number) => void;
 }
 
@@ -105,13 +103,13 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
   /* ── Loading skeleton ── */
   if (loading) {
     return (
-      <div className="space-y-6 px-1">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="rounded-2xl bg-muted/30 animate-pulse">
-            <div className="h-10 rounded-t-2xl bg-muted/40" />
-            <div className="aspect-[4/3] bg-muted/20" />
-            <div className="h-8 rounded-b-2xl bg-muted/40" />
-          </div>
+      <div className="columns-2 sm:columns-3 lg:columns-4 gap-3 space-y-3">
+        {[...Array(8)].map((_, i) => (
+          <div
+            key={i}
+            className="rounded-2xl bg-muted/30 animate-pulse break-inside-avoid"
+            style={{ height: `${140 + (i % 3) * 60}px` }}
+          />
         ))}
       </div>
     );
@@ -130,11 +128,11 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
     );
   }
 
-  /* ── Social feed ── */
+  /* ── Masonry grid ── */
   return (
     <>
-      {/* Header stats bar */}
-      <div className="flex items-center gap-3 mb-5 px-1">
+      {/* Header stats */}
+      <div className="flex items-center gap-3 mb-5">
         <div className="flex items-center gap-1.5 text-primary">
           <Flame className="w-5 h-5" />
           <span className="text-sm font-bold">{photos.length}</span>
@@ -144,12 +142,12 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
         <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Team Wall</span>
       </div>
 
-      {/* Feed */}
-      <div className="space-y-5 px-1">
+      {/* Masonry layout */}
+      <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 gap-3 space-y-3">
         {photos.map((photo, idx) => {
           const weekDate = parseISO(photo.weekStart);
           const dayLabel = DAY_LABELS[photo.dayOfWeek] ?? '';
-          const dateLabel = format(weekDate, 'MMM d, yyyy');
+          const dateLabel = format(weekDate, 'MMM d');
           const initials = (photo.pitcherName || 'P')
             .split(' ')
             .map((w) => w[0])
@@ -158,47 +156,48 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
             .slice(0, 2);
 
           return (
-            <div key={photo.id} className="rounded-2xl border bg-card overflow-hidden shadow-sm">
-              {/* Card header – player info */}
-              <div className="flex items-center gap-3 px-4 py-3">
-                <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
-                  {initials}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground truncate">
-                    {photo.pitcherName || 'Player'}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {dayLabel} · {dateLabel}
-                  </p>
-                </div>
-                <span className="text-[10px] text-muted-foreground/60 bg-muted/40 px-2 py-0.5 rounded-full font-medium">
-                  {photo.workoutTitle}
-                </span>
-              </div>
+            <button
+              key={photo.id}
+              className="group relative w-full rounded-2xl overflow-hidden bg-muted/30 break-inside-avoid focus:outline-none focus:ring-2 focus:ring-primary/50 transition-transform hover:scale-[1.02]"
+              onClick={() => setLightboxIndex(idx)}
+            >
+              <img
+                src={photo.photoUrl}
+                alt={`${photo.pitcherName || 'Player'} – ${photo.workoutTitle}`}
+                className="w-full object-cover"
+                loading="lazy"
+              />
 
-              {/* Photo */}
-              <button
-                className="w-full focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-inset"
-                onClick={() => setLightboxIndex(idx)}
-              >
-                <img
-                  src={photo.photoUrl}
-                  alt={`${photo.pitcherName || 'Player'} – ${photo.workoutTitle}`}
-                  className="w-full aspect-[4/3] object-cover"
-                  loading="lazy"
-                />
-              </button>
+              {/* Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
-              {/* Notes */}
-              {photo.notes && (
-                <div className="px-4 py-3 border-t">
-                  <p className="text-sm text-foreground/80 italic leading-relaxed">
+              {/* Bottom info — always visible */}
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-3 py-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-white/20 text-white flex items-center justify-center text-[9px] font-bold shrink-0 backdrop-blur-sm">
+                    {initials}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-xs font-semibold leading-tight truncate">
+                      {photo.pitcherName || 'Player'}
+                    </p>
+                    <p className="text-white/60 text-[10px] leading-tight">
+                      {dayLabel} · {dateLabel}
+                    </p>
+                  </div>
+                </div>
+                {photo.notes && (
+                  <p className="text-white/70 text-[10px] mt-1.5 leading-snug line-clamp-2 italic">
                     "{photo.notes}"
                   </p>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+
+              {/* Workout badge */}
+              <div className="absolute top-2 right-2 bg-black/40 backdrop-blur-sm text-white text-[9px] font-medium px-2 py-0.5 rounded-full">
+                {photo.workoutTitle}
+              </div>
+            </button>
           );
         })}
       </div>

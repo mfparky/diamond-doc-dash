@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { PitcherRecord } from '@/hooks/use-pitchers';
 import { WorkoutManagementSection } from '@/components/WorkoutManagementSection';
 import { WorkoutLeaderboard } from '@/components/WorkoutLeaderboard';
-import { WorkoutGallery } from '@/components/WorkoutGallery';
+
 import { useWorkouts, WorkoutAssignment } from '@/hooks/use-workouts';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
