@@ -35,7 +35,7 @@ export default function TeamWallPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b">
-        <div className="max-w-2xl mx-auto flex items-center gap-3 px-4 py-3">
+        <div className="max-w-7xl mx-auto flex items-center gap-3 px-4 sm:px-6 py-3">
           <Button
             variant="ghost"
             size="icon"
@@ -58,7 +58,7 @@ export default function TeamWallPage() {
       </div>
 
       {/* Feed */}
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         {teamId && (
           <WorkoutGallery
             teamId={teamId}
