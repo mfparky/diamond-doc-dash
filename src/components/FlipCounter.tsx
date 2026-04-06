@@ -54,11 +54,15 @@ export function FlipCounter({ value, label, countUpFrom }: FlipCounterProps) {
     let current = start;
     setDisplayValue(current);
 
+    const totalSteps = value - start;
+    const duration = 1200; // total animation time in ms
+    const stepTime = totalSteps > 0 ? Math.max(30, Math.floor(duration / totalSteps)) : 100;
+
     const interval = setInterval(() => {
       current += 1;
       setDisplayValue(current);
       if (current >= value) clearInterval(interval);
-    }, 1000);
+    }, stepTime);
 
     return () => clearInterval(interval);
   }, [value, countUpFrom]);
