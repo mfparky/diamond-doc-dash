@@ -1,45 +1,58 @@
 
 
-## Plan: Coach Workout Notifications + Image Compression
+## Plan: "What's New" Release Notes Modal with Coach Toggle
 
-### Two Features
+### Overview
 
-**1. Workout Activity Notifications on Coach Player Dashboard**
+A release notes modal that shows once per user per version, with a toggle in coach Settings so you can turn it on/off before deploying.
 
-The coach views a player via `PitcherDetail.tsx`, which already renders `WorkoutCompletionDisplay`. Currently, completed days show a checkmark with tiny icons for notes/photos, but:
-- Notes are only visible via hover `title` attribute (not clickable/readable)
-- No notification indicator that new activity has happened
-- Photos open in a new tab with no context
+### How It Works
 
-**Changes:**
+```text
+Coach edits release-notes.ts → sets enabled: true → deploys
+  ↓
+User logs in → localStorage check: lastSeenRelease_{userId} vs version
+  ↓
+If mismatch AND enabled === true → show modal
+  ↓
+User clicks "Got it" → save version to localStorage
+```
 
-- **`WorkoutCompletionDisplay.tsx`**: Add a clickable interaction on completed day cells. When a day has notes or a photo, tapping opens a small popover/dialog showing:
-  - The note text (readable, not just a tooltip)
-  - The photo inline (thumbnail that can be tapped to enlarge)
-  - Timestamp context (which day, which workout)
+The coach toggle is a simple `enabled` boolean in the config file. Set it to `false` while drafting, flip to `true` when ready. No database needed.
 
-- **`WorkoutCompletionDisplay.tsx`**: Add a simple "new activity" indicator. Query `workout_completions` for the pitcher, ordered by `created_at DESC`, and show a small dot/badge on days that have completions from the last 48 hours (or since the coach last viewed). For MVP simplicity, we'll use a "recent" approach — highlight completions from the last 48 hours with a pulsing dot, no server-side read tracking needed.
+### Files
 
-- **`PitcherDetail.tsx`**: Add a small notification badge next to the "Weekly Accountability" section header showing count of recent completions (e.g., "3 new this week").
+**1. New: `src/lib/release-notes.ts`**
 
-**2. Image Compression — Down-res Parent Uploads**
+Static config file with:
+- `version`: string (e.g. `"2026-04-06"`)
+- `enabled`: boolean — the on/off toggle. Set `false` to suppress the modal entirely
+- `title`: string
+- `features`: array of `{ heading, description }` objects
 
-Currently in `use-workouts.ts`, `compressImage` resizes to max 1024px and uses JPEG quality 0.85. For a 3-5MB target that still looks good on mobile:
-- **Resolution**: Increase max dimension to ~1920px (full HD on longest side)
-- **JPEG quality**: 0.80
-- This produces images around 1-4MB depending on content — well within the 3-5MB range while looking sharp on any phone screen.
+Initial content will cover the recent features: Workout Wall, Coach Notifications, Image Optimization, Workout Counter.
 
-If the goal is to keep images *under* 3-5MB (not targeting that size), then the current 1024px is actually already very aggressive. The better approach: bump to 1920px max, quality 0.80, producing high-quality photos that stay under 5MB.
+**2. New: `src/components/WhatsNewDialog.tsx`**
 
-**Changes:**
-- **`src/hooks/use-workouts.ts`**: Update `compressImage`:
-  - `MAX` from 1024 → 1920
-  - Quality from 0.85 → 0.80
-  - Add a secondary check: if the resulting blob is still > 5MB, re-compress at lower quality (0.65)
+- Reads `CURRENT_RELEASE` from the config
+- If `enabled` is `false`, renders nothing
+- Checks `localStorage` key `whatsNew_{userId}` against `version`
+- If new version, auto-opens a clean dialog with feature list
+- "Got it" button saves version to localStorage and closes
+- Styled consistently with existing dialogs (glass-card aesthetic)
 
-### Files to Modify
+**3. Modified: `src/pages/Index.tsx`**
 
-1. **`src/components/WorkoutCompletionDisplay.tsx`** — Add clickable day cells with popover showing notes/photo; add "recent" pulsing dot on new completions; fetch `created_at` with completion data
-2. **`src/components/PitcherDetail.tsx`** — Add recent activity count badge near the Accountability header
-3. **`src/hooks/use-workouts.ts`** — Update `compressImage` to 1920px max, 0.80 quality, with 5MB fallback re-compression
+- Import and render `<WhatsNewDialog />` inside the authenticated Index page
+- Pass the user ID from `useAuth` (already available via App.tsx context — we'll thread it through or use `useAuth` directly in the dialog)
+
+### Toggle Workflow
+
+To control releases:
+1. Edit `src/lib/release-notes.ts`
+2. Set `enabled: false` while writing the message
+3. Preview locally to check copy
+4. Set `enabled: true` and deploy
+
+No database, no settings UI — just a code toggle that you review before each push.
 
