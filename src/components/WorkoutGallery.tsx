@@ -17,6 +17,7 @@ const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 interface WorkoutGalleryProps {
   pitcherId?: string;
+  pitcherIds?: string[];
   teamId?: string;
   /** Called with photo count when data loads */
   onPhotoCount?: (count: number) => void;
