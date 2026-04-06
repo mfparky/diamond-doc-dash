@@ -208,7 +208,7 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
       </div>
 
       {/* Lightbox */}
-      {lightboxPhoto && (
+      {!disableLightbox && lightboxPhoto && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4"
           onClick={() => setLightboxIndex(null)}
