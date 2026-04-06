@@ -146,8 +146,8 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
       {/* Masonry layout */}
       <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 gap-3 space-y-3">
         {/* Sponsor tile – same footprint as one photo card */}
-        <div className="break-inside-avoid rounded-2xl overflow-hidden" style={{ backgroundColor: '#ffffff' }}>
-          <div className="px-3 pt-3 pb-1.5">
+        <div className="break-inside-avoid rounded-2xl overflow-hidden" style={{ backgroundColor: '#ffffff', maxHeight: '160px' }}>
+          <div className="px-3 pt-3 pb-1">
             <p className="text-[10px] uppercase tracking-wider font-semibold text-center" style={{ color: '#6b7280' }}>
               Thank you to our sponsors
             </p>
@@ -156,7 +156,9 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
             <img src="/sponsors/AVP-Logo_Black.png" alt="AVP" className="h-7 w-14 object-contain" loading="lazy" />
             <img src="/sponsors/BYPVector.png" alt="BYP" className="h-7 w-14 object-contain" loading="lazy" />
             <img src="/sponsors/HVACTRUST.png" alt="HVAC Trust" className="h-7 w-14 object-contain" loading="lazy" />
-            <img src="/sponsors/ReliancelogoKO.png" alt="Reliance" className="h-7 w-14 object-contain" loading="lazy" />
+            <div className="rounded-md p-1" style={{ backgroundColor: '#1a1a2e' }}>
+              <img src="/sponsors/ReliancelogoKO.png" alt="Reliance" className="h-6 w-12 object-contain" loading="lazy" />
+            </div>
             <img src="/sponsors/TremcarLOGO.png" alt="Tremcar" className="h-7 w-14 object-contain" loading="lazy" />
           </div>
         </div>
