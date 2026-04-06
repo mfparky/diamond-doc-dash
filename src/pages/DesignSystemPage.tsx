@@ -879,6 +879,25 @@ export default function DesignSystemPage() {
   const pair = THEME_PAIRS[active];
   const t = darkMode ? pair.dark : pair.light;
   const { activeSystemId, setSystem, resetToDefault, systems } = useDesignSystem();
+  const { user } = useAuth();
+  const [teamId, setTeamId] = useState<string | null>(null);
+
+  // Fetch the coach's team
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('team_members')
+      .select('team_id')
+      .eq('user_id', user.id)
+      .eq('role', 'owner')
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setTeamId(data.team_id);
+      });
+  }, [user]);
+
+  const isCoach = !!user && !!teamId;
 
   // Map preview theme keys to design system IDs
   const themeKeyToSystemId: Record<ThemeKey, string> = {
