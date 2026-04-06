@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-// Hex → HSL conversion
+// ─── Hex → HSL conversion ──────────────────────────────────────────────────────
+
 function hexToHSL(hex: string): string {
   hex = hex.replace('#', '');
   if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
@@ -26,9 +27,9 @@ function hexToHSL(hex: string): string {
   return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 }
 
-export interface DesignSystemTheme {
-  id: string;
-  name: string;
+// ─── Theme Shape ────────────────────────────────────────────────────────────────
+
+export interface ThemeVariant {
   bg: string;
   surface: string;
   surfaceElevated: string;
@@ -42,141 +43,230 @@ export interface DesignSystemTheme {
   statusYellow: string;
   statusRed: string;
   borderSolid: string;
+  isDark: boolean;
+}
+
+export interface DesignSystemTheme {
+  id: string;
+  name: string;
   radius: string;
   font: string;
   displayFont?: string;
-  isDark: boolean;
+  light: ThemeVariant;
+  dark: ThemeVariant;
 }
+
+// ─── Design System Definitions (light + dark pairs) ─────────────────────────────
 
 export const DESIGN_SYSTEMS: DesignSystemTheme[] = [
   {
     id: 'default',
     name: 'Arm Stats (Default)',
-    bg: '#0f1517', surface: '#1b2022', surfaceElevated: '#242c2f',
-    textPrimary: '#f4f4ef', textSecondary: '#b8c2c5', textMuted: '#7f9295',
-    accent: '#4abe7a', accentBg: '#2d8c4e', accentText: '#f4f4ef',
-    statusGreen: '#4abe7a', statusYellow: '#f59e0a', statusRed: '#ef4444',
-    borderSolid: '#2d3436', radius: '0.75rem',
-    font: "'Inter', system-ui, sans-serif", displayFont: "'Space Grotesk', sans-serif",
-    isDark: true,
+    radius: '0.75rem',
+    font: "'Inter', system-ui, sans-serif",
+    displayFont: "'Space Grotesk', sans-serif",
+    dark: {
+      bg: '#0f1517', surface: '#1b2022', surfaceElevated: '#242c2f',
+      textPrimary: '#f4f4ef', textSecondary: '#b8c2c5', textMuted: '#7f9295',
+      accent: '#4abe7a', accentBg: '#2d8c4e', accentText: '#f4f4ef',
+      statusGreen: '#4abe7a', statusYellow: '#f59e0a', statusRed: '#ef4444',
+      borderSolid: '#2d3436', isDark: true,
+    },
+    light: {
+      bg: '#faf9f5', surface: '#ffffff', surfaceElevated: '#f0efea',
+      textPrimary: '#141e22', textSecondary: '#3d5055', textMuted: '#7a8c90',
+      accent: '#3db36a', accentBg: '#2d8c4e', accentText: '#ffffff',
+      statusGreen: '#2d8c4e', statusYellow: '#c47a00', statusRed: '#c0392b',
+      borderSolid: '#dde0e2', isDark: false,
+    },
   },
   {
     id: 'linear',
     name: 'Linear',
-    bg: '#08090a', surface: '#191a1b', surfaceElevated: '#28282c',
-    textPrimary: '#f7f8f8', textSecondary: '#d0d6e0', textMuted: '#8a8f98',
-    accent: '#5e6ad2', accentBg: '#5e6ad2', accentText: '#ffffff',
-    statusGreen: '#27a644', statusYellow: '#f59e0b', statusRed: '#ef4444',
-    borderSolid: '#23252a', radius: '0.375rem',
+    radius: '0.375rem',
     font: "'Inter', -apple-system, system-ui, sans-serif",
-    isDark: true,
+    dark: {
+      bg: '#08090a', surface: '#191a1b', surfaceElevated: '#28282c',
+      textPrimary: '#f7f8f8', textSecondary: '#d0d6e0', textMuted: '#8a8f98',
+      accent: '#5e6ad2', accentBg: '#5e6ad2', accentText: '#ffffff',
+      statusGreen: '#27a644', statusYellow: '#f59e0b', statusRed: '#ef4444',
+      borderSolid: '#23252a', isDark: true,
+    },
+    light: {
+      bg: '#f7f8f8', surface: '#ffffff', surfaceElevated: '#f3f4f5',
+      textPrimary: '#1d1f24', textSecondary: '#4e5460', textMuted: '#8a8f98',
+      accent: '#5e6ad2', accentBg: '#5e6ad2', accentText: '#ffffff',
+      statusGreen: '#1a7f37', statusYellow: '#8c5a00', statusRed: '#c9252d',
+      borderSolid: '#e6e6e6', isDark: false,
+    },
   },
   {
     id: 'apple',
     name: 'Apple',
-    bg: '#f5f5f7', surface: '#ffffff', surfaceElevated: '#fafafc',
-    textPrimary: '#1d1d1f', textSecondary: '#6e6e73', textMuted: '#86868b',
-    accent: '#0071e3', accentBg: '#0071e3', accentText: '#ffffff',
-    statusGreen: '#1a7f37', statusYellow: '#9e5a00', statusRed: '#c0392b',
-    borderSolid: '#d2d2d7', radius: '0.75rem',
+    radius: '0.75rem',
     font: "-apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif",
-    isDark: false,
+    light: {
+      bg: '#f5f5f7', surface: '#ffffff', surfaceElevated: '#fafafc',
+      textPrimary: '#1d1d1f', textSecondary: '#6e6e73', textMuted: '#86868b',
+      accent: '#0071e3', accentBg: '#0071e3', accentText: '#ffffff',
+      statusGreen: '#1a7f37', statusYellow: '#9e5a00', statusRed: '#c0392b',
+      borderSolid: '#d2d2d7', isDark: false,
+    },
+    dark: {
+      bg: '#000000', surface: '#1c1c1e', surfaceElevated: '#2c2c2e',
+      textPrimary: '#ffffff', textSecondary: 'rgba(255,255,255,0.60)', textMuted: 'rgba(255,255,255,0.40)',
+      accent: '#0a84ff', accentBg: '#0a84ff', accentText: '#ffffff',
+      statusGreen: '#30d158', statusYellow: '#ffd60a', statusRed: '#ff453a',
+      borderSolid: 'rgba(255,255,255,0.18)', isDark: true,
+    },
   },
   {
     id: 'stripe',
     name: 'Stripe',
-    bg: '#f6f9fc', surface: '#ffffff', surfaceElevated: '#f0f4f9',
-    textPrimary: '#061b31', textSecondary: '#273951', textMuted: '#64748d',
-    accent: '#533afd', accentBg: '#533afd', accentText: '#ffffff',
-    statusGreen: '#108c3d', statusYellow: '#9b6829', statusRed: '#c0145c',
-    borderSolid: '#d6e1ed', radius: '0.375rem',
+    radius: '0.375rem',
     font: "'Inter', -apple-system, 'Helvetica Neue', sans-serif",
-    isDark: false,
+    light: {
+      bg: '#f6f9fc', surface: '#ffffff', surfaceElevated: '#f0f4f9',
+      textPrimary: '#061b31', textSecondary: '#273951', textMuted: '#64748d',
+      accent: '#533afd', accentBg: '#533afd', accentText: '#ffffff',
+      statusGreen: '#108c3d', statusYellow: '#9b6829', statusRed: '#c0145c',
+      borderSolid: '#d6e1ed', isDark: false,
+    },
+    dark: {
+      bg: '#1c1e54', surface: '#14163c', surfaceElevated: '#1e2060',
+      textPrimary: '#ffffff', textSecondary: '#b9b9f9', textMuted: 'rgba(185,185,249,0.55)',
+      accent: '#665efd', accentBg: '#533afd', accentText: '#ffffff',
+      statusGreen: '#15be53', statusYellow: '#fcd34d', statusRed: '#ea2261',
+      borderSolid: 'rgba(185,185,249,0.25)', isDark: true,
+    },
   },
   {
     id: 'athlete',
     name: 'Athlete',
-    bg: '#0a0a0a', surface: '#111111', surfaceElevated: '#1a1a1a',
-    textPrimary: '#ffffff', textSecondary: '#a3a3a3', textMuted: '#666666',
-    accent: '#c6f135', accentBg: '#c6f135', accentText: '#000000',
-    statusGreen: '#76b900', statusYellow: '#f5a623', statusRed: '#e52020',
-    borderSolid: '#2a2a2a', radius: '0.1875rem',
+    radius: '0.1875rem',
     font: "system-ui, 'Helvetica Neue', Arial, sans-serif",
-    isDark: true,
+    dark: {
+      bg: '#0a0a0a', surface: '#111111', surfaceElevated: '#1a1a1a',
+      textPrimary: '#ffffff', textSecondary: '#a3a3a3', textMuted: '#666666',
+      accent: '#c6f135', accentBg: '#c6f135', accentText: '#000000',
+      statusGreen: '#76b900', statusYellow: '#f5a623', statusRed: '#e52020',
+      borderSolid: '#2a2a2a', isDark: true,
+    },
+    light: {
+      bg: '#ffffff', surface: '#f5f5f5', surfaceElevated: '#ebebeb',
+      textPrimary: '#000000', textSecondary: '#3d3d3d', textMuted: '#707070',
+      accent: '#76b900', accentBg: '#76b900', accentText: '#000000',
+      statusGreen: '#4a7a00', statusYellow: '#c47f00', statusRed: '#cc1a1a',
+      borderSolid: '#d0d0d0', isDark: false,
+    },
   },
   {
     id: 'coinbase',
     name: 'Coinbase',
-    bg: '#ffffff', surface: '#ffffff', surfaceElevated: '#eef0f3',
-    textPrimary: '#0a0b0d', textSecondary: '#5b616e', textMuted: '#8a8f98',
-    accent: '#0052ff', accentBg: '#0052ff', accentText: '#ffffff',
-    statusGreen: '#149e61', statusYellow: '#9b6829', statusRed: '#cf202f',
-    borderSolid: '#dedee5', radius: '0.5rem',
+    radius: '0.5rem',
     font: "'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif",
-    isDark: false,
+    light: {
+      bg: '#ffffff', surface: '#ffffff', surfaceElevated: '#eef0f3',
+      textPrimary: '#0a0b0d', textSecondary: '#5b616e', textMuted: '#8a8f98',
+      accent: '#0052ff', accentBg: '#0052ff', accentText: '#ffffff',
+      statusGreen: '#149e61', statusYellow: '#9b6829', statusRed: '#cf202f',
+      borderSolid: '#dedee5', isDark: false,
+    },
+    dark: {
+      bg: '#0a0b0d', surface: '#141519', surfaceElevated: '#1e1f25',
+      textPrimary: '#f8f8f8', textSecondary: '#a1a5ad', textMuted: '#6b6f7a',
+      accent: '#3773f5', accentBg: '#3773f5', accentText: '#ffffff',
+      statusGreen: '#0caa5f', statusYellow: '#f5a623', statusRed: '#e5484d',
+      borderSolid: '#2a2b32', isDark: true,
+    },
   },
   {
     id: 'kraken',
     name: 'Kraken',
-    bg: '#ffffff', surface: '#ffffff', surfaceElevated: '#f5f5f7',
-    textPrimary: '#101114', textSecondary: '#686b82', textMuted: '#9497a9',
-    accent: '#7132f5', accentBg: '#7132f5', accentText: '#ffffff',
-    statusGreen: '#149e61', statusYellow: '#f59e0b', statusRed: '#ef4444',
-    borderSolid: '#dedee5', radius: '0.75rem',
+    radius: '0.75rem',
     font: "'Inter', 'IBM Plex Sans', Helvetica, Arial, sans-serif",
-    isDark: false,
+    light: {
+      bg: '#ffffff', surface: '#ffffff', surfaceElevated: '#f5f5f7',
+      textPrimary: '#101114', textSecondary: '#686b82', textMuted: '#9497a9',
+      accent: '#7132f5', accentBg: '#7132f5', accentText: '#ffffff',
+      statusGreen: '#149e61', statusYellow: '#f59e0b', statusRed: '#ef4444',
+      borderSolid: '#dedee5', isDark: false,
+    },
+    dark: {
+      bg: '#0e0f14', surface: '#181a22', surfaceElevated: '#22242e',
+      textPrimary: '#f0f0f4', textSecondary: '#9497a9', textMuted: '#686b82',
+      accent: '#8b5cf6', accentBg: '#7132f5', accentText: '#ffffff',
+      statusGreen: '#0caa5f', statusYellow: '#f5a623', statusRed: '#ef4444',
+      borderSolid: '#2a2c38', isDark: true,
+    },
   },
 ];
 
-function applyThemeToDOM(theme: DesignSystemTheme) {
+// ─── Apply / Clear Theme ────────────────────────────────────────────────────────
+
+function applyThemeToDOM(system: DesignSystemTheme, mode: 'light' | 'dark') {
+  const v = mode === 'dark' ? system.dark : system.light;
   const root = document.documentElement;
 
-  if (theme.isDark) {
+  if (v.isDark) {
     root.classList.remove('light');
   } else {
     root.classList.add('light');
   }
 
+  // Helper: handle rgba() strings by converting them to an opaque approximation for HSL
+  function toHSL(color: string): string {
+    if (color.startsWith('rgba')) {
+      // Extract rgb values from rgba and ignore alpha for CSS var purposes
+      const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+      if (match) {
+        const hex = '#' + [match[1], match[2], match[3]].map(n => parseInt(n).toString(16).padStart(2, '0')).join('');
+        return hexToHSL(hex);
+      }
+    }
+    return hexToHSL(color);
+  }
+
   const vars: Record<string, string> = {
-    '--background': hexToHSL(theme.bg),
-    '--foreground': hexToHSL(theme.textPrimary),
-    '--card': hexToHSL(theme.surface),
-    '--card-foreground': hexToHSL(theme.textPrimary),
-    '--popover': hexToHSL(theme.surface),
-    '--popover-foreground': hexToHSL(theme.textPrimary),
-    '--primary': hexToHSL(theme.accentBg),
-    '--primary-foreground': hexToHSL(theme.accentText),
-    '--secondary': hexToHSL(theme.surfaceElevated),
-    '--secondary-foreground': hexToHSL(theme.textSecondary),
-    '--muted': hexToHSL(theme.surfaceElevated),
-    '--muted-foreground': hexToHSL(theme.textMuted),
-    '--accent': hexToHSL(theme.accent),
-    '--accent-foreground': hexToHSL(theme.accentText),
-    '--border': hexToHSL(theme.borderSolid),
-    '--input': hexToHSL(theme.borderSolid),
-    '--ring': hexToHSL(theme.accent),
-    '--status-active': hexToHSL(theme.statusGreen),
-    '--status-warning': hexToHSL(theme.statusYellow),
-    '--status-caution': hexToHSL(theme.statusYellow),
-    '--status-danger': hexToHSL(theme.statusRed),
-    '--sidebar-background': hexToHSL(theme.surface),
-    '--sidebar-foreground': hexToHSL(theme.textSecondary),
-    '--sidebar-primary': hexToHSL(theme.accentBg),
-    '--sidebar-primary-foreground': hexToHSL(theme.accentText),
-    '--sidebar-accent': hexToHSL(theme.surfaceElevated),
-    '--sidebar-accent-foreground': hexToHSL(theme.textSecondary),
-    '--sidebar-border': hexToHSL(theme.borderSolid),
-    '--sidebar-ring': hexToHSL(theme.accent),
-    '--radius': theme.radius,
+    '--background': toHSL(v.bg),
+    '--foreground': toHSL(v.textPrimary),
+    '--card': toHSL(v.surface),
+    '--card-foreground': toHSL(v.textPrimary),
+    '--popover': toHSL(v.surface),
+    '--popover-foreground': toHSL(v.textPrimary),
+    '--primary': toHSL(v.accentBg),
+    '--primary-foreground': toHSL(v.accentText),
+    '--secondary': toHSL(v.surfaceElevated),
+    '--secondary-foreground': toHSL(v.textSecondary),
+    '--muted': toHSL(v.surfaceElevated),
+    '--muted-foreground': toHSL(v.textMuted),
+    '--accent': toHSL(v.accent),
+    '--accent-foreground': toHSL(v.accentText),
+    '--border': toHSL(v.borderSolid),
+    '--input': toHSL(v.borderSolid),
+    '--ring': toHSL(v.accent),
+    '--status-active': toHSL(v.statusGreen),
+    '--status-warning': toHSL(v.statusYellow),
+    '--status-caution': toHSL(v.statusYellow),
+    '--status-danger': toHSL(v.statusRed),
+    '--sidebar-background': toHSL(v.surface),
+    '--sidebar-foreground': toHSL(v.textSecondary),
+    '--sidebar-primary': toHSL(v.accentBg),
+    '--sidebar-primary-foreground': toHSL(v.accentText),
+    '--sidebar-accent': toHSL(v.surfaceElevated),
+    '--sidebar-accent-foreground': toHSL(v.textSecondary),
+    '--sidebar-border': toHSL(v.borderSolid),
+    '--sidebar-ring': toHSL(v.accent),
+    '--radius': system.radius,
   };
 
   for (const [key, value] of Object.entries(vars)) {
     root.style.setProperty(key, value);
   }
 
-  document.body.style.fontFamily = theme.font;
-  if (theme.displayFont) {
-    root.style.setProperty('--font-display', theme.displayFont);
+  document.body.style.fontFamily = system.font;
+  if (system.displayFont) {
+    root.style.setProperty('--font-display', system.displayFont);
   }
 }
 
@@ -197,9 +287,14 @@ function clearThemeFromDOM() {
   root.style.removeProperty('--font-display');
 }
 
+// ─── Context ────────────────────────────────────────────────────────────────────
+
 interface DesignSystemContextValue {
   activeSystemId: string;
   activeSystem: DesignSystemTheme;
+  mode: 'light' | 'dark';
+  setMode: (mode: 'light' | 'dark') => void;
+  toggleMode: () => void;
   setSystem: (id: string, teamId?: string) => Promise<void>;
   resetToDefault: (teamId?: string) => Promise<void>;
   systems: DesignSystemTheme[];
@@ -210,6 +305,10 @@ const DesignSystemContext = createContext<DesignSystemContextValue | null>(null)
 
 export function DesignSystemProvider({ children }: { children: React.ReactNode }) {
   const [activeId, setActiveId] = useState<string>('default');
+  const [mode, setModeState] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('ds-mode');
+    return (saved === 'light' || saved === 'dark') ? saved : 'dark';
+  });
   const [loading, setLoading] = useState(true);
 
   const activeSystem = DESIGN_SYSTEMS.find(s => s.id === activeId) || DESIGN_SYSTEMS[0];
@@ -218,14 +317,13 @@ export function DesignSystemProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     async function fetchTheme() {
       try {
-        // Get first team's design_system (works for both anon and authenticated)
         const { data } = await supabase
           .from('teams')
           .select('design_system')
           .limit(1)
           .maybeSingle();
 
-        if (data?.design_system) {
+        if (data?.design_system && data.design_system !== 'default') {
           setActiveId(data.design_system);
         }
       } catch {
@@ -237,19 +335,31 @@ export function DesignSystemProvider({ children }: { children: React.ReactNode }
     fetchTheme();
   }, []);
 
-  // Apply theme to DOM whenever it changes
+  // Apply theme to DOM whenever system or mode changes
   useEffect(() => {
-    if (activeId === 'default') {
+    if (activeId === 'default' && mode === 'dark') {
       clearThemeFromDOM();
+      document.documentElement.classList.remove('light');
+    } else if (activeId === 'default' && mode === 'light') {
+      // Apply the default light variant
+      applyThemeToDOM(activeSystem, 'light');
     } else {
-      applyThemeToDOM(activeSystem);
+      applyThemeToDOM(activeSystem, mode);
     }
-  }, [activeId, activeSystem]);
+  }, [activeId, activeSystem, mode]);
+
+  const setMode = useCallback((newMode: 'light' | 'dark') => {
+    setModeState(newMode);
+    localStorage.setItem('ds-mode', newMode);
+  }, []);
+
+  const toggleMode = useCallback(() => {
+    setMode(mode === 'dark' ? 'light' : 'dark');
+  }, [mode, setMode]);
 
   const setSystem = useCallback(async (id: string, teamId?: string) => {
     setActiveId(id);
 
-    // If teamId provided, persist to DB (coach only)
     if (teamId) {
       await supabase
         .from('teams')
@@ -274,6 +384,9 @@ export function DesignSystemProvider({ children }: { children: React.ReactNode }
     <DesignSystemContext.Provider value={{
       activeSystemId: activeId,
       activeSystem,
+      mode,
+      setMode,
+      toggleMode,
       setSystem,
       resetToDefault,
       systems: DESIGN_SYSTEMS,

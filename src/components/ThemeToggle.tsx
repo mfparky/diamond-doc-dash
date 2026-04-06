@@ -1,35 +1,16 @@
 import { Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useEffect, useState } from 'react';
+import { useDesignSystem } from '@/contexts/DesignSystemContext';
 
 export function ThemeToggle() {
-  const [isDark, setIsDark] = useState(false);
-
-  useEffect(() => {
-    // Set light mode as default on first load
-    const isLight = document.documentElement.classList.contains('light');
-    if (!isLight && !document.documentElement.classList.contains('dark')) {
-      document.documentElement.classList.add('light');
-    }
-    setIsDark(!document.documentElement.classList.contains('light'));
-  }, []);
-
-  const toggleTheme = () => {
-    const newIsDark = !isDark;
-    setIsDark(newIsDark);
-    
-    if (newIsDark) {
-      document.documentElement.classList.remove('light');
-    } else {
-      document.documentElement.classList.add('light');
-    }
-  };
+  const { mode, toggleMode } = useDesignSystem();
+  const isDark = mode === 'dark';
 
   return (
     <Button
       variant="ghost"
       size="sm"
-      onClick={toggleTheme}
+      onClick={toggleMode}
       className="w-9 h-9 p-0"
       aria-label="Toggle theme"
     >
