@@ -6,8 +6,9 @@ import { ArrowLeft, Plus, Users, BarChart3, TrendingUp, Target, Gauge, Calendar,
 
 const LINEAR = {
   name: 'Linear',
-  tagline: 'Precision engineering aesthetic — dark-first, indigo accent',
+  tagline: 'Precision engineering — dark-native, indigo-violet accent, tight negative tracking',
   font: `'Inter', -apple-system, system-ui, sans-serif`,
+  isDark: true,
 
   bg: '#08090a',
   surface: '#191a1b',
@@ -22,7 +23,7 @@ const LINEAR = {
 
   accent: '#7170ff',
   accentBg: '#5e6ad2',
-  accentHover: '#828fff',
+  accentText: '#ffffff',
 
   statusGreen: '#27a644',
   statusGreenBg: 'rgba(39,166,68,0.12)',
@@ -34,73 +35,141 @@ const LINEAR = {
   radius: '6px',
   radiusSm: '4px',
   radiusLg: '10px',
+  radiusBtn: '6px',
+
+  displayWeight: 600,
+  displayTracking: '-0.8px',
+  labelUppercase: false,
+  labelTracking: 'normal',
+
   shadow: '0 0 0 1px rgba(255,255,255,0.05), 0 4px 16px rgba(0,0,0,0.4)',
 };
 
-const SPOTIFY = {
-  name: 'Spotify',
-  tagline: 'Immersive dark, vibrant green, pill-shaped — touch-optimized',
-  font: `'CircularSp', 'Helvetica Neue', Helvetica, Arial, sans-serif`,
+const APPLE = {
+  name: 'Apple',
+  tagline: 'SF Pro, clean light surfaces, single blue accent, pill CTAs — premium & familiar',
+  font: `'SF Pro Display', 'SF Pro Text', -apple-system, 'Helvetica Neue', sans-serif`,
+  isDark: false,
 
-  bg: '#121212',
-  surface: '#181818',
-  surfaceElevated: '#252525',
-  border: '#282828',
-  borderSolid: '#3e3e3e',
+  bg: '#f5f5f7',
+  surface: '#ffffff',
+  surfaceElevated: '#fafafc',
+  border: 'rgba(0,0,0,0.08)',
+  borderSolid: 'rgba(0,0,0,0.12)',
 
-  textPrimary: '#ffffff',
-  textSecondary: '#b3b3b3',
-  textMuted: '#727272',
-  textSubtle: '#535353',
+  textPrimary: '#1d1d1f',
+  textSecondary: 'rgba(0,0,0,0.64)',
+  textMuted: 'rgba(0,0,0,0.48)',
+  textSubtle: 'rgba(0,0,0,0.28)',
 
-  accent: '#1ed760',
-  accentBg: '#1ed760',
-  accentHover: '#1fdf64',
+  accent: '#0071e3',
+  accentBg: '#0071e3',
+  accentText: '#ffffff',
 
-  statusGreen: '#1ed760',
-  statusGreenBg: 'rgba(30,215,96,0.15)',
-  statusYellow: '#ffa42b',
-  statusYellowBg: 'rgba(255,164,43,0.15)',
-  statusRed: '#f3727f',
-  statusRedBg: 'rgba(243,114,127,0.15)',
+  statusGreen: '#1a7f37',
+  statusGreenBg: 'rgba(26,127,55,0.10)',
+  statusYellow: '#9e5a00',
+  statusYellowBg: 'rgba(158,90,0,0.10)',
+  statusRed: '#c0392b',
+  statusRedBg: 'rgba(192,57,43,0.10)',
 
-  radius: '9999px',
-  radiusSm: '9999px',
-  radiusLg: '9999px',
-  shadow: 'rgba(0,0,0,0.5) 0px 8px 24px',
+  radius: '12px',
+  radiusSm: '8px',
+  radiusLg: '18px',
+  radiusBtn: '980px',
+
+  displayWeight: 600,
+  displayTracking: '-0.3px',
+  labelUppercase: false,
+  labelTracking: 'normal',
+
+  shadow: 'rgba(0,0,0,0.12) 0px 4px 20px 0px',
 };
 
-const UBER = {
-  name: 'Uber',
-  tagline: 'Pure black & white, zero mid-tones, billboard typography — maximum sunlight contrast',
-  font: `'UberMove', system-ui, 'Helvetica Neue', Helvetica, Arial, sans-serif`,
+const STRIPE = {
+  name: 'Stripe',
+  tagline: 'sohne-var weight 300 headlines, deep navy, purple accent, blue-tinted shadows — premium trust',
+  font: `'sohne-var', 'SF Pro Display', -apple-system, 'Helvetica Neue', sans-serif`,
+  isDark: false,
 
-  bg: '#ffffff',
-  surface: '#f6f6f6',
-  surfaceElevated: '#eeeeee',
-  border: '#e2e2e2',
-  borderSolid: '#d0d0d0',
+  bg: '#f6f9fc',
+  surface: '#ffffff',
+  surfaceElevated: '#f0f4f9',
+  border: '#e5edf5',
+  borderSolid: '#d6e1ed',
 
-  textPrimary: '#000000',
-  textSecondary: '#4b4b4b',
-  textMuted: '#767676',
-  textSubtle: '#afafaf',
+  textPrimary: '#061b31',
+  textSecondary: '#273951',
+  textMuted: '#64748d',
+  textSubtle: '#8898b0',
 
-  accent: '#000000',
-  accentBg: '#000000',
-  accentHover: '#333333',
+  accent: '#533afd',
+  accentBg: '#533afd',
+  accentText: '#ffffff',
 
-  statusGreen: '#00752f',
-  statusGreenBg: '#e6f5ec',
-  statusYellow: '#8c5a00',
-  statusYellowBg: '#fef5e0',
-  statusRed: '#c0392b',
-  statusRedBg: '#fde8e6',
+  statusGreen: '#108c3d',
+  statusGreenBg: 'rgba(21,190,83,0.10)',
+  statusYellow: '#9b6829',
+  statusYellowBg: 'rgba(155,104,41,0.09)',
+  statusRed: '#c0145c',
+  statusRedBg: 'rgba(234,34,97,0.09)',
 
-  radius: '999px',
+  radius: '6px',
   radiusSm: '4px',
-  radiusLg: '999px',
-  shadow: 'rgba(0,0,0,0.12) 0px 4px 16px',
+  radiusLg: '8px',
+  radiusBtn: '6px',
+
+  // Stripe signature: weight 300 display — whisper authority, not brute force
+  displayWeight: 300,
+  displayTracking: '-0.96px',
+  labelUppercase: false,
+  labelTracking: 'normal',
+
+  // Blue-tinted Stripe shadows
+  shadow: 'rgba(50,50,93,0.20) 0px 6px 12px -2px, rgba(0,0,0,0.08) 0px 3px 7px -3px',
+};
+
+// Athlete: Nike/UA inspired — built on NVIDIA's electric green × black performance language
+const ATHLETE = {
+  name: 'Athlete',
+  tagline: 'Nike/UA inspired — electric volt green, near-black, all-caps performance labels, no mercy margins',
+  font: `system-ui, 'Helvetica Neue', Arial, sans-serif`,
+  isDark: true,
+
+  bg: '#0a0a0a',
+  surface: '#111111',
+  surfaceElevated: '#1a1a1a',
+  border: 'rgba(255,255,255,0.07)',
+  borderSolid: '#2a2a2a',
+
+  textPrimary: '#ffffff',
+  textSecondary: '#a3a3a3',
+  textMuted: '#666666',
+  textSubtle: '#3d3d3d',
+
+  // Nike Volt — the most recognizable performance-sports accent on earth
+  accent: '#c6f135',
+  accentBg: '#c6f135',
+  accentText: '#000000',
+
+  statusGreen: '#76b900',   // NVIDIA green — electric, not soft
+  statusGreenBg: 'rgba(118,185,0,0.14)',
+  statusYellow: '#f5a623',
+  statusYellowBg: 'rgba(245,166,35,0.14)',
+  statusRed: '#e52020',
+  statusRedBg: 'rgba(229,32,32,0.14)',
+
+  radius: '3px',
+  radiusSm: '2px',
+  radiusLg: '4px',
+  radiusBtn: '3px',
+
+  displayWeight: 900,
+  displayTracking: '-1px',
+  labelUppercase: true,
+  labelTracking: '0.1em',
+
+  shadow: '0 0 0 1px rgba(198,241,53,0.12), 0 4px 20px rgba(0,0,0,0.6)',
 };
 
 type Theme = typeof LINEAR;
@@ -112,8 +181,8 @@ function Section({ t, title, children }: { t: Theme; title: string; children: Re
     <div style={{ marginBottom: '48px' }}>
       <h3 style={{
         fontSize: '11px',
-        fontWeight: 600,
-        letterSpacing: '0.08em',
+        fontWeight: 700,
+        letterSpacing: t.labelUppercase ? '0.14em' : '0.08em',
         textTransform: 'uppercase',
         color: t.textMuted,
         marginBottom: '16px',
@@ -129,30 +198,27 @@ function Section({ t, title, children }: { t: Theme; title: string; children: Re
 
 function ColorPalette({ t }: { t: Theme }) {
   const swatches = [
-    { label: 'Background', color: t.bg, text: t.textPrimary },
-    { label: 'Surface', color: t.surface, text: t.textPrimary },
-    { label: 'Elevated', color: t.surfaceElevated, text: t.textPrimary },
-    { label: 'Accent', color: t.accentBg, text: t.name === 'Uber' ? '#ffffff' : '#000000' },
-    { label: 'Green', color: t.statusGreen, text: '#ffffff' },
-    { label: 'Yellow', color: t.statusYellow, text: '#ffffff' },
-    { label: 'Red', color: t.statusRed, text: '#ffffff' },
+    { label: 'BG', color: t.bg },
+    { label: 'Surface', color: t.surface },
+    { label: 'Elevated', color: t.surfaceElevated },
+    { label: 'Accent', color: t.accentBg },
+    { label: 'Green', color: t.statusGreen },
+    { label: 'Yellow', color: t.statusYellow },
+    { label: 'Red', color: t.statusRed },
   ];
 
   return (
-    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
       {swatches.map(s => (
-        <div key={s.label} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div key={s.label} style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
           <div style={{
             width: '72px',
-            height: '48px',
+            height: '52px',
             background: s.color,
             borderRadius: t.radiusSm,
             border: `1px solid ${t.border}`,
-            display: 'flex',
-            alignItems: 'flex-end',
-            padding: '4px',
           }} />
-          <span style={{ fontSize: '10px', color: t.textMuted, textAlign: 'center' }}>{s.label}</span>
+          <span style={{ fontSize: '10px', color: t.textMuted, textAlign: 'center', textTransform: t.labelUppercase ? 'uppercase' : 'none', letterSpacing: t.labelTracking }}>{s.label}</span>
           <span style={{ fontSize: '9px', color: t.textSubtle, textAlign: 'center', fontFamily: 'monospace' }}>{s.color}</span>
         </div>
       ))}
@@ -162,27 +228,34 @@ function ColorPalette({ t }: { t: Theme }) {
 
 function TypographyScale({ t }: { t: Theme }) {
   const levels = [
-    { label: 'Display', size: '36px', weight: t.name === 'Uber' ? 700 : 600, letterSpacing: t.name === 'Linear' ? '-0.8px' : 'normal' },
-    { label: 'Heading', size: '24px', weight: t.name === 'Uber' ? 700 : 600, letterSpacing: t.name === 'Linear' ? '-0.4px' : 'normal' },
-    { label: 'Subheading', size: '18px', weight: t.name === 'Spotify' ? 600 : 500, letterSpacing: 'normal' },
-    { label: 'Body', size: '15px', weight: 400, letterSpacing: 'normal' },
-    { label: 'Caption', size: '12px', weight: 400, letterSpacing: t.name === 'Spotify' ? '0.08em' : 'normal' },
+    { label: 'Display', size: '36px', weight: t.displayWeight, tracking: t.displayTracking },
+    { label: 'Heading', size: '24px', weight: Math.min(t.displayWeight, 700) as number, tracking: t.displayTracking },
+    { label: 'Subheading', size: '18px', weight: 600, tracking: 'normal' },
+    { label: 'Body', size: '15px', weight: 400, tracking: 'normal' },
+    { label: 'Label', size: '11px', weight: 700, tracking: t.labelTracking },
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
       {levels.map(l => (
         <div key={l.label} style={{ display: 'flex', alignItems: 'baseline', gap: '16px' }}>
-          <span style={{ fontSize: '10px', color: t.textMuted, width: '80px', flexShrink: 0 }}>{l.label}</span>
+          <span style={{
+            fontSize: '10px',
+            color: t.textMuted,
+            width: '80px',
+            flexShrink: 0,
+            textTransform: t.labelUppercase ? 'uppercase' : 'none',
+            letterSpacing: t.labelTracking,
+          }}>{l.label}</span>
           <span style={{
             fontSize: l.size,
             fontWeight: l.weight,
             color: t.textPrimary,
-            letterSpacing: l.letterSpacing,
+            letterSpacing: l.tracking,
             lineHeight: 1.1,
-            textTransform: (t.name === 'Spotify' && l.label === 'Caption') ? 'uppercase' : 'none',
+            textTransform: (t.labelUppercase && l.label === 'Label') ? 'uppercase' : 'none',
           }}>
-            Pitch Tracker
+            {l.label === 'Label' ? (t.labelUppercase ? 'PITCH COUNT' : 'Pitch Count') : 'Pitch Tracker'}
           </span>
         </div>
       ))}
@@ -191,27 +264,29 @@ function TypographyScale({ t }: { t: Theme }) {
 }
 
 function ButtonSet({ t }: { t: Theme }) {
-  const baseBtn = {
-    padding: t.name === 'Spotify' ? '14px 28px' : '10px 20px',
-    borderRadius: t.radius,
+  const baseBtn: React.CSSProperties = {
+    padding: '11px 22px',
+    borderRadius: t.radiusBtn,
     fontFamily: t.font,
     fontSize: '14px',
-    fontWeight: t.name === 'Uber' ? 500 : 600,
+    fontWeight: t.labelUppercase ? 800 : 600,
     cursor: 'pointer',
     border: 'none',
-    letterSpacing: t.name === 'Spotify' ? '1.6px' : 'normal',
-    textTransform: (t.name === 'Spotify' ? 'uppercase' : 'none') as React.CSSProperties['textTransform'],
+    letterSpacing: t.labelTracking,
+    textTransform: t.labelUppercase ? 'uppercase' : 'none',
     display: 'inline-flex',
     alignItems: 'center',
     gap: '6px',
     transition: 'all 0.15s ease',
+    lineHeight: 1,
   };
 
   return (
-    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
       {/* Primary */}
-      <button style={{ ...baseBtn, background: t.accentBg, color: t.name === 'Uber' ? '#ffffff' : (t.name === 'Spotify' ? '#000000' : '#ffffff') }}>
-        <Plus size={14} /> Log Outing
+      <button style={{ ...baseBtn, background: t.accentBg, color: t.accentText }}>
+        <Plus size={14} />
+        {t.labelUppercase ? 'LOG OUTING' : 'Log Outing'}
       </button>
 
       {/* Secondary */}
@@ -221,18 +296,18 @@ function ButtonSet({ t }: { t: Theme }) {
         color: t.textSecondary,
         border: `1px solid ${t.border}`,
       }}>
-        View Stats
+        {t.labelUppercase ? 'VIEW STATS' : 'View Stats'}
       </button>
 
-      {/* Ghost */}
+      {/* Ghost accent */}
       <button style={{
         ...baseBtn,
         background: 'transparent',
         color: t.accent,
         border: 'none',
-        padding: '10px 12px',
+        padding: '11px 14px',
       }}>
-        Cancel
+        {t.labelUppercase ? 'CANCEL' : 'Cancel'}
       </button>
 
       {/* Destructive */}
@@ -240,9 +315,10 @@ function ButtonSet({ t }: { t: Theme }) {
         ...baseBtn,
         background: t.statusRedBg,
         color: t.statusRed,
-        border: `1px solid ${t.statusRed}20`,
+        border: `1px solid ${t.statusRed}30`,
       }}>
-        <X size={14} /> Remove
+        <X size={14} />
+        {t.labelUppercase ? 'REMOVE' : 'Remove'}
       </button>
     </div>
   );
@@ -250,317 +326,31 @@ function ButtonSet({ t }: { t: Theme }) {
 
 function StatusBadges({ t }: { t: Theme }) {
   const statuses = [
-    { label: 'Ready', color: t.statusGreen, bg: t.statusGreenBg },
-    { label: 'Caution', color: t.statusYellow, bg: t.statusYellowBg },
-    { label: 'Rest', color: t.statusRed, bg: t.statusRedBg },
+    { label: 'Ready', color: t.statusGreen, bg: t.statusGreenBg, dot: t.statusGreen },
+    { label: 'Caution', color: t.statusYellow, bg: t.statusYellowBg, dot: t.statusYellow },
+    { label: 'Rest', color: t.statusRed, bg: t.statusRedBg, dot: t.statusRed },
   ];
 
-  const pill = {
-    padding: '5px 12px',
-    borderRadius: t.radius,
-    fontSize: '12px',
-    fontWeight: 600,
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '5px',
-    letterSpacing: t.name === 'Spotify' ? '0.06em' : 'normal',
-    textTransform: (t.name === 'Spotify' ? 'uppercase' : 'none') as React.CSSProperties['textTransform'],
-  };
-
   return (
-    <div style={{ display: 'flex', gap: '10px' }}>
+    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
       {statuses.map(s => (
-        <div key={s.label} style={{ ...pill, background: s.bg, color: s.color }}>
-          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: s.color, display: 'inline-block' }} />
+        <div key={s.label} style={{
+          padding: '6px 14px',
+          borderRadius: t.radius,
+          fontSize: '12px',
+          fontWeight: 700,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          background: s.bg,
+          color: s.color,
+          letterSpacing: t.labelUppercase ? '0.08em' : 'normal',
+          textTransform: t.labelUppercase ? 'uppercase' : 'none',
+        }}>
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: s.dot, display: 'inline-block', flexShrink: 0 }} />
           {s.label}
         </div>
       ))}
-    </div>
-  );
-}
-
-function PitcherCardDemo({ t }: { t: Theme }) {
-  return (
-    <div style={{
-      background: t.surface,
-      border: `1px solid ${t.border}`,
-      borderRadius: t.radiusLg,
-      padding: '16px',
-      maxWidth: '320px',
-      boxShadow: t.shadow,
-    }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-        <div>
-          <p style={{ fontSize: '18px', fontWeight: 700, color: t.textPrimary, margin: 0, letterSpacing: t.name === 'Linear' ? '-0.3px' : 'normal' }}>
-            Jake Martinez
-          </p>
-          <div style={{ marginTop: '6px' }}>
-            <span style={{
-              fontSize: '11px',
-              fontWeight: 600,
-              padding: '3px 8px',
-              borderRadius: t.radius,
-              background: t.statusGreenBg,
-              color: t.statusGreen,
-            }}>
-              Ready
-            </span>
-          </div>
-        </div>
-        <button style={{
-          background: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
-          color: t.textMuted,
-          padding: '4px',
-          borderRadius: t.radiusSm,
-        }}>
-          <Share2 size={16} />
-        </button>
-      </div>
-
-      {/* Stats Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-        {[
-          { icon: <TrendingUp size={14} />, label: '7-Day Pulse', value: '42', color: t.accent },
-          { icon: <Target size={14} />, label: 'Strike %', value: '64%', color: t.statusGreen },
-          { icon: <Gauge size={14} />, label: 'Max Velo', value: '82 mph', color: t.textSecondary },
-          { icon: <Calendar size={14} />, label: 'Last Outing', value: 'Apr 3', color: t.textSecondary },
-        ].map(stat => (
-          <div key={stat.label} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              padding: '6px',
-              borderRadius: t.radiusSm,
-              background: `${t.accent}18`,
-              color: stat.color,
-              display: 'flex',
-            }}>
-              {stat.icon}
-            </div>
-            <div>
-              <p style={{ fontSize: '10px', color: t.textMuted, margin: 0 }}>{stat.label}</p>
-              <p style={{ fontSize: '14px', fontWeight: 600, color: t.textPrimary, margin: 0 }}>{stat.value}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function LogOutingForm({ t }: { t: Theme }) {
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: t.name === 'Spotify' ? '14px 18px' : '10px 14px',
-    background: t.surfaceElevated,
-    border: `1px solid ${t.border}`,
-    borderRadius: t.name === 'Spotify' ? '8px' : t.radiusSm,
-    color: t.textPrimary,
-    fontSize: '15px',
-    fontFamily: t.font,
-    outline: 'none',
-    boxSizing: 'border-box',
-  };
-
-  const labelStyle: React.CSSProperties = {
-    fontSize: '12px',
-    fontWeight: 600,
-    color: t.textMuted,
-    marginBottom: '6px',
-    display: 'block',
-    letterSpacing: t.name === 'Spotify' ? '0.08em' : 'normal',
-    textTransform: t.name === 'Spotify' ? 'uppercase' : 'none',
-  };
-
-  const fieldStyle: React.CSSProperties = {
-    marginBottom: '16px',
-  };
-
-  return (
-    <div style={{
-      background: t.surface,
-      border: `1px solid ${t.border}`,
-      borderRadius: t.radiusLg,
-      padding: '20px',
-      maxWidth: '360px',
-      boxShadow: t.shadow,
-    }}>
-      <p style={{
-        fontSize: '18px',
-        fontWeight: 700,
-        color: t.textPrimary,
-        margin: '0 0 20px 0',
-        letterSpacing: t.name === 'Linear' ? '-0.3px' : 'normal',
-      }}>
-        Log Outing
-      </p>
-
-      {/* Pitcher Select */}
-      <div style={fieldStyle}>
-        <label style={labelStyle}>Pitcher</label>
-        <select style={{ ...inputStyle, appearance: 'none' }}>
-          <option>Jake Martinez</option>
-          <option>Cole Davis</option>
-          <option>Ethan Brooks</option>
-        </select>
-      </div>
-
-      {/* Event Type */}
-      <div style={fieldStyle}>
-        <label style={labelStyle}>Event Type</label>
-        <select style={{ ...inputStyle, appearance: 'none' }}>
-          <option>Game</option>
-          <option>Practice</option>
-          <option>Bullpen</option>
-        </select>
-      </div>
-
-      {/* Pitch Count + Strikes — row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-        <div>
-          <label style={labelStyle}>Pitch Count</label>
-          <input type="number" placeholder="72" style={inputStyle} />
-        </div>
-        <div>
-          <label style={labelStyle}>Strikes</label>
-          <input type="number" placeholder="48" style={inputStyle} />
-        </div>
-      </div>
-
-      {/* Max Velo */}
-      <div style={fieldStyle}>
-        <label style={labelStyle}>Max Velo (mph)</label>
-        <input type="number" placeholder="84" style={inputStyle} />
-      </div>
-
-      {/* Notes */}
-      <div style={fieldStyle}>
-        <label style={labelStyle}>Notes</label>
-        <textarea
-          placeholder="Good fastball command today..."
-          rows={3}
-          style={{ ...inputStyle, resize: 'vertical' }}
-        />
-      </div>
-
-      {/* Actions */}
-      <div style={{ display: 'flex', gap: '10px' }}>
-        <button style={{
-          flex: 1,
-          padding: t.name === 'Spotify' ? '14px' : '12px',
-          borderRadius: t.radius,
-          background: t.accentBg,
-          color: t.name === 'Uber' ? '#ffffff' : (t.name === 'Spotify' ? '#000000' : '#ffffff'),
-          fontWeight: 700,
-          fontSize: '15px',
-          border: 'none',
-          cursor: 'pointer',
-          fontFamily: t.font,
-          letterSpacing: t.name === 'Spotify' ? '1.4px' : 'normal',
-          textTransform: t.name === 'Spotify' ? 'uppercase' : 'none',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '6px',
-        }}>
-          <Check size={16} /> Save
-        </button>
-        <button style={{
-          padding: t.name === 'Spotify' ? '14px 20px' : '12px 20px',
-          borderRadius: t.radius,
-          background: 'transparent',
-          color: t.textMuted,
-          border: `1px solid ${t.border}`,
-          fontWeight: 500,
-          fontSize: '15px',
-          cursor: 'pointer',
-          fontFamily: t.font,
-        }}>
-          Cancel
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function BottomNavDemo({ t }: { t: Theme }) {
-  return (
-    <div style={{
-      background: t.surface,
-      borderTop: `1px solid ${t.border}`,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-around',
-      height: '72px',
-      maxWidth: '375px',
-      borderRadius: `0 0 ${t.radiusLg} ${t.radiusLg}`,
-      padding: '0 16px',
-      boxShadow: t.shadow,
-    }}>
-      {/* Players */}
-      <button style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '3px',
-        background: 'transparent',
-        border: 'none',
-        cursor: 'pointer',
-        color: t.accent,
-        fontFamily: t.font,
-        padding: '8px 16px',
-      }}>
-        <Users size={22} />
-        <span style={{ fontSize: '11px', fontWeight: 600 }}>Players</span>
-      </button>
-
-      {/* Center FAB */}
-      <button style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '3px',
-        background: 'transparent',
-        border: 'none',
-        cursor: 'pointer',
-        color: t.textMuted,
-        fontFamily: t.font,
-        padding: '4px 16px',
-      }}>
-        <div style={{
-          width: '52px',
-          height: '52px',
-          borderRadius: t.name === 'Uber' ? '50%' : '50%',
-          background: t.accentBg,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: t.name === 'Uber' ? '#ffffff' : (t.name === 'Spotify' ? '#000000' : '#ffffff'),
-          marginTop: '-20px',
-          boxShadow: `0 4px 16px ${t.accentBg}60`,
-        }}>
-          <Plus size={24} />
-        </div>
-        <span style={{ fontSize: '11px', fontWeight: 500, color: t.textMuted }}>Log</span>
-      </button>
-
-      {/* Team */}
-      <button style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '3px',
-        background: 'transparent',
-        border: 'none',
-        cursor: 'pointer',
-        color: t.textMuted,
-        fontFamily: t.font,
-        padding: '8px 16px',
-      }}>
-        <BarChart3 size={22} />
-        <span style={{ fontSize: '11px', fontWeight: 500 }}>Team</span>
-      </button>
     </div>
   );
 }
@@ -577,21 +367,31 @@ function StatChips({ t }: { t: Theme }) {
     <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
       {stats.map(s => (
         <div key={s.label} style={{
-          padding: '12px 16px',
+          padding: '14px 18px',
           background: s.highlight ? `${t.accentBg}18` : t.surface,
-          border: `1px solid ${s.highlight ? t.accent + '40' : t.border}`,
+          border: `1px solid ${s.highlight ? t.accent + '50' : t.border}`,
           borderRadius: t.radiusLg,
           minWidth: '100px',
+          // Athlete gets a left-border accent strip
+          borderLeft: (t.name === 'Athlete' && s.highlight) ? `3px solid ${t.accent}` : undefined,
         }}>
-          <p style={{ fontSize: '10px', color: t.textMuted, margin: '0 0 4px 0', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <p style={{
+            fontSize: '10px',
+            color: t.textMuted,
+            margin: '0 0 5px 0',
+            textTransform: 'uppercase',
+            letterSpacing: t.labelUppercase ? '0.12em' : '0.06em',
+            fontWeight: 700,
+          }}>
             {s.label}
           </p>
           <p style={{
-            fontSize: '24px',
-            fontWeight: 700,
+            fontSize: '26px',
+            fontWeight: t.displayWeight,
             color: s.highlight ? t.accent : t.textPrimary,
             margin: 0,
-            letterSpacing: t.name === 'Linear' ? '-0.5px' : 'normal',
+            letterSpacing: t.displayTracking,
+            lineHeight: 1,
           }}>
             {s.value}
           </p>
@@ -601,7 +401,290 @@ function StatChips({ t }: { t: Theme }) {
   );
 }
 
-// ─── Main Showcase ─────────────────────────────────────────────────────────────
+function PitcherCardDemo({ t }: { t: Theme }) {
+  return (
+    <div style={{
+      background: t.surface,
+      border: `1px solid ${t.border}`,
+      // Athlete: sharp corner with a volt top-border accent
+      borderTop: t.name === 'Athlete' ? `2px solid ${t.accent}` : `1px solid ${t.border}`,
+      borderRadius: t.radiusLg,
+      padding: '16px',
+      maxWidth: '320px',
+      boxShadow: t.shadow,
+    }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+        <div>
+          <p style={{
+            fontSize: '18px',
+            fontWeight: t.displayWeight,
+            color: t.textPrimary,
+            margin: 0,
+            letterSpacing: t.displayTracking,
+            textTransform: t.labelUppercase ? 'uppercase' : 'none',
+          }}>
+            {t.labelUppercase ? 'JAKE MARTINEZ' : 'Jake Martinez'}
+          </p>
+          <div style={{ marginTop: '6px' }}>
+            <span style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              padding: '3px 10px',
+              borderRadius: t.radius,
+              background: t.statusGreenBg,
+              color: t.statusGreen,
+              letterSpacing: t.labelUppercase ? '0.08em' : 'normal',
+              textTransform: t.labelUppercase ? 'uppercase' : 'none',
+            }}>
+              Ready
+            </span>
+          </div>
+        </div>
+        <button style={{
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          color: t.textMuted,
+          padding: '4px',
+        }}>
+          <Share2 size={16} />
+        </button>
+      </div>
+
+      {/* Stats Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        {[
+          { icon: <TrendingUp size={14} />, label: '7-Day Pulse', value: '42' },
+          { icon: <Target size={14} />, label: 'Strike %', value: '64%' },
+          { icon: <Gauge size={14} />, label: 'Max Velo', value: '82 mph' },
+          { icon: <Calendar size={14} />, label: 'Last Outing', value: 'Apr 3' },
+        ].map(stat => (
+          <div key={stat.label} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{
+              padding: '6px',
+              borderRadius: t.radiusSm,
+              background: `${t.accent}18`,
+              color: t.accent,
+              display: 'flex',
+              flexShrink: 0,
+            }}>
+              {stat.icon}
+            </div>
+            <div>
+              <p style={{
+                fontSize: '10px',
+                color: t.textMuted,
+                margin: 0,
+                textTransform: t.labelUppercase ? 'uppercase' : 'none',
+                letterSpacing: t.labelUppercase ? '0.06em' : 'normal',
+                fontWeight: t.labelUppercase ? 700 : 400,
+              }}>{stat.label}</p>
+              <p style={{
+                fontSize: '14px',
+                fontWeight: 700,
+                color: t.textPrimary,
+                margin: 0,
+                letterSpacing: t.name === 'Linear' ? '-0.2px' : 'normal',
+              }}>{stat.value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LogOutingForm({ t }: { t: Theme }) {
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '11px 14px',
+    background: t.surfaceElevated,
+    border: `1px solid ${t.border}`,
+    // Athlete: sharp corners on inputs, Apple: softer
+    borderRadius: t.name === 'Apple' ? '10px' : t.radiusSm,
+    color: t.textPrimary,
+    fontSize: '15px',
+    fontFamily: t.font,
+    outline: 'none',
+    boxSizing: 'border-box',
+  };
+
+  const labelStyle: React.CSSProperties = {
+    fontSize: '11px',
+    fontWeight: 700,
+    color: t.textMuted,
+    marginBottom: '6px',
+    display: 'block',
+    letterSpacing: t.labelUppercase ? '0.1em' : '0.04em',
+    textTransform: 'uppercase',
+  };
+
+  return (
+    <div style={{
+      background: t.surface,
+      border: `1px solid ${t.border}`,
+      borderTop: t.name === 'Athlete' ? `2px solid ${t.accent}` : `1px solid ${t.border}`,
+      borderRadius: t.radiusLg,
+      padding: '20px',
+      maxWidth: '360px',
+      boxShadow: t.shadow,
+    }}>
+      <p style={{
+        fontSize: '20px',
+        fontWeight: t.displayWeight,
+        color: t.textPrimary,
+        margin: '0 0 20px 0',
+        letterSpacing: t.displayTracking,
+        textTransform: t.labelUppercase ? 'uppercase' : 'none',
+      }}>
+        {t.labelUppercase ? 'LOG OUTING' : 'Log Outing'}
+      </p>
+
+      <div style={{ marginBottom: '14px' }}>
+        <label style={labelStyle}>Pitcher</label>
+        <select style={{ ...inputStyle, appearance: 'none' }}>
+          <option>Jake Martinez</option>
+          <option>Cole Davis</option>
+          <option>Ethan Brooks</option>
+        </select>
+      </div>
+
+      <div style={{ marginBottom: '14px' }}>
+        <label style={labelStyle}>Event Type</label>
+        <select style={{ ...inputStyle, appearance: 'none' }}>
+          <option>Game</option>
+          <option>Practice</option>
+          <option>Bullpen</option>
+        </select>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+        <div>
+          <label style={labelStyle}>Pitches</label>
+          <input type="number" placeholder="72" style={inputStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>Strikes</label>
+          <input type="number" placeholder="48" style={inputStyle} />
+        </div>
+      </div>
+
+      <div style={{ marginBottom: '14px' }}>
+        <label style={labelStyle}>Max Velo (mph)</label>
+        <input type="number" placeholder="84" style={inputStyle} />
+      </div>
+
+      <div style={{ marginBottom: '20px' }}>
+        <label style={labelStyle}>Notes</label>
+        <textarea
+          placeholder="Good fastball command today..."
+          rows={3}
+          style={{ ...inputStyle, resize: 'vertical' }}
+        />
+      </div>
+
+      <div style={{ display: 'flex', gap: '10px' }}>
+        <button style={{
+          flex: 1,
+          padding: '13px',
+          borderRadius: t.radiusBtn,
+          background: t.accentBg,
+          color: t.accentText,
+          fontWeight: 800,
+          fontSize: '15px',
+          border: 'none',
+          cursor: 'pointer',
+          fontFamily: t.font,
+          letterSpacing: t.labelUppercase ? '0.08em' : 'normal',
+          textTransform: t.labelUppercase ? 'uppercase' : 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '6px',
+        }}>
+          <Check size={16} />
+          {t.labelUppercase ? 'SAVE' : 'Save'}
+        </button>
+        <button style={{
+          padding: '13px 20px',
+          borderRadius: t.radiusBtn,
+          background: 'transparent',
+          color: t.textMuted,
+          border: `1px solid ${t.border}`,
+          fontWeight: 500,
+          fontSize: '15px',
+          cursor: 'pointer',
+          fontFamily: t.font,
+        }}>
+          {t.labelUppercase ? 'CANCEL' : 'Cancel'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function BottomNavDemo({ t }: { t: Theme }) {
+  return (
+    <div style={{
+      background: t.isDark ? t.surface : t.surface,
+      borderTop: `1px solid ${t.border}`,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-around',
+      height: '72px',
+      maxWidth: '375px',
+      borderRadius: `0 0 ${t.radiusLg} ${t.radiusLg}`,
+      padding: '0 16px',
+      boxShadow: t.shadow,
+    }}>
+      <button style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px',
+        background: 'transparent', border: 'none', cursor: 'pointer',
+        color: t.accent, fontFamily: t.font, padding: '8px 16px',
+      }}>
+        <Users size={22} />
+        <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: t.labelUppercase ? '0.08em' : 'normal', textTransform: t.labelUppercase ? 'uppercase' : 'none' }}>
+          {t.labelUppercase ? 'PLAYERS' : 'Players'}
+        </span>
+      </button>
+
+      <button style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px',
+        background: 'transparent', border: 'none', cursor: 'pointer',
+        color: t.textMuted, fontFamily: t.font, padding: '4px 16px',
+      }}>
+        <div style={{
+          width: '52px', height: '52px',
+          borderRadius: '50%',
+          background: t.accentBg,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: t.accentText,
+          marginTop: '-20px',
+          boxShadow: `0 4px 20px ${t.accentBg}70`,
+        }}>
+          <Plus size={24} />
+        </div>
+        <span style={{ fontSize: '10px', fontWeight: 600, color: t.textMuted, textTransform: t.labelUppercase ? 'uppercase' : 'none', letterSpacing: t.labelUppercase ? '0.08em' : 'normal' }}>
+          Log
+        </span>
+      </button>
+
+      <button style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px',
+        background: 'transparent', border: 'none', cursor: 'pointer',
+        color: t.textMuted, fontFamily: t.font, padding: '8px 16px',
+      }}>
+        <BarChart3 size={22} />
+        <span style={{ fontSize: '10px', fontWeight: 500, textTransform: t.labelUppercase ? 'uppercase' : 'none', letterSpacing: t.labelUppercase ? '0.08em' : 'normal' }}>
+          Team
+        </span>
+      </button>
+    </div>
+  );
+}
+
+// ─── Full Showcase ─────────────────────────────────────────────────────────────
 
 function DesignShowcase({ t }: { t: Theme }) {
   return (
@@ -609,39 +692,39 @@ function DesignShowcase({ t }: { t: Theme }) {
       background: t.bg,
       color: t.textPrimary,
       fontFamily: t.font,
-      padding: '32px 24px 64px',
+      padding: '32px 24px 80px',
       minHeight: '100vh',
     }}>
       {/* Theme Header */}
-      <div style={{
-        marginBottom: '40px',
-        paddingBottom: '24px',
-        borderBottom: `1px solid ${t.border}`,
-      }}>
+      <div style={{ marginBottom: '40px', paddingBottom: '24px', borderBottom: `1px solid ${t.border}` }}>
         <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '8px',
+          display: 'inline-flex', alignItems: 'center', gap: '8px',
           padding: '4px 12px',
           borderRadius: t.radius,
           background: `${t.accentBg}20`,
-          border: `1px solid ${t.accent}30`,
+          border: `1px solid ${t.accent}35`,
           marginBottom: '12px',
         }}>
-          <span style={{ fontSize: '11px', fontWeight: 600, color: t.accent, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          <span style={{
+            fontSize: '11px', fontWeight: 700, color: t.accent,
+            letterSpacing: '0.10em', textTransform: 'uppercase',
+          }}>
             Design System
           </span>
         </div>
         <h2 style={{
-          fontSize: '32px',
-          fontWeight: 700,
+          fontSize: '34px',
+          fontWeight: t.displayWeight,
           margin: '0 0 8px',
           color: t.textPrimary,
-          letterSpacing: t.name === 'Linear' ? '-0.7px' : (t.name === 'Uber' ? '-0.5px' : 'normal'),
+          letterSpacing: t.displayTracking,
+          textTransform: t.labelUppercase ? 'uppercase' : 'none',
         }}>
           {t.name}
         </h2>
-        <p style={{ fontSize: '15px', color: t.textSecondary, margin: 0 }}>{t.tagline}</p>
+        <p style={{ fontSize: '15px', color: t.textSecondary, margin: 0, maxWidth: '500px' }}>
+          {t.tagline}
+        </p>
       </div>
 
       <div style={{ maxWidth: '960px' }}>
@@ -657,11 +740,11 @@ function DesignShowcase({ t }: { t: Theme }) {
           <ButtonSet t={t} />
         </Section>
 
-        <Section t={t} title="Status Badges — Arm Health">
+        <Section t={t} title="Arm Health Status">
           <StatusBadges t={t} />
         </Section>
 
-        <Section t={t} title="Stat Chips — Team Overview">
+        <Section t={t} title="Team Stats">
           <StatChips t={t} />
         </Section>
 
@@ -681,15 +764,16 @@ function DesignShowcase({ t }: { t: Theme }) {
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Page Shell ────────────────────────────────────────────────────────────────
 
-type ThemeKey = 'linear' | 'spotify' | 'uber';
-const THEMES: Record<ThemeKey, Theme> = { linear: LINEAR, spotify: SPOTIFY, uber: UBER };
+type ThemeKey = 'linear' | 'apple' | 'stripe' | 'athlete';
+const THEMES: Record<ThemeKey, Theme> = { linear: LINEAR, apple: APPLE, stripe: STRIPE, athlete: ATHLETE };
 
-const TAB_META: Record<ThemeKey, { label: string; accent: string; bg: string }> = {
-  linear: { label: 'Linear', accent: '#7170ff', bg: '#0f1011' },
-  spotify: { label: 'Spotify', accent: '#1ed760', bg: '#181818' },
-  uber: { label: 'Uber', accent: '#000000', bg: '#ffffff' },
+const TAB_META: Record<ThemeKey, { label: string; sublabel: string; accent: string }> = {
+  linear:  { label: 'Linear',  sublabel: 'Dark · Indigo',  accent: '#7170ff' },
+  apple:   { label: 'Apple',   sublabel: 'Light · Blue',   accent: '#0071e3' },
+  stripe:  { label: 'Stripe',  sublabel: 'Light · Purple', accent: '#533afd' },
+  athlete: { label: 'Athlete', sublabel: 'Dark · Volt',    accent: '#c6f135' },
 };
 
 export default function DesignSystemPage() {
@@ -698,38 +782,27 @@ export default function DesignSystemPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#000' }}>
-      {/* Top Nav Bar */}
+      {/* Top Nav */}
       <div style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
+        position: 'sticky', top: 0, zIndex: 100,
         background: '#0a0a0a',
         borderBottom: '1px solid rgba(255,255,255,0.08)',
         padding: '0 16px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '16px',
+        display: 'flex', alignItems: 'center', gap: '16px',
         height: '56px',
       }}>
-        <Link
-          to="/"
-          style={{
-            color: 'rgba(255,255,255,0.5)',
-            textDecoration: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: '13px',
-            flexShrink: 0,
-          }}
-        >
-          <ArrowLeft size={16} />
-          Back
+        <Link to="/" style={{
+          color: 'rgba(255,255,255,0.45)',
+          textDecoration: 'none',
+          display: 'flex', alignItems: 'center', gap: '6px',
+          fontSize: '13px', flexShrink: 0,
+        }}>
+          <ArrowLeft size={15} /> Back
         </Link>
 
         <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.1)' }} />
 
-        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', flexShrink: 0 }}>
+        <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '13px', flexShrink: 0, display: 'none' }}>
           Design System Evaluation
         </span>
 
@@ -742,26 +815,31 @@ export default function DesignSystemPage() {
                 key={key}
                 onClick={() => setActive(key)}
                 style={{
-                  padding: '6px 16px',
+                  padding: '6px 14px',
                   borderRadius: '6px',
-                  border: isActive ? `1px solid ${meta.accent}50` : '1px solid transparent',
-                  background: isActive ? `${meta.accent}18` : 'transparent',
-                  color: isActive ? meta.accent : 'rgba(255,255,255,0.45)',
+                  border: isActive ? `1px solid ${meta.accent}45` : '1px solid transparent',
+                  background: isActive ? `${meta.accent}15` : 'transparent',
+                  color: isActive ? meta.accent : 'rgba(255,255,255,0.40)',
                   fontSize: '13px',
-                  fontWeight: isActive ? 600 : 400,
+                  fontWeight: isActive ? 700 : 400,
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                   fontFamily: 'inherit',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  lineHeight: 1.3,
+                  gap: '1px',
                 }}
               >
-                {meta.label}
+                <span>{meta.label}</span>
+                <span style={{ fontSize: '10px', opacity: 0.6, fontWeight: 400 }}>{meta.sublabel}</span>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Design Showcase */}
       <DesignShowcase t={t} />
     </div>
   );
