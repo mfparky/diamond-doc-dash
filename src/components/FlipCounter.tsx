@@ -58,7 +58,7 @@ export function FlipCounter({ value, label, countUpFrom }: FlipCounterProps) {
       current += 1;
       setDisplayValue(current);
       if (current >= value) clearInterval(interval);
-    }, 600);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, [value, countUpFrom]);
