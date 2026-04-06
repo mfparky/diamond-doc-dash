@@ -40,27 +40,27 @@ function FlipDigit({ digit, delay }: { digit: string; delay: number }) {
 }
 
 export function FlipCounter({ value, label, countUpFrom }: FlipCounterProps) {
-  const [displayValue, setDisplayValue] = useState(countUpFrom ?? value);
+  const startVal = countUpFrom !== undefined ? Math.max(0, countUpFrom) : value;
+  const [displayValue, setDisplayValue] = useState(startVal);
   const hasAnimated = useRef(false);
 
   useEffect(() => {
-    if (countUpFrom === undefined || countUpFrom >= value || hasAnimated.current) {
+    if (countUpFrom === undefined || hasAnimated.current) {
       setDisplayValue(value);
       return;
     }
-
     hasAnimated.current = true;
-    let current = countUpFrom;
-    const step = () => {
+    const start = Math.max(0, countUpFrom);
+    let current = start;
+    setDisplayValue(current);
+
+    const interval = setInterval(() => {
       current += 1;
       setDisplayValue(current);
-      if (current < value) {
-        setTimeout(step, 350);
-      }
-    };
-    // Start after a short delay so the initial render is visible
-    const timer = setTimeout(step, 600);
-    return () => clearTimeout(timer);
+      if (current >= value) clearInterval(interval);
+    }, 1000);
+
+    return () => clearInterval(interval);
   }, [value, countUpFrom]);
 
   // Determine padding: at least 3 digits, but grow for larger numbers
