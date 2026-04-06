@@ -322,7 +322,7 @@ export function useWorkouts(pitcherId?: string) {
       const objectUrl = URL.createObjectURL(file);
       img.onload = () => {
         URL.revokeObjectURL(objectUrl);
-        const MAX = 1024;
+        const MAX = 1920;
         let { width, height } = img;
         if (width > MAX || height > MAX) {
           if (width >= height) {
@@ -337,17 +337,26 @@ export function useWorkouts(pitcherId?: string) {
         canvas.width = width;
         canvas.height = height;
         canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
-            } else {
-              resolve(file);
-            }
-          },
-          'image/jpeg',
-          0.85
-        );
+
+        const tryCompress = (quality: number) => {
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                // If still over 5MB and quality hasn't been reduced yet, retry at lower quality
+                if (blob.size > 5 * 1024 * 1024 && quality > 0.65) {
+                  tryCompress(0.65);
+                  return;
+                }
+                resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
+              } else {
+                resolve(file);
+              }
+            },
+            'image/jpeg',
+            quality
+          );
+        };
+        tryCompress(0.80);
       };
       img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(file); };
       img.src = objectUrl;
