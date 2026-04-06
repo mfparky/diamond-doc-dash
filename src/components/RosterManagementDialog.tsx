@@ -834,7 +834,10 @@ export function RosterManagementDialog({
                 </TabsContent>
 
                 <TabsContent value="gallery" className="flex-1 overflow-y-auto py-4 mt-0">
-                  <WorkoutGallery teamId={pitchers[0]?.teamId} />
+                  <WorkoutGallery
+                    teamId={pitchers[0]?.teamId}
+                    pitcherIds={pitchers.map((p) => p.id)}
+                  />
                 </TabsContent>
               </Tabs>
             </>

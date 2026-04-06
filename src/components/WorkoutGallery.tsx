@@ -17,12 +17,13 @@ const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 interface WorkoutGalleryProps {
   pitcherId?: string;
+  pitcherIds?: string[];
   teamId?: string;
   /** Called with photo count when data loads */
   onPhotoCount?: (count: number) => void;
 }
 
-export function WorkoutGallery({ pitcherId, teamId, onPhotoCount }: WorkoutGalleryProps) {
+export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, onPhotoCount }: WorkoutGalleryProps) {
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
   const [loading, setLoading] = useState(true);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -33,7 +34,17 @@ export function WorkoutGallery({ pitcherId, teamId, onPhotoCount }: WorkoutGalle
     let pitcherIds: string[] = [];
     let pitcherNameMap: Record<string, string> = {};
 
-    if (teamId) {
+    if (propPitcherIds && propPitcherIds.length > 0) {
+      pitcherIds = propPitcherIds;
+      // Fetch names for these pitcher IDs
+      const { data: pitchers } = await supabase
+        .from('pitchers')
+        .select('id, name')
+        .in('id', propPitcherIds);
+      if (pitchers) {
+        pitcherNameMap = Object.fromEntries(pitchers.map((p) => [p.id, p.name]));
+      }
+    } else if (teamId) {
       const { data: pitchers } = await supabase
         .from('pitchers')
         .select('id, name')
@@ -83,7 +94,7 @@ export function WorkoutGallery({ pitcherId, teamId, onPhotoCount }: WorkoutGalle
       onPhotoCount?.(mapped.length);
     }
     setLoading(false);
-  }, [pitcherId, teamId]);
+  }, [pitcherId, propPitcherIds, teamId]);
 
   useEffect(() => {
     fetchPhotos();
