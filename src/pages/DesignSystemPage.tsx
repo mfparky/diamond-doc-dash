@@ -269,6 +269,70 @@ const ATHLETE_LIGHT = {
   shadow: 'rgba(0,0,0,0.10) 0px 4px 20px',
 };
 
+const SPOTIFY_DARK = {
+  name: 'Spotify',
+  tagline: 'Immersive dark — Spotify green, pill buttons, uppercase labels, content-first theater',
+  font: `system-ui, 'Helvetica Neue', Arial, sans-serif`,
+  isDark: true,
+  bg: '#121212', surface: '#181818', surfaceElevated: '#252525',
+  border: 'rgba(255,255,255,0.08)', borderSolid: '#333333',
+  textPrimary: '#ffffff', textSecondary: '#b3b3b3', textMuted: '#727272', textSubtle: '#404040',
+  accent: '#1ed760', accentBg: '#1ed760', accentText: '#000000',
+  statusGreen: '#1ed760', statusGreenBg: 'rgba(30,215,96,0.15)',
+  statusYellow: '#ffa42b', statusYellowBg: 'rgba(255,164,43,0.15)',
+  statusRed: '#f3727f', statusRedBg: 'rgba(243,114,127,0.15)',
+  radius: '9999px', radiusSm: '9999px', radiusLg: '16px', radiusBtn: '9999px',
+  displayWeight: 700, displayTracking: '-0.5px',
+  labelUppercase: true, labelTracking: '0.1em',
+  shadow: 'rgba(0,0,0,0.5) 0px 8px 24px',
+};
+
+const SPOTIFY_LIGHT = {
+  ...SPOTIFY_DARK,
+  tagline: 'Spotify light — clean white canvas, green accent, pill geometry',
+  isDark: false,
+  bg: '#ffffff', surface: '#f6f6f6', surfaceElevated: '#eeeeee',
+  border: 'rgba(0,0,0,0.08)', borderSolid: '#d9d9d9',
+  textPrimary: '#121212', textSecondary: '#535353', textMuted: '#888888', textSubtle: '#c0c0c0',
+  accent: '#1db954', accentBg: '#1db954', accentText: '#ffffff',
+  statusGreen: '#1db954', statusGreenBg: 'rgba(29,185,84,0.10)',
+  statusYellow: '#e8a700', statusYellowBg: 'rgba(232,167,0,0.10)',
+  statusRed: '#e22134', statusRedBg: 'rgba(226,33,52,0.10)',
+  shadow: 'rgba(0,0,0,0.08) 0px 4px 20px',
+};
+
+const SUPABASE_DARK = {
+  name: 'Supabase',
+  tagline: 'Developer-native — emerald green on near-black, clean & authoritative, translucent layers',
+  font: `'Inter', system-ui, sans-serif`,
+  isDark: true,
+  bg: '#171717', surface: '#1f1f1f', surfaceElevated: '#2a2a2a',
+  border: 'rgba(255,255,255,0.08)', borderSolid: '#2e2e2e',
+  textPrimary: '#fafafa', textSecondary: '#b4b4b4', textMuted: '#898989', textSubtle: '#4d4d4d',
+  accent: '#3ecf8e', accentBg: '#3ecf8e', accentText: '#0f0f0f',
+  statusGreen: '#3ecf8e', statusGreenBg: 'rgba(62,207,142,0.15)',
+  statusYellow: '#f5a623', statusYellowBg: 'rgba(245,166,35,0.12)',
+  statusRed: '#ef4444', statusRedBg: 'rgba(239,68,68,0.12)',
+  radius: '6px', radiusSm: '4px', radiusLg: '8px', radiusBtn: '6px',
+  displayWeight: 600, displayTracking: '-0.5px',
+  labelUppercase: false, labelTracking: 'normal',
+  shadow: '0 0 0 1px rgba(255,255,255,0.06), 0 4px 16px rgba(0,0,0,0.4)',
+};
+
+const SUPABASE_LIGHT = {
+  ...SUPABASE_DARK,
+  tagline: 'Supabase light — clean white surfaces with emerald green accent',
+  isDark: false,
+  bg: '#f8f8f8', surface: '#ffffff', surfaceElevated: '#f0f0f0',
+  border: 'rgba(0,0,0,0.08)', borderSolid: '#e0e0e0',
+  textPrimary: '#171717', textSecondary: '#4d4d4d', textMuted: '#898989', textSubtle: '#c0c0c0',
+  accent: '#00c573', accentBg: '#00c573', accentText: '#ffffff',
+  statusGreen: '#00c573', statusGreenBg: 'rgba(0,197,115,0.10)',
+  statusYellow: '#c47a00', statusYellowBg: 'rgba(196,122,0,0.10)',
+  statusRed: '#c0392b', statusRedBg: 'rgba(192,57,43,0.10)',
+  shadow: 'rgba(0,0,0,0.06) 0px 4px 16px',
+};
+
 type Theme = typeof LINEAR;
 
 // ─── Shared Showcase Components ───────────────────────────────────────────────
