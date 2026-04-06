@@ -428,13 +428,13 @@ function LiveChartingSessionMobile({
         )}
 
         {/* 3. Strike Zone */}
-        <div className={`space-y-2 ${isRecording ? 'flex-1 flex flex-col justify-center' : ''}`}>
+        <div className={`space-y-2 ${isRecording ? 'flex-1 flex flex-col justify-center' : ''} pb-2`}>
           <Label className="text-sm font-medium">
             {isRecording 
               ? 'Tap location to stop recording & plot pitch' 
               : `Tap to plot pitch #${plottedPitches.length + 1}`}
           </Label>
-          <div className="flex justify-center py-2">
+          <div className="flex justify-center py-2 px-2">
             <div
               className={`relative rounded-lg border-2 cursor-crosshair active:bg-secondary/50 touch-none ${
                 isRecording 
@@ -485,7 +485,7 @@ function LiveChartingSessionMobile({
 
               {/* Strike zone box */}
               <div
-                className="absolute border-2 border-foreground/80 bg-primary/5 pointer-events-none"
+                className="absolute border-[3px] border-foreground bg-primary/5 pointer-events-none"
                 style={{
                   left: `${zoneLeft}%`,
                   right: `${zoneRight}%`,
@@ -498,7 +498,7 @@ function LiveChartingSessionMobile({
               {plottedPitches.map((pitch, idx) => (
                 <div
                   key={idx}
-                  className={`absolute w-4 h-4 rounded-full transform -translate-x-1/2 -translate-y-1/2 border flex items-center justify-center text-[8px] text-white font-bold shadow-lg pointer-events-none ${
+                  className={`absolute w-4 h-4 rounded-full transform -translate-x-1/2 -translate-y-1/2 border flex items-center justify-center text-[8px] text-white font-bold shadow-lg pointer-events-none z-10 ${
                     pitch.hasVideo ? 'border-accent ring-1 ring-accent/50' : 'border-white/70'
                   }`}
                   style={{
@@ -514,7 +514,7 @@ function LiveChartingSessionMobile({
               {/* Pending location indicator */}
               {pendingLocation && (
                 <div
-                  className="absolute w-4 h-4 rounded-full transform -translate-x-1/2 -translate-y-1/2 border border-dashed border-foreground bg-foreground/20 pointer-events-none animate-pulse"
+                  className="absolute w-4 h-4 rounded-full transform -translate-x-1/2 -translate-y-1/2 border border-dashed border-foreground bg-foreground/20 pointer-events-none animate-pulse z-10"
                   style={{
                     left: `${toPercent(pendingLocation.x)}%`,
                     top: `${100 - toPercent(pendingLocation.y)}%`,

@@ -14,6 +14,8 @@ interface TeamLeaderboardDialogProps {
 export function TeamLeaderboardDialog({ open, onOpenChange, pitcherId }: TeamLeaderboardDialogProps) {
   const [teamPitchers, setTeamPitchers] = useState<PitcherRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [leaderboardFrom, setLeaderboardFrom] = useState<Date | undefined>();
+  const [leaderboardTo, setLeaderboardTo] = useState<Date | undefined>();
 
   useEffect(() => {
     if (!open) return;
@@ -30,6 +32,31 @@ export function TeamLeaderboardDialog({ open, onOpenChange, pitcherId }: TeamLea
         if (!pitcher) {
           setTeamPitchers([]);
           return;
+        }
+
+        // Fetch leaderboard date range from team, or fall back to owner settings
+        if (pitcher.team_id) {
+          const { data: team } = await supabase
+            .from('teams')
+            .select('leaderboard_from, leaderboard_to')
+            .eq('id', pitcher.team_id)
+            .maybeSingle();
+
+          if (team) {
+            setLeaderboardFrom(team.leaderboard_from ? new Date(team.leaderboard_from + 'T00:00:00') : undefined);
+            setLeaderboardTo(team.leaderboard_to ? new Date(team.leaderboard_to + 'T00:00:00') : undefined);
+          }
+        } else if (pitcher.user_id) {
+          const { data: settings } = await supabase
+            .from('dashboard_settings' as any)
+            .select('leaderboard_from, leaderboard_to')
+            .eq('user_id', pitcher.user_id)
+            .maybeSingle();
+
+          if (settings) {
+            setLeaderboardFrom((settings as any).leaderboard_from ? new Date((settings as any).leaderboard_from + 'T00:00:00') : undefined);
+            setLeaderboardTo((settings as any).leaderboard_to ? new Date((settings as any).leaderboard_to + 'T00:00:00') : undefined);
+          }
         }
 
         // Fetch teammates by team_id, or fall back to user_id grouping
@@ -84,7 +111,7 @@ export function TeamLeaderboardDialog({ open, onOpenChange, pitcherId }: TeamLea
             No team data available.
           </div>
         ) : (
-          <WorkoutLeaderboard pitchers={teamPitchers} />
+          <WorkoutLeaderboard pitchers={teamPitchers} initialFrom={leaderboardFrom} initialTo={leaderboardTo} maxEntries={5} highlightPitcherId={pitcherId} hideDatePicker lockedToCoachDates />
         )}
       </DialogContent>
     </Dialog>

@@ -11,6 +11,12 @@ import { cn } from '@/lib/utils';
 
 interface WorkoutLeaderboardProps {
   pitchers: PitcherRecord[];
+  initialFrom?: Date;
+  initialTo?: Date;
+  maxEntries?: number;
+  highlightPitcherId?: string;
+  hideDatePicker?: boolean;
+  lockedToCoachDates?: boolean;
 }
 
 interface LeaderboardEntry {
@@ -26,13 +32,63 @@ interface DateRange {
   to: Date;
 }
 
-export function WorkoutLeaderboard({ pitchers }: WorkoutLeaderboardProps) {
+function LeaderboardRow({ entry, index, getRankIcon, isHighlighted }: {
+  entry: LeaderboardEntry;
+  index: number;
+  getRankIcon: (i: number) => React.ReactNode;
+  isHighlighted?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-3 p-3 rounded-lg border',
+        isHighlighted ? 'ring-2 ring-primary/50' : '',
+        index === 0
+          ? 'bg-yellow-500/10 border-yellow-500/30'
+          : index === 1
+          ? 'bg-gray-400/10 border-gray-400/30'
+          : index === 2
+          ? 'bg-amber-600/10 border-amber-600/30'
+          : 'bg-secondary/50 border-border/50'
+      )}
+    >
+      <div className="shrink-0">{getRankIcon(index)}</div>
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-foreground truncate">{entry.pitcherName}</p>
+        <p className="text-xs text-muted-foreground">
+          {entry.assignmentCount} workout{entry.assignmentCount !== 1 ? 's' : ''} assigned
+        </p>
+      </div>
+      <div className="text-right shrink-0">
+        <p className="font-bold text-foreground">{entry.totalCompletions}</p>
+        <p className="text-xs text-muted-foreground">total</p>
+      </div>
+      <div className="text-right shrink-0 border-l border-border/50 pl-3">
+        <p className="font-semibold text-primary">{entry.weeklyAverage}</p>
+        <p className="text-xs text-muted-foreground">/week</p>
+      </div>
+    </div>
+  );
+}
+
+export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntries, highlightPitcherId, hideDatePicker, lockedToCoachDates }: WorkoutLeaderboardProps) {
   const [dateRange, setDateRange] = useState<DateRange>(() => {
     const now = new Date();
-    const from = startOfWeek(new Date(now.getFullYear(), now.getMonth(), 1), { weekStartsOn: 1 });
-    const to = endOfWeek(now, { weekStartsOn: 1 });
+    const from = initialFrom ?? startOfWeek(new Date(now.getFullYear(), now.getMonth(), 1), { weekStartsOn: 1 });
+    const to = initialTo ?? endOfWeek(now, { weekStartsOn: 1 });
     return { from, to };
   });
+
+  // Sync dateRange when initialFrom/initialTo props arrive (async fetch)
+  useEffect(() => {
+    if (initialFrom || initialTo) {
+      const now = new Date();
+      setDateRange({
+        from: initialFrom ?? startOfWeek(new Date(now.getFullYear(), now.getMonth(), 1), { weekStartsOn: 1 }),
+        to: initialTo ?? endOfWeek(now, { weekStartsOn: 1 }),
+      });
+    }
+  }, [initialFrom, initialTo]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -124,41 +180,50 @@ export function WorkoutLeaderboard({ pitchers }: WorkoutLeaderboardProps) {
 
   return (
     <div className="space-y-4">
-      {/* Date Range Picker */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-sm text-muted-foreground">Date Range:</span>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
-              <CalendarIcon className="w-4 h-4" />
-              {format(dateRange.from, 'MMM d')} - {format(dateRange.to, 'MMM d, yyyy')}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="range"
-              selected={{ from: dateRange.from, to: dateRange.to }}
-              onSelect={(range) => {
-                if (range?.from && range?.to) {
-                  setDateRange({
-                    from: startOfWeek(range.from, { weekStartsOn: 1 }),
-                    to: endOfWeek(range.to, { weekStartsOn: 1 }),
-                  });
-                } else if (range?.from) {
-                  setDateRange({
-                    from: startOfWeek(range.from, { weekStartsOn: 1 }),
-                    to: endOfWeek(range.from, { weekStartsOn: 1 }),
-                  });
-                }
-              }}
-              numberOfMonths={1}
-            />
-          </PopoverContent>
-        </Popover>
-        <span className="text-xs text-muted-foreground">
-          ({weeksInRange} week{weeksInRange !== 1 ? 's' : ''})
-        </span>
-      </div>
+      {/* Date Range Picker - hidden for parent view */}
+      {!hideDatePicker && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm text-muted-foreground">Date Range:</span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <CalendarIcon className="w-4 h-4" />
+                {format(dateRange.from, 'MMM d')} - {format(dateRange.to, 'MMM d, yyyy')}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="range"
+                selected={{ from: dateRange.from, to: dateRange.to }}
+                onSelect={(range) => {
+                  if (range?.from && range?.to) {
+                    setDateRange({
+                      from: startOfWeek(range.from, { weekStartsOn: 1 }),
+                      to: endOfWeek(range.to, { weekStartsOn: 1 }),
+                    });
+                  }
+                }}
+                numberOfMonths={1}
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+          <span className="text-xs text-muted-foreground">
+            ({weeksInRange} week{weeksInRange !== 1 ? 's' : ''})
+          </span>
+        </div>
+      )}
+      {hideDatePicker && (
+        lockedToCoachDates && !initialFrom && !initialTo ? (
+          <p className="text-xs text-muted-foreground text-center italic">
+            Date range not set by coach yet — showing current week.
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground text-center">
+            {format(dateRange.from, 'MMM d')} – {format(dateRange.to, 'MMM d, yyyy')} ({weeksInRange} week{weeksInRange !== 1 ? 's' : ''})
+          </p>
+        )
+      )}
 
       {/* Leaderboard */}
       {isLoading ? (
@@ -169,43 +234,40 @@ export function WorkoutLeaderboard({ pitchers }: WorkoutLeaderboardProps) {
         </div>
       ) : (
         <div className="space-y-2">
-          {leaderboard.map((entry, index) => (
-            <div
-              key={entry.pitcherId}
-              className={cn(
-                'flex items-center gap-3 p-3 rounded-lg border',
-                index === 0
-                  ? 'bg-yellow-500/10 border-yellow-500/30'
-                  : index === 1
-                  ? 'bg-gray-400/10 border-gray-400/30'
-                  : index === 2
-                  ? 'bg-amber-600/10 border-amber-600/30'
-                  : 'bg-secondary/50 border-border/50'
-              )}
-            >
-              {/* Rank */}
-              <div className="shrink-0">{getRankIcon(index)}</div>
+          {(() => {
+            // If maxEntries is set, show top N + highlighted player if outside top N
+            let visibleEntries = leaderboard;
+            let highlightEntry: { entry: LeaderboardEntry; rank: number } | null = null;
 
-              {/* Name & Stats */}
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-foreground truncate">{entry.pitcherName}</p>
-                <p className="text-xs text-muted-foreground">
-                  {entry.assignmentCount} workout{entry.assignmentCount !== 1 ? 's' : ''} assigned
-                </p>
-              </div>
+            if (maxEntries && maxEntries < leaderboard.length) {
+              const topEntries = leaderboard.slice(0, maxEntries);
+              const highlightInTop = highlightPitcherId
+                ? topEntries.some(e => e.pitcherId === highlightPitcherId)
+                : true;
 
-              {/* Completion Stats */}
-              <div className="text-right shrink-0">
-                <p className="font-bold text-foreground">{entry.totalCompletions}</p>
-                <p className="text-xs text-muted-foreground">total</p>
-              </div>
+              if (!highlightInTop && highlightPitcherId) {
+                const idx = leaderboard.findIndex(e => e.pitcherId === highlightPitcherId);
+                if (idx >= 0) {
+                  highlightEntry = { entry: leaderboard[idx], rank: idx };
+                }
+              }
+              visibleEntries = topEntries;
+            }
 
-              <div className="text-right shrink-0 border-l border-border/50 pl-3">
-                <p className="font-semibold text-primary">{entry.weeklyAverage}</p>
-                <p className="text-xs text-muted-foreground">/week</p>
-              </div>
-            </div>
-          ))}
+            return (
+              <>
+                {visibleEntries.map((entry, index) => (
+                  <LeaderboardRow key={entry.pitcherId} entry={entry} index={index} getRankIcon={getRankIcon} isHighlighted={entry.pitcherId === highlightPitcherId} />
+                ))}
+                {highlightEntry && (
+                  <>
+                    <div className="text-center text-xs text-muted-foreground py-1">···</div>
+                    <LeaderboardRow entry={highlightEntry.entry} index={highlightEntry.rank} getRankIcon={getRankIcon} isHighlighted />
+                  </>
+                )}
+              </>
+            );
+          })()}
         </div>
       )}
     </div>

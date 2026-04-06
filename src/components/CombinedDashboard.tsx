@@ -4,14 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Outing } from '@/types/pitcher';
 import { PitchLocation, PitchTypeConfig, DEFAULT_PITCH_TYPES, PITCH_TYPE_COLORS } from '@/types/pitch-location';
 import { SmoothHeatmap } from '@/components/SmoothHeatmap';
+import { StrikePercentBar } from '@/components/StrikePercentBar';
+import { FlipCounter } from '@/components/FlipCounter';
+
 import { VelocityScale } from '@/components/VelocityScale';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import { supabase } from '@/integrations/supabase/client';
-import { Activity, Target, Calendar, Flame, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Activity, Target, Calendar, Flame, TrendingUp, TrendingDown, Minus, Dumbbell } from 'lucide-react';
 
 interface CombinedDashboardProps {
   outings: Outing[];
   pitcherPitchTypes: Record<string, PitchTypeConfig>;
+  parentMode?: boolean; // Hides date picker and time toggle, locks to season view
 }
 
 const EVENT_COLORS: Record<string, string> = {
@@ -25,7 +29,7 @@ type ViewMode = '7-day' | 'season';
 
 type ResultFilter = 'all' | 'strikes' | 'balls';
 
-export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashboardProps) {
+export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = false }: CombinedDashboardProps) {
   const [pitchLocations, setPitchLocations] = useState<PitchLocation[]>([]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('season');
@@ -36,6 +40,40 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
   const currentYear = new Date().getFullYear();
   const [seasonStart, setSeasonStart] = useState<Date>(new Date(currentYear, 0, 1));
   const [seasonEnd, setSeasonEnd] = useState<Date>(new Date());
+  const [totalWorkoutsCompleted, setTotalWorkoutsCompleted] = useState(0);
+
+  // Fetch total workout completions for the season (parent mode)
+  useEffect(() => {
+    if (!parentMode) return;
+    const pitcherNames = [...new Set(outings.map(o => o.pitcherName))];
+    if (pitcherNames.length === 0) return;
+
+    async function fetchWorkoutCount() {
+      try {
+        // Get pitcher IDs from names
+        const { data: pitchers } = await supabase
+          .from('pitchers')
+          .select('id')
+          .in('name', pitcherNames);
+
+        if (!pitchers || pitchers.length === 0) return;
+
+        const ids = pitchers.map(p => p.id);
+        const { count, error } = await supabase
+          .from('workout_completions')
+          .select('*', { count: 'exact', head: true })
+          .in('pitcher_id', ids);
+
+        if (!error && count !== null) {
+          setTotalWorkoutsCompleted(count);
+        }
+      } catch (err) {
+        console.error('Error fetching workout count:', err);
+      }
+    }
+
+    fetchWorkoutCount();
+  }, [parentMode, outings]);
 
   // Calculate date range based on view mode
   const dateRange = useMemo(() => {
@@ -97,15 +135,27 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
     const fetchAllLocations = async () => {
       setIsLoadingLocations(true);
       try {
-        const { data, error } = await supabase
-          .from('pitch_locations')
-          .select('*')
-          .gte('created_at', `${dateRange.start}T00:00:00`)
-          .lte('created_at', `${dateRange.end}T23:59:59`);
+        // Paginate to avoid Supabase's 1000-row default limit
+        const allRows: any[] = [];
+        const PAGE_SIZE = 1000;
+        let from = 0;
+        let hasMore = true;
 
-        if (error) throw error;
+        while (hasMore) {
+          const { data, error } = await supabase
+            .from('pitch_locations')
+            .select('*')
+            .gte('created_at', `${dateRange.start}T00:00:00`)
+            .lte('created_at', `${dateRange.end}T23:59:59`)
+            .range(from, from + PAGE_SIZE - 1);
 
-        const locations: PitchLocation[] = (data || []).map((row) => ({
+          if (error) throw error;
+          allRows.push(...(data || []));
+          hasMore = (data?.length ?? 0) === PAGE_SIZE;
+          from += PAGE_SIZE;
+        }
+
+        const locations: PitchLocation[] = allRows.map((row) => ({
           id: row.id,
           outingId: row.outing_id,
           pitcherId: row.pitcher_id,
@@ -170,6 +220,19 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
 
   // Calculate aggregate stats for current period
   const stats = useMemo(() => calculateStats(filteredOutings), [filteredOutings]);
+
+  // Per-pitcher strike % data for radar chart
+  const pitcherRadarData = useMemo(() => {
+    const pitcherNames = [...new Set(filteredOutings.map((o) => o.pitcherName))];
+    return pitcherNames.map((name) => {
+      const pOutings = filteredOutings.filter((o) => o.pitcherName === name);
+      const withStrikes = pOutings.filter((o) => o.strikes !== null);
+      const strikePitches = withStrikes.reduce((s, o) => s + o.pitchCount, 0);
+      const totalStrikes = withStrikes.reduce((s, o) => s + (o.strikes ?? 0), 0);
+      const strikePercent = strikePitches > 0 ? (totalStrikes / strikePitches) * 100 : 0;
+      return { id: name, name, strikePercent, strikePitches, totalStrikes };
+    });
+  }, [filteredOutings]);
 
   // Calculate stats for previous 7-day period (for trend comparison)
   const previousStats = useMemo(() => calculateStats(previousOutings), [previousOutings]);
@@ -307,16 +370,18 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
               No outings in the selected {viewMode === '7-day' ? '7 days' : 'date range'}
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            {viewMode === 'season' && (
-              <DateRangePicker
-                startDate={seasonStart}
-                endDate={seasonEnd}
-                onRangeChange={handleDateRangeChange}
-              />
-            )}
-            <TimeTogglePills />
-          </div>
+          {!parentMode && (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              {viewMode === 'season' && (
+                <DateRangePicker
+                  startDate={seasonStart}
+                  endDate={seasonEnd}
+                  onRangeChange={handleDateRangeChange}
+                />
+              )}
+              <TimeTogglePills />
+            </div>
+          )}
         </div>
       </div>
     );
@@ -334,16 +399,18 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
             {stats.uniquePitchers} pitcher{stats.uniquePitchers !== 1 ? 's' : ''} • {stats.totalOutings} outing{stats.totalOutings !== 1 ? 's' : ''} • {stats.totalPitches} total pitches
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-          {viewMode === 'season' && (
-            <DateRangePicker
-              startDate={seasonStart}
-              endDate={seasonEnd}
-              onRangeChange={handleDateRangeChange}
-            />
-          )}
-          <TimeTogglePills />
-        </div>
+        {!parentMode && (
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            {viewMode === 'season' && (
+              <DateRangePicker
+                startDate={seasonStart}
+                endDate={seasonEnd}
+                onRangeChange={handleDateRangeChange}
+              />
+            )}
+            <TimeTogglePills />
+          </div>
+        )}
       </div>
 
       {/* Main Stats Grid */}
@@ -407,10 +474,15 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
         </Card>
       </div>
 
-      {/* Velocity Distribution Chart */}
-      {stats.velocities.length > 0 && (
-        <VelocityScale velocities={stats.velocities} />
-      )}
+      {/* Velocity & Strike % Side by Side */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        {stats.velocities.length > 0 && (
+          <VelocityScale velocities={stats.velocities} />
+        )}
+        <StrikePercentBar pitcherSeasons={pitcherRadarData} outings={filteredOutings.map(o => ({ date: o.date, strikes: o.strikes, pitch_count: o.pitchCount }))} />
+      </div>
+
+
 
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
@@ -508,7 +580,14 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
               )}
             </div>
 
-            {/* Summary Stats */}
+            {/* Coverage note */}
+            {pitchLocations.length > 0 && stats.totalPitches > pitchLocations.length && (
+              <p className="text-[10px] text-muted-foreground text-center">
+                {pitchLocations.length.toLocaleString()} of {stats.totalPitches.toLocaleString()} pitches have location data ({Math.round((pitchLocations.length / stats.totalPitches) * 100)}% charted)
+              </p>
+            )}
+
+            {/* Filter info */}
             {pitchLocations.length > 0 && (filterPitchType !== null || resultFilter !== 'all') && (
               <div className="text-center text-xs text-muted-foreground border-t border-border/50 pt-2">
                 Showing <span className="font-medium text-foreground">{filteredPitchLocations.length}</span> pitches
@@ -523,8 +602,10 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
           </CardContent>
         </Card>
 
-        {/* Right Column: Event & Pitch Type Breakdown */}
+        {/* Right Column: Strike %, Event & Pitch Type Breakdown */}
         <div className="space-y-4 sm:space-y-6">
+          {/* Event Type Breakdown - was Strike % */}
+
           {/* Event Type Breakdown */}
           <Card className="glass-card">
             <CardHeader className="pb-2 px-3 sm:px-6">
@@ -554,6 +635,21 @@ export function CombinedDashboard({ outings, pitcherPitchTypes }: CombinedDashbo
               </div>
             </CardContent>
           </Card>
+
+          {/* Total Workouts Completed Counter */}
+          {parentMode && totalWorkoutsCompleted > 0 && (
+            <Card className="glass-card border-accent/30 bg-accent/5">
+              <CardContent className="p-4 sm:p-6 flex items-center gap-4">
+                <div className="p-2.5 rounded-lg bg-accent/10">
+                  <Dumbbell className="w-6 h-6 text-accent" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Season Workouts Completed</p>
+                  <FlipCounter value={totalWorkoutsCompleted} label="" />
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Pitch Type Breakdown */}
           {pitchTypeBreakdown.length > 0 && (

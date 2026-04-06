@@ -8,6 +8,8 @@ export interface WorkoutAssignment {
   pitcherId: string;
   title: string;
   description: string | null;
+  frequency: number; // times per week (1-7)
+  attachmentUrl: string | null;
   createdAt: string;
 }
 
@@ -18,6 +20,7 @@ export interface WorkoutCompletion {
   weekStart: string;
   dayOfWeek: number; // 0=Mon, 6=Sun
   notes: string | null;
+  photoUrl: string | null;
   createdAt: string;
 }
 
@@ -59,6 +62,8 @@ export function useWorkouts(pitcherId?: string) {
         pitcherId: row.pitcher_id,
         title: row.title,
         description: row.description,
+        frequency: row.frequency ?? 7,
+        attachmentUrl: row.attachment_url ?? null,
         createdAt: row.created_at,
       }));
 
@@ -90,6 +95,7 @@ export function useWorkouts(pitcherId?: string) {
         weekStart: row.week_start,
         dayOfWeek: row.day_of_week,
         notes: row.notes,
+        photoUrl: (row as any).photo_url ?? null,
         createdAt: row.created_at,
       }));
 
@@ -105,7 +111,9 @@ export function useWorkouts(pitcherId?: string) {
   const addAssignment = useCallback(async (
     pitcherId: string,
     title: string,
-    description?: string
+    description?: string,
+    frequency?: number,
+    attachmentUrl?: string
   ): Promise<WorkoutAssignment | null> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -116,6 +124,8 @@ export function useWorkouts(pitcherId?: string) {
           pitcher_id: pitcherId,
           title,
           description: description || null,
+          frequency: frequency ?? 7,
+          attachment_url: attachmentUrl || null,
           user_id: user?.id || null,
         })
         .select()
@@ -128,6 +138,8 @@ export function useWorkouts(pitcherId?: string) {
         pitcherId: data.pitcher_id,
         title: data.title,
         description: data.description,
+        frequency: data.frequency ?? 7,
+        attachmentUrl: data.attachment_url ?? null,
         createdAt: data.created_at,
       };
 
@@ -145,6 +157,50 @@ export function useWorkouts(pitcherId?: string) {
         variant: 'destructive',
       });
       return null;
+    }
+  }, [toast]);
+
+  // Update a workout assignment
+  const updateAssignment = useCallback(async (
+    id: string,
+    updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null }
+  ): Promise<boolean> => {
+    try {
+      const dbUpdates: Record<string, unknown> = {};
+      if (updates.title !== undefined) dbUpdates.title = updates.title;
+      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.frequency !== undefined) dbUpdates.frequency = updates.frequency;
+      if (updates.attachmentUrl !== undefined) dbUpdates.attachment_url = updates.attachmentUrl;
+
+      const { error } = await supabase
+        .from('workout_assignments')
+        .update(dbUpdates)
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setAssignments((prev) =>
+        prev.map((a) => a.id === id ? {
+          ...a,
+          ...(updates.title !== undefined && { title: updates.title }),
+          ...(updates.description !== undefined && { description: updates.description }),
+          ...(updates.frequency !== undefined && { frequency: updates.frequency }),
+          ...(updates.attachmentUrl !== undefined && { attachmentUrl: updates.attachmentUrl }),
+        } : a)
+      );
+      toast({
+        title: 'Workout updated',
+        description: 'The workout assignment has been updated.',
+      });
+      return true;
+    } catch (error) {
+      console.error('Error updating workout assignment:', error);
+      toast({
+        title: 'Error updating workout',
+        description: 'Could not update the workout.',
+        variant: 'destructive',
+      });
+      return false;
     }
   }, [toast]);
 
@@ -223,6 +279,7 @@ export function useWorkouts(pitcherId?: string) {
           weekStart: data.week_start,
           dayOfWeek: data.day_of_week,
           notes: data.notes,
+          photoUrl: (data as any).photo_url ?? null,
           createdAt: data.created_at,
         };
 
@@ -258,6 +315,108 @@ export function useWorkouts(pitcherId?: string) {
     }
   }, []);
 
+  // Compress an image to max 1024px on either dimension, output as JPEG
+  const compressImage = useCallback((file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        const MAX = 1920;
+        let { width, height } = img;
+        if (width > MAX || height > MAX) {
+          if (width >= height) {
+            height = Math.round((height * MAX) / width);
+            width = MAX;
+          } else {
+            width = Math.round((width * MAX) / height);
+            height = MAX;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+
+        const tryCompress = (quality: number) => {
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                // If still over 5MB and quality hasn't been reduced yet, retry at lower quality
+                if (blob.size > 5 * 1024 * 1024 && quality > 0.65) {
+                  tryCompress(0.65);
+                  return;
+                }
+                resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
+              } else {
+                resolve(file);
+              }
+            },
+            'image/jpeg',
+            quality
+          );
+        };
+        tryCompress(0.80);
+      };
+      img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(file); };
+      img.src = objectUrl;
+    });
+  }, []);
+
+  // Upload a photo for a workout completion
+  const uploadCompletionPhoto = useCallback(async (
+    pitcherId: string,
+    file: File
+  ): Promise<string | null> => {
+    try {
+      const compressed = await compressImage(file);
+      const path = `workouts/${pitcherId}/${Date.now()}.jpg`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('outing-videos')
+        .upload(path, compressed, { contentType: 'image/jpeg' });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('outing-videos')
+        .getPublicUrl(path);
+
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('Error uploading workout photo:', error);
+      toast({
+        title: 'Upload failed',
+        description: 'Could not upload the photo.',
+        variant: 'destructive',
+      });
+      return null;
+    }
+  }, [toast, compressImage]);
+
+  // Update photo URL on a completion record
+  const updateCompletionPhoto = useCallback(async (
+    completionId: string,
+    photoUrl: string | null
+  ): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('workout_completions')
+        .update({ photo_url: photoUrl } as any)
+        .eq('id', completionId);
+
+      if (error) throw error;
+
+      setCompletions((prev) =>
+        prev.map((c) => (c.id === completionId ? { ...c, photoUrl } : c))
+      );
+      return true;
+    } catch (error) {
+      console.error('Error updating completion photo:', error);
+      return false;
+    }
+  }, []);
+
   // Load data on mount
   useEffect(() => {
     if (pitcherId) {
@@ -274,9 +433,12 @@ export function useWorkouts(pitcherId?: string) {
     completions,
     isLoading,
     addAssignment,
+    updateAssignment,
     deleteAssignment,
     toggleCompletion,
     updateCompletionNotes,
+    uploadCompletionPhoto,
+    updateCompletionPhoto,
     refetchAssignments: fetchAssignments,
     refetchCompletions: fetchCompletions,
   };

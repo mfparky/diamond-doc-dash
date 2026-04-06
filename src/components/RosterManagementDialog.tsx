@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Pencil, Trash2, Plus, Check, X, Sun, Moon, ChevronRight, ArrowLeft, Users, Palette, ClipboardCheck, Trophy, CalendarIcon } from 'lucide-react';
+import { Pencil, Trash2, Plus, Check, X, Sun, Moon, ChevronRight, ArrowLeft, Users, Palette, ClipboardCheck, Trophy, CalendarIcon, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
@@ -14,6 +14,7 @@ import { WorkoutManagementSection } from '@/components/WorkoutManagementSection'
 import { WorkoutLeaderboard } from '@/components/WorkoutLeaderboard';
 import { useWorkouts, WorkoutAssignment } from '@/hooks/use-workouts';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,10 +55,11 @@ export function RosterManagementDialog({
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isDark, setIsDark] = useState(() => !document.documentElement.classList.contains('light'));
   const [workoutAssignments, setWorkoutAssignments] = useState<Record<string, WorkoutAssignment[]>>({});
-  const [achievementStartDate, setAchievementStartDate] = useState<Date | undefined>(() => {
-    const stored = localStorage.getItem('achievementStartDate');
-    return stored ? new Date(stored) : undefined;
-  });
+  const [achievementStartDate, setAchievementStartDate] = useState<Date | undefined>();
+  const [achievementEndDate, setAchievementEndDate] = useState<Date | undefined>();
+  const [leaderboardStartDate, setLeaderboardStartDate] = useState<Date | undefined>();
+  const [leaderboardEndDate, setLeaderboardEndDate] = useState<Date | undefined>();
+  const { toast } = useToast();
 
   // Fetch all workout assignments for all pitchers
   const fetchAllWorkoutAssignments = useCallback(async () => {
@@ -80,6 +82,8 @@ export function RosterManagementDialog({
           pitcherId: row.pitcher_id,
           title: row.title,
           description: row.description,
+          frequency: row.frequency ?? 7,
+          attachmentUrl: row.attachment_url ?? null,
           createdAt: row.created_at,
         });
       });
@@ -89,6 +93,48 @@ export function RosterManagementDialog({
     }
   }, [pitchers]);
 
+  // Load achievement + leaderboard dates from team or owner settings when dialog opens
+  useEffect(() => {
+    if (!open || pitchers.length === 0) return;
+    const teamId = pitchers[0]?.teamId;
+    const userId = pitchers[0]?.userId;
+
+    const loadSettings = async () => {
+      if (teamId) {
+        const { data } = await supabase
+          .from('teams')
+          .select('leaderboard_from, leaderboard_to, achievement_from, achievement_to')
+          .eq('id', teamId)
+          .maybeSingle();
+
+        if (data) {
+          setAchievementStartDate((data as any).achievement_from ? new Date((data as any).achievement_from + 'T00:00:00') : undefined);
+          setAchievementEndDate((data as any).achievement_to ? new Date((data as any).achievement_to + 'T00:00:00') : undefined);
+          setLeaderboardStartDate(data.leaderboard_from ? new Date(data.leaderboard_from + 'T00:00:00') : undefined);
+          setLeaderboardEndDate(data.leaderboard_to ? new Date(data.leaderboard_to + 'T00:00:00') : undefined);
+        }
+        return;
+      }
+
+      if (userId) {
+        const { data } = await supabase
+          .from('dashboard_settings' as any)
+          .select('leaderboard_from, leaderboard_to, achievement_from, achievement_to')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        if (data) {
+          setAchievementStartDate((data as any).achievement_from ? new Date((data as any).achievement_from + 'T00:00:00') : undefined);
+          setAchievementEndDate((data as any).achievement_to ? new Date((data as any).achievement_to + 'T00:00:00') : undefined);
+          setLeaderboardStartDate((data as any).leaderboard_from ? new Date((data as any).leaderboard_from + 'T00:00:00') : undefined);
+          setLeaderboardEndDate((data as any).leaderboard_to ? new Date((data as any).leaderboard_to + 'T00:00:00') : undefined);
+        }
+      }
+    };
+
+    loadSettings();
+  }, [open, pitchers]);
+
   useEffect(() => {
     if (open) {
       fetchAllWorkoutAssignments();
@@ -96,17 +142,40 @@ export function RosterManagementDialog({
   }, [open, fetchAllWorkoutAssignments]);
 
   // Add assignment handler
-  const handleAddAssignment = async (pitcherId: string, title: string, description?: string): Promise<WorkoutAssignment | null> => {
+  const handleAddAssignment = async (pitcherId: string, title: string, description?: string, frequency?: number, attachmentUrl?: string): Promise<WorkoutAssignment | null> => {
+    const pitcher = pitchers.find((item) => item.id === pitcherId);
+
+    if (!pitcher) {
+      toast({
+        title: 'Error adding workout',
+        description: 'Could not find the selected player.',
+        variant: 'destructive',
+      });
+      return null;
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        toast({
+          title: 'Authentication required',
+          description: 'Please sign in again before assigning workouts.',
+          variant: 'destructive',
+        });
+        return null;
+      }
       
       const { data, error } = await supabase
         .from('workout_assignments')
         .insert({
           pitcher_id: pitcherId,
+          team_id: pitcher.teamId,
           title,
           description: description || null,
-          user_id: user?.id || null,
+          frequency: frequency ?? 7,
+          attachment_url: attachmentUrl || null,
+          user_id: pitcher.teamId ? null : (pitcher.userId ?? user.id),
         })
         .select()
         .single();
@@ -118,6 +187,8 @@ export function RosterManagementDialog({
         pitcherId: data.pitcher_id,
         title: data.title,
         description: data.description,
+        frequency: data.frequency ?? 7,
+        attachmentUrl: data.attachment_url ?? null,
         createdAt: data.created_at,
       };
 
@@ -127,8 +198,17 @@ export function RosterManagementDialog({
       }));
 
       return newAssignment;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding assignment:', error);
+      const message = error?.message?.toLowerCase()?.includes('row-level security')
+        ? 'You do not have permission to assign workouts for this player.'
+        : 'Could not save the workout. Please try again.';
+
+      toast({
+        title: 'Error adding workout',
+        description: message,
+        variant: 'destructive',
+      });
       return null;
     }
   };
@@ -157,6 +237,89 @@ export function RosterManagementDialog({
       return false;
     }
   };
+
+  // Update assignment handler
+  const handleUpdateAssignment = async (
+    id: string,
+    updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null }
+  ): Promise<boolean> => {
+    try {
+      const dbUpdates: Record<string, unknown> = {};
+      if (updates.title !== undefined) dbUpdates.title = updates.title;
+      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.frequency !== undefined) dbUpdates.frequency = updates.frequency;
+      if (updates.attachmentUrl !== undefined) dbUpdates.attachment_url = updates.attachmentUrl;
+
+      const { error } = await supabase
+        .from('workout_assignments')
+        .update(dbUpdates)
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setWorkoutAssignments((prev) => {
+        const updated = { ...prev };
+        for (const pitcherId in updated) {
+          updated[pitcherId] = updated[pitcherId].map((a) =>
+            a.id === id ? { ...a, ...updates } : a
+          );
+        }
+        return updated;
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error updating assignment:', error);
+      return false;
+    }
+  };
+
+  // Cascade workouts from one pitcher to all others
+  const handleCascadeWorkouts = async (sourcePitcherId: string) => {
+    const sourceAssignments = workoutAssignments[sourcePitcherId] || [];
+    if (sourceAssignments.length === 0) {
+      toast({ title: 'No workouts to copy', description: 'This player has no workouts assigned.', variant: 'destructive' });
+      return;
+    }
+
+    const sourcePitcher = pitchers.find(p => p.id === sourcePitcherId);
+    if (!sourcePitcher) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      let copiedCount = 0;
+      for (const targetPitcher of pitchers) {
+        if (targetPitcher.id === sourcePitcherId) continue;
+        const existingTitles = new Set((workoutAssignments[targetPitcher.id] || []).map(a => a.title));
+
+        for (const assignment of sourceAssignments) {
+          if (existingTitles.has(assignment.title)) continue;
+          await supabase.from('workout_assignments').insert({
+            pitcher_id: targetPitcher.id,
+            team_id: targetPitcher.teamId,
+            title: assignment.title,
+            description: assignment.description,
+            frequency: assignment.frequency,
+            attachment_url: assignment.attachmentUrl,
+            user_id: targetPitcher.teamId ? null : (targetPitcher.userId ?? user.id),
+          });
+          copiedCount++;
+        }
+      }
+
+      await fetchAllWorkoutAssignments();
+      toast({
+        title: 'Workouts copied',
+        description: `${copiedCount} workout${copiedCount !== 1 ? 's' : ''} copied to ${pitchers.length - 1} player${pitchers.length > 2 ? 's' : ''}.`,
+      });
+    } catch (error) {
+      console.error('Error cascading workouts:', error);
+      toast({ title: 'Error copying workouts', description: 'Something went wrong. Please try again.', variant: 'destructive' });
+    }
+  };
+
   const toggleTheme = () => {
     const newIsDark = !isDark;
     setIsDark(newIsDark);
@@ -212,15 +375,75 @@ export function RosterManagementDialog({
     setDeleteConfirmId(null);
   };
 
-  const handleAchievementDateChange = (date: Date | undefined) => {
+  const handleAchievementDateChange = async (date: Date | undefined) => {
     setAchievementStartDate(date);
     if (date) {
       localStorage.setItem('achievementStartDate', date.toISOString());
     } else {
       localStorage.removeItem('achievementStartDate');
     }
-    // Dispatch storage event so other components pick up the change
     window.dispatchEvent(new Event('storage'));
+
+    const teamId = pitchers[0]?.teamId;
+    const userId = pitchers[0]?.userId;
+    if (teamId) {
+      await supabase
+        .from('teams')
+        .update({ achievement_from: date ? format(date, 'yyyy-MM-dd') : null } as any)
+        .eq('id', teamId);
+    } else if (userId) {
+      await supabase
+        .from('dashboard_settings' as any)
+        .upsert({ user_id: userId, achievement_from: date ? format(date, 'yyyy-MM-dd') : null }, { onConflict: 'user_id' });
+    }
+  };
+
+  const handleAchievementEndDateChange = async (date: Date | undefined) => {
+    setAchievementEndDate(date);
+    const teamId = pitchers[0]?.teamId;
+    const userId = pitchers[0]?.userId;
+    if (teamId) {
+      await supabase
+        .from('teams')
+        .update({ achievement_to: date ? format(date, 'yyyy-MM-dd') : null } as any)
+        .eq('id', teamId);
+    } else if (userId) {
+      await supabase
+        .from('dashboard_settings' as any)
+        .upsert({ user_id: userId, achievement_to: date ? format(date, 'yyyy-MM-dd') : null }, { onConflict: 'user_id' });
+    }
+  };
+
+  const handleLeaderboardDateChange = async (date: Date | undefined) => {
+    setLeaderboardStartDate(date);
+    const teamId = pitchers[0]?.teamId;
+    const userId = pitchers[0]?.userId;
+    if (teamId) {
+      await supabase
+        .from('teams')
+        .update({ leaderboard_from: date ? format(date, 'yyyy-MM-dd') : null })
+        .eq('id', teamId);
+    } else if (userId) {
+      await supabase
+        .from('dashboard_settings' as any)
+        .upsert({ user_id: userId, leaderboard_from: date ? format(date, 'yyyy-MM-dd') : null }, { onConflict: 'user_id' });
+    }
+  };
+
+  const handleLeaderboardEndDateChange = async (date: Date | undefined) => {
+    setLeaderboardEndDate(date);
+    const teamId = pitchers[0]?.teamId;
+    const userId = pitchers[0]?.userId;
+    if (teamId) {
+      await supabase
+        .from('teams')
+        .update({ leaderboard_to: date ? format(date, 'yyyy-MM-dd') : null })
+        .eq('id', teamId);
+    } else if (userId) {
+      await supabase
+        .from('dashboard_settings' as any)
+        .upsert({ user_id: userId, leaderboard_to: date ? format(date, 'yyyy-MM-dd') : null }, { onConflict: 'user_id' });
+    }
   };
 
   const pitcherToDelete = pitchers.find(p => p.id === deleteConfirmId);
@@ -298,7 +521,7 @@ export function RosterManagementDialog({
                   <ChevronRight className="w-5 h-5 text-muted-foreground" />
                 </button>
 
-                {/* Achievement Window Option */}
+                {/* Achievement Window (per-player badges) */}
                 <div className="w-full p-4 rounded-lg bg-secondary/50 border border-border/50 space-y-3">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -307,47 +530,111 @@ export function RosterManagementDialog({
                     <div>
                       <p className="font-medium text-foreground">Achievement Window</p>
                       <p className="text-sm text-muted-foreground">
-                        {achievementStartDate
+                        {achievementStartDate && achievementEndDate
+                          ? `${format(achievementStartDate, 'MMM d')} – ${format(achievementEndDate, 'MMM d, yyyy')}`
+                          : achievementStartDate
                           ? `From ${format(achievementStartDate, 'MMM d, yyyy')}`
                           : 'All time (no filter)'}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 pl-[52px]">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className={cn(
-                            'justify-start text-left font-normal flex-1',
-                            !achievementStartDate && 'text-muted-foreground'
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {achievementStartDate ? format(achievementStartDate, 'PPP') : 'Pick start date'}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={achievementStartDate}
-                          onSelect={handleAchievementDateChange}
-                          disabled={(date) => date > new Date()}
-                          initialFocus
-                          className={cn('p-3 pointer-events-auto')}
-                        />
-                      </PopoverContent>
-                    </Popover>
+                  <div className="pl-[52px] space-y-2">
+                    <p className="text-xs text-muted-foreground font-medium">Start Date</p>
+                    <div className="flex items-center gap-2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" size="sm" className={cn('justify-start text-left font-normal flex-1', !achievementStartDate && 'text-muted-foreground')}>
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {achievementStartDate ? format(achievementStartDate, 'PPP') : 'Pick start date'}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" selected={achievementStartDate} onSelect={handleAchievementDateChange} disabled={(date) => date > new Date()} initialFocus className={cn('p-3 pointer-events-auto')} />
+                        </PopoverContent>
+                      </Popover>
+                      {achievementStartDate && (
+                        <Button variant="ghost" size="sm" onClick={() => handleAchievementDateChange(undefined)} className="text-muted-foreground"><X className="w-4 h-4" /></Button>
+                      )}
+                    </div>
                     {achievementStartDate && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleAchievementDateChange(undefined)}
-                        className="text-muted-foreground"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
+                      <>
+                        <p className="text-xs text-muted-foreground font-medium">End Date</p>
+                        <div className="flex items-center gap-2">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" size="sm" className={cn('justify-start text-left font-normal flex-1', !achievementEndDate && 'text-muted-foreground')}>
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {achievementEndDate ? format(achievementEndDate, 'PPP') : 'Pick end date (optional)'}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar mode="single" selected={achievementEndDate} onSelect={handleAchievementEndDateChange} disabled={(date) => achievementStartDate ? date < achievementStartDate : false} initialFocus className={cn('p-3 pointer-events-auto')} />
+                            </PopoverContent>
+                          </Popover>
+                          {achievementEndDate && (
+                            <Button variant="ghost" size="sm" onClick={() => handleAchievementEndDateChange(undefined)} className="text-muted-foreground"><X className="w-4 h-4" /></Button>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Workout Leaderboard Window (team-wide) */}
+                <div className="w-full p-4 rounded-lg bg-secondary/50 border border-border/50 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <CalendarIcon className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">Workout Leaderboard Window</p>
+                      <p className="text-sm text-muted-foreground">
+                        {leaderboardStartDate && leaderboardEndDate
+                          ? `${format(leaderboardStartDate, 'MMM d')} – ${format(leaderboardEndDate, 'MMM d, yyyy')}`
+                          : leaderboardStartDate
+                          ? `From ${format(leaderboardStartDate, 'MMM d, yyyy')}`
+                          : 'Current month (default)'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="pl-[52px] space-y-2">
+                    <p className="text-xs text-muted-foreground font-medium">Start Date</p>
+                    <div className="flex items-center gap-2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" size="sm" className={cn('justify-start text-left font-normal flex-1', !leaderboardStartDate && 'text-muted-foreground')}>
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {leaderboardStartDate ? format(leaderboardStartDate, 'PPP') : 'Pick start date'}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" selected={leaderboardStartDate} onSelect={handleLeaderboardDateChange} disabled={(date) => date > new Date()} initialFocus className={cn('p-3 pointer-events-auto')} />
+                        </PopoverContent>
+                      </Popover>
+                      {leaderboardStartDate && (
+                        <Button variant="ghost" size="sm" onClick={() => handleLeaderboardDateChange(undefined)} className="text-muted-foreground"><X className="w-4 h-4" /></Button>
+                      )}
+                    </div>
+                    {leaderboardStartDate && (
+                      <>
+                        <p className="text-xs text-muted-foreground font-medium">End Date</p>
+                        <div className="flex items-center gap-2">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" size="sm" className={cn('justify-start text-left font-normal flex-1', !leaderboardEndDate && 'text-muted-foreground')}>
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {leaderboardEndDate ? format(leaderboardEndDate, 'PPP') : 'Pick end date'}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar mode="single" selected={leaderboardEndDate} onSelect={handleLeaderboardEndDateChange} disabled={(date) => leaderboardStartDate ? date < leaderboardStartDate : false} initialFocus className={cn('p-3 pointer-events-auto')} />
+                            </PopoverContent>
+                          </Popover>
+                          {leaderboardEndDate && (
+                            <Button variant="ghost" size="sm" onClick={() => handleLeaderboardEndDateChange(undefined)} className="text-muted-foreground"><X className="w-4 h-4" /></Button>
+                          )}
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>
@@ -510,12 +797,26 @@ export function RosterManagementDialog({
                         key={pitcher.id}
                         className="p-4 rounded-lg bg-secondary/50 border border-border/50"
                       >
-                        <h3 className="font-semibold text-foreground mb-3">{pitcher.name}</h3>
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="font-semibold text-foreground">{pitcher.name}</h3>
+                          {pitchers.length > 1 && (workoutAssignments[pitcher.id] || []).length > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1.5 text-xs text-muted-foreground"
+                              onClick={() => handleCascadeWorkouts(pitcher.id)}
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                              Copy to All
+                            </Button>
+                          )}
+                        </div>
                         <WorkoutManagementSection
                           pitcherId={pitcher.id}
                           pitcherName={pitcher.name}
                           assignments={workoutAssignments[pitcher.id] || []}
                           onAddAssignment={handleAddAssignment}
+                          onUpdateAssignment={handleUpdateAssignment}
                           onDeleteAssignment={handleDeleteAssignment}
                         />
                       </div>
@@ -524,7 +825,7 @@ export function RosterManagementDialog({
                 </TabsContent>
 
                 <TabsContent value="leaderboard" className="flex-1 overflow-y-auto py-4 mt-0">
-                  <WorkoutLeaderboard pitchers={pitchers} />
+                  <WorkoutLeaderboard pitchers={pitchers} initialFrom={leaderboardStartDate} initialTo={leaderboardEndDate} hideDatePicker />
                 </TabsContent>
               </Tabs>
             </>

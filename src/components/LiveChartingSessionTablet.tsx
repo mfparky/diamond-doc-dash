@@ -369,7 +369,7 @@ export function LiveChartingSessionTablet({
 
             {/* Strike zone box */}
             <div
-              className="absolute border-2 border-foreground/80 bg-primary/5 pointer-events-none"
+              className="absolute border-[3px] border-foreground bg-primary/5 pointer-events-none"
               style={{
                 left: `${zoneLeft}%`,
                 right: `${zoneRight}%`,
@@ -382,7 +382,7 @@ export function LiveChartingSessionTablet({
             {plottedPitches.map((pitch, idx) => (
               <div
                 key={idx}
-                className={`absolute w-5 h-5 rounded-full transform -translate-x-1/2 -translate-y-1/2 border flex items-center justify-center text-[9px] text-white font-bold shadow-lg pointer-events-none ${
+                className={`absolute w-5 h-5 rounded-full transform -translate-x-1/2 -translate-y-1/2 border flex items-center justify-center text-[9px] text-white font-bold shadow-lg pointer-events-none z-10 ${
                   pitch.hasVideo ? 'border-accent ring-1 ring-accent/50' : 'border-white/70'
                 }`}
                 style={{

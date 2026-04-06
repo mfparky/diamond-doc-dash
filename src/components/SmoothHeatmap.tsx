@@ -111,8 +111,8 @@ export function SmoothHeatmap({
 
     if (pitchLocations.length === 0) {
       // Draw strike zone outline even with no data
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-      ctx.lineWidth = 2 * scale;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.lineWidth = 2.5 * scale;
       ctx.strokeRect(zoneLeftPx, zoneTopPx, zoneRightPx - zoneLeftPx, zoneBottomPx - zoneTopPx);
       return;
     }
@@ -123,8 +123,7 @@ export function SmoothHeatmap({
       Array.from({ length: gridSize }, () => 0)
     );
 
-    // Smaller influence radius for more accurate pitch representation
-    const influenceRadius = 6;
+    const influenceRadius = 8;
 
     // Add density for each pitch with Gaussian falloff
     pitchLocations.forEach((pitch) => {
@@ -143,8 +142,8 @@ export function SmoothHeatmap({
           if (x >= 0 && x < gridSize && y >= 0 && y < gridSize) {
             const distance = Math.sqrt(dx * dx + dy * dy);
             if (distance <= influenceRadius) {
-              // Tighter Gaussian falloff for more accurate representation
-              const sigma = influenceRadius / 3;
+              // Looser sigma so density reaches the zone boundary from nearby pitches
+              const sigma = influenceRadius / 2.5;
               const weight = Math.exp(-(distance * distance) / (2 * sigma * sigma));
               densityGrid[y][x] += weight;
             }
@@ -161,8 +160,7 @@ export function SmoothHeatmap({
       }
     }
 
-    // Apply fewer blur passes for more accurate representation
-    const blurPasses = 2;
+    const blurPasses = 1;
     for (let pass = 0; pass < blurPasses; pass++) {
       const tempGrid: number[][] = Array.from({ length: gridSize }, () => 
         Array.from({ length: gridSize }, () => 0)
@@ -227,8 +225,12 @@ export function SmoothHeatmap({
           densityGrid[y1][x0] * (1 - xFrac) * yFrac +
           densityGrid[y1][x1] * xFrac * yFrac;
         
-        // Normalize with slight gamma correction for better visual distribution
-        const normalizedDensity = maxDensity > 0 ? Math.pow(density / maxDensity, 0.8) : 0;
+        // Log normalization: compresses hot spots and lifts sparse areas so
+        // even a few pitches on the zone boundary are visible alongside
+        // dense clusters elsewhere in the zone.
+        const normalizedDensity = maxDensity > 0
+          ? Math.log(1 + density) / Math.log(1 + maxDensity)
+          : 0;
         const [r, g, b, a] = interpolateColor(normalizedDensity);
         
         const idx = (py * renderWidth + px) * 4;
@@ -239,22 +241,27 @@ export function SmoothHeatmap({
       }
     }
 
-    // Put image data
-    ctx.putImageData(imageData, 0, 0);
-
-    // Draw strike zone outline
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.lineWidth = 2 * scale;
-    ctx.strokeRect(zoneLeftPx, zoneTopPx, zoneRightPx - zoneLeftPx, zoneBottomPx - zoneTopPx);
-
-    // Draw grid lines within strike zone
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-    ctx.lineWidth = 1 * scale;
-    
     const zoneWidth = zoneRightPx - zoneLeftPx;
     const zoneHeight = zoneBottomPx - zoneTopPx;
-    
-    // Vertical lines (3 columns)
+
+    // Draw heatmap first so heat accumulates all the way to the zone boundary
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = renderWidth;
+    tempCanvas.height = renderHeight;
+    const tempCtx = tempCanvas.getContext('2d')!;
+    tempCtx.putImageData(imageData, 0, 0);
+    ctx.drawImage(tempCanvas, 0, 0);
+
+    // Zone border drawn AFTER at low opacity — visible in empty areas,
+    // but won't mask heat that accumulates at the zone edges
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+    ctx.lineWidth = 2.5 * scale;
+    ctx.strokeRect(zoneLeftPx, zoneTopPx, zoneWidth, zoneHeight);
+
+    // Inner 3×3 grid lines
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 1 * scale;
+
     for (let i = 1; i < 3; i++) {
       const x = zoneLeftPx + (zoneWidth / 3) * i;
       ctx.beginPath();
@@ -262,8 +269,7 @@ export function SmoothHeatmap({
       ctx.lineTo(x, zoneBottomPx);
       ctx.stroke();
     }
-    
-    // Horizontal lines (3 rows)
+
     for (let i = 1; i < 3; i++) {
       const y = zoneTopPx + (zoneHeight / 3) * i;
       ctx.beginPath();
@@ -283,8 +289,8 @@ export function SmoothHeatmap({
         <canvas
           ref={canvasRef}
           style={{
-            width: dimensions.width,
-            height: dimensions.height,
+            width: '100%',
+            height: '100%',
           }}
           className="block"
         />
@@ -294,13 +300,6 @@ export function SmoothHeatmap({
       {/* Stats summary */}
       <div className="text-xs text-muted-foreground">
         <span className="font-medium text-foreground">{pitchLocations.length}</span> pitches plotted
-        {pitchLocations.length > 0 && (
-          <span className="ml-2">
-            • <span className="font-medium text-foreground">
-              {pitchLocations.filter(p => p.isStrike).length}
-            </span> strikes ({((pitchLocations.filter(p => p.isStrike).length / pitchLocations.length) * 100).toFixed(0)}%)
-          </span>
-        )}
       </div>
 
       {/* Color legend */}

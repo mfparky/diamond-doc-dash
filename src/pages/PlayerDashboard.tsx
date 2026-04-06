@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Pitcher, Outing, getDaysRestNeeded, calculateRestStatus } from '@/types/pitcher';
@@ -24,11 +25,13 @@ import { ProgressReportCard } from '@/components/ProgressReportCard';
 import { generateReport } from '@/lib/generate-report';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { TrendingUp, Target, Gauge, Calendar, Video, Shield, ArrowLeft, Play, MessageSquare, ClipboardCheck, Share2, Copy, Check, Download, Star } from 'lucide-react';
+import { TrendingUp, Target, Gauge, Calendar, Video, Shield, ArrowLeft, Play, MessageSquare, ClipboardCheck, Share2, Copy, Check, Download, Star, Users, Camera } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import hawksLogo from '@/assets/hawks-logo.png';
 import { LiveAbsSummary } from '@/components/LiveAbsSummary';
 import { LiveAbsDashboard } from '@/components/LiveAbsDashboard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { WorkoutGallery } from '@/components/WorkoutGallery';
 
 export default function PlayerDashboard() {
   const { playerId } = useParams<{ playerId: string }>();
@@ -41,8 +44,33 @@ export default function PlayerDashboard() {
   const [showAccountability, setShowAccountability] = useState(false);
   const { fetchPitchTypes, fetchPitchLocationsForPitcher } = usePitchLocations();
   const [allPitchLocations, setAllPitchLocations] = useState<PitchLocation[]>([]);
-  const { filterByWindow } = useAchievementWindow();
+  const { filterByWindow: localFilterByWindow } = useAchievementWindow();
+  const [teamAchievementStart, setTeamAchievementStart] = useState<Date | undefined>();
+  const [teamAchievementEnd, setTeamAchievementEnd] = useState<Date | undefined>();
+  const [teamLeaderboardStart, setTeamLeaderboardStart] = useState<Date | undefined>();
+  const [teamLeaderboardEnd, setTeamLeaderboardEnd] = useState<Date | undefined>();
+
+  // Use team achievement dates if available, otherwise fall back to localStorage
+  const filterByWindow = useCallback(<T extends { date?: string; createdAt?: string }>(
+    items: T[],
+    dateField: 'date' | 'createdAt' = 'date'
+  ): T[] => {
+    const start = teamAchievementStart;
+    if (!start) return localFilterByWindow(items, dateField);
+    const startTime = start.getTime();
+    return items.filter(item => {
+      const val = dateField === 'date' ? (item as any).date : (item as any).createdAt;
+      if (!val) return true;
+      return new Date(val).getTime() >= startTime;
+    });
+  }, [teamAchievementStart, localFilterByWindow]);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [teamId, setTeamId] = useState<string | null>(null);
+  const [ownerId, setOwnerId] = useState<string | null>(null);
+
+  // Only show enhanced view (report card) when ?advanced=1 is in the URL
+  const searchParams = new URLSearchParams(window.location.search);
+  const advancedEnabled = searchParams.get('advanced') === '1';
   const [showEnhancedView, setShowEnhancedView] = useState(false);
 
   const {
@@ -51,6 +79,8 @@ export default function PlayerDashboard() {
     isLoading: workoutsLoading,
     toggleCompletion,
     updateCompletionNotes,
+    uploadCompletionPhoto,
+    updateCompletionPhoto,
   } = useWorkouts(playerId);
 
   const withTimeout = <T,>(promise: Promise<T>, ms = 8000): Promise<T> => {
@@ -95,6 +125,40 @@ export default function PlayerDashboard() {
           setError('Player not found');
           setIsLoading(false);
           return;
+        }
+
+        if (!cancelled) {
+          if (pitcherData.team_id) {
+            setTeamId(pitcherData.team_id);
+            supabase
+              .from('teams')
+              .select('leaderboard_from, leaderboard_to, achievement_from, achievement_to')
+              .eq('id', pitcherData.team_id)
+              .maybeSingle()
+              .then(({ data: teamData }) => {
+                if (!cancelled && teamData) {
+                  if ((teamData as any).achievement_from) setTeamAchievementStart(new Date((teamData as any).achievement_from + 'T00:00:00'));
+                  if ((teamData as any).achievement_to) setTeamAchievementEnd(new Date((teamData as any).achievement_to + 'T00:00:00'));
+                  if (teamData.leaderboard_from) setTeamLeaderboardStart(new Date(teamData.leaderboard_from + 'T00:00:00'));
+                  if (teamData.leaderboard_to) setTeamLeaderboardEnd(new Date(teamData.leaderboard_to + 'T00:00:00'));
+                }
+              });
+          } else if (pitcherData.user_id) {
+            setOwnerId(pitcherData.user_id);
+            supabase
+              .from('dashboard_settings' as any)
+              .select('leaderboard_from, leaderboard_to, achievement_from, achievement_to')
+              .eq('user_id', pitcherData.user_id)
+              .maybeSingle()
+              .then(({ data: settingsData }) => {
+                if (!cancelled && settingsData) {
+                  if ((settingsData as any).achievement_from) setTeamAchievementStart(new Date((settingsData as any).achievement_from + 'T00:00:00'));
+                  if ((settingsData as any).achievement_to) setTeamAchievementEnd(new Date((settingsData as any).achievement_to + 'T00:00:00'));
+                  if ((settingsData as any).leaderboard_from) setTeamLeaderboardStart(new Date((settingsData as any).leaderboard_from + 'T00:00:00'));
+                  if ((settingsData as any).leaderboard_to) setTeamLeaderboardEnd(new Date((settingsData as any).leaderboard_to + 'T00:00:00'));
+                }
+              });
+          }
         }
 
         // Fetch outings for this pitcher
@@ -237,31 +301,39 @@ export default function PlayerDashboard() {
     <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
-        <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-3 min-w-0">
-            <img src={hawksLogo} alt="Hawks" className="w-10 h-10 object-contain shrink-0" />
-            <div className="min-w-0">
-              <h1 className="font-display text-xl font-bold text-foreground truncate">{pitcher.name}</h1>
-              <p className="text-xs text-muted-foreground hidden md:block">Player Dashboard</p>
+        <div className="max-w-4xl mx-auto px-4 py-2 space-y-2">
+          {/* Row 1: Name + Status */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-3 min-w-0">
+              <img src={hawksLogo} alt="Hawks" className="w-9 h-9 object-contain shrink-0" />
+              <h1 className="font-display text-lg font-bold text-foreground truncate">{pitcher.name}</h1>
             </div>
+            <StatusBadge status={pitcher.restStatus} compact />
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            {/* Accountability Button */}
+          {/* Row 2: Action buttons */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {(teamId || ownerId) && (
+              <Link to={teamId ? `/team/${teamId}` : `/dashboard/${ownerId}`}>
+                <Button variant="outline" size="sm" className="h-7 text-xs px-2">
+                  <Users className="w-3.5 h-3.5 mr-1" />
+                  All Pitchers
+                </Button>
+              </Link>
+            )}
             {assignments.length > 0 && (
               <Button
                 variant="outline"
-                size="icon"
+                size="sm"
                 onClick={() => setShowAccountability(true)}
-                className="h-8 w-8 sm:w-auto sm:px-3"
+                className="h-7 text-xs px-2"
               >
-                <ClipboardCheck className="w-4 h-4 sm:mr-1.5" />
-                <span className="hidden sm:inline text-sm">Accountability</span>
+                <ClipboardCheck className="w-3.5 h-3.5 mr-1" />
+                Accountability
               </Button>
             )}
-            {/* Download Report */}
             <Button
-              variant="outline"
-              size="icon"
+              variant="ghost"
+              size="sm"
               onClick={() => {
                 const badgeResults = evaluateBadges(filterByWindow(pitcher.outings, 'date'), filterByWindow(allPitchLocations, 'createdAt'), pitchTypes);
                 generateReport({
@@ -274,12 +346,12 @@ export default function PlayerDashboard() {
                   lastOuting: pitcher.lastOuting,
                 });
               }}
-              className="h-8 w-8 sm:w-auto sm:px-3"
+              className="h-7 w-7 p-0"
+              title="Download Report"
             >
-              <Download className="w-4 h-4 sm:mr-1.5" />
-              <span className="hidden sm:inline text-sm">Report</span>
+              <Download className="w-3.5 h-3.5" />
             </Button>
-            <StatusBadge status={pitcher.restStatus} compact />
+            <ThemeToggle />
           </div>
         </div>
       </header>
@@ -356,7 +428,8 @@ export default function PlayerDashboard() {
           );
         })()}
 
-        {/* Enhanced View Toggle */}
+        {/* Enhanced View Toggle - only visible with ?advanced=1 URL param */}
+        {advancedEnabled && (
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Star className="w-4 h-4 text-yellow-500" />
@@ -370,6 +443,7 @@ export default function PlayerDashboard() {
             onCheckedChange={setShowEnhancedView}
           />
         </div>
+        )}
 
         {/* Enhanced View: Report Card + Progress Timeline */}
         {showEnhancedView && (() => {
@@ -685,6 +759,21 @@ export default function PlayerDashboard() {
           </CardContent>
         </Card>
 
+        {/* Workout Photo Gallery */}
+        {playerId && (
+          <Card className="glass-card border-primary/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Camera className="w-4 h-4 text-primary" />
+                Workout Gallery
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <WorkoutGallery pitcherId={playerId} pitcherName={pitcher?.name} />
+            </CardContent>
+          </Card>
+        )}
+
         {/* Share & Footer */}
         <Card className="glass-card border-primary/20">
           <CardContent className="p-4">
@@ -799,6 +888,10 @@ export default function PlayerDashboard() {
           toggleCompletion(assignmentId, playerId || '', dayOfWeek)
         }
         onUpdateNotes={updateCompletionNotes}
+        onUploadPhoto={uploadCompletionPhoto}
+        onUpdatePhoto={updateCompletionPhoto}
+        achievementStart={teamAchievementStart}
+        achievementEnd={teamAchievementEnd}
       />
     </div>
   );

@@ -4,7 +4,7 @@ import { StatusBadge } from './StatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, Pencil, Trash2, Share2, Settings, MapPin, Play, Activity, ClipboardList, MessageSquare, Columns2, BarChart3, Download } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, Pencil, Trash2, Share2, Settings, MapPin, Play, Activity, ClipboardList, MessageSquare, Columns2, BarChart3, Download, Copy, Check } from 'lucide-react';
 import { EditOutingDialog } from './EditOutingDialog';
 import { OutingForm } from './OutingForm';
 import { DeleteOutingDialog } from './DeleteOutingDialog';
@@ -65,6 +65,7 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
   const { fetchPitchTypes, fetchPitchLocationsForOuting, fetchPitchLocationsForPitcher, addPitchLocations } = usePitchLocations();
   const { toast } = useToast();
   const { filterByWindow } = useAchievementWindow();
+  const [copyFeedback, setCopyFeedback] = useState<'link' | 'summary' | null>(null);
 
   // Load pitch location counts for each outing - fetch in parallel
   const loadOutingPitchCounts = useCallback(async () => {
@@ -262,67 +263,82 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
           </Button>
         </div>
       )}
-      {/* Arm Care Status Card */}
-      {pitcher.lastPitchCount > 0 && (
-        <Card className="glass-card border-primary/30 bg-primary/5">
+      {/* Arm Care Status + Share Buttons */}
+      <Card className="glass-card border-primary/30 bg-primary/5">
           <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Shield className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <h4 className="font-display font-semibold text-foreground">Arm Care Status</h4>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Last outing: <span className="text-foreground font-medium">{pitcher.lastPitchCount} pitches</span>
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Rest required: <span className="text-foreground font-medium">{daysRestNeeded} day{daysRestNeeded !== 1 ? 's' : ''}</span>
-                </p>
-                <div className="mt-2 text-xs text-muted-foreground">
-                  <p className="font-medium mb-1">Pitch Count Rules:</p>
-                  <div className="grid grid-cols-2 gap-1">
-                    <span>76+ pitches → 4 days</span>
-                    <span>61-75 pitches → 3 days</span>
-                    <span>46-60 pitches → 2 days</span>
-                    <span>31-45 pitches → 1 day</span>
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+              {/* Arm Care Section */}
+              {pitcher.lastPitchCount > 0 && (
+                <div className="flex items-start gap-3 flex-1">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Shield className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-display font-semibold text-foreground">Arm Care Status</h4>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Last outing: <span className="text-foreground font-medium">{pitcher.lastPitchCount} pitches</span>
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Rest required: <span className="text-foreground font-medium">{daysRestNeeded} day{daysRestNeeded !== 1 ? 's' : ''}</span>
+                    </p>
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      <p className="font-medium mb-1">Pitch Count Rules:</p>
+                      <div className="grid grid-cols-2 gap-1">
+                        <span>76+ pitches → 4 days</span>
+                        <span>61-75 pitches → 3 days</span>
+                        <span>46-60 pitches → 2 days</span>
+                        <span>31-45 pitches → 1 day</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
+              )}
+
+              {/* Compact Share Buttons */}
+              <div className="flex flex-row md:flex-col gap-2 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs gap-1.5 flex-1 md:flex-none"
+                  onClick={() => {
+                    const url = `${window.location.origin}/player/${pitcher.id}`;
+                    navigator.clipboard.writeText(url).then(() => {
+                      setCopyFeedback('link');
+                      setTimeout(() => setCopyFeedback(null), 2000);
+                    });
+                  }}
+                >
+                  {copyFeedback === 'link' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  Copy Link
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs gap-1.5 flex-1 md:flex-none"
+                  onClick={() => {
+                    const lines = [
+                      `${pitcher.name} - Pitching Summary`,
+                      '',
+                      `7-Day Pulse: ${pitcher.sevenDayPulse} pitches`,
+                      pitcher.strikePercentage > 0 ? `Strike %: ${pitcher.strikePercentage.toFixed(1)}%` : '',
+                      pitcher.maxVelo > 0 ? `Max Velocity: ${pitcher.maxVelo} mph` : '',
+                      `Total Outings: ${pitcher.outings.length}`,
+                      '',
+                      `Full dashboard: ${window.location.origin}/player/${pitcher.id}`,
+                    ].filter(Boolean).join('\n');
+                    navigator.clipboard.writeText(lines).then(() => {
+                      setCopyFeedback('summary');
+                      setTimeout(() => setCopyFeedback(null), 2000);
+                    });
+                  }}
+                >
+                  {copyFeedback === 'summary' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  Copy Summary
+                </Button>
               </div>
             </div>
           </CardContent>
         </Card>
-      )}
-
-      {/* Share with Parents */}
-      <ShareSummaryCard pitcher={pitcher} outingsCount={pitcher.outings.length} />
-
-      {/* Badges, Accountability & Coach Notes */}
-      {(() => {
-        const badgeResults = evaluateBadges(filterByWindow(pitcher.outings, 'date'), filterByWindow(allPitchLocations, 'createdAt'), pitchTypes);
-        return (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-            <BadgeGrid badges={badgeResults} />
-            <div className="flex flex-col gap-4">
-              <WorkoutCompletionDisplay pitcherId={pitcher.id} />
-              {pitcher.coachNotes && (
-                <Card className="glass-card border-purple-500/20">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 rounded-lg bg-purple-500/10">
-                        <MessageSquare className="w-5 h-5 text-purple-500" />
-                      </div>
-                      <div>
-                        <h4 className="font-display font-semibold text-purple-500">Coach's Notes</h4>
-                        <p className="text-sm text-foreground mt-1">{pitcher.coachNotes}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </div>
-        );
-      })()}
 
       {/* Stats Grid */}
       {(() => {
@@ -504,23 +520,51 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
         return null;
       })()}
 
+      {/* Badges, Accountability & Coach Notes */}
+      {(() => {
+        const badgeResults = evaluateBadges(filterByWindow(pitcher.outings, 'date'), filterByWindow(allPitchLocations, 'createdAt'), pitchTypes);
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+            <BadgeGrid badges={badgeResults} />
+            <div className="flex flex-col gap-4">
+              <WorkoutCompletionDisplay pitcherId={pitcher.id} />
+              {pitcher.coachNotes && (
+                <Card className="glass-card border-purple-500/20">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-lg bg-purple-500/10">
+                        <MessageSquare className="w-5 h-5 text-purple-500" />
+                      </div>
+                      <div>
+                        <h4 className="font-display font-semibold text-purple-500">Coach's Notes</h4>
+                        <p className="text-sm text-foreground mt-1">{pitcher.coachNotes}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Video Comparison & Season Dashboard Buttons */}
-      <div className="flex gap-3">
+      <div className="flex justify-center gap-3">
         <Button
           variant={showVideoComparison ? 'default' : 'outline'}
-          className="flex-1 h-11"
+          className="h-11 w-[40%] text-sm"
           onClick={() => setShowVideoComparison(!showVideoComparison)}
         >
-          <Columns2 className="w-4 h-4 mr-2" />
-          Compare Videos
+          <Columns2 className="w-4 h-4 mr-1.5 shrink-0" />
+          <span className="truncate">Compare Videos</span>
         </Button>
         <Button
           variant={showSeasonDashboard ? 'default' : 'outline'}
-          className="flex-1 h-11"
+          className="h-11 w-[40%] text-sm"
           onClick={() => setShowSeasonDashboard(!showSeasonDashboard)}
         >
-          <BarChart3 className="w-4 h-4 mr-2" />
-          Season Dashboard
+          <BarChart3 className="w-4 h-4 mr-1.5 shrink-0" />
+          <span className="truncate">Season Dashboard</span>
         </Button>
       </div>
 

@@ -9,6 +9,8 @@ export interface PitcherRecord {
   name: string;
   maxWeeklyPitches: number;
   pitchTypes: PitchTypeConfig | null;
+  teamId?: string | null;
+  userId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -33,6 +35,8 @@ export function usePitchers() {
         name: row.name,
         maxWeeklyPitches: row.max_weekly_pitches,
         pitchTypes: row.pitch_types as PitchTypeConfig | null,
+        teamId: row.team_id ?? null,
+        userId: row.user_id ?? null,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       }));
@@ -93,6 +97,8 @@ export function usePitchers() {
         name: data.name,
         maxWeeklyPitches: data.max_weekly_pitches,
         pitchTypes: data.pitch_types as PitchTypeConfig | null,
+        teamId: data.team_id ?? null,
+        userId: data.user_id ?? null,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
       };

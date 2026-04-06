@@ -34,6 +34,7 @@ export function EditOutingDialog({ outing, open, onOpenChange, onSave }: EditOut
     focus: '',
   });
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const normalizeDateOnly = (d: Date) => {
@@ -76,11 +77,11 @@ export function EditOutingDialog({ outing, open, onOpenChange, onSave }: EditOut
     const normalized = normalizeDateOnly(date);
     setSelectedDate(normalized);
 
-    // Format as YYYY-MM-DD using local date parts from the normalized date
     const year = normalized.getFullYear();
     const month = String(normalized.getMonth() + 1).padStart(2, '0');
     const day = String(normalized.getDate()).padStart(2, '0');
     setFormData((prev) => ({ ...prev, date: `${year}-${month}-${day}` }));
+    setDatePickerOpen(false);
   };
 
   const handleSave = async () => {
@@ -109,7 +110,7 @@ export function EditOutingDialog({ outing, open, onOpenChange, onSave }: EditOut
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>Date</Label>
-            <Popover>
+            <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"

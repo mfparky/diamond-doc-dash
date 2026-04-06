@@ -162,14 +162,14 @@ export function LiveAbCharter({ pitchTypes = DEFAULT_PITCH_TYPES, onChange, init
           </div>
 
           {/* Strike zone box */}
-          <div className="absolute border-2 border-foreground/80 bg-primary/5"
+          <div className="absolute border-[3px] border-foreground bg-primary/5"
             style={{ left: `${zoneLeft}%`, right: `${zoneRight}%`, top: `${zoneTop}%`, bottom: `${zoneBottom}%` }} />
 
           {/* Completed AB pitches — shown faded */}
           {allPitches.slice(0, lastAbEndPitch).map((pitch, idx) => (
             <div
               key={`prev-${idx}`}
-              className="absolute rounded-full transform -translate-x-1/2 -translate-y-1/2 border border-white/20 flex items-center justify-center text-[7px] text-white/50 font-bold pointer-events-none"
+              className="absolute rounded-full transform -translate-x-1/2 -translate-y-1/2 border border-white/20 flex items-center justify-center text-[7px] text-white/50 font-bold pointer-events-none z-10"
               style={{
                 left: `${toPercent(pitch.xLocation)}%`,
                 top: `${100 - toPercent(pitch.yLocation)}%`,
@@ -185,7 +185,7 @@ export function LiveAbCharter({ pitchTypes = DEFAULT_PITCH_TYPES, onChange, init
           {pitchesInCurrentAb.map((pitch, idx) => (
             <div
               key={`cur-${idx}`}
-              className="absolute rounded-full transform -translate-x-1/2 -translate-y-1/2 border border-white/60 flex items-center justify-center text-[8px] text-white font-bold shadow pointer-events-none"
+              className="absolute rounded-full transform -translate-x-1/2 -translate-y-1/2 border border-white/60 flex items-center justify-center text-[8px] text-white font-bold shadow pointer-events-none z-10"
               style={{
                 left: `${toPercent(pitch.xLocation)}%`,
                 top: `${100 - toPercent(pitch.yLocation)}%`,

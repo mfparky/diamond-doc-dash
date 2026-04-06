@@ -42,24 +42,30 @@ export function usePitchLocations() {
     endDate?: string
   ): Promise<PitchLocation[]> => {
     try {
-      let query = supabase
-        .from('pitch_locations')
-        .select('*')
-        .eq('pitcher_id', pitcherId)
-        .order('created_at', { ascending: true });
+      const allRows: any[] = [];
+      const PAGE_SIZE = 1000;
+      let from = 0;
+      let hasMore = true;
 
-      if (startDate) {
-        query = query.gte('created_at', startDate);
+      while (hasMore) {
+        let query = supabase
+          .from('pitch_locations')
+          .select('*')
+          .eq('pitcher_id', pitcherId)
+          .order('created_at', { ascending: true })
+          .range(from, from + PAGE_SIZE - 1);
+
+        if (startDate) query = query.gte('created_at', startDate);
+        if (endDate) query = query.lte('created_at', endDate);
+
+        const { data, error } = await query;
+        if (error) throw error;
+        allRows.push(...(data || []));
+        hasMore = (data?.length ?? 0) === PAGE_SIZE;
+        from += PAGE_SIZE;
       }
-      if (endDate) {
-        query = query.lte('created_at', endDate);
-      }
 
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      return (data || []).map((row) => ({
+      return allRows.map((row) => ({
         id: row.id,
         outingId: row.outing_id,
         pitcherId: row.pitcher_id,

@@ -8,6 +8,8 @@ import { Auth } from "@/components/Auth";
 import { HomeButton } from "@/components/HomeButton";
 import Index from "./pages/Index";
 import PlayerDashboard from "./pages/PlayerDashboard";
+import TeamDashboard from "./pages/TeamDashboard";
+import CoachDashboard from "./pages/CoachDashboard";
 import CalibratePage from "./pages/CalibratePage";
 import PrintFormPage from "./pages/PrintFormPage";
 import NotFound from "./pages/NotFound";
@@ -29,8 +31,10 @@ function AppRoutes() {
     <BrowserRouter>
       <HomeButton />
       <Routes>
-        {/* Player dashboard remains public for parents to view */}
+        {/* Public dashboards for parents */}
         <Route path="/player/:playerId" element={<PlayerDashboard />} />
+        <Route path="/team/:teamId" element={<TeamDashboard />} />
+        <Route path="/dashboard/:userId" element={<CoachDashboard />} />
         
         {/* Protected routes require authentication */}
         <Route

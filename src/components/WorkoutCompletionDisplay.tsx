@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ClipboardCheck, Check, MessageSquare } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ClipboardCheck, Check, MessageSquare, Paperclip, ExternalLink, Camera } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { startOfWeek, format, addDays } from 'date-fns';
+import { startOfWeek, format, addDays, differenceInHours } from 'date-fns';
 
 interface WorkoutCompletionDisplayProps {
   pitcherId: string;
@@ -12,6 +13,8 @@ interface WorkoutAssignment {
   id: string;
   title: string;
   description: string | null;
+  frequency: number;
+  attachmentUrl: string | null;
 }
 
 interface WorkoutCompletion {
@@ -19,18 +22,22 @@ interface WorkoutCompletion {
   assignmentId: string;
   dayOfWeek: number;
   notes: string | null;
+  photoUrl: string | null;
+  createdAt: string;
 }
 
-// Get the Monday of the current week
 function getCurrentWeekStart(): string {
   const now = new Date();
   const monday = startOfWeek(now, { weekStartsOn: 1 });
   return format(monday, 'yyyy-MM-dd');
 }
 
-// Get day labels for current week
-function getWeekDayLabels(): string[] {
-  return ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+function getWeekDayLabels(): { label: string; date: Date }[] {
+  const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
+  return ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((label, i) => ({
+    label,
+    date: addDays(monday, i),
+  }));
 }
 
 export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplayProps) {
@@ -41,20 +48,18 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
   useEffect(() => {
     const fetchData = async () => {
       if (!pitcherId) return;
-
       setIsLoading(true);
       const weekStart = getCurrentWeekStart();
 
       try {
-        // Fetch assignments and completions in parallel
         const [assignmentsRes, completionsRes] = await Promise.all([
           supabase
             .from('workout_assignments')
-            .select('id, title, description')
+            .select('id, title, description, frequency, attachment_url')
             .eq('pitcher_id', pitcherId),
           supabase
             .from('workout_completions')
-            .select('id, assignment_id, day_of_week, notes')
+            .select('id, assignment_id, day_of_week, notes, photo_url, created_at')
             .eq('pitcher_id', pitcherId)
             .eq('week_start', weekStart),
         ]);
@@ -67,6 +72,8 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
             id: a.id,
             title: a.title,
             description: a.description,
+            frequency: (a as any).frequency ?? 7,
+            attachmentUrl: (a as any).attachment_url ?? null,
           }))
         );
 
@@ -76,6 +83,8 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
             assignmentId: c.assignment_id,
             dayOfWeek: c.day_of_week,
             notes: c.notes,
+            photoUrl: (c as any).photo_url ?? null,
+            createdAt: c.created_at,
           }))
         );
       } catch (error) {
@@ -90,20 +99,24 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
 
   const weekDays = getWeekDayLabels();
 
-  // Check if a day is completed for an assignment
   const isCompleted = (assignmentId: string, dayOfWeek: number): boolean => {
     return completions.some(
       (c) => c.assignmentId === assignmentId && c.dayOfWeek === dayOfWeek
     );
   };
 
-  // Get completion notes
-  const getCompletionNotes = (assignmentId: string, dayOfWeek: number): string | null => {
-    const completion = completions.find(
+  const getCompletion = (assignmentId: string, dayOfWeek: number): WorkoutCompletion | undefined => {
+    return completions.find(
       (c) => c.assignmentId === assignmentId && c.dayOfWeek === dayOfWeek
     );
-    return completion?.notes ?? null;
   };
+
+  const isRecent = (createdAt: string): boolean => {
+    return differenceInHours(new Date(), new Date(createdAt)) <= 48;
+  };
+
+  // Count recent completions for external use
+  const recentCount = completions.filter((c) => isRecent(c.createdAt)).length;
 
   if (isLoading) {
     return (
@@ -116,11 +129,10 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
   }
 
   if (assignments.length === 0) {
-    return null; // Don't show anything if no workouts assigned
+    return null;
   }
 
-  // Calculate total progress
-  const totalPossible = assignments.length * 7;
+  const totalPossible = assignments.reduce((sum, a) => sum + (a.frequency ?? 7), 0);
   const totalCompleted = completions.length;
   const completionRate = totalPossible > 0 ? Math.round((totalCompleted / totalPossible) * 100) : 0;
 
@@ -130,6 +142,11 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
         <CardTitle className="font-display text-lg flex items-center gap-2">
           <ClipboardCheck className="w-5 h-5 text-primary" />
           Weekly Accountability
+          {recentCount > 0 && (
+            <span className="ml-1 inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold w-5 h-5">
+              {recentCount}
+            </span>
+          )}
           <span className="text-sm font-normal text-muted-foreground ml-auto">
             {completionRate}% complete
           </span>
@@ -149,39 +166,92 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
                   {assignment.description && (
                     <p className="text-xs text-muted-foreground">{assignment.description}</p>
                   )}
+                  {assignment.attachmentUrl && (
+                    <a
+                      href={assignment.attachmentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-0.5"
+                    >
+                      <Paperclip className="w-3 h-3" />
+                      View details
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
                 </div>
-                <span className="text-xs font-medium text-primary">{completedDays}/7</span>
+                <span className="text-xs font-medium text-primary">{completedDays}/{assignment.frequency ?? 7}</span>
               </div>
 
               {/* Day grid */}
               <div className="flex gap-1">
-                {weekDays.map((label, dayIndex) => {
+                {weekDays.map(({ label, date }, dayIndex) => {
                   const completed = isCompleted(assignment.id, dayIndex);
-                  const notes = getCompletionNotes(assignment.id, dayIndex);
+                  const completion = getCompletion(assignment.id, dayIndex);
+                  const hasDetail = completed && (completion?.notes || completion?.photoUrl);
+                  const recent = completed && completion && isRecent(completion.createdAt);
 
-                  return (
-                    <div key={dayIndex} className="flex flex-col items-center gap-0.5">
+                  const dayCell = (
+                    <div className="flex flex-col items-center gap-0.5">
                       <span className="text-[10px] text-muted-foreground">{label}</span>
                       <div
                         className={`
-                          w-7 h-7 rounded-md flex items-center justify-center text-xs font-medium
+                          w-7 h-7 rounded-md flex items-center justify-center text-xs font-medium relative
                           ${completed
                             ? 'bg-primary text-primary-foreground'
                             : 'bg-muted/50 text-muted-foreground'
                           }
+                          ${hasDetail ? 'cursor-pointer ring-1 ring-primary/40' : ''}
                         `}
-                        title={notes ? `Notes: ${notes}` : undefined}
                       >
                         {completed ? (
                           <Check className="w-4 h-4" />
                         ) : (
                           <span className="opacity-30">-</span>
                         )}
+                        {recent && (
+                          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-accent animate-pulse border border-background" />
+                        )}
                       </div>
-                      {completed && notes && (
-                        <MessageSquare className="w-3 h-3 text-primary/60" />
-                      )}
+                      <div className="flex items-center gap-0.5 h-3">
+                        {completed && completion?.notes && (
+                          <MessageSquare className="w-3 h-3 text-primary/60" />
+                        )}
+                        {completed && completion?.photoUrl && (
+                          <Camera className="w-3 h-3 text-primary/60" />
+                        )}
+                      </div>
                     </div>
+                  );
+
+                  if (!hasDetail) {
+                    return <div key={dayIndex}>{dayCell}</div>;
+                  }
+
+                  return (
+                    <Popover key={dayIndex}>
+                      <PopoverTrigger asChild>
+                        {dayCell}
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-3 space-y-2" side="top">
+                        <p className="text-xs font-medium text-muted-foreground">
+                          {assignment.title} — {format(date, 'EEE, MMM d')}
+                        </p>
+                        {completion?.notes && (
+                          <div className="bg-muted/50 rounded p-2">
+                            <p className="text-sm text-foreground">{completion.notes}</p>
+                          </div>
+                        )}
+                        {completion?.photoUrl && (
+                          <a href={completion.photoUrl} target="_blank" rel="noopener noreferrer">
+                            <img
+                              src={completion.photoUrl}
+                              alt="Workout photo"
+                              className="rounded-md w-full max-h-40 object-cover border border-border hover:opacity-90 transition-opacity"
+                            />
+                          </a>
+                        )}
+                      </PopoverContent>
+                    </Popover>
                   );
                 })}
               </div>

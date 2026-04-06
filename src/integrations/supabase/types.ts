@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      dashboard_settings: {
+        Row: {
+          achievement_from: string | null
+          achievement_to: string | null
+          created_at: string
+          id: string
+          leaderboard_from: string | null
+          leaderboard_to: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          achievement_from?: string | null
+          achievement_to?: string | null
+          created_at?: string
+          id?: string
+          leaderboard_from?: string | null
+          leaderboard_to?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          achievement_from?: string | null
+          achievement_to?: string | null
+          created_at?: string
+          id?: string
+          leaderboard_from?: string | null
+          leaderboard_to?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       outings: {
         Row: {
           coach_notes: string | null
@@ -226,35 +259,76 @@ export type Database = {
       }
       teams: {
         Row: {
+          achievement_from: string | null
+          achievement_to: string | null
           created_at: string
           id: string
           join_code: string
+          leaderboard_from: string | null
+          leaderboard_to: string | null
           name: string
           owner_id: string
           updated_at: string
         }
         Insert: {
+          achievement_from?: string | null
+          achievement_to?: string | null
           created_at?: string
           id?: string
           join_code?: string
+          leaderboard_from?: string | null
+          leaderboard_to?: string | null
           name: string
           owner_id: string
           updated_at?: string
         }
         Update: {
+          achievement_from?: string | null
+          achievement_to?: string | null
           created_at?: string
           id?: string
           join_code?: string
+          leaderboard_from?: string | null
+          leaderboard_to?: string | null
           name?: string
           owner_id?: string
           updated_at?: string
         }
         Relationships: []
       }
+      user_approvals: {
+        Row: {
+          approved_at: string | null
+          created_at: string
+          email: string
+          id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       workout_assignments: {
         Row: {
+          attachment_url: string | null
           created_at: string
           description: string | null
+          frequency: number
           id: string
           pitcher_id: string
           team_id: string | null
@@ -263,8 +337,10 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          attachment_url?: string | null
           created_at?: string
           description?: string | null
+          frequency?: number
           id?: string
           pitcher_id: string
           team_id?: string | null
@@ -273,8 +349,10 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          attachment_url?: string | null
           created_at?: string
           description?: string | null
+          frequency?: number
           id?: string
           pitcher_id?: string
           team_id?: string | null
@@ -306,6 +384,7 @@ export type Database = {
           day_of_week: number
           id: string
           notes: string | null
+          photo_url: string | null
           pitcher_id: string
           week_start: string
         }
@@ -315,6 +394,7 @@ export type Database = {
           day_of_week: number
           id?: string
           notes?: string | null
+          photo_url?: string | null
           pitcher_id: string
           week_start: string
         }
@@ -324,6 +404,7 @@ export type Database = {
           day_of_week?: number
           id?: string
           notes?: string | null
+          photo_url?: string | null
           pitcher_id?: string
           week_start?: string
         }

@@ -1,0 +1,1 @@
+CREATE POLICY "Public can view team leaderboard dates" ON public.teams FOR SELECT TO anon USING (true);
