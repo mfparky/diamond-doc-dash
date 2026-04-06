@@ -367,7 +367,7 @@ export function AccountabilityDialog({
               onClick={() => setShowGallery(true)}
             >
               <Camera className="w-4 h-4" />
-              Workout Gallery
+              Workout Wall
               <span className="ml-auto text-xs text-muted-foreground">{galleryPhotoCount} photos</span>
             </Button>
           )}
@@ -385,7 +385,7 @@ export function AccountabilityDialog({
         open={showGallery}
         onOpenChange={setShowGallery}
         pitcherId={pitcherId}
-        title="Workout Gallery"
+        title="Workout Wall"
       />
     </Dialog>
   );
