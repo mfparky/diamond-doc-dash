@@ -927,14 +927,16 @@ function DesignShowcase({ t }: { t: Theme }) {
 
 // ─── Page Shell ────────────────────────────────────────────────────────────────
 
-type ThemeKey = 'current' | 'linear' | 'apple' | 'stripe' | 'athlete';
+type ThemeKey = 'current' | 'linear' | 'apple' | 'stripe' | 'athlete' | 'spotify' | 'supabase';
 
 const THEME_PAIRS: Record<ThemeKey, { light: Theme; dark: Theme; label: string; accent: string }> = {
-  current: { light: CURRENT_LIGHT, dark: CURRENT_DARK, label: 'Current', accent: '#4abe7a' },
-  linear:  { light: LINEAR_LIGHT,  dark: LINEAR,       label: 'Linear',  accent: '#7170ff' },
-  apple:   { light: APPLE,         dark: APPLE_DARK,   label: 'Apple',   accent: '#0071e3' },
-  stripe:  { light: STRIPE,        dark: STRIPE_DARK,  label: 'Stripe',  accent: '#533afd' },
-  athlete: { light: ATHLETE_LIGHT, dark: ATHLETE,      label: 'Athlete', accent: '#c6f135' },
+  current:  { light: CURRENT_LIGHT,  dark: CURRENT_DARK,  label: 'Current',  accent: '#4abe7a' },
+  linear:   { light: LINEAR_LIGHT,   dark: LINEAR,        label: 'Linear',   accent: '#7170ff' },
+  apple:    { light: APPLE,          dark: APPLE_DARK,    label: 'Apple',    accent: '#0071e3' },
+  stripe:   { light: STRIPE,         dark: STRIPE_DARK,   label: 'Stripe',   accent: '#533afd' },
+  athlete:  { light: ATHLETE_LIGHT,  dark: ATHLETE,       label: 'Athlete',  accent: '#c6f135' },
+  spotify:  { light: SPOTIFY_LIGHT,  dark: SPOTIFY_DARK,  label: 'Spotify',  accent: '#1ed760' },
+  supabase: { light: SUPABASE_LIGHT, dark: SUPABASE_DARK, label: 'Supabase', accent: '#3ecf8e' },
 };
 
 export default function DesignSystemPage() {
