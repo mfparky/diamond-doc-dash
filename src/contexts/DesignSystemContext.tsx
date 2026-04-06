@@ -1,29 +1,68 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-// Hex → HSL conversion
-function hexToHSL(hex: string): string {
+type HSL = {
+  h: number;
+  s: number;
+  l: number;
+};
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
+function hexToHSLObject(hex: string): HSL {
   hex = hex.replace('#', '');
   if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+
   const r = parseInt(hex.substring(0, 2), 16) / 255;
   const g = parseInt(hex.substring(2, 4), 16) / 255;
   const b = parseInt(hex.substring(4, 6), 16) / 255;
 
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  let h = 0, s = 0;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
   const l = (max + min) / 2;
 
   if (max !== min) {
     const d = max - min;
     s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
     switch (max) {
-      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-      case g: h = ((b - r) / d + 2) / 6; break;
-      case b: h = ((r - g) / d + 4) / 6; break;
+      case r:
+        h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+        break;
+      case g:
+        h = ((b - r) / d + 2) / 6;
+        break;
+      case b:
+        h = ((r - g) / d + 4) / 6;
+        break;
     }
   }
 
-  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+  return {
+    h: Math.round(h * 360),
+    s: Math.round(s * 100),
+    l: Math.round(l * 100),
+  };
+}
+
+function hslToString({ h, s, l }: HSL): string {
+  return `${Math.round(h)} ${Math.round(s)}% ${Math.round(l)}%`;
+}
+
+function hexToHSL(hex: string): string {
+  return hslToString(hexToHSLObject(hex));
+}
+
+function toneFrom(base: HSL, overrides: Partial<HSL>): string {
+  return hslToString({
+    h: overrides.h ?? base.h,
+    s: clamp(overrides.s ?? base.s, 0, 100),
+    l: clamp(overrides.l ?? base.l, 0, 100),
+  });
 }
 
 export interface DesignSystemTheme {
@@ -129,79 +168,111 @@ export const DESIGN_SYSTEMS: DesignSystemTheme[] = [
 ];
 
 const STYLE_TAG_ID = 'design-system-theme';
+type ThemeMode = 'light' | 'dark';
 
-function buildVarsMap(theme: DesignSystemTheme): Record<string, string> {
+function buildModeVars(theme: DesignSystemTheme, mode: ThemeMode): Record<string, string> {
+  const bg = hexToHSLObject(theme.bg);
+  const surface = hexToHSLObject(theme.surface);
+  const elevated = hexToHSLObject(theme.surfaceElevated);
+  const textPrimary = hexToHSLObject(theme.textPrimary);
+  const textSecondary = hexToHSLObject(theme.textSecondary);
+  const textMuted = hexToHSLObject(theme.textMuted);
+  const border = hexToHSLObject(theme.borderSolid);
+
+  const isNativeMode = (mode === 'dark' && theme.isDark) || (mode === 'light' && !theme.isDark);
+
+  const background = isNativeMode
+    ? hexToHSL(theme.bg)
+    : mode === 'light'
+      ? toneFrom(bg, { s: Math.min(bg.s, 12), l: 97 })
+      : toneFrom(bg, { s: clamp(Math.max(bg.s, 10), 10, 28), l: 8 });
+
+  const card = isNativeMode
+    ? hexToHSL(theme.surface)
+    : mode === 'light'
+      ? toneFrom(surface, { s: Math.min(surface.s, 10), l: 100 })
+      : toneFrom(surface, { s: clamp(Math.max(surface.s, 10), 10, 24), l: 12 });
+
+  const secondary = isNativeMode
+    ? hexToHSL(theme.surfaceElevated)
+    : mode === 'light'
+      ? toneFrom(elevated, { s: Math.min(elevated.s, 12), l: 94 })
+      : toneFrom(elevated, { s: clamp(Math.max(elevated.s, 12), 12, 26), l: 18 });
+
+  const foreground = isNativeMode
+    ? hexToHSL(theme.textPrimary)
+    : mode === 'light'
+      ? toneFrom(textPrimary, { s: clamp(textPrimary.s, 0, 18), l: 12 })
+      : toneFrom(textPrimary, { s: clamp(Math.max(textPrimary.s, 6), 6, 20), l: 96 });
+
+  const secondaryForeground = isNativeMode
+    ? hexToHSL(theme.textSecondary)
+    : mode === 'light'
+      ? toneFrom(textSecondary, { s: clamp(textSecondary.s, 0, 24), l: 32 })
+      : toneFrom(textSecondary, { s: clamp(Math.max(textSecondary.s, 8), 8, 20), l: 74 });
+
+  const mutedForeground = isNativeMode
+    ? hexToHSL(theme.textMuted)
+    : mode === 'light'
+      ? toneFrom(textMuted, { s: clamp(textMuted.s, 0, 18), l: 46 })
+      : toneFrom(textMuted, { s: clamp(Math.max(textMuted.s, 6), 6, 16), l: 60 });
+
+  const borderColor = isNativeMode
+    ? hexToHSL(theme.borderSolid)
+    : mode === 'light'
+      ? toneFrom(border, { s: clamp(border.s, 0, 14), l: 88 })
+      : toneFrom(border, { s: clamp(Math.max(border.s, 6), 6, 18), l: 24 });
+
   return {
-    '--background': hexToHSL(theme.bg),
-    '--foreground': hexToHSL(theme.textPrimary),
-    '--card': hexToHSL(theme.surface),
-    '--card-foreground': hexToHSL(theme.textPrimary),
-    '--popover': hexToHSL(theme.surface),
-    '--popover-foreground': hexToHSL(theme.textPrimary),
+    '--background': background,
+    '--foreground': foreground,
+    '--card': card,
+    '--card-foreground': foreground,
+    '--popover': card,
+    '--popover-foreground': foreground,
     '--primary': hexToHSL(theme.accentBg),
     '--primary-foreground': hexToHSL(theme.accentText),
-    '--secondary': hexToHSL(theme.surfaceElevated),
-    '--secondary-foreground': hexToHSL(theme.textSecondary),
-    '--muted': hexToHSL(theme.surfaceElevated),
-    '--muted-foreground': hexToHSL(theme.textMuted),
+    '--secondary': secondary,
+    '--secondary-foreground': secondaryForeground,
+    '--muted': secondary,
+    '--muted-foreground': mutedForeground,
     '--accent': hexToHSL(theme.accent),
     '--accent-foreground': hexToHSL(theme.accentText),
-    '--border': hexToHSL(theme.borderSolid),
-    '--input': hexToHSL(theme.borderSolid),
+    '--border': borderColor,
+    '--input': borderColor,
     '--ring': hexToHSL(theme.accent),
     '--status-active': hexToHSL(theme.statusGreen),
     '--status-warning': hexToHSL(theme.statusYellow),
     '--status-caution': hexToHSL(theme.statusYellow),
     '--status-danger': hexToHSL(theme.statusRed),
-    '--sidebar-background': hexToHSL(theme.surface),
-    '--sidebar-foreground': hexToHSL(theme.textSecondary),
+    '--sidebar-background': card,
+    '--sidebar-foreground': secondaryForeground,
     '--sidebar-primary': hexToHSL(theme.accentBg),
     '--sidebar-primary-foreground': hexToHSL(theme.accentText),
-    '--sidebar-accent': hexToHSL(theme.surfaceElevated),
-    '--sidebar-accent-foreground': hexToHSL(theme.textSecondary),
-    '--sidebar-border': hexToHSL(theme.borderSolid),
+    '--sidebar-accent': secondary,
+    '--sidebar-accent-foreground': secondaryForeground,
+    '--sidebar-border': borderColor,
     '--sidebar-ring': hexToHSL(theme.accent),
     '--radius': theme.radius,
   };
 }
 
 function varsToCSS(vars: Record<string, string>): string {
-  return Object.entries(vars).map(([k, v]) => `  ${k}: ${v};`).join('\n');
-}
-
-// Generate a light-mode variant by lightening/adjusting the theme colors
-function buildLightVars(theme: DesignSystemTheme): Record<string, string> {
-  // For light themes, use the same vars. For dark themes, invert bg/text.
-  // Since each theme has a fixed isDark, we provide sensible light overrides.
-  // The .light class in index.css already has default light values,
-  // so we only inject this block to keep accent/brand colors consistent.
-  return {
-    '--primary': hexToHSL(theme.accentBg),
-    '--primary-foreground': hexToHSL(theme.accentText),
-    '--accent': hexToHSL(theme.accent),
-    '--accent-foreground': hexToHSL(theme.accentText),
-    '--ring': hexToHSL(theme.accent),
-    '--status-active': hexToHSL(theme.statusGreen),
-    '--status-warning': hexToHSL(theme.statusYellow),
-    '--status-caution': hexToHSL(theme.statusYellow),
-    '--status-danger': hexToHSL(theme.statusRed),
-    '--radius': theme.radius,
-  };
+  return Object.entries(vars).map(([key, value]) => `  ${key}: ${value};`).join('\n');
 }
 
 function applyThemeToDOM(theme: DesignSystemTheme) {
-  // Remove any existing injected style
   let styleEl = document.getElementById(STYLE_TAG_ID) as HTMLStyleElement | null;
+
   if (!styleEl) {
     styleEl = document.createElement('style');
     styleEl.id = STYLE_TAG_ID;
     document.head.appendChild(styleEl);
   }
 
-  const darkVars = buildVarsMap(theme);
-  const lightVars = buildLightVars(theme);
+  const darkVars = buildModeVars(theme, 'dark');
+  const lightVars = buildModeVars(theme, 'light');
 
-  // Write CSS rules so the cascade works: .light overrides :root
   styleEl.textContent = `
 :root {
 ${varsToCSS(darkVars)}
@@ -241,11 +312,9 @@ export function DesignSystemProvider({ children }: { children: React.ReactNode }
 
   const activeSystem = DESIGN_SYSTEMS.find(s => s.id === activeId) || DESIGN_SYSTEMS[0];
 
-  // On mount, fetch team's design_system from DB
   useEffect(() => {
     async function fetchTheme() {
       try {
-        // Get first team's design_system (works for both anon and authenticated)
         const { data } = await supabase
           .from('teams')
           .select('design_system')
@@ -256,15 +325,14 @@ export function DesignSystemProvider({ children }: { children: React.ReactNode }
           setActiveId(data.design_system);
         }
       } catch {
-        // Fall back to default
       } finally {
         setLoading(false);
       }
     }
+
     fetchTheme();
   }, []);
 
-  // Apply theme to DOM whenever it changes
   useEffect(() => {
     if (activeId === 'default') {
       clearThemeFromDOM();
@@ -276,11 +344,10 @@ export function DesignSystemProvider({ children }: { children: React.ReactNode }
   const setSystem = useCallback(async (id: string, teamId?: string) => {
     setActiveId(id);
 
-    // If teamId provided, persist to DB (coach only)
     if (teamId) {
       await supabase
         .from('teams')
-        .update({ design_system: id } as any)
+        .update({ design_system: id } as never)
         .eq('id', teamId);
     }
   }, []);
@@ -292,7 +359,7 @@ export function DesignSystemProvider({ children }: { children: React.ReactNode }
     if (teamId) {
       await supabase
         .from('teams')
-        .update({ design_system: 'default' } as any)
+        .update({ design_system: 'default' } as never)
         .eq('id', teamId);
     }
   }, []);
