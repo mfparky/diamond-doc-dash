@@ -1,0 +1,1 @@
+ALTER TABLE public.teams ADD COLUMN design_system text DEFAULT 'default';

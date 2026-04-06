@@ -1,58 +1,43 @@
 
 
-## Plan: "What's New" Release Notes Modal with Coach Toggle
+## Plan: Coach-Only Global Design System (Backend-Controlled)
 
-### Overview
+### Problem
+Currently, the design system switcher is client-side only — each user's browser stores their own theme in `localStorage`. You want to set the theme **once** as the coach, and have **all users** (parents, public dashboards) see that theme.
 
-A release notes modal that shows once per user per version, with a toggle in coach Settings so you can turn it on/off before deploying.
+### Approach
+Store the active design system ID in the `teams` table (where you already store dashboard settings). The app reads the team's theme on load and applies it globally. Only authenticated coaches can change it; everyone else just receives it.
 
-### How It Works
+### Changes
 
+**1. Database migration** — Add `design_system` column to `teams`
+- `ALTER TABLE teams ADD COLUMN design_system text DEFAULT 'default';`
+- No new RLS needed — `teams` already has anon SELECT access for public dashboards
+
+**2. `src/contexts/DesignSystemContext.tsx`** — Fetch theme from Supabase
+- On mount, query the team's `design_system` value (using the team ID from context or a default query)
+- Fall back to `'default'` if no team found
+- Remove `localStorage` persistence — the DB is the source of truth
+- Keep `setSystem()` but have it **write to the DB** (only works for authenticated coaches)
+
+**3. `src/pages/DesignSystemPage.tsx`** — Auth-gate the switcher
+- Require authentication to access `/design-systems`
+- When a theme is selected, call `supabase.from('teams').update({ design_system: id })` for the coach's team
+- Show a success toast confirming the change is live for all users
+
+**4. Public dashboards** (PlayerDashboard, TeamDashboard, TeamWallPage)
+- These already sit inside `DesignSystemProvider`
+- They'll automatically pick up the team's theme from the DB query
+
+### Flow
 ```text
-Coach edits release-notes.ts → sets enabled: true → deploys
+Coach visits /design-systems → selects "Stripe" → saved to teams.design_system
   ↓
-User logs in → localStorage check: lastSeenRelease_{userId} vs version
-  ↓
-If mismatch AND enabled === true → show modal
-  ↓
-User clicks "Got it" → save version to localStorage
+Parent visits /player/:id → DesignSystemProvider loads team theme → Stripe applied
 ```
 
-The coach toggle is a simple `enabled` boolean in the config file. Set it to `false` while drafting, flip to `true` when ready. No database needed.
-
-### Files
-
-**1. New: `src/lib/release-notes.ts`**
-
-Static config file with:
-- `version`: string (e.g. `"2026-04-06"`)
-- `enabled`: boolean — the on/off toggle. Set `false` to suppress the modal entirely
-- `title`: string
-- `features`: array of `{ heading, description }` objects
-
-Initial content will cover the recent features: Workout Wall, Coach Notifications, Image Optimization, Workout Counter.
-
-**2. New: `src/components/WhatsNewDialog.tsx`**
-
-- Reads `CURRENT_RELEASE` from the config
-- If `enabled` is `false`, renders nothing
-- Checks `localStorage` key `whatsNew_{userId}` against `version`
-- If new version, auto-opens a clean dialog with feature list
-- "Got it" button saves version to localStorage and closes
-- Styled consistently with existing dialogs (glass-card aesthetic)
-
-**3. Modified: `src/pages/Index.tsx`**
-
-- Import and render `<WhatsNewDialog />` inside the authenticated Index page
-- Pass the user ID from `useAuth` (already available via App.tsx context — we'll thread it through or use `useAuth` directly in the dialog)
-
-### Toggle Workflow
-
-To control releases:
-1. Edit `src/lib/release-notes.ts`
-2. Set `enabled: false` while writing the message
-3. Preview locally to check copy
-4. Set `enabled: true` and deploy
-
-No database, no settings UI — just a code toggle that you review before each push.
+### What This Gives You
+- One place to set the look for the entire app
+- Parents and public viewers see whatever you chose — no localStorage dependency
+- Changing it back is instant (select Default, save)
 

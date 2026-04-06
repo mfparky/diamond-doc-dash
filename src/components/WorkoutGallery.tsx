@@ -20,9 +20,10 @@ interface WorkoutGalleryProps {
   pitcherIds?: string[];
   teamId?: string;
   onPhotoCount?: (count: number) => void;
+  disableLightbox?: boolean;
 }
 
-export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, onPhotoCount }: WorkoutGalleryProps) {
+export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, onPhotoCount, disableLightbox = false }: WorkoutGalleryProps) {
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
   const [loading, setLoading] = useState(true);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -155,11 +156,13 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
             .toUpperCase()
             .slice(0, 2);
 
+          const Wrapper = disableLightbox ? 'div' as const : 'button' as const;
+
           return (
-            <button
+            <Wrapper
               key={photo.id}
-              className="group relative w-full rounded-2xl overflow-hidden bg-muted/30 break-inside-avoid focus:outline-none focus:ring-2 focus:ring-primary/50 transition-transform hover:scale-[1.02]"
-              onClick={() => setLightboxIndex(idx)}
+              className={`group relative w-full rounded-2xl overflow-hidden bg-muted/30 break-inside-avoid ${disableLightbox ? '' : 'focus:outline-none focus:ring-2 focus:ring-primary/50 transition-transform hover:scale-[1.02]'}`}
+              {...(!disableLightbox ? { onClick: () => setLightboxIndex(idx) } : {})}
             >
               <img
                 src={photo.photoUrl}
@@ -169,7 +172,9 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
               />
 
               {/* Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              {!disableLightbox && (
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              )}
 
               {/* Bottom info — always visible */}
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-3 py-2.5">
@@ -197,13 +202,13 @@ export function WorkoutGallery({ pitcherId, pitcherIds: propPitcherIds, teamId, 
               <div className="absolute top-2 right-2 bg-black/40 backdrop-blur-sm text-white text-[9px] font-medium px-2 py-0.5 rounded-full">
                 {photo.workoutTitle}
               </div>
-            </button>
+            </Wrapper>
           );
         })}
       </div>
 
       {/* Lightbox */}
-      {lightboxPhoto && (
+      {!disableLightbox && lightboxPhoto && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4"
           onClick={() => setLightboxIndex(null)}

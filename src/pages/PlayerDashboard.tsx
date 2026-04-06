@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Pitcher, Outing, getDaysRestNeeded, calculateRestStatus } from '@/types/pitcher';
 import { calculatePitcherStats } from '@/lib/pitcher-data';
@@ -25,7 +25,7 @@ import { ProgressReportCard } from '@/components/ProgressReportCard';
 import { generateReport } from '@/lib/generate-report';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { TrendingUp, Target, Gauge, Calendar, Video, Shield, ArrowLeft, Play, MessageSquare, ClipboardCheck, Share2, Copy, Check, Download, Star, Users, Camera } from 'lucide-react';
+import { TrendingUp, Target, Gauge, Calendar, Video, Shield, ArrowLeft, ArrowRight, Play, MessageSquare, ClipboardCheck, Share2, Copy, Check, Download, Star, Users, Camera } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import hawksLogo from '@/assets/hawks-logo.png';
 import { LiveAbsSummary } from '@/components/LiveAbsSummary';
@@ -35,6 +35,7 @@ import { WorkoutGallery } from '@/components/WorkoutGallery';
 
 export default function PlayerDashboard() {
   const { playerId } = useParams<{ playerId: string }>();
+  const navigate = useNavigate();
   const [pitcher, setPitcher] = useState<Pitcher | null>(null);
   const [outings, setOutings] = useState<Outing[]>([]);
   const [pitchTypes, setPitchTypes] = useState<PitchTypeConfig>(DEFAULT_PITCH_TYPES);
@@ -762,14 +763,22 @@ export default function PlayerDashboard() {
         {/* Workout Photo Gallery */}
         {playerId && (
           <Card className="glass-card border-primary/20">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-3 flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Camera className="w-4 h-4 text-primary" />
                 Workout Gallery
               </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-primary gap-1"
+                onClick={() => navigate(`/team/${teamId}/wall`)}
+              >
+                View Team Wall <ArrowRight className="w-3 h-3" />
+              </Button>
             </CardHeader>
             <CardContent className="pt-0">
-              <WorkoutGallery pitcherId={playerId} />
+              <WorkoutGallery pitcherId={playerId} disableLightbox />
             </CardContent>
           </Card>
         )}
