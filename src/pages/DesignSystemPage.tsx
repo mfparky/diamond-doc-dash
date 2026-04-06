@@ -952,42 +952,34 @@ export default function DesignSystemPage() {
           })}
         </div>
 
-        {/* Extra systems dropdown (Coinbase, Kraken — not in preview tabs) */}
+        {/* Extra systems not in preview tabs */}
         <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
 
-        <select
-          onChange={async (e) => {
-            const id = e.target.value;
-            // If it maps to a preview tab, switch to that tab
-            const tabKey = (Object.keys(themeKeyToSystemId) as ThemeKey[]).find(
-              k => themeKeyToSystemId[k] === id
-            );
-            if (tabKey) {
-              setActive(tabKey);
-            }
-            // Apply immediately
-            if (isCoach && teamId) {
-              await setSystem(id, teamId);
-              toast.success(`"${DESIGN_SYSTEMS.find(s => s.id === id)?.name}" applied for all users.`);
-            } else {
-              await setSystem(id);
-            }
-          }}
-          value={activeSystemId}
-          style={{
-            padding: '5px 8px', borderRadius: '6px', flexShrink: 0,
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            color: 'rgba(255,255,255,0.6)',
-            fontSize: '12px', fontFamily: 'inherit', cursor: 'pointer',
-          }}
-        >
-          {systems.map(s => (
-            <option key={s.id} value={s.id} style={{ background: '#1a1a1a', color: '#fff' }}>
-              {s.name}{activeSystemId === s.id ? ' ✓' : ''}
-            </option>
-          ))}
-        </select>
+        {systems.filter(s => !Object.values(themeKeyToSystemId).includes(s.id) || false).length > 0 && (
+          <select
+            onChange={(e) => {
+              if (isCoach && teamId) {
+                setSystem(e.target.value, teamId);
+              } else {
+                setSystem(e.target.value);
+              }
+            }}
+            value={activeSystemId}
+            style={{
+              padding: '5px 8px', borderRadius: '6px', flexShrink: 0,
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              color: 'rgba(255,255,255,0.6)',
+              fontSize: '12px', fontFamily: 'inherit', cursor: 'pointer',
+            }}
+          >
+            {systems.map(s => (
+              <option key={s.id} value={s.id} style={{ background: '#1a1a1a', color: '#fff' }}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        )}
 
         {/* Apply / Reset button */}
         <button
