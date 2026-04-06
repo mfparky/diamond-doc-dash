@@ -834,10 +834,26 @@ export function RosterManagementDialog({
                 </TabsContent>
 
                 <TabsContent value="gallery" className="flex-1 overflow-y-auto py-4 mt-0">
-                  <WorkoutGallery
-                    teamId={pitchers[0]?.teamId}
-                    pitcherIds={pitchers.map((p) => p.id)}
-                  />
+                  {pitchers[0]?.teamId ? (
+                    <div className="flex flex-col items-center gap-4 py-8">
+                      <WorkoutGallery
+                        teamId={pitchers[0]?.teamId}
+                        pitcherIds={pitchers.map((p) => p.id)}
+                      />
+                      <a
+                        href={`/team/${pitchers[0].teamId}/wall`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-sm text-primary hover:underline font-medium"
+                      >
+                        Open full Workout Wall →
+                      </a>
+                    </div>
+                  ) : (
+                    <WorkoutGallery
+                      pitcherIds={pitchers.map((p) => p.id)}
+                    />
+                  )}
                 </TabsContent>
               </Tabs>
             </>
