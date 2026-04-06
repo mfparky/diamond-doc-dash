@@ -772,7 +772,7 @@ export default function PlayerDashboard() {
                 variant="ghost"
                 size="sm"
                 className="text-xs text-primary gap-1"
-                onClick={() => navigate('/wall/hawks12uAA')}
+                onClick={() => navigate('/team/hawks12uAA/wall')}
               >
                 View Team Wall <ArrowRight className="w-3 h-3" />
               </Button>
