@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ClipboardCheck, Check, MessageSquare, Trophy, Paperclip, ExternalLink, Camera, X, Loader2 } from 'lucide-react';
 import { TeamLeaderboardDialog } from '@/components/TeamLeaderboardDialog';
+import { WorkoutGalleryDialog } from '@/components/WorkoutGalleryDialog';
 import { WorkoutAssignment, WorkoutCompletion, getWeekDayLabels } from '@/hooks/use-workouts';
 import { format } from 'date-fns';
 
@@ -40,6 +41,8 @@ export function AccountabilityDialog({
   const [editingNotes, setEditingNotes] = useState<{ assignmentId: string; dayOfWeek: number } | null>(null);
   const [noteText, setNoteText] = useState('');
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
+  const [galleryPhotoCount, setGalleryPhotoCount] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -333,8 +336,8 @@ export function AccountabilityDialog({
           })}
         </div>
 
-        {/* Team Leaderboard Link */}
-        <div className="border-t border-border pt-4">
+        {/* Team Leaderboard & Gallery Links */}
+        <div className="border-t border-border pt-4 space-y-2">
           <Button
             variant="outline"
             className="w-full gap-2"
@@ -343,7 +346,40 @@ export function AccountabilityDialog({
             <Trophy className="w-4 h-4" />
             View Team Leaderboard
           </Button>
+
+          {galleryPhotoCount >= 10 && (
+            <Button
+              variant="outline"
+              className="w-full gap-2"
+              onClick={() => setShowGallery(true)}
+            >
+              <Camera className="w-4 h-4" />
+              Workout Gallery
+              <span className="ml-auto text-xs text-muted-foreground">{galleryPhotoCount} photos</span>
+            </Button>
+          )}
         </div>
+
+        {/* Hidden gallery count fetcher */}
+        {open && (
+          <div className="hidden">
+            <img
+              src=""
+              alt=""
+              ref={() => {
+                // Fetch photo count on mount
+                (async () => {
+                  const { count } = await (await import('@/integrations/supabase/client')).supabase
+                    .from('workout_completions')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('pitcher_id', pitcherId)
+                    .not('photo_url', 'is', null);
+                  if (count !== null) setGalleryPhotoCount(count);
+                })();
+              }}
+            />
+          </div>
+        )
       </DialogContent>
 
       <TeamLeaderboardDialog
