@@ -875,12 +875,14 @@ const THEME_PAIRS: Record<ThemeKey, { light: Theme; dark: Theme; label: string; 
 
 export default function DesignSystemPage() {
   const [active, setActive] = useState<ThemeKey>('current');
-  const [darkMode, setDarkMode] = useState(true);
-  const pair = THEME_PAIRS[active];
-  const t = darkMode ? pair.dark : pair.light;
-  const { activeSystemId, setSystem, resetToDefault, systems } = useDesignSystem();
+  const { activeSystemId, mode, setMode, setSystem, resetToDefault, systems } = useDesignSystem();
   const { user } = useAuth();
   const [teamId, setTeamId] = useState<string | null>(null);
+
+  // Local preview mode (synced with global mode initially)
+  const [darkMode, setDarkMode] = useState(mode === 'dark');
+  const pair = THEME_PAIRS[active];
+  const t = darkMode ? pair.dark : pair.light;
 
   // Fetch the coach's team
   useEffect(() => {
@@ -910,6 +912,30 @@ export default function DesignSystemPage() {
 
   const currentSystemId = themeKeyToSystemId[active];
   const isApplied = activeSystemId === currentSystemId;
+
+  const handleApply = async () => {
+    if (!isCoach) {
+      toast.error('Sign in as a coach to change the global theme.');
+      return;
+    }
+    await setSystem(currentSystemId, teamId!);
+    // Also apply the current preview mode globally
+    setMode(darkMode ? 'dark' : 'light');
+    const name = DESIGN_SYSTEMS.find(s => s.id === currentSystemId)?.name || currentSystemId;
+    toast.success(`"${name}" applied globally (${darkMode ? 'dark' : 'light'} mode).`);
+  };
+
+  const handleReset = async () => {
+    if (!isCoach) {
+      toast.error('Sign in as a coach to reset the theme.');
+      return;
+    }
+    await resetToDefault(teamId!);
+    setMode('dark');
+    setDarkMode(true);
+    setActive('current');
+    toast.success('Design system reset to default.');
+  };
 
   return (
     <div style={{ minHeight: '100vh', background: '#000' }}>
@@ -952,50 +978,12 @@ export default function DesignSystemPage() {
           })}
         </div>
 
-        {/* Extra systems not in preview tabs */}
         <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
 
-        {systems.filter(s => !Object.values(themeKeyToSystemId).includes(s.id) || false).length > 0 && (
-          <select
-            onChange={(e) => {
-              if (isCoach && teamId) {
-                setSystem(e.target.value, teamId);
-              } else {
-                setSystem(e.target.value);
-              }
-            }}
-            value={activeSystemId}
-            style={{
-              padding: '5px 8px', borderRadius: '6px', flexShrink: 0,
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              color: 'rgba(255,255,255,0.6)',
-              fontSize: '12px', fontFamily: 'inherit', cursor: 'pointer',
-            }}
-          >
-            {systems.map(s => (
-              <option key={s.id} value={s.id} style={{ background: '#1a1a1a', color: '#fff' }}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-        )}
-
-        {/* Apply / Reset button */}
+        {/* Apply button */}
         <button
-          onClick={async () => {
-            if (!isCoach) {
-              toast.error('Sign in as a coach to change the global theme.');
-              return;
-            }
-            if (isApplied && activeSystemId !== 'default') {
-              await resetToDefault(teamId!);
-              toast.success('Design system reset to default for all users.');
-            } else {
-              await setSystem(currentSystemId, teamId!);
-              toast.success(`"${DESIGN_SYSTEMS.find(s => s.id === currentSystemId)?.name}" applied for all users.`);
-            }
-          }}
+          onClick={handleApply}
+          disabled={!isCoach}
           style={{
             display: 'flex', alignItems: 'center', gap: '6px',
             padding: '6px 14px', borderRadius: '6px', flexShrink: 0,
@@ -1008,15 +996,28 @@ export default function DesignSystemPage() {
           {!isCoach ? (
             <><Lock size={13} /> Sign in to apply</>
           ) : isApplied ? (
-            activeSystemId === 'default' ? (
-              <><Check size={13} /> Default</>
-            ) : (
-              <><RotateCcw size={13} /> Reset</>
-            )
+            <><Check size={13} /> Applied</>
           ) : (
-            <><Paintbrush size={13} /> Apply globally</>
+            <><Paintbrush size={13} /> Apply</>
           )}
         </button>
+
+        {/* Reset button */}
+        {isCoach && activeSystemId !== 'default' && (
+          <button
+            onClick={handleReset}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '6px 14px', borderRadius: '6px', flexShrink: 0,
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.10)',
+              color: 'rgba(255,255,255,0.5)',
+              fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            <RotateCcw size={13} /> Reset
+          </button>
+        )}
 
         {/* Light / Dark toggle */}
         <button
