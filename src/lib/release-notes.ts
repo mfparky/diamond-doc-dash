@@ -11,7 +11,7 @@ export interface ReleaseNotes {
 }
 
 export const CURRENT_RELEASE: ReleaseNotes = {
-  version: "2026-04-06",
+  version: "2026-04-07",
   enabled: false,
   title: "What's New 🎉",
   features: [
@@ -20,20 +20,25 @@ export const CURRENT_RELEASE: ReleaseNotes = {
       description: "A full-page photo wall celebrates your players' hard work, plus a live leaderboard with animated counters to track who's putting in the reps.",
     },
     {
-      heading: "📊 Session Breakdown Reorder",
-      description: "The workout completion counter now sits above the session breakdown for a cleaner, more intuitive layout.",
+      heading: "🤝 Sponsor Spotlight",
+      description: "Our sponsors now get a dedicated tile on the Workout Wall — randomly placed each visit to keep things fresh. Thank you to everyone who supports the team!",
     },
     {
-      heading: "👨‍👩‍👦 Parent Dashboard Improvements",
-      description: "Workout photos no longer break the layout — they're now static previews with a 'View Team Wall' link for the full experience.",
+      heading: "🎨 Team Design System",
+      description: "Coaches can now apply a custom look & feel across the entire app from the Design System page — with light/dark mode support and a one-click reset.",
+    },
+    {
+      heading: "🔢 Smoother Flip Counter",
+      description: "The workout completion counter now flips faster and smoother, with all digits perfectly in sync.",
+    },
+    {
+      heading: "📊 Session Breakdown Reorder",
+      description: "The workout completion counter now sits above the session breakdown for a cleaner, more intuitive layout.",
     },
     {
       heading: "📸 Image Optimization",
       description: "Workout photos are auto-compressed for faster loading without losing quality.",
     },
-    {
-      heading: "🔔 What's New Updates",
-      description: "You'll now see a quick summary like this whenever we ship improvements. Coaches control when it goes live.",
-    },
   ],
+  signoff: "-Coach Matt",
 };
