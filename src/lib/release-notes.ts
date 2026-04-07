@@ -13,7 +13,7 @@ export interface ReleaseNotes {
 
 export const CURRENT_RELEASE: ReleaseNotes = {
   version: "2026-04-07",
-  enabled: false,
+  enabled: true,
   title: "What's New 🎉",
   features: [
     {
