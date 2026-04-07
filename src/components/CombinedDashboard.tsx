@@ -9,13 +9,16 @@ import { FlipCounter } from '@/components/FlipCounter';
 
 import { VelocityScale } from '@/components/VelocityScale';
 import { DateRangePicker } from '@/components/DateRangePicker';
+import { WorkoutLeaderboard } from '@/components/WorkoutLeaderboard';
+import { PitcherRecord } from '@/hooks/use-pitchers';
 import { supabase } from '@/integrations/supabase/client';
-import { Activity, Target, Calendar, Flame, TrendingUp, TrendingDown, Minus, Dumbbell } from 'lucide-react';
+import { Activity, Target, Calendar, Flame, TrendingUp, TrendingDown, Minus, Dumbbell, Trophy } from 'lucide-react';
 
 interface CombinedDashboardProps {
   outings: Outing[];
   pitcherPitchTypes: Record<string, PitchTypeConfig>;
-  parentMode?: boolean; // Hides date picker and time toggle, locks to season view
+  parentMode?: boolean;
+  teamId?: string;
 }
 
 const EVENT_COLORS: Record<string, string> = {
@@ -29,7 +32,7 @@ type ViewMode = '7-day' | 'season';
 
 type ResultFilter = 'all' | 'strikes' | 'balls';
 
-export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = false }: CombinedDashboardProps) {
+export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = false, teamId }: CombinedDashboardProps) {
   const [pitchLocations, setPitchLocations] = useState<PitchLocation[]>([]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('season');

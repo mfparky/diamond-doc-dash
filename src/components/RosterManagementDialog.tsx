@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { PitcherRecord } from '@/hooks/use-pitchers';
 import { WorkoutManagementSection } from '@/components/WorkoutManagementSection';
 import { WorkoutLeaderboard } from '@/components/WorkoutLeaderboard';
+import { useDesignSystem } from '@/contexts/DesignSystemContext';
 
 import { useWorkouts, WorkoutAssignment } from '@/hooks/use-workouts';
 import { supabase } from '@/integrations/supabase/client';
@@ -54,7 +55,8 @@ export function RosterManagementDialog({
   const [newMaxPitches, setNewMaxPitches] = useState(120);
   const [isAdding, setIsAdding] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [isDark, setIsDark] = useState(() => !document.documentElement.classList.contains('light'));
+  const { mode, toggleMode } = useDesignSystem();
+  const isDark = mode === 'dark';
   const [workoutAssignments, setWorkoutAssignments] = useState<Record<string, WorkoutAssignment[]>>({});
   const [achievementStartDate, setAchievementStartDate] = useState<Date | undefined>();
   const [achievementEndDate, setAchievementEndDate] = useState<Date | undefined>();
@@ -322,13 +324,7 @@ export function RosterManagementDialog({
   };
 
   const toggleTheme = () => {
-    const newIsDark = !isDark;
-    setIsDark(newIsDark);
-    if (newIsDark) {
-      document.documentElement.classList.remove('light');
-    } else {
-      document.documentElement.classList.add('light');
-    }
+    toggleMode();
   };
 
   const handleClose = (openState: boolean) => {
