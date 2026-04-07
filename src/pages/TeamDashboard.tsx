@@ -158,6 +158,7 @@ export default function TeamDashboard() {
           outings={outings}
           pitcherPitchTypes={pitcherPitchTypes}
           parentMode
+          teamId={teamId}
         />
       </main>
     </div>

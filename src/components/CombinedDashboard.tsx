@@ -9,13 +9,16 @@ import { FlipCounter } from '@/components/FlipCounter';
 
 import { VelocityScale } from '@/components/VelocityScale';
 import { DateRangePicker } from '@/components/DateRangePicker';
+import { WorkoutLeaderboard } from '@/components/WorkoutLeaderboard';
+import { PitcherRecord } from '@/hooks/use-pitchers';
 import { supabase } from '@/integrations/supabase/client';
-import { Activity, Target, Calendar, Flame, TrendingUp, TrendingDown, Minus, Dumbbell } from 'lucide-react';
+import { Activity, Target, Calendar, Flame, TrendingUp, TrendingDown, Minus, Dumbbell, Trophy } from 'lucide-react';
 
 interface CombinedDashboardProps {
   outings: Outing[];
   pitcherPitchTypes: Record<string, PitchTypeConfig>;
-  parentMode?: boolean; // Hides date picker and time toggle, locks to season view
+  parentMode?: boolean;
+  teamId?: string;
 }
 
 const EVENT_COLORS: Record<string, string> = {
@@ -29,7 +32,7 @@ type ViewMode = '7-day' | 'season';
 
 type ResultFilter = 'all' | 'strikes' | 'balls';
 
-export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = false }: CombinedDashboardProps) {
+export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = false, teamId }: CombinedDashboardProps) {
   const [pitchLocations, setPitchLocations] = useState<PitchLocation[]>([]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('season');
@@ -41,6 +44,8 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
   const [seasonStart, setSeasonStart] = useState<Date>(new Date(currentYear, 0, 1));
   const [seasonEnd, setSeasonEnd] = useState<Date>(new Date());
   const [totalWorkoutsCompleted, setTotalWorkoutsCompleted] = useState(0);
+  const [teamPitchers, setTeamPitchers] = useState<PitcherRecord[]>([]);
+  const [leaderboardDates, setLeaderboardDates] = useState<{ from?: Date; to?: Date }>({});
 
   // Fetch total workout completions for the season (parent mode)
   useEffect(() => {
@@ -74,6 +79,44 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
 
     fetchWorkoutCount();
   }, [parentMode, outings]);
+
+  // Fetch team pitchers and leaderboard dates for parent mode
+  useEffect(() => {
+    if (!parentMode || !teamId) return;
+
+    async function fetchTeamPitchersAndDates() {
+      try {
+        const [pitchersRes, teamRes] = await Promise.all([
+          supabase.from('pitchers').select('*').eq('team_id', teamId),
+          supabase.from('teams').select('leaderboard_from, leaderboard_to').eq('id', teamId).maybeSingle(),
+        ]);
+
+        if (pitchersRes.data) {
+          setTeamPitchers(pitchersRes.data.map(p => ({
+            id: p.id,
+            name: p.name,
+            maxWeeklyPitches: p.max_weekly_pitches,
+            pitchTypes: p.pitch_types as PitcherRecord['pitchTypes'],
+            teamId: p.team_id,
+            userId: p.user_id,
+            createdAt: p.created_at,
+            updatedAt: p.updated_at,
+          })));
+        }
+
+        if (teamRes.data) {
+          setLeaderboardDates({
+            from: teamRes.data.leaderboard_from ? new Date(teamRes.data.leaderboard_from) : undefined,
+            to: teamRes.data.leaderboard_to ? new Date(teamRes.data.leaderboard_to) : undefined,
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching team pitchers:', err);
+      }
+    }
+
+    fetchTeamPitchersAndDates();
+  }, [parentMode, teamId]);
 
   // Calculate date range based on view mode
   const dateRange = useMemo(() => {
@@ -413,8 +456,6 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
         )}
       </div>
 
-
-
       {/* Main Stats Grid */}
       <div className="grid grid-cols-3 gap-3 sm:gap-4">
         {/* Total Pitches */}
@@ -483,7 +524,6 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
         )}
         <StrikePercentBar pitcherSeasons={pitcherRadarData} outings={filteredOutings.map(o => ({ date: o.date, strikes: o.strikes, pitch_count: o.pitchCount }))} />
       </div>
-
 
 
       {/* Two Column Layout */}
@@ -619,6 +659,26 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
                   <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Season Workouts Completed</p>
                   <FlipCounter value={totalWorkoutsCompleted} countUpFrom={Math.max(0, totalWorkoutsCompleted - 5)} />
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Compact Workout Leaderboard (parent mode) */}
+          {parentMode && teamPitchers.length > 0 && (
+            <Card className="glass-card">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Trophy className="w-4 h-4 text-yellow-500" />
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Workout Leaderboard</p>
+                </div>
+                <WorkoutLeaderboard
+                  pitchers={teamPitchers}
+                  initialFrom={leaderboardDates.from}
+                  initialTo={leaderboardDates.to}
+                  maxEntries={5}
+                  hideDatePicker
+                  lockedToCoachDates
+                />
               </CardContent>
             </Card>
           )}
