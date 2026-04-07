@@ -28,17 +28,7 @@ export const CURRENT_RELEASE: ReleaseNotes = {
     },
     {
       heading: "🎨 Team Design System",
-      description:
-        "Coaches can now apply a custom look & feel across the entire app from the Design System page — with light/dark mode support and a one-click reset.",
-    },
-    {
-      heading: "🔢 Smoother Flip Counter",
-      description: "The workout completion counter now flips faster and smoother, with all digits perfectly in sync.",
-    },
-    {
-      heading: "📊 Session Breakdown Reorder",
-      description:
-        "The workout completion counter now sits above the session breakdown for a cleaner, more intuitive layout.",
+      description: "New athlete-inspired, custom look & feel across the entire app — with light/dark mode support.",
     },
     {
       heading: "📸 Image Optimization",
