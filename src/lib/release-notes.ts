@@ -8,6 +8,7 @@ export interface ReleaseNotes {
   enabled: boolean;
   title: string;
   features: ReleaseFeature[];
+  signoff?: string;
 }
 
 export const CURRENT_RELEASE: ReleaseNotes = {
