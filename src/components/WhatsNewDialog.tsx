@@ -52,6 +52,9 @@ export function WhatsNewDialog() {
             </div>
           ))}
         </div>
+        {CURRENT_RELEASE.signoff && (
+          <p className="text-sm text-muted-foreground text-right italic pt-1">{CURRENT_RELEASE.signoff}</p>
+        )}
         <Button onClick={handleDismiss} className="w-full">
           Got it!
         </Button>
