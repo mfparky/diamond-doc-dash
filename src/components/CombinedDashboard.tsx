@@ -88,7 +88,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
       try {
         const [pitchersRes, teamRes] = await Promise.all([
           supabase.from('pitchers').select('*').eq('team_id', teamId),
-          supabase.from('teams').select('leaderboard_from, leaderboard_to').eq('id', teamId).maybeSingle(),
+          supabase.from('teams').select('leaderboard_from, leaderboard_to, owner_id').eq('id', teamId).maybeSingle(),
         ]);
 
         if (pitchersRes.data && pitchersRes.data.length > 0) {
@@ -128,9 +128,25 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
         }
 
         if (teamRes.data) {
+          let lbFrom = teamRes.data.leaderboard_from;
+          let lbTo = teamRes.data.leaderboard_to;
+
+          // Fallback to dashboard_settings if team dates aren't set
+          if ((!lbFrom || !lbTo) && teamRes.data.owner_id) {
+            const { data: settings } = await supabase
+              .from('dashboard_settings')
+              .select('leaderboard_from, leaderboard_to')
+              .eq('user_id', teamRes.data.owner_id)
+              .maybeSingle();
+            if (settings) {
+              lbFrom = lbFrom || settings.leaderboard_from;
+              lbTo = lbTo || settings.leaderboard_to;
+            }
+          }
+
           setLeaderboardDates({
-            from: teamRes.data.leaderboard_from ? new Date(teamRes.data.leaderboard_from) : undefined,
-            to: teamRes.data.leaderboard_to ? new Date(teamRes.data.leaderboard_to) : undefined,
+            from: lbFrom ? new Date(lbFrom) : undefined,
+            to: lbTo ? new Date(lbTo) : undefined,
           });
         }
       } catch (err) {
@@ -707,37 +723,6 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
             </Card>
           )}
 
-          {/* Session Breakdown */}
-          <Card className="glass-card">
-            <CardHeader className="pb-2 px-3 sm:px-6">
-              <CardTitle className="font-display text-base sm:text-lg">Session Breakdown</CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 sm:px-6">
-              <div className="space-y-2.5 sm:space-y-3">
-                {Object.entries(stats.eventBreakdown)
-                  .sort(([, a], [, b]) => b.pitches - a.pitches)
-                  .map(([eventType, data]) => (
-                    <div key={eventType} className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div 
-                          className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm shrink-0" 
-                          style={{ backgroundColor: EVENT_COLORS[eventType] || 'hsl(var(--muted))' }}
-                        />
-                        <span className="text-xs sm:text-sm text-foreground truncate">{eventType}</span>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <span className="text-xs sm:text-sm font-medium text-foreground">{data.pitches}</span>
-                        <span className="text-[10px] sm:text-xs text-muted-foreground ml-1">
-                          ({data.count})
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </CardContent>
-          </Card>
-
-
           {/* Pitch Type Breakdown */}
           {pitchTypeBreakdown.length > 0 && (
             <Card className="glass-card">
@@ -781,6 +766,36 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
           )}
         </div>
       </div>
+
+      {/* Session Breakdown — full width, directly under Combined Strike Zone */}
+      <Card className="glass-card">
+        <CardHeader className="pb-2 px-3 sm:px-6">
+          <CardTitle className="font-display text-base sm:text-lg">Session Breakdown</CardTitle>
+        </CardHeader>
+        <CardContent className="px-3 sm:px-6">
+          <div className="space-y-2.5 sm:space-y-3">
+            {Object.entries(stats.eventBreakdown)
+              .sort(([, a], [, b]) => b.pitches - a.pitches)
+              .map(([eventType, data]) => (
+                <div key={eventType} className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div
+                      className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm shrink-0"
+                      style={{ backgroundColor: EVENT_COLORS[eventType] || 'hsl(var(--muted))' }}
+                    />
+                    <span className="text-xs sm:text-sm text-foreground truncate">{eventType}</span>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="text-xs sm:text-sm font-medium text-foreground">{data.pitches}</span>
+                    <span className="text-[10px] sm:text-xs text-muted-foreground ml-1">
+                      ({data.count})
+                    </span>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
