@@ -44,6 +44,8 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
   const [seasonStart, setSeasonStart] = useState<Date>(new Date(currentYear, 0, 1));
   const [seasonEnd, setSeasonEnd] = useState<Date>(new Date());
   const [totalWorkoutsCompleted, setTotalWorkoutsCompleted] = useState(0);
+  const [teamPitchers, setTeamPitchers] = useState<PitcherRecord[]>([]);
+  const [leaderboardDates, setLeaderboardDates] = useState<{ from?: Date; to?: Date }>({});
 
   // Fetch total workout completions for the season (parent mode)
   useEffect(() => {
