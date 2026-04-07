@@ -228,6 +228,10 @@ export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntrie
     };
 
     fetchLeaderboardData();
+
+    // Poll every 3 minutes to stay fresh without a persistent WebSocket
+    const interval = setInterval(fetchLeaderboardData, 3 * 60 * 1000);
+    return () => clearInterval(interval);
   }, [pitchers, dateRange]);
 
   const getRankIcon = (index: number) => {
