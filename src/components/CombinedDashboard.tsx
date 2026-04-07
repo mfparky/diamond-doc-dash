@@ -663,6 +663,26 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
             </Card>
           )}
 
+          {/* Compact Workout Leaderboard (parent mode) */}
+          {parentMode && teamPitchers.length > 0 && (
+            <Card className="glass-card">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Trophy className="w-4 h-4 text-yellow-500" />
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Workout Leaderboard</p>
+                </div>
+                <WorkoutLeaderboard
+                  pitchers={teamPitchers}
+                  initialFrom={leaderboardDates.from}
+                  initialTo={leaderboardDates.to}
+                  maxEntries={5}
+                  hideDatePicker
+                  lockedToCoachDates
+                />
+              </CardContent>
+            </Card>
+          )}
+
           {/* Session Breakdown */}
           <Card className="glass-card">
             <CardHeader className="pb-2 px-3 sm:px-6">
