@@ -88,7 +88,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
       try {
         const [pitchersRes, teamRes] = await Promise.all([
           supabase.from('pitchers').select('*').eq('team_id', teamId),
-          supabase.from('teams').select('leaderboard_from, leaderboard_to').eq('id', teamId).maybeSingle(),
+          supabase.from('teams').select('leaderboard_from, leaderboard_to, owner_id').eq('id', teamId).maybeSingle(),
         ]);
 
         if (pitchersRes.data && pitchersRes.data.length > 0) {
@@ -128,9 +128,25 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
         }
 
         if (teamRes.data) {
+          let lbFrom = teamRes.data.leaderboard_from;
+          let lbTo = teamRes.data.leaderboard_to;
+
+          // Fallback to dashboard_settings if team dates aren't set
+          if ((!lbFrom || !lbTo) && teamRes.data.owner_id) {
+            const { data: settings } = await supabase
+              .from('dashboard_settings')
+              .select('leaderboard_from, leaderboard_to')
+              .eq('user_id', teamRes.data.owner_id)
+              .maybeSingle();
+            if (settings) {
+              lbFrom = lbFrom || settings.leaderboard_from;
+              lbTo = lbTo || settings.leaderboard_to;
+            }
+          }
+
           setLeaderboardDates({
-            from: teamRes.data.leaderboard_from ? new Date(teamRes.data.leaderboard_from) : undefined,
-            to: teamRes.data.leaderboard_to ? new Date(teamRes.data.leaderboard_to) : undefined,
+            from: lbFrom ? new Date(lbFrom) : undefined,
+            to: lbTo ? new Date(lbTo) : undefined,
           });
         }
       } catch (err) {
