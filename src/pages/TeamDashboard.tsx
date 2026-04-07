@@ -146,7 +146,7 @@ export default function TeamDashboard() {
             <img src={hawksLogo} alt="Team" className="w-10 h-10 object-contain shrink-0" />
             <div className="min-w-0">
               <h1 className="font-display text-xl font-bold text-foreground truncate">{teamName}</h1>
-              <p className="text-xs text-muted-foreground">2026 Season Dashboard</p>
+              <p className="text-xs text-muted-foreground">{new Date().getFullYear()} Season Dashboard</p>
             </div>
           </div>
           <ThemeToggle />

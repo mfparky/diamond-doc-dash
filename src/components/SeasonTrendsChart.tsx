@@ -66,7 +66,7 @@ export function SeasonTrendsChart({ outings }: SeasonTrendsChartProps) {
     const sorted = [...outings]
       .filter((o) => {
         const d = new Date(o.date);
-        return d.getFullYear() === 2026;
+        return d.getFullYear() === new Date().getFullYear();
       })
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 

@@ -45,7 +45,7 @@ export function ProgressReportCard({ outings, badges, pitcherName }: ProgressRep
   const seasonOutings = useMemo(
     () =>
       outings
-        .filter((o) => new Date(o.date).getFullYear() === 2026)
+        .filter((o) => new Date(o.date).getFullYear() === new Date().getFullYear())
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
     [outings]
   );
