@@ -678,6 +678,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
                   maxEntries={5}
                   hideDatePicker
                   lockedToCoachDates
+                  compact
                 />
               </CardContent>
             </Card>

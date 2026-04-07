@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Trophy, CalendarIcon, TrendingUp, Medal } from 'lucide-react';
-import { format, startOfWeek, endOfWeek, eachWeekOfInterval, differenceInWeeks, isWithinInterval } from 'date-fns';
+import { Trophy, CalendarIcon, TrendingUp, TrendingDown, Medal, Minus } from 'lucide-react';
+import { format, startOfWeek, endOfWeek, eachWeekOfInterval, differenceInWeeks, subWeeks } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { PitcherRecord } from '@/hooks/use-pitchers';
 import { cn } from '@/lib/utils';
@@ -17,7 +17,10 @@ interface WorkoutLeaderboardProps {
   highlightPitcherId?: string;
   hideDatePicker?: boolean;
   lockedToCoachDates?: boolean;
+  compact?: boolean;
 }
+
+type Trend = 'up' | 'down' | 'same' | 'new';
 
 interface LeaderboardEntry {
   pitcherId: string;
@@ -30,6 +33,45 @@ interface LeaderboardEntry {
 interface DateRange {
   from: Date;
   to: Date;
+}
+
+function TrendIcon({ trend }: { trend: Trend }) {
+  if (trend === 'up')   return <TrendingUp   className="w-4 h-4 text-green-500" />;
+  if (trend === 'down') return <TrendingDown className="w-4 h-4 text-red-400" />;
+  if (trend === 'new')  return <span className="text-[10px] font-bold text-primary uppercase tracking-wide">New</span>;
+  return <Minus className="w-4 h-4 text-muted-foreground/50" />;
+}
+
+function CompactLeaderboardRow({ entry, index, trend, isHighlighted }: {
+  entry: LeaderboardEntry;
+  index: number;
+  trend: Trend;
+  isHighlighted?: boolean;
+}) {
+  const medals = ['🥇', '🥈', '🥉'];
+  return (
+    <div className={cn(
+      'flex items-center gap-3 px-3 py-2.5 rounded-lg',
+      isHighlighted ? 'ring-1 ring-primary/40 bg-primary/5' : 'hover:bg-secondary/40',
+    )}>
+      {/* Rank */}
+      <span className="w-6 text-center shrink-0">
+        {index < 3
+          ? <span className="text-base leading-none">{medals[index]}</span>
+          : <span className="text-sm font-bold text-muted-foreground">{index + 1}</span>
+        }
+      </span>
+      {/* Name */}
+      <span className={cn(
+        'flex-1 font-medium truncate text-sm',
+        isHighlighted ? 'text-primary' : 'text-foreground',
+      )}>
+        {entry.pitcherName}
+      </span>
+      {/* Trend */}
+      <TrendIcon trend={trend} />
+    </div>
+  );
 }
 
 function LeaderboardRow({ entry, index, getRankIcon, isHighlighted }: {
@@ -71,7 +113,7 @@ function LeaderboardRow({ entry, index, getRankIcon, isHighlighted }: {
   );
 }
 
-export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntries, highlightPitcherId, hideDatePicker, lockedToCoachDates }: WorkoutLeaderboardProps) {
+export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntries, highlightPitcherId, hideDatePicker, lockedToCoachDates, compact }: WorkoutLeaderboardProps) {
   const [dateRange, setDateRange] = useState<DateRange>(() => {
     const now = new Date();
     const from = initialFrom ?? startOfWeek(new Date(now.getFullYear(), now.getMonth(), 1), { weekStartsOn: 1 });
@@ -90,6 +132,7 @@ export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntrie
     }
   }, [initialFrom, initialTo]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [previousRanks, setPreviousRanks] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch completion data for the date range
@@ -104,20 +147,26 @@ export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntrie
       setIsLoading(true);
 
       try {
-        // Get all weeks in the date range
+        // Current period weeks
         const weeks = eachWeekOfInterval(
           { start: dateRange.from, end: dateRange.to },
           { weekStartsOn: 1 }
         );
-
         const weekStarts = weeks.map((w) => format(w, 'yyyy-MM-dd'));
 
-        // Fetch completions for all pitchers in the date range
+        // Previous equivalent period (same length, immediately before)
+        const weeksCount = weeks.length;
+        const prevFrom = startOfWeek(subWeeks(dateRange.from, weeksCount), { weekStartsOn: 1 });
+        const prevTo = endOfWeek(subWeeks(dateRange.from, 1), { weekStartsOn: 1 });
+        const prevWeeks = eachWeekOfInterval({ start: prevFrom, end: prevTo }, { weekStartsOn: 1 });
+        const prevWeekStarts = prevWeeks.map((w) => format(w, 'yyyy-MM-dd'));
+
+        // Single query covering both periods
         const { data: completions, error: completionsError } = await supabase
           .from('workout_completions')
           .select('pitcher_id, week_start, assignment_id')
           .in('pitcher_id', pitchers.map((p) => p.id))
-          .in('week_start', weekStarts);
+          .in('week_start', [...weekStarts, ...prevWeekStarts]);
 
         if (completionsError) throw completionsError;
 
@@ -135,16 +184,22 @@ export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntrie
           assignmentCounts[a.pitcher_id] = (assignmentCounts[a.pitcher_id] || 0) + 1;
         });
 
-        // Count completions per pitcher
+        // Split completions into current vs previous period
+        const weekStartSet = new Set(weekStarts);
         const completionCounts: Record<string, number> = {};
+        const prevCompletionCounts: Record<string, number> = {};
         (completions || []).forEach((c) => {
-          completionCounts[c.pitcher_id] = (completionCounts[c.pitcher_id] || 0) + 1;
+          if (weekStartSet.has(c.week_start)) {
+            completionCounts[c.pitcher_id] = (completionCounts[c.pitcher_id] || 0) + 1;
+          } else {
+            prevCompletionCounts[c.pitcher_id] = (prevCompletionCounts[c.pitcher_id] || 0) + 1;
+          }
         });
 
         // Calculate weeks in range
         const weeksInRange = Math.max(1, differenceInWeeks(dateRange.to, dateRange.from) + 1);
 
-        // Build leaderboard entries
+        // Build and sort current leaderboard
         const entries: LeaderboardEntry[] = pitchers.map((pitcher) => ({
           pitcherId: pitcher.id,
           pitcherName: pitcher.name,
@@ -152,11 +207,19 @@ export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntrie
           weeklyAverage: Math.round(((completionCounts[pitcher.id] || 0) / weeksInRange) * 10) / 10,
           assignmentCount: assignmentCounts[pitcher.id] || 0,
         }));
-
-        // Sort by total completions (descending)
         entries.sort((a, b) => b.totalCompletions - a.totalCompletions);
 
+        // Build previous period rank map
+        const prevEntries = [...entries].sort(
+          (a, b) => (prevCompletionCounts[b.pitcherId] || 0) - (prevCompletionCounts[a.pitcherId] || 0)
+        );
+        const prevRankMap: Record<string, number> = {};
+        prevEntries.forEach((e, i) => {
+          if ((prevCompletionCounts[e.pitcherId] || 0) > 0) prevRankMap[e.pitcherId] = i;
+        });
+
         setLeaderboard(entries);
+        setPreviousRanks(prevRankMap);
       } catch (error) {
         console.error('Error fetching leaderboard data:', error);
       } finally {
@@ -177,6 +240,14 @@ export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntrie
   const weeksInRange = useMemo(() => {
     return Math.max(1, differenceInWeeks(dateRange.to, dateRange.from) + 1);
   }, [dateRange]);
+
+  const getTrend = (pitcherId: string, currentIndex: number): Trend => {
+    if (!(pitcherId in previousRanks)) return 'new';
+    const prev = previousRanks[pitcherId];
+    if (currentIndex < prev) return 'up';
+    if (currentIndex > prev) return 'down';
+    return 'same';
+  };
 
   return (
     <div className="space-y-4">
@@ -256,13 +327,27 @@ export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntrie
 
             return (
               <>
-                {visibleEntries.map((entry, index) => (
-                  <LeaderboardRow key={entry.pitcherId} entry={entry} index={index} getRankIcon={getRankIcon} isHighlighted={entry.pitcherId === highlightPitcherId} />
-                ))}
+                {visibleEntries.map((entry, index) =>
+                  compact ? (
+                    <CompactLeaderboardRow
+                      key={entry.pitcherId}
+                      entry={entry}
+                      index={index}
+                      trend={getTrend(entry.pitcherId, index)}
+                      isHighlighted={entry.pitcherId === highlightPitcherId}
+                    />
+                  ) : (
+                    <LeaderboardRow key={entry.pitcherId} entry={entry} index={index} getRankIcon={getRankIcon} isHighlighted={entry.pitcherId === highlightPitcherId} />
+                  )
+                )}
                 {highlightEntry && (
                   <>
                     <div className="text-center text-xs text-muted-foreground py-1">···</div>
-                    <LeaderboardRow entry={highlightEntry.entry} index={highlightEntry.rank} getRankIcon={getRankIcon} isHighlighted />
+                    {compact ? (
+                      <CompactLeaderboardRow entry={highlightEntry.entry} index={highlightEntry.rank} trend={getTrend(highlightEntry.entry.pitcherId, highlightEntry.rank)} isHighlighted />
+                    ) : (
+                      <LeaderboardRow entry={highlightEntry.entry} index={highlightEntry.rank} getRankIcon={getRankIcon} isHighlighted />
+                    )}
                   </>
                 )}
               </>
