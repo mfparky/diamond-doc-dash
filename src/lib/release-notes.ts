@@ -34,6 +34,10 @@ export const CURRENT_RELEASE: ReleaseNotes = {
       heading: "📸 Image Optimization",
       description: "Workout photos are auto-compressed for faster loading without losing quality.",
     },
+    {
+      heading: "⏱️ Reset Accomplishments",
+      description: "Player accomplishments have been reset - all players are starting at 0 again.",
+    },
   ],
   signoff: "-Coach Matt",
 };
