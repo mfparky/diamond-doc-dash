@@ -145,8 +145,8 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
           }
 
           setLeaderboardDates({
-            from: lbFrom ? new Date(lbFrom) : undefined,
-            to: lbTo ? new Date(lbTo) : undefined,
+            from: lbFrom ? new Date(lbFrom + 'T00:00:00') : undefined,
+            to: lbTo ? new Date(lbTo + 'T00:00:00') : undefined,
           });
         }
       } catch (err) {
