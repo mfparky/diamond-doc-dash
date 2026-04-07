@@ -707,37 +707,6 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
             </Card>
           )}
 
-          {/* Session Breakdown */}
-          <Card className="glass-card">
-            <CardHeader className="pb-2 px-3 sm:px-6">
-              <CardTitle className="font-display text-base sm:text-lg">Session Breakdown</CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 sm:px-6">
-              <div className="space-y-2.5 sm:space-y-3">
-                {Object.entries(stats.eventBreakdown)
-                  .sort(([, a], [, b]) => b.pitches - a.pitches)
-                  .map(([eventType, data]) => (
-                    <div key={eventType} className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div 
-                          className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm shrink-0" 
-                          style={{ backgroundColor: EVENT_COLORS[eventType] || 'hsl(var(--muted))' }}
-                        />
-                        <span className="text-xs sm:text-sm text-foreground truncate">{eventType}</span>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <span className="text-xs sm:text-sm font-medium text-foreground">{data.pitches}</span>
-                        <span className="text-[10px] sm:text-xs text-muted-foreground ml-1">
-                          ({data.count})
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </CardContent>
-          </Card>
-
-
           {/* Pitch Type Breakdown */}
           {pitchTypeBreakdown.length > 0 && (
             <Card className="glass-card">
@@ -781,6 +750,36 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
           )}
         </div>
       </div>
+
+      {/* Session Breakdown — full width, directly under Combined Strike Zone */}
+      <Card className="glass-card">
+        <CardHeader className="pb-2 px-3 sm:px-6">
+          <CardTitle className="font-display text-base sm:text-lg">Session Breakdown</CardTitle>
+        </CardHeader>
+        <CardContent className="px-3 sm:px-6">
+          <div className="space-y-2.5 sm:space-y-3">
+            {Object.entries(stats.eventBreakdown)
+              .sort(([, a], [, b]) => b.pitches - a.pitches)
+              .map(([eventType, data]) => (
+                <div key={eventType} className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div
+                      className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm shrink-0"
+                      style={{ backgroundColor: EVENT_COLORS[eventType] || 'hsl(var(--muted))' }}
+                    />
+                    <span className="text-xs sm:text-sm text-foreground truncate">{eventType}</span>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="text-xs sm:text-sm font-medium text-foreground">{data.pitches}</span>
+                    <span className="text-[10px] sm:text-xs text-muted-foreground ml-1">
+                      ({data.count})
+                    </span>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
