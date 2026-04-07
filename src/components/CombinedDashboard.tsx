@@ -91,7 +91,8 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
           supabase.from('teams').select('leaderboard_from, leaderboard_to').eq('id', teamId).maybeSingle(),
         ]);
 
-        if (pitchersRes.data) {
+        if (pitchersRes.data && pitchersRes.data.length > 0) {
+          // Pitchers have team_id set — use them directly
           setTeamPitchers(pitchersRes.data.map(p => ({
             id: p.id,
             name: p.name,
@@ -102,6 +103,28 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
             createdAt: p.created_at,
             updatedAt: p.updated_at,
           })));
+        } else {
+          // Fallback: pitchers predate team_id — look them up by name from outings
+          const pitcherNames = [...new Set(outings.map(o => o.pitcherName))];
+          if (pitcherNames.length > 0) {
+            const { data: fallbackPitchers } = await supabase
+              .from('pitchers')
+              .select('*')
+              .in('name', pitcherNames);
+
+            if (fallbackPitchers && fallbackPitchers.length > 0) {
+              setTeamPitchers(fallbackPitchers.map(p => ({
+                id: p.id,
+                name: p.name,
+                maxWeeklyPitches: p.max_weekly_pitches,
+                pitchTypes: p.pitch_types as PitcherRecord['pitchTypes'],
+                teamId: p.team_id,
+                userId: p.user_id,
+                createdAt: p.created_at,
+                updatedAt: p.updated_at,
+              })));
+            }
+          }
         }
 
         if (teamRes.data) {
@@ -116,7 +139,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
     }
 
     fetchTeamPitchersAndDates();
-  }, [parentMode, teamId]);
+  }, [parentMode, teamId, outings]);
 
   // Calculate date range based on view mode
   const dateRange = useMemo(() => {
