@@ -80,6 +80,44 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
     fetchWorkoutCount();
   }, [parentMode, outings]);
 
+  // Fetch team pitchers and leaderboard dates for parent mode
+  useEffect(() => {
+    if (!parentMode || !teamId) return;
+
+    async function fetchTeamPitchersAndDates() {
+      try {
+        const [pitchersRes, teamRes] = await Promise.all([
+          supabase.from('pitchers').select('*').eq('team_id', teamId),
+          supabase.from('teams').select('leaderboard_from, leaderboard_to').eq('id', teamId).maybeSingle(),
+        ]);
+
+        if (pitchersRes.data) {
+          setTeamPitchers(pitchersRes.data.map(p => ({
+            id: p.id,
+            name: p.name,
+            maxWeeklyPitches: p.max_weekly_pitches,
+            pitchTypes: p.pitch_types as PitcherRecord['pitchTypes'],
+            teamId: p.team_id,
+            userId: p.user_id,
+            createdAt: p.created_at,
+            updatedAt: p.updated_at,
+          })));
+        }
+
+        if (teamRes.data) {
+          setLeaderboardDates({
+            from: teamRes.data.leaderboard_from ? new Date(teamRes.data.leaderboard_from) : undefined,
+            to: teamRes.data.leaderboard_to ? new Date(teamRes.data.leaderboard_to) : undefined,
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching team pitchers:', err);
+      }
+    }
+
+    fetchTeamPitchersAndDates();
+  }, [parentMode, teamId]);
+
   // Calculate date range based on view mode
   const dateRange = useMemo(() => {
     if (viewMode === '7-day') {
