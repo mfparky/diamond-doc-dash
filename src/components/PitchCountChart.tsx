@@ -23,11 +23,12 @@ const EVENT_LEGEND_COLORS: Record<string, string> = {
 
 export function PitchCountChart({ outings }: PitchCountChartProps) {
   const chartData = useMemo(() => {
-    // Filter to 2026 season and sort by date ascending
+    // Filter to current season and sort by date ascending
+    const currentYear = new Date().getFullYear();
     const seasonOutings = outings
       .filter((o) => {
         const date = new Date(o.date);
-        return date.getFullYear() === 2026;
+        return date.getFullYear() === currentYear;
       })
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 

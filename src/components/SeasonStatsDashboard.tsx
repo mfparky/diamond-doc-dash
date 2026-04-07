@@ -33,13 +33,15 @@ export function SeasonStatsDashboard({
   const [sortKey, setSortKey] = useState<'date' | 'pitches' | 'strikePct' | 'maxVelo'>('date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
-  // Filter to 2026 season
+  const currentYear = new Date().getFullYear();
+
+  // Filter to current season
   const seasonOutings = useMemo(
     () =>
       outings
-        .filter((o) => new Date(o.date).getFullYear() === 2026)
+        .filter((o) => new Date(o.date).getFullYear() === currentYear)
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
-    [outings]
+    [outings, currentYear]
   );
 
   // Season summary stats
@@ -212,7 +214,7 @@ export function SeasonStatsDashboard({
       <Card className="glass-card">
         <CardContent className="p-8 text-center">
           <Activity className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-muted-foreground">No 2026 season outings yet.</p>
+          <p className="text-muted-foreground">No {currentYear} season outings yet.</p>
         </CardContent>
       </Card>
     );
@@ -226,7 +228,7 @@ export function SeasonStatsDashboard({
           {pitcherName ? `${pitcherName}'s ` : ''}Season Dashboard
         </h3>
         <span className="text-xs text-muted-foreground bg-secondary px-2 py-1 rounded">
-          2026 Season
+          {currentYear} Season
         </span>
       </div>
 

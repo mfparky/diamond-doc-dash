@@ -52,13 +52,14 @@ export function AllTimeStats({ outings, pitchers = [], pitcherMaxPitches = {}, o
     sortKey === col
       ? (sortDir === 'desc' ? <ChevronDown className="inline w-3 h-3 ml-0.5" /> : <ChevronUp className="inline w-3 h-3 ml-0.5" />)
       : <ChevronDown className="inline w-3 h-3 ml-0.5 opacity-25" />;
-  // Filter outings to 2026 season (Jan 1 - Dec 31, 2026)
+  const currentYear = new Date().getFullYear();
+  // Filter outings to current season
   const seasonOutings = useMemo(() => {
     return outings.filter(outing => {
       const date = new Date(outing.date);
-      return date.getFullYear() === 2026;
+      return date.getFullYear() === currentYear;
     });
-  }, [outings]);
+  }, [outings, currentYear]);
 
   // Aggregate stats by pitcher
   const pitcherStats = useMemo(() => {
@@ -143,10 +144,10 @@ export function AllTimeStats({ outings, pitchers = [], pitcherMaxPitches = {}, o
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="font-display text-2xl font-bold text-foreground mb-1">
-            2026 Season Stats
+            {currentYear} Season Stats
           </h2>
           <p className="text-muted-foreground">
-            January 1 - December 31, 2026 • {pitcherStats.length} pitchers • {teamTotals.totalOutings} total outings
+            January 1 - December 31, {currentYear} • {pitcherStats.length} pitchers • {teamTotals.totalOutings} total outings
           </p>
         </div>
         <div className="flex items-center bg-secondary rounded-lg p-1 w-fit">
@@ -223,7 +224,7 @@ export function AllTimeStats({ outings, pitchers = [], pitcherMaxPitches = {}, o
               {pitcherStats.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
-                    No outings recorded for the 2026 season yet.
+                    No outings recorded for the {currentYear} season yet.
                   </TableCell>
                 </TableRow>
               ) : (

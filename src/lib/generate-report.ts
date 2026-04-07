@@ -38,8 +38,9 @@ function formatDate(dateStr: string): string {
 export function generateReport(data: ReportData): void {
   const { pitcherName, outings, badges, sevenDayPulse, maxVelo, strikePercentage, lastOuting } = data;
 
+  const currentYear = new Date().getFullYear();
   const seasonOutings = outings
-    .filter((o) => new Date(o.date).getFullYear() === 2026)
+    .filter((o) => new Date(o.date).getFullYear() === currentYear)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   const totalPitches = outings.reduce((sum, o) => sum + o.pitchCount, 0);
@@ -129,7 +130,7 @@ export function generateReport(data: ReportData): void {
 <body>
   <div class="header">
     <h1>${pitcherName}</h1>
-    <p>Season Report &middot; Generated ${today}</p>
+    <p>${currentYear} Season Report &middot; Generated ${today}</p>
   </div>
 
   <div class="stats-grid">

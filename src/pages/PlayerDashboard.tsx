@@ -450,7 +450,7 @@ export default function PlayerDashboard() {
         {showEnhancedView && (() => {
           const badgeResults = evaluateBadges(filterByWindow(pitcher.outings, 'date'), filterByWindow(allPitchLocations, 'createdAt'), pitchTypes);
           const seasonOutings = pitcher.outings
-            .filter((o) => new Date(o.date).getFullYear() === 2026)
+            .filter((o) => new Date(o.date).getFullYear() === new Date().getFullYear())
             .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
           return (

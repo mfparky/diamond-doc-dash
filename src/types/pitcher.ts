@@ -71,7 +71,7 @@ export function calculateRestStatus(lastOutingDate: string | null, lastPitchCoun
   }
 
   // If no rest needed (< 31 pitches) or rest period is complete, pitcher is active
-  if (daysRestNeeded === 0 || daysSinceLast > daysRestNeeded) {
+  if (daysRestNeeded === 0 || daysSinceLast >= daysRestNeeded) {
     return { type: 'active' };
   }
 
