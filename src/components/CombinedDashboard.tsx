@@ -77,7 +77,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
     }
 
     fetchWorkoutCount();
-  }, [parentMode, outings]);
+  }, [outings]);
 
   // Fetch team pitchers and leaderboard dates
   useEffect(() => {
@@ -154,7 +154,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
     }
 
     fetchTeamPitchersAndDates();
-  }, [parentMode, teamId, outings]);
+  }, [teamId, outings]);
 
   // Calculate date range based on view mode
   const dateRange = useMemo(() => {
