@@ -564,9 +564,9 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
       </div>
 
 
-      {/* Two Column Layout: Strike Zone + Workouts sidebar */}
+      {/* Two Column Layout: Strike Zone (left) | Workouts + Leaderboard + Pitch Mix (right) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Heatmap */}
+        {/* Left: Strike Zone */}
         <Card className="glass-card">
           <CardHeader className="pb-2 px-3 sm:px-6">
             <CardTitle className="font-display text-base sm:text-lg flex items-center gap-2">
@@ -575,7 +575,6 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 px-2 sm:px-6">
-            {/* Pitch Type Filter Pills */}
             {pitchTypeBreakdown.length > 0 && (
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground">Pitch Type</p>
@@ -607,40 +606,23 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
               </div>
             )}
 
-            {/* Result Filter (Strike/Ball) */}
             {pitchLocations.length > 0 && (
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">Show:</span>
                 <div className="flex gap-1">
-                  <Button
-                    variant={resultFilter === 'all' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setResultFilter('all')}
-                    className="text-xs h-7 px-2.5"
-                  >
+                  <Button variant={resultFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setResultFilter('all')} className="text-xs h-7 px-2.5">
                     All ({overallStats.total})
                   </Button>
-                  <Button
-                    variant={resultFilter === 'strikes' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setResultFilter('strikes')}
-                    className="text-xs h-7 px-2.5"
-                  >
+                  <Button variant={resultFilter === 'strikes' ? 'default' : 'outline'} size="sm" onClick={() => setResultFilter('strikes')} className="text-xs h-7 px-2.5">
                     Strikes ({overallStats.strikes})
                   </Button>
-                  <Button
-                    variant={resultFilter === 'balls' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setResultFilter('balls')}
-                    className="text-xs h-7 px-2.5"
-                  >
+                  <Button variant={resultFilter === 'balls' ? 'default' : 'outline'} size="sm" onClick={() => setResultFilter('balls')} className="text-xs h-7 px-2.5">
                     Balls ({overallStats.balls})
                   </Button>
                 </div>
               </div>
             )}
 
-            {/* Heatmap Visualization */}
             <div className="flex justify-center">
               {isLoadingLocations ? (
                 <div className="w-full max-w-[300px] aspect-[300/388] flex items-center justify-center">
@@ -648,10 +630,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
                 </div>
               ) : pitchLocations.length > 0 ? (
                 <div className="w-full max-w-[300px]">
-                  <SmoothHeatmap 
-                    pitchLocations={filteredPitchLocations} 
-                    size="md"
-                  />
+                  <SmoothHeatmap pitchLocations={filteredPitchLocations} size="md" />
                 </div>
               ) : (
                 <div className="w-full max-w-[300px] aspect-[300/388] flex items-center justify-center border border-dashed border-muted-foreground/30 rounded-lg">
@@ -660,62 +639,97 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
               )}
             </div>
 
-            {/* Coverage note */}
             {pitchLocations.length > 0 && stats.totalPitches > pitchLocations.length && (
               <p className="text-[10px] text-muted-foreground text-center">
                 {pitchLocations.length.toLocaleString()} of {stats.totalPitches.toLocaleString()} pitches have location data ({Math.round((pitchLocations.length / stats.totalPitches) * 100)}% charted)
               </p>
             )}
 
-            {/* Filter info */}
             {pitchLocations.length > 0 && (filterPitchType !== null || resultFilter !== 'all') && (
               <div className="text-center text-xs text-muted-foreground border-t border-border/50 pt-2">
                 Showing <span className="font-medium text-foreground">{filteredPitchLocations.length}</span> pitches
-                {filterPitchType !== null && (
-                  <span> • {getPitchTypeLabel(filterPitchType)}</span>
-                )}
-                {resultFilter !== 'all' && (
-                  <span> • {resultFilter === 'strikes' ? 'Strikes only' : 'Balls only'}</span>
-                )}
+                {filterPitchType !== null && <span> • {getPitchTypeLabel(filterPitchType)}</span>}
+                {resultFilter !== 'all' && <span> • {resultFilter === 'strikes' ? 'Strikes only' : 'Balls only'}</span>}
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Right sidebar: Workouts count + Top 5 leaders */}
+        {/* Right column */}
         <div className="space-y-4">
-          {/* Total Workouts — simple static number */}
-          {totalWorkoutsCompleted > 0 && (
+          {/* Season Workouts + Workout Leaders — side by side */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Season Workouts */}
             <Card className="glass-card">
-              <CardContent className="p-4 sm:p-5 flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-accent/10">
-                  <Dumbbell className="w-5 h-5 text-accent" />
-                </div>
-                <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Season Workouts</p>
-                  <p className="text-2xl font-bold text-foreground">{totalWorkoutsCompleted}</p>
-                </div>
+              <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
+                <Dumbbell className="w-5 h-5 text-accent mb-1.5" />
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Season Workouts</p>
+                <p className="text-2xl font-bold text-foreground">{totalWorkoutsCompleted}</p>
               </CardContent>
             </Card>
-          )}
 
-          {/* Top 5 Leaders — names only */}
-          {teamPitchers.length > 0 && (
+            {/* Top 5 Leaders — names only */}
             <Card className="glass-card">
-              <CardContent className="p-4 sm:p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <Trophy className="w-4 h-4 text-yellow-500" />
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Workout Leaders</p>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Trophy className="w-3.5 h-3.5 text-yellow-500" />
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Leaders</p>
                 </div>
-                <WorkoutLeaderboard
-                  pitchers={teamPitchers}
-                  initialFrom={leaderboardDates.from}
-                  initialTo={leaderboardDates.to}
-                  maxEntries={5}
-                  hideDatePicker
-                  lockedToCoachDates
-                  compact
-                />
+                {teamPitchers.length > 0 ? (
+                  <WorkoutLeaderboard
+                    pitchers={teamPitchers}
+                    initialFrom={leaderboardDates.from}
+                    initialTo={leaderboardDates.to}
+                    maxEntries={5}
+                    hideDatePicker
+                    lockedToCoachDates
+                    namesOnly
+                  />
+                ) : (
+                  <p className="text-xs text-muted-foreground">No data</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Pitch Mix */}
+          {pitchTypeBreakdown.length > 0 && (
+            <Card className="glass-card">
+              <CardHeader className="pb-2 px-3 sm:px-6">
+                <CardTitle className="font-display text-base sm:text-lg">Pitch Mix</CardTitle>
+              </CardHeader>
+              <CardContent className="px-3 sm:px-6">
+                <div className="space-y-2.5 sm:space-y-3">
+                  {pitchTypeBreakdown.map((pitch) => (
+                    <div key={pitch.type} className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div 
+                          className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full shrink-0" 
+                          style={{ backgroundColor: PITCH_TYPE_COLORS[pitch.type.toString()] || 'hsl(var(--muted))' }}
+                        />
+                        <span className="text-xs sm:text-sm text-foreground font-medium truncate">
+                          {getPitchTypeLabel(pitch.type)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                        <span className="text-[10px] sm:text-xs text-muted-foreground">
+                          {pitch.count} ({pitch.percentage}%)
+                        </span>
+                        <span 
+                          className={`text-[10px] sm:text-xs font-medium ${
+                            pitch.strikeRate >= 60 
+                              ? 'text-success' 
+                              : pitch.strikeRate < 50 
+                                ? 'text-destructive' 
+                                : 'text-warning'
+                          }`}
+                        >
+                          {pitch.strikeRate}% K
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           )}
@@ -751,48 +765,6 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
           </div>
         </CardContent>
       </Card>
-
-      {/* Pitch Mix — full width */}
-      {pitchTypeBreakdown.length > 0 && (
-        <Card className="glass-card">
-          <CardHeader className="pb-2 px-3 sm:px-6">
-            <CardTitle className="font-display text-base sm:text-lg">Pitch Mix</CardTitle>
-          </CardHeader>
-          <CardContent className="px-3 sm:px-6">
-            <div className="space-y-2.5 sm:space-y-3">
-              {pitchTypeBreakdown.map((pitch) => (
-                <div key={pitch.type} className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div 
-                      className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full shrink-0" 
-                      style={{ backgroundColor: PITCH_TYPE_COLORS[pitch.type.toString()] || 'hsl(var(--muted))' }}
-                    />
-                    <span className="text-xs sm:text-sm text-foreground font-medium truncate">
-                      {getPitchTypeLabel(pitch.type)}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-                    <span className="text-[10px] sm:text-xs text-muted-foreground">
-                      {pitch.count} ({pitch.percentage}%)
-                    </span>
-                    <span 
-                      className={`text-[10px] sm:text-xs font-medium ${
-                        pitch.strikeRate >= 60 
-                          ? 'text-success' 
-                          : pitch.strikeRate < 50 
-                            ? 'text-destructive' 
-                            : 'text-warning'
-                      }`}
-                    >
-                      {pitch.strikeRate}% K
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
