@@ -18,7 +18,6 @@ interface WorkoutLeaderboardProps {
   hideDatePicker?: boolean;
   lockedToCoachDates?: boolean;
   compact?: boolean;
-  namesOnly?: boolean;
 }
 
 type Trend = 'up' | 'down' | 'same' | 'new';
@@ -114,7 +113,7 @@ function LeaderboardRow({ entry, index, getRankIcon, isHighlighted }: {
   );
 }
 
-export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntries, highlightPitcherId, hideDatePicker, lockedToCoachDates, compact, namesOnly }: WorkoutLeaderboardProps) {
+export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntries, highlightPitcherId, hideDatePicker, lockedToCoachDates, compact }: WorkoutLeaderboardProps) {
   const [dateRange, setDateRange] = useState<DateRange>(() => {
     const now = new Date();
     const from = initialFrom ?? startOfWeek(new Date(now.getFullYear(), now.getMonth(), 1), { weekStartsOn: 1 });
@@ -333,15 +332,7 @@ export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntrie
             return (
               <>
                 {visibleEntries.map((entry, index) =>
-                  namesOnly ? (
-                    <div key={entry.pitcherId} className={cn(
-                      'flex items-center gap-2 px-2 py-1.5',
-                      entry.pitcherId === highlightPitcherId && 'text-primary',
-                    )}>
-                      <span className="w-5 text-center text-xs font-bold text-muted-foreground">{index + 1}.</span>
-                      <span className="text-sm text-foreground truncate">{entry.pitcherName}</span>
-                    </div>
-                  ) : compact ? (
+                  compact ? (
                     <CompactLeaderboardRow
                       key={entry.pitcherId}
                       entry={entry}
