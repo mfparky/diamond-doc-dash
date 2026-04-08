@@ -79,9 +79,9 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
     fetchWorkoutCount();
   }, [parentMode, outings]);
 
-  // Fetch team pitchers and leaderboard dates for parent mode
+  // Fetch team pitchers and leaderboard dates
   useEffect(() => {
-    if (!parentMode || !teamId) return;
+    if (!teamId) return;
 
     async function fetchTeamPitchersAndDates() {
       try {
