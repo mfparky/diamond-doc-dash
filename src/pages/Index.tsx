@@ -266,6 +266,7 @@ const Index = () => {
           <CombinedDashboard 
             outings={outings} 
             pitcherPitchTypes={pitcherPitchTypesMap}
+            teamId={rosterPitchers[0]?.teamId ?? undefined}
           />
         )}
 
