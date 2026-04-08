@@ -333,7 +333,15 @@ export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntrie
             return (
               <>
                 {visibleEntries.map((entry, index) =>
-                  compact ? (
+                  namesOnly ? (
+                    <div key={entry.pitcherId} className={cn(
+                      'flex items-center gap-2 px-2 py-1.5',
+                      entry.pitcherId === highlightPitcherId && 'text-primary',
+                    )}>
+                      <span className="w-5 text-center text-xs font-bold text-muted-foreground">{index + 1}.</span>
+                      <span className="text-sm text-foreground truncate">{entry.pitcherName}</span>
+                    </div>
+                  ) : compact ? (
                     <CompactLeaderboardRow
                       key={entry.pitcherId}
                       entry={entry}
