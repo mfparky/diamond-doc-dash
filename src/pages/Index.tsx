@@ -263,9 +263,10 @@ const Index = () => {
         )}
 
         {currentView === 'dashboard' && activeTab === 'team' && (
-          <CombinedDashboard 
-            outings={outings} 
+          <CombinedDashboard
+            outings={outings}
             pitcherPitchTypes={pitcherPitchTypesMap}
+            pitchers={rosterPitchers}
           />
         )}
 
