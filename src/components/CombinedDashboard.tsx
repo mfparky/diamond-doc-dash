@@ -663,15 +663,15 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
           {/* Col 2: Workout Count */}
           {pitchers && pitchers.length > 0 ? (
             <Card className="glass-card border-accent/30 bg-accent/5">
-              <CardContent className="p-4 sm:p-6 flex flex-col justify-center h-full gap-2">
-                <div className="flex items-center gap-3">
+              <CardContent className="p-4 sm:p-6 flex flex-col items-center justify-center h-full gap-2 text-center">
+                <div className="flex flex-col items-center gap-1.5">
                   <div className="p-2.5 rounded-lg bg-accent/10">
                     <Dumbbell className="w-6 h-6 text-accent" />
                   </div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wider">Season Workouts</p>
                 </div>
-                <p className="text-4xl font-bold text-foreground pl-1">{coachWorkoutCount}</p>
-                <p className="text-xs text-muted-foreground pl-1">completions across all players</p>
+                <p className="text-4xl font-bold text-foreground">{coachWorkoutCount}</p>
+                <p className="text-xs text-muted-foreground">completions across all players</p>
               </CardContent>
             </Card>
           ) : <div />}
@@ -679,8 +679,8 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
           {/* Col 3: Compact Leaderboard */}
           {pitchers && pitchers.length > 0 ? (
             <Card className="glass-card">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-3">
+              <CardContent className="p-2 sm:p-3">
+                <div className="flex items-center gap-2 mb-2">
                   <Trophy className="w-4 h-4 text-yellow-500" />
                   <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Workout Leaderboard</p>
                 </div>
@@ -697,30 +697,57 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
             </Card>
           ) : <div />}
 
-          {/* Row 2 cols 2-3: Pitch Mix */}
-          {pitchTypeBreakdown.length > 0 ? (
-            <Card className="glass-card lg:col-span-2">
-              <CardHeader className="pb-2 px-3 sm:px-6">
-                <CardTitle className="font-display text-base sm:text-lg">Pitch Mix</CardTitle>
-              </CardHeader>
-              <CardContent className="px-3 sm:px-6">
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2.5">
-                  {pitchTypeBreakdown.map((pitch) => (
-                    <div key={pitch.type} className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: PITCH_TYPE_COLORS[pitch.type.toString()] || 'hsl(var(--muted))' }} />
-                        <span className="text-xs text-foreground font-medium truncate">{getPitchTypeLabel(pitch.type)}</span>
+          {/* Row 2 cols 2-3: Pitch Mix + Session Breakdown stacked */}
+          <div className="lg:col-span-2 flex flex-col gap-4 sm:gap-6">
+            {pitchTypeBreakdown.length > 0 && (
+              <Card className="glass-card">
+                <CardHeader className="pb-2 px-3 sm:px-6">
+                  <CardTitle className="font-display text-base sm:text-lg">Pitch Mix</CardTitle>
+                </CardHeader>
+                <CardContent className="px-3 sm:px-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2.5">
+                    {pitchTypeBreakdown.map((pitch) => (
+                      <div key={pitch.type} className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: PITCH_TYPE_COLORS[pitch.type.toString()] || 'hsl(var(--muted))' }} />
+                          <span className="text-xs text-foreground font-medium truncate">{getPitchTypeLabel(pitch.type)}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="text-[10px] text-muted-foreground">{pitch.count} ({pitch.percentage}%)</span>
+                          <span className={`text-[10px] font-medium ${pitch.strikeRate >= 60 ? 'text-success' : pitch.strikeRate < 50 ? 'text-destructive' : 'text-warning'}`}>{pitch.strikeRate}% K</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-[10px] text-muted-foreground">{pitch.count} ({pitch.percentage}%)</span>
-                        <span className={`text-[10px] font-medium ${pitch.strikeRate >= 60 ? 'text-success' : pitch.strikeRate < 50 ? 'text-destructive' : 'text-warning'}`}>{pitch.strikeRate}% K</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ) : <div className="lg:col-span-2" />}
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {Object.keys(stats.eventBreakdown).length > 0 && (
+              <Card className="glass-card">
+                <CardHeader className="pb-2 px-3 sm:px-6">
+                  <CardTitle className="font-display text-base sm:text-lg">Session Breakdown</CardTitle>
+                </CardHeader>
+                <CardContent className="px-3 sm:px-6">
+                  <div className="space-y-2.5 sm:space-y-3">
+                    {Object.entries(stats.eventBreakdown)
+                      .sort(([, a], [, b]) => b.pitches - a.pitches)
+                      .map(([eventType, data]) => (
+                        <div key={eventType} className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm shrink-0" style={{ backgroundColor: EVENT_COLORS[eventType] || 'hsl(var(--muted))' }} />
+                            <span className="text-xs sm:text-sm text-foreground truncate">{eventType}</span>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span className="text-xs sm:text-sm font-medium text-foreground">{data.pitches}</span>
+                            <span className="text-[10px] sm:text-xs text-muted-foreground ml-1">({data.count})</span>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
       )}
 
@@ -843,8 +870,8 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
         </div>
       )}
 
-      {/* Session Breakdown — full width below both layouts */}
-      {Object.keys(stats.eventBreakdown).length > 0 && (
+      {/* Session Breakdown — full width, parent mode only (coach mode has it inline above) */}
+      {parentMode && Object.keys(stats.eventBreakdown).length > 0 && (
         <Card className="glass-card">
           <CardHeader className="pb-2 px-3 sm:px-6">
             <CardTitle className="font-display text-base sm:text-lg">Session Breakdown</CardTitle>

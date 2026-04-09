@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, ClipboardCheck, Paperclip, ExternalLink, Pencil, Clock } from 'lucide-react';
+import { Plus, Trash2, ClipboardCheck, Paperclip, ExternalLink, Pencil, Clock, Camera } from 'lucide-react';
 import { WorkoutAssignment } from '@/hooks/use-workouts';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -24,8 +24,8 @@ interface WorkoutManagementSectionProps {
   pitcherId: string;
   pitcherName: string;
   assignments: WorkoutAssignment[];
-  onAddAssignment: (pitcherId: string, title: string, description?: string, frequency?: number, attachmentUrl?: string, expiresAt?: string | null) => Promise<WorkoutAssignment | null>;
-  onUpdateAssignment: (id: string, updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null }) => Promise<boolean>;
+  onAddAssignment: (pitcherId: string, title: string, description?: string, frequency?: number, attachmentUrl?: string, expiresAt?: string | null, requiresPhoto?: boolean) => Promise<WorkoutAssignment | null>;
+  onUpdateAssignment: (id: string, updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null; requiresPhoto?: boolean }) => Promise<boolean>;
   onDeleteAssignment: (id: string) => Promise<boolean>;
 }
 
@@ -45,6 +45,7 @@ export function WorkoutManagementSection({
   const [frequency, setFrequency] = useState('7');
   const [expiresDate, setExpiresDate] = useState('');
   const [expiresTime, setExpiresTime] = useState('23:59');
+  const [requiresPhoto, setRequiresPhoto] = useState(false);
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -89,7 +90,8 @@ export function WorkoutManagementSection({
         description.trim() || undefined,
         parseInt(frequency),
         attachmentUrl,
-        expiresAt
+        expiresAt,
+        requiresPhoto
       );
       if (result) {
         setTitle('');
@@ -98,6 +100,7 @@ export function WorkoutManagementSection({
         setExpiresDate('');
         setExpiresTime('23:59');
         setAttachmentFile(null);
+        setRequiresPhoto(false);
         setIsAdding(false);
       }
     } catch (err) {
@@ -117,6 +120,7 @@ export function WorkoutManagementSection({
     setTitle(assignment.title);
     setDescription(assignment.description || '');
     setFrequency(String(assignment.frequency));
+    setRequiresPhoto(assignment.requiresPhoto);
     if (assignment.expiresAt) {
       const d = new Date(assignment.expiresAt);
       setExpiresDate(format(d, 'yyyy-MM-dd'));
@@ -136,6 +140,7 @@ export function WorkoutManagementSection({
     setFrequency('7');
     setExpiresDate('');
     setExpiresTime('23:59');
+    setRequiresPhoto(false);
     setAttachmentFile(null);
   };
 
@@ -166,11 +171,12 @@ export function WorkoutManagementSection({
 
       const expiresAt = expiresDate ? new Date(`${expiresDate}T${expiresTime || '23:59'}`).toISOString() : null;
 
-      const updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null } = {
+      const updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null; requiresPhoto?: boolean } = {
         title: title.trim(),
         description: description.trim() || null,
         frequency: parseInt(frequency),
         expiresAt,
+        requiresPhoto,
       };
       if (attachmentUrl !== undefined) {
         updates.attachmentUrl = attachmentUrl;
@@ -281,6 +287,18 @@ export function WorkoutManagementSection({
                 <p className="text-xs text-muted-foreground mt-1">Current attachment will be kept</p>
               )}
             </div>
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={requiresPhoto}
+                onChange={(e) => setRequiresPhoto(e.target.checked)}
+                className="w-4 h-4 rounded border-border accent-primary"
+              />
+              <span className="text-xs flex items-center gap-1">
+                <Camera className="w-3 h-3" />
+                Require photo to complete
+              </span>
+            </label>
             <div className="flex justify-end gap-2">
               <Button variant="outline" size="sm" onClick={cancelEdit}>
                 Cancel
@@ -303,6 +321,11 @@ export function WorkoutManagementSection({
             <div className="flex items-center gap-2">
               <p className="text-sm font-medium text-foreground truncate">{assignment.title}</p>
               <span className="text-xs text-muted-foreground shrink-0">{assignment.frequency}x/wk</span>
+              {assignment.requiresPhoto && (
+                <span className="text-xs text-muted-foreground shrink-0 flex items-center gap-0.5" title="Requires photo">
+                  <Camera className="w-3 h-3" />
+                </span>
+              )}
               {assignment.expiresAt && (
                 <span className={`text-xs shrink-0 flex items-center gap-0.5 ${new Date(assignment.expiresAt) < new Date() ? 'text-status-danger' : 'text-amber-500'}`}>
                   <Clock className="w-3 h-3" />
@@ -412,6 +435,18 @@ export function WorkoutManagementSection({
               className="h-8 mt-1 text-xs"
             />
           </div>
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={requiresPhoto}
+              onChange={(e) => setRequiresPhoto(e.target.checked)}
+              className="w-4 h-4 rounded border-border accent-primary"
+            />
+            <span className="text-xs flex items-center gap-1">
+              <Camera className="w-3 h-3" />
+              Require photo to complete
+            </span>
+          </label>
           <div className="flex justify-end gap-2">
             <Button
               variant="outline"
@@ -424,6 +459,7 @@ export function WorkoutManagementSection({
                 setExpiresDate('');
                 setExpiresTime('23:59');
                 setAttachmentFile(null);
+                setRequiresPhoto(false);
               }}
             >
               Cancel
