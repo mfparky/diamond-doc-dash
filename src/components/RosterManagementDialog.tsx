@@ -179,8 +179,9 @@ export function RosterManagementDialog({
           description: description || null,
           frequency: frequency ?? 7,
           attachment_url: attachmentUrl || null,
+          expires_at: expiresAt || null,
           user_id: pitcher.teamId ? null : (pitcher.userId ?? user.id),
-        })
+        } as any)
         .select()
         .single();
 
@@ -193,6 +194,7 @@ export function RosterManagementDialog({
         description: data.description,
         frequency: data.frequency ?? 7,
         attachmentUrl: data.attachment_url ?? null,
+        expiresAt: (data as any).expires_at ?? null,
         createdAt: data.created_at,
       };
 
