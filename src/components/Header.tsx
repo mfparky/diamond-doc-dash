@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Plus, LayoutGrid, BarChart3, ScanLine } from 'lucide-react';
+import { Plus, LayoutGrid, BarChart3, ScanLine, ShieldCheck } from 'lucide-react';
 import hawksLogo from '@/assets/hawks-logo.png';
 import { useScrollDirection } from '@/hooks/use-scroll-direction';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -70,6 +70,16 @@ export function Header({ onAddOuting, activeTab = 'players', onTabChange }: Head
                 Team
               </Button>
             </div>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2"
+              onClick={() => navigate('/accountability')}
+              title="Workout Accountability"
+            >
+              <ShieldCheck className="w-4 h-4" />
+            </Button>
 
             <Button
               variant="ghost"
