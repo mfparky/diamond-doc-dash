@@ -63,7 +63,64 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
   const [allPitchLocations, setAllPitchLocations] = useState<PitchLocation[]>([]);
   const { fetchPitchTypes, fetchPitchLocationsForOuting, fetchPitchLocationsForPitcher, addPitchLocations } = usePitchLocations();
   const { toast } = useToast();
-  const { filterByWindow } = useAchievementWindow();
+  const [achievementStart, setAchievementStart] = useState<Date | undefined>();
+  const [achievementEnd, setAchievementEnd] = useState<Date | undefined>();
+  
+  // Fetch achievement window dates from DB (team or dashboard_settings)
+  useEffect(() => {
+    let cancelled = false;
+    const fetchDates = async () => {
+      // Try to get team_id from the pitcher's outings or roster
+      const { data: pitcherData } = await supabase
+        .from('pitchers')
+        .select('team_id, user_id')
+        .eq('name', pitcher.name)
+        .maybeSingle();
+      
+      if (cancelled || !pitcherData) return;
+      
+      if (pitcherData.team_id) {
+        const { data } = await supabase
+          .from('teams')
+          .select('achievement_from, achievement_to')
+          .eq('id', pitcherData.team_id)
+          .maybeSingle();
+        if (!cancelled && data) {
+          if ((data as any).achievement_from) setAchievementStart(new Date((data as any).achievement_from + 'T00:00:00'));
+          if ((data as any).achievement_to) setAchievementEnd(new Date((data as any).achievement_to + 'T00:00:00'));
+        }
+      } else if (pitcherData.user_id) {
+        const { data } = await supabase
+          .from('dashboard_settings' as any)
+          .select('achievement_from, achievement_to')
+          .eq('user_id', pitcherData.user_id)
+          .maybeSingle();
+        if (!cancelled && data) {
+          if ((data as any).achievement_from) setAchievementStart(new Date((data as any).achievement_from + 'T00:00:00'));
+          if ((data as any).achievement_to) setAchievementEnd(new Date((data as any).achievement_to + 'T00:00:00'));
+        }
+      }
+    };
+    fetchDates();
+    return () => { cancelled = true; };
+  }, [pitcher.name]);
+
+  const filterByWindow = useCallback(<T extends { date?: string; createdAt?: string }>(
+    items: T[],
+    dateField: 'date' | 'createdAt' = 'date'
+  ): T[] => {
+    if (!achievementStart) return items;
+    const startTime = achievementStart.getTime();
+    const endTime = achievementEnd?.getTime();
+    return items.filter(item => {
+      const val = dateField === 'date' ? (item as any).date : (item as any).createdAt;
+      if (!val) return true;
+      const t = new Date(val).getTime();
+      if (t < startTime) return false;
+      if (endTime && t > endTime) return false;
+      return true;
+    });
+  }, [achievementStart, achievementEnd]);
   const [copyFeedback, setCopyFeedback] = useState<'link' | 'summary' | null>(null);
 
   // Load pitch location counts for each outing - fetch in parallel
