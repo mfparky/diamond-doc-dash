@@ -1,10 +1,11 @@
 import { useState } from 'react';
+import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, ClipboardCheck, Paperclip, ExternalLink, Pencil } from 'lucide-react';
+import { Plus, Trash2, ClipboardCheck, Paperclip, ExternalLink, Pencil, Clock } from 'lucide-react';
 import { WorkoutAssignment } from '@/hooks/use-workouts';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -23,8 +24,8 @@ interface WorkoutManagementSectionProps {
   pitcherId: string;
   pitcherName: string;
   assignments: WorkoutAssignment[];
-  onAddAssignment: (pitcherId: string, title: string, description?: string, frequency?: number, attachmentUrl?: string) => Promise<WorkoutAssignment | null>;
-  onUpdateAssignment: (id: string, updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null }) => Promise<boolean>;
+  onAddAssignment: (pitcherId: string, title: string, description?: string, frequency?: number, attachmentUrl?: string, expiresAt?: string | null) => Promise<WorkoutAssignment | null>;
+  onUpdateAssignment: (id: string, updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null }) => Promise<boolean>;
   onDeleteAssignment: (id: string) => Promise<boolean>;
 }
 
@@ -42,6 +43,8 @@ export function WorkoutManagementSection({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [frequency, setFrequency] = useState('7');
+  const [expiresDate, setExpiresDate] = useState('');
+  const [expiresTime, setExpiresTime] = useState('23:59');
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -78,17 +81,22 @@ export function WorkoutManagementSection({
         attachmentUrl = urlData.publicUrl;
       }
 
+      const expiresAt = expiresDate ? new Date(`${expiresDate}T${expiresTime || '23:59'}`).toISOString() : null;
+
       const result = await onAddAssignment(
         pitcherId,
         title.trim(),
         description.trim() || undefined,
         parseInt(frequency),
-        attachmentUrl
+        attachmentUrl,
+        expiresAt
       );
       if (result) {
         setTitle('');
         setDescription('');
         setFrequency('7');
+        setExpiresDate('');
+        setExpiresTime('23:59');
         setAttachmentFile(null);
         setIsAdding(false);
       }
@@ -109,6 +117,14 @@ export function WorkoutManagementSection({
     setTitle(assignment.title);
     setDescription(assignment.description || '');
     setFrequency(String(assignment.frequency));
+    if (assignment.expiresAt) {
+      const d = new Date(assignment.expiresAt);
+      setExpiresDate(format(d, 'yyyy-MM-dd'));
+      setExpiresTime(format(d, 'HH:mm'));
+    } else {
+      setExpiresDate('');
+      setExpiresTime('23:59');
+    }
     setAttachmentFile(null);
     setIsAdding(false);
   };
@@ -118,6 +134,8 @@ export function WorkoutManagementSection({
     setTitle('');
     setDescription('');
     setFrequency('7');
+    setExpiresDate('');
+    setExpiresTime('23:59');
     setAttachmentFile(null);
   };
 
@@ -146,10 +164,13 @@ export function WorkoutManagementSection({
         attachmentUrl = urlData.publicUrl;
       }
 
-      const updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null } = {
+      const expiresAt = expiresDate ? new Date(`${expiresDate}T${expiresTime || '23:59'}`).toISOString() : null;
+
+      const updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null } = {
         title: title.trim(),
         description: description.trim() || null,
         frequency: parseInt(frequency),
+        expiresAt,
       };
       if (attachmentUrl !== undefined) {
         updates.attachmentUrl = attachmentUrl;
@@ -230,6 +251,25 @@ export function WorkoutManagementSection({
               </Select>
             </div>
             <div>
+              <Label className="text-xs flex items-center gap-1"><Clock className="w-3 h-3" /> Expiration (optional)</Label>
+              <div className="flex gap-2 mt-1">
+                <Input
+                  type="date"
+                  value={expiresDate}
+                  onChange={(e) => setExpiresDate(e.target.value)}
+                  className="h-8 text-xs flex-1"
+                  min={format(new Date(), 'yyyy-MM-dd')}
+                />
+                <Input
+                  type="time"
+                  value={expiresTime}
+                  onChange={(e) => setExpiresTime(e.target.value)}
+                  className="h-8 text-xs w-28"
+                  disabled={!expiresDate}
+                />
+              </div>
+            </div>
+            <div>
               <Label className="text-xs">Replace Attachment (optional)</Label>
               <Input
                 type="file"
@@ -263,6 +303,12 @@ export function WorkoutManagementSection({
             <div className="flex items-center gap-2">
               <p className="text-sm font-medium text-foreground truncate">{assignment.title}</p>
               <span className="text-xs text-muted-foreground shrink-0">{assignment.frequency}x/wk</span>
+              {assignment.expiresAt && (
+                <span className={`text-xs shrink-0 flex items-center gap-0.5 ${new Date(assignment.expiresAt) < new Date() ? 'text-status-danger' : 'text-amber-500'}`}>
+                  <Clock className="w-3 h-3" />
+                  {new Date(assignment.expiresAt) < new Date() ? 'Expired' : `Due ${format(new Date(assignment.expiresAt), 'MMM d, h:mm a')}`}
+                </span>
+              )}
             </div>
             {assignment.description && (
               <p className="text-xs text-muted-foreground line-clamp-2">{assignment.description}</p>
@@ -339,6 +385,25 @@ export function WorkoutManagementSection({
             </Select>
           </div>
           <div>
+            <Label className="text-xs flex items-center gap-1"><Clock className="w-3 h-3" /> Expiration (optional)</Label>
+            <div className="flex gap-2 mt-1">
+              <Input
+                type="date"
+                value={expiresDate}
+                onChange={(e) => setExpiresDate(e.target.value)}
+                className="h-8 text-xs flex-1"
+                min={format(new Date(), 'yyyy-MM-dd')}
+              />
+              <Input
+                type="time"
+                value={expiresTime}
+                onChange={(e) => setExpiresTime(e.target.value)}
+                className="h-8 text-xs w-28"
+                disabled={!expiresDate}
+              />
+            </div>
+          </div>
+          <div>
             <Label className="text-xs">Attachment (optional)</Label>
             <Input
               type="file"
@@ -356,6 +421,8 @@ export function WorkoutManagementSection({
                 setTitle('');
                 setDescription('');
                 setFrequency('7');
+                setExpiresDate('');
+                setExpiresTime('23:59');
                 setAttachmentFile(null);
               }}
             >

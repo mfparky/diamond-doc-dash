@@ -331,6 +331,7 @@ export type Database = {
           attachment_url: string | null
           created_at: string
           description: string | null
+          expires_at: string | null
           frequency: number
           id: string
           pitcher_id: string
@@ -343,6 +344,7 @@ export type Database = {
           attachment_url?: string | null
           created_at?: string
           description?: string | null
+          expires_at?: string | null
           frequency?: number
           id?: string
           pitcher_id: string
@@ -355,6 +357,7 @@ export type Database = {
           attachment_url?: string | null
           created_at?: string
           description?: string | null
+          expires_at?: string | null
           frequency?: number
           id?: string
           pitcher_id?: string

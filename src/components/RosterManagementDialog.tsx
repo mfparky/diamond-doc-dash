@@ -87,6 +87,7 @@ export function RosterManagementDialog({
           description: row.description,
           frequency: row.frequency ?? 7,
           attachmentUrl: row.attachment_url ?? null,
+          expiresAt: (row as any).expires_at ?? null,
           createdAt: row.created_at,
         });
       });
@@ -145,7 +146,7 @@ export function RosterManagementDialog({
   }, [open, fetchAllWorkoutAssignments]);
 
   // Add assignment handler
-  const handleAddAssignment = async (pitcherId: string, title: string, description?: string, frequency?: number, attachmentUrl?: string): Promise<WorkoutAssignment | null> => {
+  const handleAddAssignment = async (pitcherId: string, title: string, description?: string, frequency?: number, attachmentUrl?: string, expiresAt?: string | null): Promise<WorkoutAssignment | null> => {
     const pitcher = pitchers.find((item) => item.id === pitcherId);
 
     if (!pitcher) {
@@ -178,8 +179,9 @@ export function RosterManagementDialog({
           description: description || null,
           frequency: frequency ?? 7,
           attachment_url: attachmentUrl || null,
+          expires_at: expiresAt || null,
           user_id: pitcher.teamId ? null : (pitcher.userId ?? user.id),
-        })
+        } as any)
         .select()
         .single();
 
@@ -192,6 +194,7 @@ export function RosterManagementDialog({
         description: data.description,
         frequency: data.frequency ?? 7,
         attachmentUrl: data.attachment_url ?? null,
+        expiresAt: (data as any).expires_at ?? null,
         createdAt: data.created_at,
       };
 
@@ -244,7 +247,7 @@ export function RosterManagementDialog({
   // Update assignment handler
   const handleUpdateAssignment = async (
     id: string,
-    updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null }
+    updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null }
   ): Promise<boolean> => {
     try {
       const dbUpdates: Record<string, unknown> = {};
@@ -252,6 +255,7 @@ export function RosterManagementDialog({
       if (updates.description !== undefined) dbUpdates.description = updates.description;
       if (updates.frequency !== undefined) dbUpdates.frequency = updates.frequency;
       if (updates.attachmentUrl !== undefined) dbUpdates.attachment_url = updates.attachmentUrl;
+      if (updates.expiresAt !== undefined) dbUpdates.expires_at = updates.expiresAt;
 
       const { error } = await supabase
         .from('workout_assignments')
@@ -306,8 +310,9 @@ export function RosterManagementDialog({
             description: assignment.description,
             frequency: assignment.frequency,
             attachment_url: assignment.attachmentUrl,
+            expires_at: assignment.expiresAt,
             user_id: targetPitcher.teamId ? null : (targetPitcher.userId ?? user.id),
-          });
+          } as any);
           copiedCount++;
         }
       }
