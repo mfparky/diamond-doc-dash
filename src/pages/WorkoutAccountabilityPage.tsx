@@ -41,6 +41,7 @@ interface PitcherAccountability {
   thisWeekMax: number;
   assignments: AssignmentSummary[];
   integrity: IntegrityResult;
+  dayOfWeekCounts: number[]; // index 0=Mon … 6=Sun
 }
 
 // ── Truth metric ─────────────────────────────────────────────────────────────
@@ -131,6 +132,40 @@ function WeekBar({ value, max }: { value: number; max: number }) {
   );
 }
 
+const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const DAY_FULL   = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+function DayHeatStrip({ counts }: { counts: number[] }) {
+  const max = Math.max(...counts, 1);
+  return (
+    <div>
+      <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-2">Activity by Day</p>
+      <div className="flex gap-1 items-end">
+        {DAY_LABELS.map((label, i) => {
+          const count = counts[i];
+          const barH = count === 0 ? 3 : Math.max(8, Math.round((count / max) * 36));
+          return (
+            <div
+              key={i}
+              className="flex flex-col items-center gap-1 flex-1"
+              title={`${DAY_FULL[i]}: ${count} completion${count !== 1 ? 's' : ''}`}
+            >
+              <div className="w-full flex items-end justify-center" style={{ height: 36 }}>
+                <div
+                  className={cn('w-full rounded-sm', count > 0 ? 'bg-primary' : 'bg-secondary/60')}
+                  style={{ height: barH }}
+                />
+              </div>
+              <span className="text-[10px] text-muted-foreground font-medium">{label}</span>
+              <span className="text-[10px] tabular-nums text-muted-foreground">{count > 0 ? count : ''}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function PitcherCard({ player }: { player: PitcherAccountability }) {
   const [expanded, setExpanded] = useState(false);
   const cfg = INTEGRITY_CONFIG[player.integrity.level];
@@ -190,6 +225,11 @@ function PitcherCard({ player }: { player: PitcherAccountability }) {
                   </div>
                 ))}
               </div>
+            )}
+
+            {/* Day of week activity */}
+            {player.totalCompletions > 0 && (
+              <DayHeatStrip counts={player.dayOfWeekCounts} />
             )}
 
             {/* Integrity flags */}
@@ -284,6 +324,10 @@ export default function WorkoutAccountabilityPage() {
 
           const thisWeekMax = myAssignments.reduce((sum, a) => sum + a.frequency, 0);
 
+          const dayOfWeekCounts = Array.from({ length: 7 }, (_, day) =>
+            myCompletions.filter((c) => c.dayOfWeek === day).length
+          );
+
           return {
             id: pitcher.id,
             name: pitcher.name,
@@ -292,6 +336,7 @@ export default function WorkoutAccountabilityPage() {
             thisWeekMax,
             assignments: assignmentSummaries,
             integrity: computeIntegrity(myCompletions),
+            dayOfWeekCounts,
           };
         });
 
