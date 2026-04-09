@@ -27,7 +27,6 @@ import { BadgeGrid } from './BadgeGrid';
 import { SeasonTrendsChart } from './SeasonTrendsChart';
 import { ShareSummaryCard } from './ShareSummaryCard';
 import { evaluateBadges } from '@/types/badges';
-import { useAchievementWindow } from '@/hooks/use-achievement-window';
 import { LiveAbsSummary } from './LiveAbsSummary';
 import { LiveAbsDashboard } from './LiveAbsDashboard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
