@@ -203,7 +203,15 @@ export function AccountabilityDialog({
                 className="p-4 rounded-lg bg-secondary/50 border border-border/50"
               >
                 <div className="mb-3">
-                  <h3 className="font-semibold text-foreground">{assignment.title}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-foreground">{assignment.title}</h3>
+                    {assignment.requiresPhoto && (
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground border border-border/50 rounded px-1.5 py-0.5">
+                        <Camera className="w-3 h-3" />
+                        Photo required
+                      </span>
+                    )}
+                  </div>
                   {assignment.description && (
                     <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{assignment.description}</p>
                   )}

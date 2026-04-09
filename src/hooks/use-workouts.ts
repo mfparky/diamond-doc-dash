@@ -11,6 +11,7 @@ export interface WorkoutAssignment {
   frequency: number; // times per week (1-7)
   attachmentUrl: string | null;
   expiresAt: string | null;
+  requiresPhoto: boolean;
   createdAt: string;
 }
 
@@ -66,6 +67,7 @@ export function useWorkouts(pitcherId?: string) {
         frequency: row.frequency ?? 7,
         attachmentUrl: row.attachment_url ?? null,
         expiresAt: (row as any).expires_at ?? null,
+        requiresPhoto: (row as any).requires_photo ?? false,
         createdAt: row.created_at,
       }));
 
@@ -116,11 +118,12 @@ export function useWorkouts(pitcherId?: string) {
     description?: string,
     frequency?: number,
     attachmentUrl?: string,
-    expiresAt?: string | null
+    expiresAt?: string | null,
+    requiresPhoto?: boolean
   ): Promise<WorkoutAssignment | null> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       const { data, error } = await supabase
         .from('workout_assignments')
         .insert({
@@ -130,6 +133,7 @@ export function useWorkouts(pitcherId?: string) {
           frequency: frequency ?? 7,
           attachment_url: attachmentUrl || null,
           expires_at: expiresAt || null,
+          requires_photo: requiresPhoto ?? false,
           user_id: user?.id || null,
         } as any)
         .select()
@@ -145,6 +149,7 @@ export function useWorkouts(pitcherId?: string) {
         frequency: data.frequency ?? 7,
         attachmentUrl: data.attachment_url ?? null,
         expiresAt: (data as any).expires_at ?? null,
+        requiresPhoto: (data as any).requires_photo ?? false,
         createdAt: data.created_at,
       };
 
@@ -168,7 +173,7 @@ export function useWorkouts(pitcherId?: string) {
   // Update a workout assignment
   const updateAssignment = useCallback(async (
     id: string,
-    updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null }
+    updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null; requiresPhoto?: boolean }
   ): Promise<boolean> => {
     try {
       const dbUpdates: Record<string, unknown> = {};
@@ -177,6 +182,7 @@ export function useWorkouts(pitcherId?: string) {
       if (updates.frequency !== undefined) dbUpdates.frequency = updates.frequency;
       if (updates.attachmentUrl !== undefined) dbUpdates.attachment_url = updates.attachmentUrl;
       if (updates.expiresAt !== undefined) dbUpdates.expires_at = updates.expiresAt;
+      if (updates.requiresPhoto !== undefined) dbUpdates.requires_photo = updates.requiresPhoto;
 
       const { error } = await supabase
         .from('workout_assignments')
@@ -193,6 +199,7 @@ export function useWorkouts(pitcherId?: string) {
           ...(updates.frequency !== undefined && { frequency: updates.frequency }),
           ...(updates.attachmentUrl !== undefined && { attachmentUrl: updates.attachmentUrl }),
           ...(updates.expiresAt !== undefined && { expiresAt: updates.expiresAt }),
+          ...(updates.requiresPhoto !== undefined && { requiresPhoto: updates.requiresPhoto }),
         } : a)
       );
       toast({

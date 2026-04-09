@@ -146,7 +146,7 @@ export function RosterManagementDialog({
   }, [open, fetchAllWorkoutAssignments]);
 
   // Add assignment handler
-  const handleAddAssignment = async (pitcherId: string, title: string, description?: string, frequency?: number, attachmentUrl?: string, expiresAt?: string | null): Promise<WorkoutAssignment | null> => {
+  const handleAddAssignment = async (pitcherId: string, title: string, description?: string, frequency?: number, attachmentUrl?: string, expiresAt?: string | null, requiresPhoto?: boolean): Promise<WorkoutAssignment | null> => {
     const pitcher = pitchers.find((item) => item.id === pitcherId);
 
     if (!pitcher) {
@@ -180,6 +180,7 @@ export function RosterManagementDialog({
           frequency: frequency ?? 7,
           attachment_url: attachmentUrl || null,
           expires_at: expiresAt || null,
+          requires_photo: requiresPhoto ?? false,
           user_id: pitcher.teamId ? null : (pitcher.userId ?? user.id),
         } as any)
         .select()
@@ -195,6 +196,7 @@ export function RosterManagementDialog({
         frequency: data.frequency ?? 7,
         attachmentUrl: data.attachment_url ?? null,
         expiresAt: (data as any).expires_at ?? null,
+        requiresPhoto: (data as any).requires_photo ?? false,
         createdAt: data.created_at,
       };
 
@@ -247,7 +249,7 @@ export function RosterManagementDialog({
   // Update assignment handler
   const handleUpdateAssignment = async (
     id: string,
-    updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null }
+    updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null; requiresPhoto?: boolean }
   ): Promise<boolean> => {
     try {
       const dbUpdates: Record<string, unknown> = {};
@@ -256,6 +258,7 @@ export function RosterManagementDialog({
       if (updates.frequency !== undefined) dbUpdates.frequency = updates.frequency;
       if (updates.attachmentUrl !== undefined) dbUpdates.attachment_url = updates.attachmentUrl;
       if (updates.expiresAt !== undefined) dbUpdates.expires_at = updates.expiresAt;
+      if (updates.requiresPhoto !== undefined) dbUpdates.requires_photo = updates.requiresPhoto;
 
       const { error } = await supabase
         .from('workout_assignments')
