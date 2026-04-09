@@ -87,6 +87,7 @@ export function RosterManagementDialog({
           description: row.description,
           frequency: row.frequency ?? 7,
           attachmentUrl: row.attachment_url ?? null,
+          expiresAt: (row as any).expires_at ?? null,
           createdAt: row.created_at,
         });
       });
@@ -145,7 +146,7 @@ export function RosterManagementDialog({
   }, [open, fetchAllWorkoutAssignments]);
 
   // Add assignment handler
-  const handleAddAssignment = async (pitcherId: string, title: string, description?: string, frequency?: number, attachmentUrl?: string): Promise<WorkoutAssignment | null> => {
+  const handleAddAssignment = async (pitcherId: string, title: string, description?: string, frequency?: number, attachmentUrl?: string, expiresAt?: string | null): Promise<WorkoutAssignment | null> => {
     const pitcher = pitchers.find((item) => item.id === pitcherId);
 
     if (!pitcher) {
