@@ -10,6 +10,7 @@ export interface WorkoutAssignment {
   description: string | null;
   frequency: number; // times per week (1-7)
   attachmentUrl: string | null;
+  expiresAt: string | null;
   createdAt: string;
 }
 
