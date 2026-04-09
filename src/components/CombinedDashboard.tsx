@@ -602,11 +602,11 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
 
       {/* Two Column Layout — Coach: 3 cols | Parent: 2 cols */}
 
-      {/* Coach 3-col: Heatmap | Workout Count | Leaderboard */}
+      {/* Coach grid: Heatmap spans 2 rows | Workout Count + Leaderboard top-right | Pitch Mix bottom-right */}
       {!parentMode && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          {/* Col 1: Heatmap */}
-          <Card className="glass-card">
+        <div className="grid grid-cols-1 lg:grid-cols-3 lg:grid-rows-2 gap-4 sm:gap-6">
+          {/* Col 1: Heatmap — spans both rows */}
+          <Card className="glass-card lg:row-span-2">
             <CardHeader className="pb-2 px-3 sm:px-6">
               <CardTitle className="font-display text-base sm:text-lg flex items-center gap-2">
                 <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
@@ -696,32 +696,32 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
               </CardContent>
             </Card>
           ) : <div />}
-        </div>
-      )}
 
-      {/* Coach: Pitch Mix full-width below the 3-col row */}
-      {!parentMode && pitchTypeBreakdown.length > 0 && (
-        <Card className="glass-card">
-          <CardHeader className="pb-2 px-3 sm:px-6">
-            <CardTitle className="font-display text-base sm:text-lg">Pitch Mix</CardTitle>
-          </CardHeader>
-          <CardContent className="px-3 sm:px-6">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-6 gap-y-2.5">
-              {pitchTypeBreakdown.map((pitch) => (
-                <div key={pitch.type} className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: PITCH_TYPE_COLORS[pitch.type.toString()] || 'hsl(var(--muted))' }} />
-                    <span className="text-xs text-foreground font-medium truncate">{getPitchTypeLabel(pitch.type)}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className="text-[10px] text-muted-foreground">{pitch.count} ({pitch.percentage}%)</span>
-                    <span className={`text-[10px] font-medium ${pitch.strikeRate >= 60 ? 'text-success' : pitch.strikeRate < 50 ? 'text-destructive' : 'text-warning'}`}>{pitch.strikeRate}% K</span>
-                  </div>
+          {/* Row 2 cols 2-3: Pitch Mix */}
+          {pitchTypeBreakdown.length > 0 ? (
+            <Card className="glass-card lg:col-span-2">
+              <CardHeader className="pb-2 px-3 sm:px-6">
+                <CardTitle className="font-display text-base sm:text-lg">Pitch Mix</CardTitle>
+              </CardHeader>
+              <CardContent className="px-3 sm:px-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2.5">
+                  {pitchTypeBreakdown.map((pitch) => (
+                    <div key={pitch.type} className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: PITCH_TYPE_COLORS[pitch.type.toString()] || 'hsl(var(--muted))' }} />
+                        <span className="text-xs text-foreground font-medium truncate">{getPitchTypeLabel(pitch.type)}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[10px] text-muted-foreground">{pitch.count} ({pitch.percentage}%)</span>
+                        <span className={`text-[10px] font-medium ${pitch.strikeRate >= 60 ? 'text-success' : pitch.strikeRate < 50 ? 'text-destructive' : 'text-warning'}`}>{pitch.strikeRate}% K</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          ) : <div className="lg:col-span-2" />}
+        </div>
       )}
 
       {/* Parent 2-col: Heatmap | Workout Counter + Leaderboard + Pitch Mix */}
