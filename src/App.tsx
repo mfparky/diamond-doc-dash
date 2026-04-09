@@ -15,6 +15,7 @@ import TeamWallPage from "./pages/TeamWallPage";
 import CalibratePage from "./pages/CalibratePage";
 import PrintFormPage from "./pages/PrintFormPage";
 import DesignSystemPage from "./pages/DesignSystemPage";
+import WorkoutAccountabilityPage from "./pages/WorkoutAccountabilityPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,7 @@ function AppRoutes() {
         
         <Route path="/calibrate" element={user ? <CalibratePage /> : <Auth />} />
         <Route path="/print-form" element={user ? <PrintFormPage /> : <Auth />} />
+        <Route path="/accountability" element={user ? <WorkoutAccountabilityPage /> : <Auth />} />
 
         {/* Design system evaluation — no auth required */}
         <Route path="/design-systems" element={<DesignSystemPage />} />
