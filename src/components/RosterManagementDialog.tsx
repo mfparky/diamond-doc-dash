@@ -247,7 +247,7 @@ export function RosterManagementDialog({
   // Update assignment handler
   const handleUpdateAssignment = async (
     id: string,
-    updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null }
+    updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null }
   ): Promise<boolean> => {
     try {
       const dbUpdates: Record<string, unknown> = {};
@@ -255,6 +255,7 @@ export function RosterManagementDialog({
       if (updates.description !== undefined) dbUpdates.description = updates.description;
       if (updates.frequency !== undefined) dbUpdates.frequency = updates.frequency;
       if (updates.attachmentUrl !== undefined) dbUpdates.attachment_url = updates.attachmentUrl;
+      if (updates.expiresAt !== undefined) dbUpdates.expires_at = updates.expiresAt;
 
       const { error } = await supabase
         .from('workout_assignments')
