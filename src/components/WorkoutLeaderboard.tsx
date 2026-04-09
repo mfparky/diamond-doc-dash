@@ -20,7 +20,7 @@ interface WorkoutLeaderboardProps {
   compact?: boolean;
 }
 
-type Trend = 'up' | 'down' | 'same' | 'new';
+type Trend = 'up' | 'down' | 'same';
 
 interface LeaderboardEntry {
   pitcherId: string;
@@ -38,7 +38,6 @@ interface DateRange {
 function TrendIcon({ trend }: { trend: Trend }) {
   if (trend === 'up')   return <TrendingUp   className="w-4 h-4 text-green-500" />;
   if (trend === 'down') return <TrendingDown className="w-4 h-4 text-red-400" />;
-  if (trend === 'new')  return <span className="text-[10px] font-bold text-primary uppercase tracking-wide">New</span>;
   return <Minus className="w-4 h-4 text-muted-foreground/50" />;
 }
 
@@ -215,7 +214,7 @@ export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntrie
         );
         const prevRankMap: Record<string, number> = {};
         prevEntries.forEach((e, i) => {
-          if ((prevCompletionCounts[e.pitcherId] || 0) > 0) prevRankMap[e.pitcherId] = i;
+          prevRankMap[e.pitcherId] = i;
         });
 
         setLeaderboard(entries);
@@ -246,7 +245,7 @@ export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntrie
   }, [dateRange]);
 
   const getTrend = (pitcherId: string, currentIndex: number): Trend => {
-    if (!(pitcherId in previousRanks)) return 'new';
+    if (!(pitcherId in previousRanks)) return 'same';
     const prev = previousRanks[pitcherId];
     if (currentIndex < prev) return 'up';
     if (currentIndex > prev) return 'down';
