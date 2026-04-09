@@ -81,17 +81,22 @@ export function WorkoutManagementSection({
         attachmentUrl = urlData.publicUrl;
       }
 
+      const expiresAt = expiresDate ? new Date(`${expiresDate}T${expiresTime || '23:59'}`).toISOString() : null;
+
       const result = await onAddAssignment(
         pitcherId,
         title.trim(),
         description.trim() || undefined,
         parseInt(frequency),
-        attachmentUrl
+        attachmentUrl,
+        expiresAt
       );
       if (result) {
         setTitle('');
         setDescription('');
         setFrequency('7');
+        setExpiresDate('');
+        setExpiresTime('23:59');
         setAttachmentFile(null);
         setIsAdding(false);
       }
