@@ -117,6 +117,14 @@ export function WorkoutManagementSection({
     setTitle(assignment.title);
     setDescription(assignment.description || '');
     setFrequency(String(assignment.frequency));
+    if (assignment.expiresAt) {
+      const d = new Date(assignment.expiresAt);
+      setExpiresDate(format(d, 'yyyy-MM-dd'));
+      setExpiresTime(format(d, 'HH:mm'));
+    } else {
+      setExpiresDate('');
+      setExpiresTime('23:59');
+    }
     setAttachmentFile(null);
     setIsAdding(false);
   };
@@ -126,6 +134,8 @@ export function WorkoutManagementSection({
     setTitle('');
     setDescription('');
     setFrequency('7');
+    setExpiresDate('');
+    setExpiresTime('23:59');
     setAttachmentFile(null);
   };
 
@@ -154,10 +164,13 @@ export function WorkoutManagementSection({
         attachmentUrl = urlData.publicUrl;
       }
 
-      const updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null } = {
+      const expiresAt = expiresDate ? new Date(`${expiresDate}T${expiresTime || '23:59'}`).toISOString() : null;
+
+      const updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null } = {
         title: title.trim(),
         description: description.trim() || null,
         frequency: parseInt(frequency),
+        expiresAt,
       };
       if (attachmentUrl !== undefined) {
         updates.attachmentUrl = attachmentUrl;
