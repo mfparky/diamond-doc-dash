@@ -65,6 +65,7 @@ export function useWorkouts(pitcherId?: string) {
         description: row.description,
         frequency: row.frequency ?? 7,
         attachmentUrl: row.attachment_url ?? null,
+        expiresAt: (row as any).expires_at ?? null,
         createdAt: row.created_at,
       }));
 
@@ -114,7 +115,8 @@ export function useWorkouts(pitcherId?: string) {
     title: string,
     description?: string,
     frequency?: number,
-    attachmentUrl?: string
+    attachmentUrl?: string,
+    expiresAt?: string | null
   ): Promise<WorkoutAssignment | null> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -127,8 +129,9 @@ export function useWorkouts(pitcherId?: string) {
           description: description || null,
           frequency: frequency ?? 7,
           attachment_url: attachmentUrl || null,
+          expires_at: expiresAt || null,
           user_id: user?.id || null,
-        })
+        } as any)
         .select()
         .single();
 
@@ -141,6 +144,7 @@ export function useWorkouts(pitcherId?: string) {
         description: data.description,
         frequency: data.frequency ?? 7,
         attachmentUrl: data.attachment_url ?? null,
+        expiresAt: (data as any).expires_at ?? null,
         createdAt: data.created_at,
       };
 
@@ -164,7 +168,7 @@ export function useWorkouts(pitcherId?: string) {
   // Update a workout assignment
   const updateAssignment = useCallback(async (
     id: string,
-    updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null }
+    updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null }
   ): Promise<boolean> => {
     try {
       const dbUpdates: Record<string, unknown> = {};
@@ -172,6 +176,7 @@ export function useWorkouts(pitcherId?: string) {
       if (updates.description !== undefined) dbUpdates.description = updates.description;
       if (updates.frequency !== undefined) dbUpdates.frequency = updates.frequency;
       if (updates.attachmentUrl !== undefined) dbUpdates.attachment_url = updates.attachmentUrl;
+      if (updates.expiresAt !== undefined) dbUpdates.expires_at = updates.expiresAt;
 
       const { error } = await supabase
         .from('workout_assignments')
@@ -187,6 +192,7 @@ export function useWorkouts(pitcherId?: string) {
           ...(updates.description !== undefined && { description: updates.description }),
           ...(updates.frequency !== undefined && { frequency: updates.frequency }),
           ...(updates.attachmentUrl !== undefined && { attachmentUrl: updates.attachmentUrl }),
+          ...(updates.expiresAt !== undefined && { expiresAt: updates.expiresAt }),
         } : a)
       );
       toast({
