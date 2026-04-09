@@ -415,6 +415,8 @@ export function WorkoutManagementSection({
                 setTitle('');
                 setDescription('');
                 setFrequency('7');
+                setExpiresDate('');
+                setExpiresTime('23:59');
                 setAttachmentFile(null);
               }}
             >
