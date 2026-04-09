@@ -31,6 +31,7 @@ import { LiveAbsSummary } from './LiveAbsSummary';
 import { LiveAbsDashboard } from './LiveAbsDashboard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { generateReport } from '@/lib/generate-report';
+import { supabase } from '@/integrations/supabase/client';
 
 
 interface PitcherDetailProps {
