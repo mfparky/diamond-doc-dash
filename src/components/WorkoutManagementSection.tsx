@@ -303,6 +303,12 @@ export function WorkoutManagementSection({
             <div className="flex items-center gap-2">
               <p className="text-sm font-medium text-foreground truncate">{assignment.title}</p>
               <span className="text-xs text-muted-foreground shrink-0">{assignment.frequency}x/wk</span>
+              {assignment.expiresAt && (
+                <span className={`text-xs shrink-0 flex items-center gap-0.5 ${new Date(assignment.expiresAt) < new Date() ? 'text-status-danger' : 'text-amber-500'}`}>
+                  <Clock className="w-3 h-3" />
+                  {new Date(assignment.expiresAt) < new Date() ? 'Expired' : `Due ${format(new Date(assignment.expiresAt), 'MMM d, h:mm a')}`}
+                </span>
+              )}
             </div>
             {assignment.description && (
               <p className="text-xs text-muted-foreground line-clamp-2">{assignment.description}</p>
