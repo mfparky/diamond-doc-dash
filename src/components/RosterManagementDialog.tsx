@@ -88,6 +88,7 @@ export function RosterManagementDialog({
           frequency: row.frequency ?? 7,
           attachmentUrl: row.attachment_url ?? null,
           expiresAt: (row as any).expires_at ?? null,
+          requiresPhoto: false,
           createdAt: row.created_at,
         });
       });
