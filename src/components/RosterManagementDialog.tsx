@@ -310,8 +310,9 @@ export function RosterManagementDialog({
             description: assignment.description,
             frequency: assignment.frequency,
             attachment_url: assignment.attachmentUrl,
+            expires_at: assignment.expiresAt,
             user_id: targetPitcher.teamId ? null : (targetPitcher.userId ?? user.id),
-          });
+          } as any);
           copiedCount++;
         }
       }
