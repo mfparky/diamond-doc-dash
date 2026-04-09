@@ -251,6 +251,25 @@ export function WorkoutManagementSection({
               </Select>
             </div>
             <div>
+              <Label className="text-xs flex items-center gap-1"><Clock className="w-3 h-3" /> Expiration (optional)</Label>
+              <div className="flex gap-2 mt-1">
+                <Input
+                  type="date"
+                  value={expiresDate}
+                  onChange={(e) => setExpiresDate(e.target.value)}
+                  className="h-8 text-xs flex-1"
+                  min={format(new Date(), 'yyyy-MM-dd')}
+                />
+                <Input
+                  type="time"
+                  value={expiresTime}
+                  onChange={(e) => setExpiresTime(e.target.value)}
+                  className="h-8 text-xs w-28"
+                  disabled={!expiresDate}
+                />
+              </div>
+            </div>
+            <div>
               <Label className="text-xs">Replace Attachment (optional)</Label>
               <Input
                 type="file"
@@ -358,6 +377,25 @@ export function WorkoutManagementSection({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div>
+            <Label className="text-xs flex items-center gap-1"><Clock className="w-3 h-3" /> Expiration (optional)</Label>
+            <div className="flex gap-2 mt-1">
+              <Input
+                type="date"
+                value={expiresDate}
+                onChange={(e) => setExpiresDate(e.target.value)}
+                className="h-8 text-xs flex-1"
+                min={format(new Date(), 'yyyy-MM-dd')}
+              />
+              <Input
+                type="time"
+                value={expiresTime}
+                onChange={(e) => setExpiresTime(e.target.value)}
+                className="h-8 text-xs w-28"
+                disabled={!expiresDate}
+              />
+            </div>
           </div>
           <div>
             <Label className="text-xs">Attachment (optional)</Label>
