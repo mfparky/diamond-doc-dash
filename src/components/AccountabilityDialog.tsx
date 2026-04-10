@@ -250,7 +250,7 @@ export function AccountabilityDialog({
 
                     const atCap = !completed && isAtFrequencyCap(assignment.id, assignment.frequency ?? 7);
                     const isExpired = !!assignment.expiresAt && new Date(assignment.expiresAt) < new Date();
-                    const disabled = isPending || atCap || (isExpired && !completed);
+                    const disabled = isPending || atCap || isExpired;
 
                     return (
                       <div key={dayIndex} className="flex flex-col items-center gap-1">
