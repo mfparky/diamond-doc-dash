@@ -227,9 +227,17 @@ export function AccountabilityDialog({
                       <ExternalLink className="w-3 h-3" />
                     </a>
                   )}
-                  <p className="text-xs text-primary mt-2">
-                    {completedDays}/{assignment.frequency ?? 7}x this week (max)
-                  </p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <p className="text-xs text-primary">
+                      {completedDays}/{assignment.frequency ?? 7}x this week (max)
+                    </p>
+                    {assignment.expiresAt && new Date(assignment.expiresAt) < new Date() && (
+                      <span className="text-xs text-destructive font-medium">Expired</span>
+                    )}
+                    {assignment.expiresAt && new Date(assignment.expiresAt) >= new Date() && (
+                      <span className="text-xs text-amber-500">Due {format(new Date(assignment.expiresAt), 'MMM d, h:mm a')}</span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Day checkboxes */}
@@ -241,7 +249,8 @@ export function AccountabilityDialog({
                     const today = isToday(date);
 
                     const atCap = !completed && isAtFrequencyCap(assignment.id, assignment.frequency ?? 7);
-                    const disabled = isPending || atCap;
+                    const isExpired = !!assignment.expiresAt && new Date(assignment.expiresAt) < new Date();
+                    const disabled = isPending || atCap || isExpired;
 
                     return (
                       <div key={dayIndex} className="flex flex-col items-center gap-1">
@@ -249,7 +258,7 @@ export function AccountabilityDialog({
                           {label}
                         </span>
                         <button
-                          onClick={() => !disabled && handleToggle(assignment.id, dayIndex, assignment.frequency ?? 7)}
+                          onClick={() => !disabled && !isExpired && handleToggle(assignment.id, dayIndex, assignment.frequency ?? 7)}
                           disabled={disabled}
                           className={`
                             w-10 h-10 rounded-lg border-2 flex items-center justify-center transition-all
