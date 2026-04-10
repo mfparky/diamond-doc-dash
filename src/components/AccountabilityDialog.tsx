@@ -227,9 +227,17 @@ export function AccountabilityDialog({
                       <ExternalLink className="w-3 h-3" />
                     </a>
                   )}
-                  <p className="text-xs text-primary mt-2">
-                    {completedDays}/{assignment.frequency ?? 7}x this week (max)
-                  </p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <p className="text-xs text-primary">
+                      {completedDays}/{assignment.frequency ?? 7}x this week (max)
+                    </p>
+                    {assignment.expiresAt && new Date(assignment.expiresAt) < new Date() && (
+                      <span className="text-xs text-destructive font-medium">Expired</span>
+                    )}
+                    {assignment.expiresAt && new Date(assignment.expiresAt) >= new Date() && (
+                      <span className="text-xs text-amber-500">Due {format(new Date(assignment.expiresAt), 'MMM d, h:mm a')}</span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Day checkboxes */}
