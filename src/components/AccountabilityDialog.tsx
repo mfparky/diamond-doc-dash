@@ -258,7 +258,7 @@ export function AccountabilityDialog({
                           {label}
                         </span>
                         <button
-                          onClick={() => !disabled && handleToggle(assignment.id, dayIndex, assignment.frequency ?? 7)}
+                          onClick={() => !disabled && !isExpired && handleToggle(assignment.id, dayIndex, assignment.frequency ?? 7)}
                           disabled={disabled}
                           className={`
                             w-10 h-10 rounded-lg border-2 flex items-center justify-center transition-all
