@@ -1,14 +1,14 @@
-const CELL = 28;
+const CELL = 44;
 
-function MiniZone() {
+function StrikeZone() {
   const cells = Array.from({ length: 9 });
   return (
     <div
       style={{
-        display: 'grid',
+        display: 'inline-grid',
         gridTemplateColumns: `repeat(3, ${CELL}px)`,
         gridTemplateRows: `repeat(3, ${CELL}px)`,
-        border: '2px solid #000',
+        border: '2.5px solid #000',
         boxSizing: 'border-box',
       }}
     >
@@ -19,8 +19,8 @@ function MiniZone() {
             width: CELL,
             height: CELL,
             boxSizing: 'border-box',
-            borderRight: (i % 3) < 2 ? '1px solid #aaa' : 'none',
-            borderBottom: Math.floor(i / 3) < 2 ? '1px solid #aaa' : 'none',
+            borderRight: (i % 3) < 2 ? '1.5px solid #999' : 'none',
+            borderBottom: Math.floor(i / 3) < 2 ? '1.5px solid #999' : 'none',
           }}
         />
       ))}
@@ -28,18 +28,10 @@ function MiniZone() {
   );
 }
 
-const OUTCOMES = ['K', 'BB', '1B', '2B', '3B', 'HR', 'GO', 'FO', 'LD', 'HBP', 'E'];
+const OUTCOMES_TOP = ['K', 'BB', '1B', '2B', '3B', 'HR'];
+const OUTCOMES_BOT = ['GO', 'FO', 'LD', 'HBP', 'E'];
 
-const COLS = [
-  { label: 'AB',      width: 24  },
-  { label: 'BATTER',  width: 110 },
-  { label: 'ZONE',    width: 96  },
-  { label: 'PC',      width: 32  },
-  { label: 'OUTCOME', width: 'auto' as const },
-  { label: 'NOTES',   width: 130 },
-];
-
-const ROW_H = 78;
+const ROW_H = 138;
 
 export function PrintableLiveAbsForm() {
   const today = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
@@ -49,7 +41,7 @@ export function PrintableLiveAbsForm() {
       <style>{`
         @media print {
           @page {
-            size: letter landscape;
+            size: letter portrait;
             margin: 0.3in 0.4in;
           }
           html, body {
@@ -70,64 +62,40 @@ export function PrintableLiveAbsForm() {
           backgroundColor: '#fff',
           color: '#000',
           padding: '10px 14px',
-          maxWidth: 980,
+          maxWidth: 740,
           margin: '0 auto',
           boxSizing: 'border-box',
         }}
       >
-        {/* Title bar */}
+        {/* Title */}
         <div
           style={{
             textAlign: 'center',
             borderBottom: '2px solid #000',
             paddingBottom: 5,
-            marginBottom: 7,
+            marginBottom: 8,
           }}
         >
-          <span
-            style={{
-              fontSize: 14,
-              fontWeight: 700,
-              letterSpacing: 1.5,
-              textTransform: 'uppercase',
-            }}
-          >
-            Diamond Doc — Live ABs Chart
+          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
+            Hawks 12U AA — Live ABs Chart
           </span>
         </div>
 
-        {/* Header fields row */}
-        <table
-          style={{
-            width: '100%',
-            borderCollapse: 'collapse',
-            marginBottom: 9,
-            fontSize: 9,
-          }}
-        >
+        {/* Header fields: Pitcher + Date only */}
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 9, fontSize: 9 }}>
           <tbody>
             <tr>
               <td style={{ whiteSpace: 'nowrap', paddingRight: 5, fontWeight: 700 }}>Pitcher:</td>
-              <td style={{ borderBottom: '1px solid #000', width: '28%' }}>
-                &nbsp;
-              </td>
-              <td style={{ whiteSpace: 'nowrap', paddingLeft: 14, paddingRight: 5, fontWeight: 700 }}>Date:</td>
-              <td style={{ borderBottom: '1px solid #000', width: '14%' }}>
-                <span style={{ fontSize: 7, color: '#aaa' }}>{today}</span>
-              </td>
-              <td style={{ whiteSpace: 'nowrap', paddingLeft: 14, paddingRight: 5, fontWeight: 700 }}>Opponent:</td>
+              <td style={{ borderBottom: '1px solid #000', width: '44%' }}>&nbsp;</td>
+              <td style={{ whiteSpace: 'nowrap', paddingLeft: 20, paddingRight: 5, fontWeight: 700 }}>Date:</td>
               <td style={{ borderBottom: '1px solid #000', width: '22%' }}>
-                &nbsp;
-              </td>
-              <td style={{ whiteSpace: 'nowrap', paddingLeft: 14, paddingRight: 5, fontWeight: 700 }}>Inning:</td>
-              <td style={{ borderBottom: '1px solid #000', width: '10%' }}>
-                &nbsp;
+                <span style={{ fontSize: 7, color: '#aaa' }}>{today}</span>
               </td>
             </tr>
           </tbody>
         </table>
 
-        {/* Main table */}
+        {/* Main table — fixed layout, 6 columns */}
         <table
           style={{
             width: '100%',
@@ -136,20 +104,19 @@ export function PrintableLiveAbsForm() {
           }}
         >
           <colgroup>
-            {COLS.map((c, i) => (
-              <col
-                key={i}
-                style={{ width: c.width === 'auto' ? undefined : c.width }}
-              />
-            ))}
+            <col style={{ width: 28 }} />   {/* AB */}
+            <col style={{ width: 120 }} />  {/* BATTER */}
+            <col style={{ width: 148 }} />  {/* ZONE */}
+            <col style={{ width: 40 }} />   {/* PC */}
+            <col style={{ width: 130 }} />  {/* OUTCOME */}
+            <col />                          {/* NOTES — fills remaining */}
           </colgroup>
 
-          {/* Header row */}
           <thead>
             <tr style={{ borderBottom: '2px solid #000' }}>
-              {COLS.map((c) => (
+              {['AB', 'BATTER', 'ZONE', 'PC', 'OUTCOME', 'NOTES'].map((label) => (
                 <th
-                  key={c.label}
+                  key={label}
                   style={{
                     fontSize: 8,
                     fontWeight: 700,
@@ -160,17 +127,16 @@ export function PrintableLiveAbsForm() {
                     borderRight: '1px solid #ccc',
                   }}
                 >
-                  {c.label}
+                  {label}
                 </th>
               ))}
             </tr>
           </thead>
 
           <tbody>
-            {Array.from({ length: 8 }, (_, i) => {
+            {Array.from({ length: 5 }, (_, i) => {
               const rowNum = i + 1;
-              const isOdd = rowNum % 2 !== 0;
-              const rowBg = isOdd ? '#fafafa' : '#fff';
+              const rowBg = rowNum % 2 !== 0 ? '#fafafa' : '#fff';
 
               return (
                 <tr
@@ -184,7 +150,7 @@ export function PrintableLiveAbsForm() {
                   {/* AB number */}
                   <td
                     style={{
-                      fontSize: 9,
+                      fontSize: 10,
                       fontWeight: 700,
                       color: '#888',
                       textAlign: 'center',
@@ -196,38 +162,30 @@ export function PrintableLiveAbsForm() {
                     {rowNum}
                   </td>
 
-                  {/* BATTER — blank write-in line */}
+                  {/* BATTER */}
                   <td
                     style={{
                       verticalAlign: 'bottom',
                       borderRight: '1px solid #ccc',
-                      padding: '0 4px 4px',
+                      padding: '0 6px 6px',
                     }}
                   >
-                    <div
-                      style={{
-                        borderBottom: '1px solid #999',
-                        height: 18,
-                        width: '100%',
-                      }}
-                    />
+                    <div style={{ borderBottom: '1px solid #999', height: 22, width: '100%' }} />
                   </td>
 
-                  {/* ZONE — mini zone grid */}
+                  {/* ZONE */}
                   <td
                     style={{
                       verticalAlign: 'middle',
                       textAlign: 'center',
                       borderRight: '1px solid #ccc',
-                      padding: '2px 4px',
+                      padding: '4px',
                     }}
                   >
-                    <div style={{ display: 'inline-block' }}>
-                      <MiniZone />
-                    </div>
+                    <StrikeZone />
                   </td>
 
-                  {/* PC — blank bordered box */}
+                  {/* PC */}
                   <td
                     style={{
                       verticalAlign: 'middle',
@@ -239,7 +197,7 @@ export function PrintableLiveAbsForm() {
                     <div
                       style={{
                         border: '1px solid #999',
-                        height: 48,
+                        height: 50,
                         width: 32,
                         margin: '0 auto',
                         boxSizing: 'border-box',
@@ -247,54 +205,61 @@ export function PrintableLiveAbsForm() {
                     />
                   </td>
 
-                  {/* OUTCOME — circle-one labels */}
+                  {/* OUTCOME — two rows of circle-labels */}
                   <td
                     style={{
                       verticalAlign: 'middle',
                       borderRight: '1px solid #ccc',
-                      padding: '2px 6px',
+                      padding: '4px 6px',
                     }}
                   >
-                    <div
-                      style={{
-                        display: 'flex',
-                        gap: 10,
-                        alignItems: 'flex-end',
-                        flexWrap: 'nowrap',
-                      }}
-                    >
-                      {OUTCOMES.map((label) => (
-                        <span
-                          key={label}
-                          style={{
-                            fontSize: 8,
-                            fontWeight: 700,
-                            borderBottom: '1px solid #bbb',
-                            paddingBottom: 1,
-                            whiteSpace: 'nowrap',
-                            lineHeight: 1.2,
-                          }}
-                        >
-                          {label}
-                        </span>
-                      ))}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        {OUTCOMES_TOP.map((label) => (
+                          <span
+                            key={label}
+                            style={{
+                              fontSize: 9,
+                              fontWeight: 700,
+                              borderBottom: '1.5px solid #bbb',
+                              paddingBottom: 1,
+                              whiteSpace: 'nowrap',
+                              lineHeight: 1.3,
+                            }}
+                          >
+                            {label}
+                          </span>
+                        ))}
+                      </div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        {OUTCOMES_BOT.map((label) => (
+                          <span
+                            key={label}
+                            style={{
+                              fontSize: 9,
+                              fontWeight: 700,
+                              borderBottom: '1.5px solid #bbb',
+                              paddingBottom: 1,
+                              whiteSpace: 'nowrap',
+                              lineHeight: 1.3,
+                            }}
+                          >
+                            {label}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </td>
 
-                  {/* NOTES — underline only */}
+                  {/* NOTES */}
                   <td
                     style={{
                       verticalAlign: 'bottom',
-                      padding: '0 6px 4px',
+                      padding: '0 6px 6px',
                     }}
                   >
-                    <div
-                      style={{
-                        borderBottom: '1px solid #999',
-                        height: 18,
-                        width: '100%',
-                      }}
-                    />
+                    <div style={{ borderBottom: '1px solid #999', height: 22, width: '100%', marginBottom: 28 }} />
+                    <div style={{ borderBottom: '1px solid #999', height: 22, width: '100%' }} />
                   </td>
                 </tr>
               );
