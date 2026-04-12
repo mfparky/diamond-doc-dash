@@ -135,7 +135,7 @@ export function useWorkouts(pitcherId?: string) {
           expires_at: expiresAt || null,
           requires_photo: requiresPhoto ?? false,
           user_id: user?.id || null,
-        } as any)
+        })
         .select()
         .single();
 

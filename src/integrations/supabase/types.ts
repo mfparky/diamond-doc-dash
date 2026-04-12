@@ -335,6 +335,7 @@ export type Database = {
           frequency: number
           id: string
           pitcher_id: string
+          requires_photo: boolean
           team_id: string | null
           title: string
           updated_at: string
@@ -348,6 +349,7 @@ export type Database = {
           frequency?: number
           id?: string
           pitcher_id: string
+          requires_photo?: boolean
           team_id?: string | null
           title: string
           updated_at?: string
@@ -361,6 +363,7 @@ export type Database = {
           frequency?: number
           id?: string
           pitcher_id?: string
+          requires_photo?: boolean
           team_id?: string | null
           title?: string
           updated_at?: string
