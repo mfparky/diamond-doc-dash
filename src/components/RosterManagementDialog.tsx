@@ -88,7 +88,7 @@ export function RosterManagementDialog({
           frequency: row.frequency ?? 7,
           attachmentUrl: row.attachment_url ?? null,
           expiresAt: (row as any).expires_at ?? null,
-          requiresPhoto: false,
+          requiresPhoto: (row as any).requires_photo ?? false,
           createdAt: row.created_at,
         });
       });
@@ -182,7 +182,7 @@ export function RosterManagementDialog({
           attachment_url: attachmentUrl || null,
           expires_at: expiresAt || null,
           requires_photo: requiresPhoto ?? false,
-          user_id: pitcher.teamId ? null : (pitcher.userId ?? user.id),
+          user_id: pitcher.teamId ? null : user.id,
         } as any)
         .select()
         .single();
@@ -315,7 +315,8 @@ export function RosterManagementDialog({
             frequency: assignment.frequency,
             attachment_url: assignment.attachmentUrl,
             expires_at: assignment.expiresAt,
-            user_id: targetPitcher.teamId ? null : (targetPitcher.userId ?? user.id),
+            requires_photo: assignment.requiresPhoto,
+            user_id: targetPitcher.teamId ? null : user.id,
           } as any);
           copiedCount++;
         }
