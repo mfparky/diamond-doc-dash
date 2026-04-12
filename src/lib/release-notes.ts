@@ -12,31 +12,29 @@ export interface ReleaseNotes {
 }
 
 export const CURRENT_RELEASE: ReleaseNotes = {
-  version: "2026-04-07",
+  version: "2026-04-12",
   enabled: false,
   title: "What's New 🎉",
   features: [
     {
-      heading: "🏋️ Workout Wall & Leaderboard",
+      heading: "📸 Bonus Workouts",
       description:
-        "A full-page photo wall celebrates your players' hard work, plus a live leaderboard with animated counters to track who's putting in the reps.",
+        "Coaches can now assign bonus workouts that require a photo to complete — prove you put in the work!",
     },
     {
-      heading: "🤝 Sponsor Spotlight",
+      heading: "📅 Workout Wall Date Fix",
       description:
-        "Our sponsors now get a dedicated tile on the Workout Wall — randomly placed each visit to keep things fresh. Thank you to everyone who supports the team!",
+        "Photos on the Workout Wall now show the actual day you completed the workout instead of the start of the week.",
     },
     {
-      heading: "🎨 Team Design System",
-      description: "New athlete-inspired, custom look & feel across the entire app — with light/dark mode support.",
+      heading: "🔒 Frequency Limits",
+      description:
+        "Bonus workouts are now properly capped so you can only log them the number of times assigned per week.",
     },
     {
-      heading: "📸 Image Optimization",
-      description: "Workout photos are auto-compressed for faster loading without losing quality.",
-    },
-    {
-      heading: "⏱️ Reset Accomplishments",
-      description: "Player accomplishments have been reset - all players are starting at 0 again.",
+      heading: "🛠️ Bug Fixes",
+      description:
+        "Fixed an issue that prevented some players from having workouts added to their profile.",
     },
   ],
   signoff: "-Coach Matt",
