@@ -312,7 +312,7 @@ export function WorkoutGallery({
                 {lightboxPhoto.workoutTitle}
               </p>
               <p className="text-white/50 text-xs">
-                {DAY_LABELS[lightboxPhoto.dayOfWeek]} · {format(parseISO(lightboxPhoto.weekStart), "MMM d, yyyy")}
+                {DAY_LABELS[lightboxPhoto.dayOfWeek]} · {format(addDays(parseISO(lightboxPhoto.weekStart), lightboxPhoto.dayOfWeek), "MMM d, yyyy")}
               </p>
               {lightboxPhoto.notes && (
                 <p className="text-white/70 text-xs mt-1 max-w-sm mx-auto italic">"{lightboxPhoto.notes}"</p>
