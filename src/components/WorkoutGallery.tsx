@@ -199,9 +199,9 @@ export function WorkoutGallery({
           photos.forEach((photo, idx) => {
             if (idx === sponsorIndex) items.push(sponsorTile);
 
-            const weekDate = parseISO(photo.weekStart);
+            const actualDate = addDays(parseISO(photo.weekStart), photo.dayOfWeek);
             const dayLabel = DAY_LABELS[photo.dayOfWeek] ?? "";
-            const dateLabel = format(weekDate, "MMM d");
+            const dateLabel = format(actualDate, "MMM d");
             const initials = (photo.pitcherName || "P")
               .split(" ")
               .map((w) => w[0])
