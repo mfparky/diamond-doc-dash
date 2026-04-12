@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, addDays } from "date-fns";
 import { Camera, X, ChevronLeft, ChevronRight, Flame } from "lucide-react";
 
 interface GalleryPhoto {
@@ -199,9 +199,9 @@ export function WorkoutGallery({
           photos.forEach((photo, idx) => {
             if (idx === sponsorIndex) items.push(sponsorTile);
 
-            const weekDate = parseISO(photo.weekStart);
+            const actualDate = addDays(parseISO(photo.weekStart), photo.dayOfWeek);
             const dayLabel = DAY_LABELS[photo.dayOfWeek] ?? "";
-            const dateLabel = format(weekDate, "MMM d");
+            const dateLabel = format(actualDate, "MMM d");
             const initials = (photo.pitcherName || "P")
               .split(" ")
               .map((w) => w[0])
@@ -312,7 +312,7 @@ export function WorkoutGallery({
                 {lightboxPhoto.workoutTitle}
               </p>
               <p className="text-white/50 text-xs">
-                {DAY_LABELS[lightboxPhoto.dayOfWeek]} · {format(parseISO(lightboxPhoto.weekStart), "MMM d, yyyy")}
+                {DAY_LABELS[lightboxPhoto.dayOfWeek]} · {format(addDays(parseISO(lightboxPhoto.weekStart), lightboxPhoto.dayOfWeek), "MMM d, yyyy")}
               </p>
               {lightboxPhoto.notes && (
                 <p className="text-white/70 text-xs mt-1 max-w-sm mx-auto italic">"{lightboxPhoto.notes}"</p>
