@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, addDays } from "date-fns";
 import { Camera, X, ChevronLeft, ChevronRight, Flame } from "lucide-react";
 
 interface GalleryPhoto {
