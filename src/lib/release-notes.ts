@@ -13,7 +13,7 @@ export interface ReleaseNotes {
 
 export const CURRENT_RELEASE: ReleaseNotes = {
   version: "2026-04-12",
-  enabled: false,
+  enabled: true,
   title: "What's New 🎉",
   features: [
     {
@@ -33,8 +33,7 @@ export const CURRENT_RELEASE: ReleaseNotes = {
     },
     {
       heading: "🛠️ Bug Fixes",
-      description:
-        "Fixed an issue that prevented some players from having workouts added to their profile.",
+      description: "Fixed an issue that prevented some players from having workouts added to their profile.",
     },
   ],
   signoff: "-Coach Matt",
