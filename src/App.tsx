@@ -14,6 +14,7 @@ import CoachDashboard from "./pages/CoachDashboard";
 import TeamWallPage from "./pages/TeamWallPage";
 import CalibratePage from "./pages/CalibratePage";
 import PrintFormPage from "./pages/PrintFormPage";
+import PrintLiveAbsPage from "./pages/PrintLiveAbsPage";
 import DesignSystemPage from "./pages/DesignSystemPage";
 import WorkoutAccountabilityPage from "./pages/WorkoutAccountabilityPage";
 import NotFound from "./pages/NotFound";
@@ -49,6 +50,7 @@ function AppRoutes() {
         
         <Route path="/calibrate" element={user ? <CalibratePage /> : <Auth />} />
         <Route path="/print-form" element={user ? <PrintFormPage /> : <Auth />} />
+        <Route path="/print-live-abs" element={user ? <PrintLiveAbsPage /> : <Auth />} />
         <Route path="/accountability" element={user ? <WorkoutAccountabilityPage /> : <Auth />} />
 
         {/* Design system evaluation — no auth required */}
