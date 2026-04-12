@@ -1,0 +1,1 @@
+ALTER TABLE public.workout_assignments ADD COLUMN requires_photo boolean NOT NULL DEFAULT false;
