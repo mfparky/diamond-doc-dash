@@ -1,4 +1,4 @@
-const CELL = 17;
+const CELL = 28;
 
 function MiniZone() {
   const cells = Array.from({ length: 9 });
@@ -33,13 +33,13 @@ const OUTCOMES = ['K', 'BB', '1B', '2B', '3B', 'HR', 'GO', 'FO', 'LD', 'HBP', 'E
 const COLS = [
   { label: 'AB',      width: 24  },
   { label: 'BATTER',  width: 110 },
-  { label: 'ZONE',    width: 59  },
+  { label: 'ZONE',    width: 96  },
   { label: 'PC',      width: 32  },
   { label: 'OUTCOME', width: 'auto' as const },
   { label: 'NOTES',   width: 130 },
 ];
 
-const ROW_H = 50;
+const ROW_H = 78;
 
 export function PrintableLiveAbsForm() {
   const today = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
@@ -167,7 +167,7 @@ export function PrintableLiveAbsForm() {
           </thead>
 
           <tbody>
-            {Array.from({ length: 12 }, (_, i) => {
+            {Array.from({ length: 8 }, (_, i) => {
               const rowNum = i + 1;
               const isOdd = rowNum % 2 !== 0;
               const rowBg = isOdd ? '#fafafa' : '#fff';
@@ -239,8 +239,8 @@ export function PrintableLiveAbsForm() {
                     <div
                       style={{
                         border: '1px solid #999',
-                        height: 30,
-                        width: 28,
+                        height: 48,
+                        width: 32,
                         margin: '0 auto',
                         boxSizing: 'border-box',
                       }}
