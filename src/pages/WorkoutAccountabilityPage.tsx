@@ -289,7 +289,7 @@ export default function WorkoutAccountabilityPage() {
         // 2. Get all assignments
         const { data: assignmentRows } = await supabase
           .from('workout_assignments')
-          .select('id, pitcher_id, title, frequency')
+          .select('id, pitcher_id, title, frequency, expires_at')
           .in('pitcher_id', pitcherIds);
 
         // 3. Get all completions (with created_at for truth metric)
