@@ -192,7 +192,7 @@ export function AccountabilityDialog({
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {assignments.map((assignment) => {
+          {assignments.filter((a) => !a.expiresAt || new Date(a.expiresAt) >= new Date()).map((assignment) => {
             const completedDays = completions.filter(
               (c) => c.assignmentId === assignment.id
             ).length;

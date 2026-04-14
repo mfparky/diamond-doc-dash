@@ -15,6 +15,7 @@ interface WorkoutAssignment {
   description: string | null;
   frequency: number;
   attachmentUrl: string | null;
+  expiresAt: string | null;
 }
 
 interface WorkoutCompletion {
@@ -74,6 +75,7 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
             description: a.description,
             frequency: (a as any).frequency ?? 7,
             attachmentUrl: (a as any).attachment_url ?? null,
+            expiresAt: (a as any).expires_at ?? null,
           }))
         );
 
@@ -128,7 +130,10 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
     );
   }
 
-  if (assignments.length === 0) {
+  // Separate active vs expired assignments — expired ones still count in tally but are hidden from UI
+  const activeAssignments = assignments.filter((a) => !a.expiresAt || new Date(a.expiresAt) >= new Date());
+
+  if (activeAssignments.length === 0 && completions.length === 0) {
     return null;
   }
 
@@ -153,7 +158,7 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {assignments.map((assignment) => {
+        {activeAssignments.map((assignment) => {
           const completedDays = completions.filter(
             (c) => c.assignmentId === assignment.id
           ).length;
