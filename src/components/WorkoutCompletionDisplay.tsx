@@ -137,7 +137,7 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
     return null;
   }
 
-  const totalPossible = assignments.reduce((sum, a) => sum + (a.frequency ?? 7), 0);
+  const totalPossible = activeAssignments.reduce((sum, a) => sum + (a.frequency ?? 7), 0);
   const totalCompleted = completions.length;
   const completionRate = totalPossible > 0 ? Math.round((totalCompleted / totalPossible) * 100) : 0;
 
