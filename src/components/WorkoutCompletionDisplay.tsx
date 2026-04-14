@@ -15,6 +15,7 @@ interface WorkoutAssignment {
   description: string | null;
   frequency: number;
   attachmentUrl: string | null;
+  expiresAt: string | null;
 }
 
 interface WorkoutCompletion {
