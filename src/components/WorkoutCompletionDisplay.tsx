@@ -56,7 +56,7 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
         const [assignmentsRes, completionsRes] = await Promise.all([
           supabase
             .from('workout_assignments')
-            .select('id, title, description, frequency, attachment_url')
+            .select('id, title, description, frequency, attachment_url, expires_at')
             .eq('pitcher_id', pitcherId),
           supabase
             .from('workout_completions')
