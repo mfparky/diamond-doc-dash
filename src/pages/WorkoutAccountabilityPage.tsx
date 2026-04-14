@@ -311,10 +311,11 @@ export default function WorkoutAccountabilityPage() {
         // 4. Build per-pitcher accountability data
         const result: PitcherAccountability[] = pitcherRows.map((pitcher) => {
           const myAssignments = assignments.filter((a) => a.pitcher_id === pitcher.id);
+          const activeAssignments = myAssignments.filter((a) => !a.expires_at || new Date(a.expires_at) >= new Date());
           const myCompletions = completions.filter((c) => c.pitcherId === pitcher.id);
           const thisWeekCompletions = myCompletions.filter((c) => c.weekStart === thisWeekStart);
 
-          const assignmentSummaries: AssignmentSummary[] = myAssignments.map((a) => ({
+          const assignmentSummaries: AssignmentSummary[] = activeAssignments.map((a) => ({
             id: a.id,
             title: a.title,
             frequency: a.frequency,
@@ -322,7 +323,7 @@ export default function WorkoutAccountabilityPage() {
             thisWeek: thisWeekCompletions.filter((c) => c.assignmentId === a.id).length,
           }));
 
-          const thisWeekMax = myAssignments.reduce((sum, a) => sum + a.frequency, 0);
+          const thisWeekMax = activeAssignments.reduce((sum, a) => sum + a.frequency, 0);
 
           const dayOfWeekCounts = Array.from({ length: 7 }, (_, day) =>
             myCompletions.filter((c) => c.dayOfWeek === day).length
