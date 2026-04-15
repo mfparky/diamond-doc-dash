@@ -171,11 +171,13 @@ export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntrie
 
         if (completionsError) throw completionsError;
 
-        // Fetch assignment counts per pitcher
+        // Fetch non-expired assignment counts per pitcher
+        const now = new Date().toISOString();
         const { data: assignments, error: assignmentsError } = await supabase
           .from('workout_assignments')
           .select('pitcher_id')
-          .in('pitcher_id', pitchers.map((p) => p.id));
+          .in('pitcher_id', pitchers.map((p) => p.id))
+          .or(`expires_at.is.null,expires_at.gte.${now}`);
 
         if (assignmentsError) throw assignmentsError;
 
