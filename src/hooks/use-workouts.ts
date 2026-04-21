@@ -96,10 +96,10 @@ export function useWorkouts(pitcherId?: string) {
     }
   }, []);
 
-  // Fetch completions for a pitcher for current week
-  const fetchCompletions = useCallback(async (id: string) => {
-    const weekStart = getCurrentWeekStart();
-    
+  // Fetch completions for a pitcher for a given week (defaults to current week)
+  const fetchCompletions = useCallback(async (id: string, weekStartOverride?: string) => {
+    const weekStart = weekStartOverride ?? getCurrentWeekStart();
+
     try {
       const { data, error } = await supabase
         .from('workout_completions')
