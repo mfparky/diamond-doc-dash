@@ -269,11 +269,11 @@ export function useWorkouts(pitcherId?: string) {
     dayOfWeek: number,
     notes?: string
   ): Promise<boolean> => {
-    const weekStart = getCurrentWeekStart();
-    
-    // Check if already completed
+    const weekStart = selectedWeekStart;
+
+    // Check if already completed in the active week
     const existing = completions.find(
-      (c) => c.assignmentId === assignmentId && c.dayOfWeek === dayOfWeek
+      (c) => c.assignmentId === assignmentId && c.dayOfWeek === dayOfWeek && c.weekStart === weekStart
     );
 
     try {
