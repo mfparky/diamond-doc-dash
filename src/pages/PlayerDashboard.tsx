@@ -78,6 +78,8 @@ export default function PlayerDashboard() {
     assignments,
     completions, 
     isLoading: workoutsLoading,
+    selectedWeekStart,
+    setSelectedWeekStart,
     toggleCompletion,
     updateCompletionNotes,
     uploadCompletionPhoto,
