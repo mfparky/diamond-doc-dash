@@ -202,6 +202,23 @@ export function AccountabilityDialog({
     ? getCompletion(editingNotes.assignmentId, editingNotes.dayOfWeek)
     : null;
 
+  // Week label e.g. "Apr 14 – Apr 20"
+  const weekRangeLabel = `${format(weekDays[0].date, 'MMM d')} – ${format(weekDays[6].date, 'MMM d')}`;
+
+  // For past weeks, show assignments that existed during that week (created on/before week end
+  // and either still active or expired *after* the week's Monday). For the current week, keep
+  // the existing "hide expired" behavior.
+  const weekStartDate = weekDays[0].date;
+  const weekEndDate = weekDays[6].date;
+  const visibleAssignments = assignments.filter((a) => {
+    const createdAt = new Date(a.createdAt);
+    if (createdAt > weekEndDate) return false; // not yet created during this week
+    if (!a.expiresAt) return true;
+    const expires = new Date(a.expiresAt);
+    // Show if expiry is after this week started (i.e. it was active for at least part of the week)
+    return expires >= weekStartDate;
+  });
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
@@ -211,7 +228,9 @@ export function AccountabilityDialog({
             Accountability
           </DialogTitle>
           <DialogDescription>
-            Mark the days when workouts were completed this week.
+            {isCurrentWeek
+              ? 'Mark the days when workouts were completed this week.'
+              : 'Viewing a past week — you can still check off or edit completed workouts.'}
             {achievementStart && (
               <span className="block mt-1 text-primary font-medium">
                 {format(achievementStart, 'MMM d')} – {achievementEnd ? format(achievementEnd, 'MMM d') : 'Present'}
@@ -220,8 +239,47 @@ export function AccountabilityDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {/* Week navigator */}
+        {onWeekChange && (
+          <div className="flex items-center justify-between gap-2 px-1 py-2 border-y border-border/50">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={goToPrevWeek}
+              className="gap-1"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Prev
+            </Button>
+            <div className="flex flex-col items-center">
+              <span className="text-sm font-medium text-foreground">{weekRangeLabel}</span>
+              {!isCurrentWeek && (
+                <button
+                  onClick={goToCurrentWeek}
+                  className="text-xs text-primary hover:underline"
+                >
+                  Jump to this week
+                </button>
+              )}
+              {isCurrentWeek && (
+                <span className="text-xs text-muted-foreground">This week</span>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={goToNextWeek}
+              disabled={isCurrentWeek}
+              className="gap-1"
+            >
+              Next
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
+
         <div className="space-y-6 py-4">
-          {assignments.filter((a) => !a.expiresAt || new Date(a.expiresAt) >= new Date()).map((assignment) => {
+          {visibleAssignments.map((assignment) => {
             const completedDays = completions.filter(
               (c) => c.assignmentId === assignment.id
             ).length;
