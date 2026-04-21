@@ -448,21 +448,32 @@ export function useWorkouts(pitcherId?: string) {
     }
   }, []);
 
-  // Load data on mount
+  // Load assignments + initial-week completions on mount / pitcher change
   useEffect(() => {
     if (pitcherId) {
       setIsLoading(true);
       Promise.all([
         fetchAssignments(pitcherId),
-        fetchCompletions(pitcherId),
+        fetchCompletions(pitcherId, selectedWeekStart),
       ]).finally(() => setIsLoading(false));
     }
+    // selectedWeekStart intentionally omitted — week changes are handled by the next effect
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pitcherId, fetchAssignments, fetchCompletions]);
+
+  // Refetch completions whenever the selected week changes
+  useEffect(() => {
+    if (pitcherId) {
+      fetchCompletions(pitcherId, selectedWeekStart);
+    }
+  }, [pitcherId, selectedWeekStart, fetchCompletions]);
 
   return {
     assignments,
     completions,
     isLoading,
+    selectedWeekStart,
+    setSelectedWeekStart,
     addAssignment,
     updateAssignment,
     deleteAssignment,
