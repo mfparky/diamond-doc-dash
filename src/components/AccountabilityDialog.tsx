@@ -22,6 +22,10 @@ interface AccountabilityDialogProps {
   onUpdatePhoto?: (completionId: string, photoUrl: string | null) => Promise<boolean>;
   achievementStart?: Date;
   achievementEnd?: Date;
+  /** yyyy-MM-dd Monday of the week being viewed/edited. Defaults to current week. */
+  selectedWeekStart?: string;
+  /** Called when the user navigates to a different week. */
+  onWeekChange?: (weekStart: string) => void;
 }
 
 export function AccountabilityDialog({
@@ -36,8 +40,33 @@ export function AccountabilityDialog({
   onUpdatePhoto,
   achievementStart,
   achievementEnd,
+  selectedWeekStart,
+  onWeekChange,
 }: AccountabilityDialogProps) {
-  const weekDays = getWeekDayLabels();
+  const currentWeekStart = getCurrentWeekStart();
+  const activeWeekStart = selectedWeekStart ?? currentWeekStart;
+  const isCurrentWeek = activeWeekStart === currentWeekStart;
+  const weekDays = getWeekDayLabels(activeWeekStart);
+
+  const goToPrevWeek = () => {
+    if (!onWeekChange) return;
+    const [y, m, d] = activeWeekStart.split('-').map(Number);
+    const monday = new Date(y, m - 1, d);
+    onWeekChange(getWeekStartFor(addDays(monday, -7)));
+  };
+
+  const goToNextWeek = () => {
+    if (!onWeekChange || isCurrentWeek) return;
+    const [y, m, d] = activeWeekStart.split('-').map(Number);
+    const monday = new Date(y, m - 1, d);
+    onWeekChange(getWeekStartFor(addDays(monday, 7)));
+  };
+
+  const goToCurrentWeek = () => {
+    if (!onWeekChange || isCurrentWeek) return;
+    onWeekChange(currentWeekStart);
+  };
+
   const [pendingToggles, setPendingToggles] = useState<Set<string>>(new Set());
   const [editingNotes, setEditingNotes] = useState<{ assignmentId: string; dayOfWeek: number } | null>(null);
   const [noteText, setNoteText] = useState('');
