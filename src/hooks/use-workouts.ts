@@ -62,6 +62,7 @@ export function useWorkouts(pitcherId?: string) {
   const [assignments, setAssignments] = useState<WorkoutAssignment[]>([]);
   const [completions, setCompletions] = useState<WorkoutCompletion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedWeekStart, setSelectedWeekStart] = useState<string>(getCurrentWeekStart());
   const { toast } = useToast();
 
   // Fetch assignments for a pitcher
