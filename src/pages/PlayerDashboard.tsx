@@ -903,6 +903,8 @@ export default function PlayerDashboard() {
         onUpdatePhoto={updateCompletionPhoto}
         achievementStart={teamAchievementStart}
         achievementEnd={teamAchievementEnd}
+        selectedWeekStart={selectedWeekStart}
+        onWeekChange={setSelectedWeekStart}
       />
     </div>
   );
