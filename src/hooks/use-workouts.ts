@@ -33,9 +33,25 @@ export function getCurrentWeekStart(): string {
   return format(monday, 'yyyy-MM-dd');
 }
 
-// Get day labels for current week
-export function getWeekDayLabels(): { label: string; date: Date }[] {
-  const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
+// Get the Monday (yyyy-MM-dd) for an arbitrary date
+export function getWeekStartFor(date: Date): string {
+  const monday = startOfWeek(date, { weekStartsOn: 1 });
+  return format(monday, 'yyyy-MM-dd');
+}
+
+// Get day labels for a specific week (defaults to current week).
+// Accepts either a Date or a yyyy-MM-dd string representing the week's Monday.
+export function getWeekDayLabels(weekStart?: string | Date): { label: string; date: Date }[] {
+  let monday: Date;
+  if (!weekStart) {
+    monday = startOfWeek(new Date(), { weekStartsOn: 1 });
+  } else if (typeof weekStart === 'string') {
+    // Parse yyyy-MM-dd as local date to avoid timezone shifts
+    const [y, m, d] = weekStart.split('-').map(Number);
+    monday = new Date(y, m - 1, d);
+  } else {
+    monday = startOfWeek(weekStart, { weekStartsOn: 1 });
+  }
   return ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((label, i) => ({
     label,
     date: addDays(monday, i),
