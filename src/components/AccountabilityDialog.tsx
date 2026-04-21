@@ -4,11 +4,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { ClipboardCheck, Check, MessageSquare, Trophy, Paperclip, ExternalLink, Camera, X, Loader2 } from 'lucide-react';
+import { ClipboardCheck, Check, MessageSquare, Trophy, Paperclip, ExternalLink, Camera, X, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { TeamLeaderboardDialog } from '@/components/TeamLeaderboardDialog';
 import { WorkoutGalleryDialog } from '@/components/WorkoutGalleryDialog';
-import { WorkoutAssignment, WorkoutCompletion, getWeekDayLabels } from '@/hooks/use-workouts';
-import { format } from 'date-fns';
+import { WorkoutAssignment, WorkoutCompletion, getWeekDayLabels, getCurrentWeekStart, getWeekStartFor } from '@/hooks/use-workouts';
+import { format, addDays } from 'date-fns';
 
 interface AccountabilityDialogProps {
   open: boolean;
