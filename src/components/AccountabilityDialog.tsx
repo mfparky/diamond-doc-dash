@@ -4,11 +4,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { ClipboardCheck, Check, MessageSquare, Trophy, Paperclip, ExternalLink, Camera, X, Loader2 } from 'lucide-react';
+import { ClipboardCheck, Check, MessageSquare, Trophy, Paperclip, ExternalLink, Camera, X, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { TeamLeaderboardDialog } from '@/components/TeamLeaderboardDialog';
 import { WorkoutGalleryDialog } from '@/components/WorkoutGalleryDialog';
-import { WorkoutAssignment, WorkoutCompletion, getWeekDayLabels } from '@/hooks/use-workouts';
-import { format } from 'date-fns';
+import { WorkoutAssignment, WorkoutCompletion, getWeekDayLabels, getCurrentWeekStart, getWeekStartFor } from '@/hooks/use-workouts';
+import { format, addDays } from 'date-fns';
 
 interface AccountabilityDialogProps {
   open: boolean;
@@ -22,6 +22,10 @@ interface AccountabilityDialogProps {
   onUpdatePhoto?: (completionId: string, photoUrl: string | null) => Promise<boolean>;
   achievementStart?: Date;
   achievementEnd?: Date;
+  /** yyyy-MM-dd Monday of the week being viewed/edited. Defaults to current week. */
+  selectedWeekStart?: string;
+  /** Called when the user navigates to a different week. */
+  onWeekChange?: (weekStart: string) => void;
 }
 
 export function AccountabilityDialog({
@@ -36,8 +40,33 @@ export function AccountabilityDialog({
   onUpdatePhoto,
   achievementStart,
   achievementEnd,
+  selectedWeekStart,
+  onWeekChange,
 }: AccountabilityDialogProps) {
-  const weekDays = getWeekDayLabels();
+  const currentWeekStart = getCurrentWeekStart();
+  const activeWeekStart = selectedWeekStart ?? currentWeekStart;
+  const isCurrentWeek = activeWeekStart === currentWeekStart;
+  const weekDays = getWeekDayLabels(activeWeekStart);
+
+  const goToPrevWeek = () => {
+    if (!onWeekChange) return;
+    const [y, m, d] = activeWeekStart.split('-').map(Number);
+    const monday = new Date(y, m - 1, d);
+    onWeekChange(getWeekStartFor(addDays(monday, -7)));
+  };
+
+  const goToNextWeek = () => {
+    if (!onWeekChange || isCurrentWeek) return;
+    const [y, m, d] = activeWeekStart.split('-').map(Number);
+    const monday = new Date(y, m - 1, d);
+    onWeekChange(getWeekStartFor(addDays(monday, 7)));
+  };
+
+  const goToCurrentWeek = () => {
+    if (!onWeekChange || isCurrentWeek) return;
+    onWeekChange(currentWeekStart);
+  };
+
   const [pendingToggles, setPendingToggles] = useState<Set<string>>(new Set());
   const [editingNotes, setEditingNotes] = useState<{ assignmentId: string; dayOfWeek: number } | null>(null);
   const [noteText, setNoteText] = useState('');
@@ -173,6 +202,23 @@ export function AccountabilityDialog({
     ? getCompletion(editingNotes.assignmentId, editingNotes.dayOfWeek)
     : null;
 
+  // Week label e.g. "Apr 14 – Apr 20"
+  const weekRangeLabel = `${format(weekDays[0].date, 'MMM d')} – ${format(weekDays[6].date, 'MMM d')}`;
+
+  // For past weeks, show assignments that existed during that week (created on/before week end
+  // and either still active or expired *after* the week's Monday). For the current week, keep
+  // the existing "hide expired" behavior.
+  const weekStartDate = weekDays[0].date;
+  const weekEndDate = weekDays[6].date;
+  const visibleAssignments = assignments.filter((a) => {
+    const createdAt = new Date(a.createdAt);
+    if (createdAt > weekEndDate) return false; // not yet created during this week
+    if (!a.expiresAt) return true;
+    const expires = new Date(a.expiresAt);
+    // Show if expiry is after this week started (i.e. it was active for at least part of the week)
+    return expires >= weekStartDate;
+  });
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
@@ -182,7 +228,9 @@ export function AccountabilityDialog({
             Accountability
           </DialogTitle>
           <DialogDescription>
-            Mark the days when workouts were completed this week.
+            {isCurrentWeek
+              ? 'Mark the days when workouts were completed this week.'
+              : 'Viewing a past week — you can still check off or edit completed workouts.'}
             {achievementStart && (
               <span className="block mt-1 text-primary font-medium">
                 {format(achievementStart, 'MMM d')} – {achievementEnd ? format(achievementEnd, 'MMM d') : 'Present'}
@@ -191,8 +239,47 @@ export function AccountabilityDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {/* Week navigator */}
+        {onWeekChange && (
+          <div className="flex items-center justify-between gap-2 px-1 py-2 border-y border-border/50">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={goToPrevWeek}
+              className="gap-1"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Prev
+            </Button>
+            <div className="flex flex-col items-center">
+              <span className="text-sm font-medium text-foreground">{weekRangeLabel}</span>
+              {!isCurrentWeek && (
+                <button
+                  onClick={goToCurrentWeek}
+                  className="text-xs text-primary hover:underline"
+                >
+                  Jump to this week
+                </button>
+              )}
+              {isCurrentWeek && (
+                <span className="text-xs text-muted-foreground">This week</span>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={goToNextWeek}
+              disabled={isCurrentWeek}
+              className="gap-1"
+            >
+              Next
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
+
         <div className="space-y-6 py-4">
-          {assignments.filter((a) => !a.expiresAt || new Date(a.expiresAt) >= new Date()).map((assignment) => {
+          {visibleAssignments.map((assignment) => {
             const completedDays = completions.filter(
               (c) => c.assignmentId === assignment.id
             ).length;

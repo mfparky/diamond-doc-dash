@@ -33,9 +33,25 @@ export function getCurrentWeekStart(): string {
   return format(monday, 'yyyy-MM-dd');
 }
 
-// Get day labels for current week
-export function getWeekDayLabels(): { label: string; date: Date }[] {
-  const monday = startOfWeek(new Date(), { weekStartsOn: 1 });
+// Get the Monday (yyyy-MM-dd) for an arbitrary date
+export function getWeekStartFor(date: Date): string {
+  const monday = startOfWeek(date, { weekStartsOn: 1 });
+  return format(monday, 'yyyy-MM-dd');
+}
+
+// Get day labels for a specific week (defaults to current week).
+// Accepts either a Date or a yyyy-MM-dd string representing the week's Monday.
+export function getWeekDayLabels(weekStart?: string | Date): { label: string; date: Date }[] {
+  let monday: Date;
+  if (!weekStart) {
+    monday = startOfWeek(new Date(), { weekStartsOn: 1 });
+  } else if (typeof weekStart === 'string') {
+    // Parse yyyy-MM-dd as local date to avoid timezone shifts
+    const [y, m, d] = weekStart.split('-').map(Number);
+    monday = new Date(y, m - 1, d);
+  } else {
+    monday = startOfWeek(weekStart, { weekStartsOn: 1 });
+  }
   return ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((label, i) => ({
     label,
     date: addDays(monday, i),
@@ -46,6 +62,7 @@ export function useWorkouts(pitcherId?: string) {
   const [assignments, setAssignments] = useState<WorkoutAssignment[]>([]);
   const [completions, setCompletions] = useState<WorkoutCompletion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedWeekStart, setSelectedWeekStart] = useState<string>(getCurrentWeekStart());
   const { toast } = useToast();
 
   // Fetch assignments for a pitcher
@@ -79,10 +96,10 @@ export function useWorkouts(pitcherId?: string) {
     }
   }, []);
 
-  // Fetch completions for a pitcher for current week
-  const fetchCompletions = useCallback(async (id: string) => {
-    const weekStart = getCurrentWeekStart();
-    
+  // Fetch completions for a pitcher for a given week (defaults to current week)
+  const fetchCompletions = useCallback(async (id: string, weekStartOverride?: string) => {
+    const weekStart = weekStartOverride ?? getCurrentWeekStart();
+
     try {
       const { data, error } = await supabase
         .from('workout_completions')
@@ -252,11 +269,11 @@ export function useWorkouts(pitcherId?: string) {
     dayOfWeek: number,
     notes?: string
   ): Promise<boolean> => {
-    const weekStart = getCurrentWeekStart();
-    
-    // Check if already completed
+    const weekStart = selectedWeekStart;
+
+    // Check if already completed in the active week
     const existing = completions.find(
-      (c) => c.assignmentId === assignmentId && c.dayOfWeek === dayOfWeek
+      (c) => c.assignmentId === assignmentId && c.dayOfWeek === dayOfWeek && c.weekStart === weekStart
     );
 
     try {
@@ -304,7 +321,7 @@ export function useWorkouts(pitcherId?: string) {
       console.error('Error toggling workout completion:', error);
       return false;
     }
-  }, [completions]);
+  }, [completions, selectedWeekStart]);
 
   // Update completion notes
   const updateCompletionNotes = useCallback(async (
@@ -431,21 +448,32 @@ export function useWorkouts(pitcherId?: string) {
     }
   }, []);
 
-  // Load data on mount
+  // Load assignments + initial-week completions on mount / pitcher change
   useEffect(() => {
     if (pitcherId) {
       setIsLoading(true);
       Promise.all([
         fetchAssignments(pitcherId),
-        fetchCompletions(pitcherId),
+        fetchCompletions(pitcherId, selectedWeekStart),
       ]).finally(() => setIsLoading(false));
     }
+    // selectedWeekStart intentionally omitted — week changes are handled by the next effect
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pitcherId, fetchAssignments, fetchCompletions]);
+
+  // Refetch completions whenever the selected week changes
+  useEffect(() => {
+    if (pitcherId) {
+      fetchCompletions(pitcherId, selectedWeekStart);
+    }
+  }, [pitcherId, selectedWeekStart, fetchCompletions]);
 
   return {
     assignments,
     completions,
     isLoading,
+    selectedWeekStart,
+    setSelectedWeekStart,
     addAssignment,
     updateAssignment,
     deleteAssignment,

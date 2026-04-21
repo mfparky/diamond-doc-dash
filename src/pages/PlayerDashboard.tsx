@@ -78,6 +78,8 @@ export default function PlayerDashboard() {
     assignments,
     completions, 
     isLoading: workoutsLoading,
+    selectedWeekStart,
+    setSelectedWeekStart,
     toggleCompletion,
     updateCompletionNotes,
     uploadCompletionPhoto,
@@ -901,6 +903,8 @@ export default function PlayerDashboard() {
         onUpdatePhoto={updateCompletionPhoto}
         achievementStart={teamAchievementStart}
         achievementEnd={teamAchievementEnd}
+        selectedWeekStart={selectedWeekStart}
+        onWeekChange={setSelectedWeekStart}
       />
     </div>
   );
