@@ -321,7 +321,7 @@ export function useWorkouts(pitcherId?: string) {
       console.error('Error toggling workout completion:', error);
       return false;
     }
-  }, [completions]);
+  }, [completions, selectedWeekStart]);
 
   // Update completion notes
   const updateCompletionNotes = useCallback(async (
