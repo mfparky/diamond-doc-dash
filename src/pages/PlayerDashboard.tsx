@@ -920,8 +920,8 @@ export default function PlayerDashboard() {
         onUpdatePhoto={updateCompletionPhoto}
         achievementStart={teamAchievementStart}
         achievementEnd={teamAchievementEnd}
-        selectedWeekStart={selectedWeekStart}
-        onWeekChange={setSelectedWeekStart}
+        selectedWeekStart={isCoach ? selectedWeekStart : undefined}
+        onWeekChange={isCoach ? setSelectedWeekStart : undefined}
       />
     </div>
   );
