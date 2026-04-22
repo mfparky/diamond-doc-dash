@@ -68,6 +68,7 @@ export default function PlayerDashboard() {
   const [linkCopied, setLinkCopied] = useState(false);
   const [teamId, setTeamId] = useState<string | null>(null);
   const [ownerId, setOwnerId] = useState<string | null>(null);
+  const [isCoach, setIsCoach] = useState(false);
 
   // Only show enhanced view (report card) when ?advanced=1 is in the URL
   const searchParams = new URLSearchParams(window.location.search);
