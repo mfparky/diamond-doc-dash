@@ -132,6 +132,22 @@ export default function PlayerDashboard() {
         }
 
         if (!cancelled) {
+          // Determine if the current viewer is a coach (signed-in team member or owner)
+          supabase.auth.getUser().then(async ({ data: { user } }) => {
+            if (cancelled || !user) return;
+            if (pitcherData.team_id) {
+              const { data: membership } = await supabase
+                .from('team_members')
+                .select('id')
+                .eq('team_id', pitcherData.team_id)
+                .eq('user_id', user.id)
+                .maybeSingle();
+              if (!cancelled && membership) setIsCoach(true);
+            } else if (pitcherData.user_id && pitcherData.user_id === user.id) {
+              if (!cancelled) setIsCoach(true);
+            }
+          });
+
           if (pitcherData.team_id) {
             setTeamId(pitcherData.team_id);
             supabase
