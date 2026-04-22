@@ -68,6 +68,7 @@ export default function PlayerDashboard() {
   const [linkCopied, setLinkCopied] = useState(false);
   const [teamId, setTeamId] = useState<string | null>(null);
   const [ownerId, setOwnerId] = useState<string | null>(null);
+  const [isCoach, setIsCoach] = useState(false);
 
   // Only show enhanced view (report card) when ?advanced=1 is in the URL
   const searchParams = new URLSearchParams(window.location.search);
@@ -131,6 +132,22 @@ export default function PlayerDashboard() {
         }
 
         if (!cancelled) {
+          // Determine if the current viewer is a coach (signed-in team member or owner)
+          supabase.auth.getUser().then(async ({ data: { user } }) => {
+            if (cancelled || !user) return;
+            if (pitcherData.team_id) {
+              const { data: membership } = await supabase
+                .from('team_members')
+                .select('id')
+                .eq('team_id', pitcherData.team_id)
+                .eq('user_id', user.id)
+                .maybeSingle();
+              if (!cancelled && membership) setIsCoach(true);
+            } else if (pitcherData.user_id && pitcherData.user_id === user.id) {
+              if (!cancelled) setIsCoach(true);
+            }
+          });
+
           if (pitcherData.team_id) {
             setTeamId(pitcherData.team_id);
             supabase
@@ -903,8 +920,8 @@ export default function PlayerDashboard() {
         onUpdatePhoto={updateCompletionPhoto}
         achievementStart={teamAchievementStart}
         achievementEnd={teamAchievementEnd}
-        selectedWeekStart={selectedWeekStart}
-        onWeekChange={setSelectedWeekStart}
+        selectedWeekStart={isCoach ? selectedWeekStart : undefined}
+        onWeekChange={isCoach ? setSelectedWeekStart : undefined}
       />
     </div>
   );
