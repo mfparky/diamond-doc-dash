@@ -172,18 +172,54 @@ export function AccountabilityDialog({
     const file = e.target.files?.[0];
     if (!file || !editingNotes || !onUploadPhoto || !onUpdatePhoto) return;
 
-    const completion = getCompletion(editingNotes.assignmentId, editingNotes.dayOfWeek);
-    if (!completion) return;
+    // Reset file input early so the same file can be re-picked
+    if (fileInputRef.current) fileInputRef.current.value = '';
 
     setIsUploading(true);
-    const url = await onUploadPhoto(pitcherId, file);
-    if (url) {
-      await onUpdatePhoto(completion.id, url);
-    }
-    setIsUploading(false);
+    try {
+      const url = await onUploadPhoto(pitcherId, file);
+      if (!url) {
+        toast({
+          title: 'Photo upload failed',
+          description: 'Please try again.',
+          variant: 'destructive',
+        });
+        return;
+      }
 
-    // Reset file input
-    if (fileInputRef.current) fileInputRef.current.value = '';
+      let completion = getCompletion(editingNotes.assignmentId, editingNotes.dayOfWeek);
+
+      // If no completion exists yet (photo-required, pre-create flow),
+      // create it now that we have a photo.
+      if (!completion) {
+        const ok = await onToggleDay(editingNotes.assignmentId, editingNotes.dayOfWeek);
+        if (!ok) {
+          toast({
+            title: 'Could not save workout',
+            description: 'Please try again.',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        const { data } = await supabase
+          .from('workout_completions')
+          .select('id')
+          .eq('assignment_id', editingNotes.assignmentId)
+          .eq('pitcher_id', pitcherId)
+          .eq('day_of_week', editingNotes.dayOfWeek)
+          .eq('week_start', activeWeekStart)
+          .maybeSingle();
+
+        if (data?.id) {
+          await onUpdatePhoto(data.id, url);
+        }
+      } else {
+        await onUpdatePhoto(completion.id, url);
+      }
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleRemovePhoto = async () => {
