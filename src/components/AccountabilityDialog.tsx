@@ -453,10 +453,10 @@ export function AccountabilityDialog({
                   return (
                     <div className="border-t border-border/50 pt-3 mt-3 space-y-3">
                       {needsPhotoFirst && (
-                        <div className="flex items-start gap-2 p-3 rounded-md bg-amber-500/10 border border-amber-500/30">
-                          <Camera className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                        <div className="flex items-start gap-2 p-3 rounded-md bg-primary/10 border border-primary/30">
+                          <Camera className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                           <div className="text-sm">
-                            <p className="font-medium text-amber-700 dark:text-amber-300">Photo required</p>
+                            <p className="font-medium text-primary">Photo required</p>
                             <p className="text-xs text-muted-foreground mt-0.5">
                               Upload a photo to mark this workout complete for {weekDays[editingNotes.dayOfWeek]?.label}.
                             </p>
