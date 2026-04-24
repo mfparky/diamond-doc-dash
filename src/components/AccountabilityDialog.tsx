@@ -251,9 +251,18 @@ export function AccountabilityDialog({
   const handleRemovePhoto = async () => {
     if (!editingNotes || !onUpdatePhoto) return;
     const completion = getCompletion(editingNotes.assignmentId, editingNotes.dayOfWeek);
-    if (completion) {
-      await onUpdatePhoto(completion.id, null);
+    if (!completion) return;
+
+    const assignment = assignments.find((a) => a.id === editingNotes.assignmentId);
+    if (assignment?.requiresPhoto) {
+      toast({
+        title: 'Photo required',
+        description: 'This workout requires a photo. Uncheck the day to remove it.',
+      });
+      return;
     }
+
+    await onUpdatePhoto(completion.id, null);
   };
 
   const isToday = (date: Date): boolean => {
