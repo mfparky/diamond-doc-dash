@@ -295,14 +295,6 @@ export function AccountabilityDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
-        {/* Hidden file input for photo-required workouts (photo BEFORE check-on) */}
-        <input
-          ref={photoFirstInputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/heic"
-          className="hidden"
-          onChange={handlePhotoFirstSelect}
-        />
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ClipboardCheck className="w-5 h-5 text-primary" />
