@@ -75,7 +75,12 @@ export function AccountabilityDialog({
   const [showGallery, setShowGallery] = useState(false);
   const [galleryPhotoCount, setGalleryPhotoCount] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  // Tracks the (assignmentId, dayOfWeek) of a photo-required workout the user
+  // is checking on — we wait for the photo before creating the completion.
+  const [photoFirstTarget, setPhotoFirstTarget] = useState<{ assignmentId: string; dayOfWeek: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const photoFirstInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!open) return;
