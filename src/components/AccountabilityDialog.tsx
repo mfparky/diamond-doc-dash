@@ -114,12 +114,34 @@ export function AccountabilityDialog({
     return getCompletedCount(assignmentId) >= frequency;
   };
 
-  const handleToggle = async (assignmentId: string, dayOfWeek: number, frequency: number) => {
+  const handleToggle = async (
+    assignmentId: string,
+    dayOfWeek: number,
+    frequency: number,
+    requiresPhoto: boolean,
+  ) => {
     const key = `${assignmentId}-${dayOfWeek}`;
     if (pendingToggles.has(key)) return;
 
     const alreadyCompleted = isCompleted(assignmentId, dayOfWeek);
     if (!alreadyCompleted && isAtFrequencyCap(assignmentId, frequency)) return;
+
+    // For photo-required workouts: when CHECKING ON, require a photo first.
+    // (Unchecking is allowed without prompting, and removes both completion + photo.)
+    if (!alreadyCompleted && requiresPhoto) {
+      if (!onUploadPhoto || !onUpdatePhoto) {
+        toast({
+          title: 'Photo required',
+          description: 'This workout needs a photo upload, which is not available here.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      setPhotoFirstTarget({ assignmentId, dayOfWeek });
+      // Trigger picker on next tick so the input is mounted
+      setTimeout(() => photoFirstInputRef.current?.click(), 0);
+      return;
+    }
 
     setPendingToggles((prev) => new Set(prev).add(key));
     await onToggleDay(assignmentId, dayOfWeek);
@@ -128,6 +150,68 @@ export function AccountabilityDialog({
       next.delete(key);
       return next;
     });
+  };
+
+  // Handle the photo-first picker for required-photo workouts.
+  const handlePhotoFirstSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const target = photoFirstTarget;
+    // Reset the input immediately so the same file can be re-picked later
+    if (photoFirstInputRef.current) photoFirstInputRef.current.value = '';
+
+    if (!file || !target || !onUploadPhoto || !onUpdatePhoto) {
+      setPhotoFirstTarget(null);
+      return;
+    }
+
+    const key = `${target.assignmentId}-${target.dayOfWeek}`;
+    setPendingToggles((prev) => new Set(prev).add(key));
+    setIsUploading(true);
+    try {
+      // Upload first; only create the completion if the photo succeeds.
+      const url = await onUploadPhoto(pitcherId, file);
+      if (!url) {
+        toast({
+          title: 'Photo upload failed',
+          description: 'Workout was not marked complete. Please try again.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const ok = await onToggleDay(target.assignmentId, target.dayOfWeek);
+      if (!ok) {
+        toast({
+          title: 'Could not save workout',
+          description: 'Please try again.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // The completion was just created — find it (it should now be in the parent
+      // completions array on the next render). We re-query via supabase to grab its id.
+      const { data } = await supabase
+        .from('workout_completions')
+        .select('id')
+        .eq('assignment_id', target.assignmentId)
+        .eq('pitcher_id', pitcherId)
+        .eq('day_of_week', target.dayOfWeek)
+        .eq('week_start', activeWeekStart)
+        .maybeSingle();
+
+      if (data?.id) {
+        await onUpdatePhoto(data.id, url);
+      }
+    } finally {
+      setIsUploading(false);
+      setPhotoFirstTarget(null);
+      setPendingToggles((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
   };
 
   const handleOpenNotes = (assignmentId: string, dayOfWeek: number) => {
