@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 import { ClipboardCheck, Check, MessageSquare, Trophy, Paperclip, ExternalLink, Camera, X, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { TeamLeaderboardDialog } from '@/components/TeamLeaderboardDialog';
 import { WorkoutGalleryDialog } from '@/components/WorkoutGalleryDialog';
