@@ -75,11 +75,7 @@ export function AccountabilityDialog({
   const [showGallery, setShowGallery] = useState(false);
   const [galleryPhotoCount, setGalleryPhotoCount] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
-  // Tracks the (assignmentId, dayOfWeek) of a photo-required workout the user
-  // is checking on — we wait for the photo before creating the completion.
-  const [photoFirstTarget, setPhotoFirstTarget] = useState<{ assignmentId: string; dayOfWeek: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const photoFirstInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -126,8 +122,9 @@ export function AccountabilityDialog({
     const alreadyCompleted = isCompleted(assignmentId, dayOfWeek);
     if (!alreadyCompleted && isAtFrequencyCap(assignmentId, frequency)) return;
 
-    // For photo-required workouts: when CHECKING ON, require a photo first.
-    // (Unchecking is allowed without prompting, and removes both completion + photo.)
+    // For photo-required workouts: when CHECKING ON, open the editor with a
+    // "Photo required" message instead of saving the completion. The completion
+    // is only created after a photo is uploaded.
     if (!alreadyCompleted && requiresPhoto) {
       if (!onUploadPhoto || !onUpdatePhoto) {
         toast({
@@ -137,9 +134,8 @@ export function AccountabilityDialog({
         });
         return;
       }
-      setPhotoFirstTarget({ assignmentId, dayOfWeek });
-      // Trigger picker on next tick so the input is mounted
-      setTimeout(() => photoFirstInputRef.current?.click(), 0);
+      setNoteText('');
+      setEditingNotes({ assignmentId, dayOfWeek });
       return;
     }
 
@@ -150,68 +146,6 @@ export function AccountabilityDialog({
       next.delete(key);
       return next;
     });
-  };
-
-  // Handle the photo-first picker for required-photo workouts.
-  const handlePhotoFirstSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    const target = photoFirstTarget;
-    // Reset the input immediately so the same file can be re-picked later
-    if (photoFirstInputRef.current) photoFirstInputRef.current.value = '';
-
-    if (!file || !target || !onUploadPhoto || !onUpdatePhoto) {
-      setPhotoFirstTarget(null);
-      return;
-    }
-
-    const key = `${target.assignmentId}-${target.dayOfWeek}`;
-    setPendingToggles((prev) => new Set(prev).add(key));
-    setIsUploading(true);
-    try {
-      // Upload first; only create the completion if the photo succeeds.
-      const url = await onUploadPhoto(pitcherId, file);
-      if (!url) {
-        toast({
-          title: 'Photo upload failed',
-          description: 'Workout was not marked complete. Please try again.',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      const ok = await onToggleDay(target.assignmentId, target.dayOfWeek);
-      if (!ok) {
-        toast({
-          title: 'Could not save workout',
-          description: 'Please try again.',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      // The completion was just created — find it (it should now be in the parent
-      // completions array on the next render). We re-query via supabase to grab its id.
-      const { data } = await supabase
-        .from('workout_completions')
-        .select('id')
-        .eq('assignment_id', target.assignmentId)
-        .eq('pitcher_id', pitcherId)
-        .eq('day_of_week', target.dayOfWeek)
-        .eq('week_start', activeWeekStart)
-        .maybeSingle();
-
-      if (data?.id) {
-        await onUpdatePhoto(data.id, url);
-      }
-    } finally {
-      setIsUploading(false);
-      setPhotoFirstTarget(null);
-      setPendingToggles((prev) => {
-        const next = new Set(prev);
-        next.delete(key);
-        return next;
-      });
-    }
   };
 
   const handleOpenNotes = (assignmentId: string, dayOfWeek: number) => {
@@ -234,18 +168,54 @@ export function AccountabilityDialog({
     const file = e.target.files?.[0];
     if (!file || !editingNotes || !onUploadPhoto || !onUpdatePhoto) return;
 
-    const completion = getCompletion(editingNotes.assignmentId, editingNotes.dayOfWeek);
-    if (!completion) return;
+    // Reset file input early so the same file can be re-picked
+    if (fileInputRef.current) fileInputRef.current.value = '';
 
     setIsUploading(true);
-    const url = await onUploadPhoto(pitcherId, file);
-    if (url) {
-      await onUpdatePhoto(completion.id, url);
-    }
-    setIsUploading(false);
+    try {
+      const url = await onUploadPhoto(pitcherId, file);
+      if (!url) {
+        toast({
+          title: 'Photo upload failed',
+          description: 'Please try again.',
+          variant: 'destructive',
+        });
+        return;
+      }
 
-    // Reset file input
-    if (fileInputRef.current) fileInputRef.current.value = '';
+      let completion = getCompletion(editingNotes.assignmentId, editingNotes.dayOfWeek);
+
+      // If no completion exists yet (photo-required, pre-create flow),
+      // create it now that we have a photo.
+      if (!completion) {
+        const ok = await onToggleDay(editingNotes.assignmentId, editingNotes.dayOfWeek);
+        if (!ok) {
+          toast({
+            title: 'Could not save workout',
+            description: 'Please try again.',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        const { data } = await supabase
+          .from('workout_completions')
+          .select('id')
+          .eq('assignment_id', editingNotes.assignmentId)
+          .eq('pitcher_id', pitcherId)
+          .eq('day_of_week', editingNotes.dayOfWeek)
+          .eq('week_start', activeWeekStart)
+          .maybeSingle();
+
+        if (data?.id) {
+          await onUpdatePhoto(data.id, url);
+        }
+      } else {
+        await onUpdatePhoto(completion.id, url);
+      }
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleRemovePhoto = async () => {
@@ -321,14 +291,6 @@ export function AccountabilityDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
-        {/* Hidden file input for photo-required workouts (photo BEFORE check-on) */}
-        <input
-          ref={photoFirstInputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/heic"
-          className="hidden"
-          onChange={handlePhotoFirstSelect}
-        />
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ClipboardCheck className="w-5 h-5 text-primary" />
@@ -486,75 +448,93 @@ export function AccountabilityDialog({
                 </div>
 
                 {/* Inline notes + photo editing for this assignment */}
-                {editingNotes && editingNotes.assignmentId === assignment.id && (
-                  <div className="border-t border-border/50 pt-3 mt-3 space-y-3">
-                    <Label className="text-sm font-medium">
-                      Notes for {weekDays[editingNotes.dayOfWeek]?.label}
-                    </Label>
-                    <Textarea
-                      value={noteText}
-                      onChange={(e) => setNoteText(e.target.value)}
-                      placeholder="How did the workout go? Any feedback?"
-                      rows={3}
-                    />
+                {editingNotes && editingNotes.assignmentId === assignment.id && (() => {
+                  const needsPhotoFirst = assignment.requiresPhoto && !editingCompletion;
+                  return (
+                    <div className="border-t border-border/50 pt-3 mt-3 space-y-3">
+                      {needsPhotoFirst && (
+                        <div className="flex items-start gap-2 p-3 rounded-md bg-primary/10 border border-primary/30">
+                          <Camera className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                          <div className="text-sm">
+                            <p className="font-medium text-primary">Photo required</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              Upload a photo to mark this workout complete for {weekDays[editingNotes.dayOfWeek]?.label}.
+                            </p>
+                          </div>
+                        </div>
+                      )}
 
-                    {/* Photo section */}
-                    {onUploadPhoto && onUpdatePhoto && (
-                      <div>
-                        {editingCompletion?.photoUrl ? (
-                          <div className="relative inline-block">
-                            <a href={editingCompletion.photoUrl} target="_blank" rel="noopener noreferrer">
-                              <img
-                                src={editingCompletion.photoUrl}
-                                alt="Workout photo"
-                                className="w-24 h-24 object-cover rounded-lg border border-border"
+                      <Label className="text-sm font-medium">
+                        Notes for {weekDays[editingNotes.dayOfWeek]?.label}
+                      </Label>
+                      <Textarea
+                        value={noteText}
+                        onChange={(e) => setNoteText(e.target.value)}
+                        placeholder={needsPhotoFirst ? 'You can add notes after uploading the photo.' : 'How did the workout go? Any feedback?'}
+                        rows={3}
+                        disabled={needsPhotoFirst}
+                      />
+
+                      {/* Photo section */}
+                      {onUploadPhoto && onUpdatePhoto && (
+                        <div>
+                          {editingCompletion?.photoUrl ? (
+                            <div className="relative inline-block">
+                              <a href={editingCompletion.photoUrl} target="_blank" rel="noopener noreferrer">
+                                <img
+                                  src={editingCompletion.photoUrl}
+                                  alt="Workout photo"
+                                  className="w-24 h-24 object-cover rounded-lg border border-border"
+                                />
+                              </a>
+                              <button
+                                onClick={handleRemovePhoto}
+                                className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div>
+                              <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,image/heic"
+                                className="hidden"
+                                onChange={handlePhotoSelect}
                               />
-                            </a>
-                            <button
-                              onClick={handleRemovePhoto}
-                              className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ) : (
-                          <div>
-                            <input
-                              ref={fileInputRef}
-                              type="file"
-                              accept="image/jpeg,image/png,image/webp,image/heic"
-                              className="hidden"
-                              onChange={handlePhotoSelect}
-                            />
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="gap-1.5"
-                              onClick={() => fileInputRef.current?.click()}
-                              disabled={isUploading}
-                            >
-                              {isUploading ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <Camera className="w-4 h-4" />
-                              )}
-                              {isUploading ? 'Uploading...' : 'Add Photo'}
-                            </Button>
-                          </div>
+                              <Button
+                                variant={needsPhotoFirst ? 'default' : 'outline'}
+                                size="sm"
+                                className="gap-1.5"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={isUploading}
+                              >
+                                {isUploading ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Camera className="w-4 h-4" />
+                                )}
+                                {isUploading ? 'Uploading...' : needsPhotoFirst ? 'Upload Photo' : 'Add Photo'}
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setEditingNotes(null)}>
+                          {needsPhotoFirst ? 'Close' : 'Cancel'}
+                        </Button>
+                        {!needsPhotoFirst && (
+                          <Button size="sm" onClick={handleSaveNotes}>
+                            Save Note
+                          </Button>
                         )}
                       </div>
-                    )}
-
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setEditingNotes(null)}>
-                        Cancel
-                      </Button>
-                      <Button size="sm" onClick={handleSaveNotes}>
-                        Save Note
-                      </Button>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             );
           })}
