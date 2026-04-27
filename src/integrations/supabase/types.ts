@@ -334,6 +334,7 @@ export type Database = {
           expires_at: string | null
           frequency: number
           id: string
+          is_catch_up: boolean
           pitcher_id: string
           requires_photo: boolean
           team_id: string | null
@@ -348,6 +349,7 @@ export type Database = {
           expires_at?: string | null
           frequency?: number
           id?: string
+          is_catch_up?: boolean
           pitcher_id: string
           requires_photo?: boolean
           team_id?: string | null
@@ -362,6 +364,7 @@ export type Database = {
           expires_at?: string | null
           frequency?: number
           id?: string
+          is_catch_up?: boolean
           pitcher_id?: string
           requires_photo?: boolean
           team_id?: string | null
