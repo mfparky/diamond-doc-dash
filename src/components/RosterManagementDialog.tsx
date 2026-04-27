@@ -89,6 +89,7 @@ export function RosterManagementDialog({
           attachmentUrl: row.attachment_url ?? null,
           expiresAt: (row as any).expires_at ?? null,
           requiresPhoto: (row as any).requires_photo ?? false,
+          isCatchUp: (row as any).is_catch_up ?? false,
           createdAt: row.created_at,
         });
       });
