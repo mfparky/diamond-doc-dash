@@ -145,6 +145,7 @@ export function WorkoutManagementSection({
     setExpiresDate('');
     setExpiresTime('23:59');
     setRequiresPhoto(false);
+    setIsCatchUp(false);
     setAttachmentFile(null);
   };
 
