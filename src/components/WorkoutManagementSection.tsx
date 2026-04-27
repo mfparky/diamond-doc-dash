@@ -344,6 +344,12 @@ export function WorkoutManagementSection({
                   <Camera className="w-3 h-3" />
                 </span>
               )}
+              {assignment.isCatchUp && (
+                <span className="text-xs shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 border border-amber-500/30" title="Only players outside the leaderboard top 5 can complete this">
+                  <Users className="w-3 h-3" />
+                  Catch-up
+                </span>
+              )}
               {assignment.expiresAt && (
                 <span className={`text-xs shrink-0 flex items-center gap-0.5 ${new Date(assignment.expiresAt) < new Date() ? 'text-status-danger' : 'text-amber-500'}`}>
                   <Clock className="w-3 h-3" />
