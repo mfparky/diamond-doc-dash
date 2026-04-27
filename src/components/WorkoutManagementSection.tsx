@@ -92,7 +92,8 @@ export function WorkoutManagementSection({
         parseInt(frequency),
         attachmentUrl,
         expiresAt,
-        requiresPhoto
+        requiresPhoto,
+        isCatchUp
       );
       if (result) {
         setTitle('');
@@ -102,6 +103,7 @@ export function WorkoutManagementSection({
         setExpiresTime('23:59');
         setAttachmentFile(null);
         setRequiresPhoto(false);
+        setIsCatchUp(false);
         setIsAdding(false);
       }
     } catch (err) {
