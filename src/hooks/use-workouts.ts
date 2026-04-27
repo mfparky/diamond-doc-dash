@@ -138,7 +138,8 @@ export function useWorkouts(pitcherId?: string) {
     frequency?: number,
     attachmentUrl?: string,
     expiresAt?: string | null,
-    requiresPhoto?: boolean
+    requiresPhoto?: boolean,
+    isCatchUp?: boolean,
   ): Promise<WorkoutAssignment | null> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -153,8 +154,9 @@ export function useWorkouts(pitcherId?: string) {
           attachment_url: attachmentUrl || null,
           expires_at: expiresAt || null,
           requires_photo: requiresPhoto ?? false,
+          is_catch_up: isCatchUp ?? false,
           user_id: user?.id || null,
-        })
+        } as any)
         .select()
         .single();
 
@@ -169,6 +171,7 @@ export function useWorkouts(pitcherId?: string) {
         attachmentUrl: data.attachment_url ?? null,
         expiresAt: (data as any).expires_at ?? null,
         requiresPhoto: (data as any).requires_photo ?? false,
+        isCatchUp: (data as any).is_catch_up ?? false,
         createdAt: data.created_at,
       };
 
