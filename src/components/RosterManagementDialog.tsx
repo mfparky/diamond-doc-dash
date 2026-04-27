@@ -895,18 +895,32 @@ export function RosterManagementDialog({
                         key={pitcher.id}
                         className="p-4 rounded-lg bg-secondary/50 border border-border/50"
                       >
-                        <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
                           <h3 className="font-semibold text-foreground">{pitcher.name}</h3>
                           {pitchers.length > 1 && (workoutAssignments[pitcher.id] || []).length > 0 && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="gap-1.5 text-xs text-muted-foreground"
-                              onClick={() => handleCascadeWorkouts(pitcher.id)}
-                            >
-                              <Copy className="w-3.5 h-3.5" />
-                              Copy to All
-                            </Button>
+                            <div className="flex items-center gap-1 flex-wrap">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="gap-1.5 text-xs text-muted-foreground"
+                                onClick={() => handleCascadeWorkouts(pitcher.id)}
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                                Copy to All
+                              </Button>
+                              {pitchers.length > 5 && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="gap-1.5 text-xs text-muted-foreground"
+                                  onClick={() => handleCascadeToCatchUp(pitcher.id)}
+                                  title="Assign as catch-up workout to players outside the leaderboard top 5"
+                                >
+                                  <Copy className="w-3.5 h-3.5" />
+                                  Copy to Catch-Up
+                                </Button>
+                              )}
+                            </div>
                           )}
                         </div>
                         <WorkoutManagementSection
