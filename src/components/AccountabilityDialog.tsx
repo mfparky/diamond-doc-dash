@@ -75,6 +75,7 @@ export function AccountabilityDialog({
   const [showGallery, setShowGallery] = useState(false);
   const [galleryPhotoCount, setGalleryPhotoCount] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [isInTop5, setIsInTop5] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -88,6 +89,97 @@ export function AccountabilityDialog({
         .not('photo_url', 'is', null);
       if (count !== null) setGalleryPhotoCount(count);
     })();
+  }, [open, pitcherId]);
+
+  // Determine if THIS pitcher sits inside the leaderboard top 5 for the current
+  // coach-defined window. Catch-up workouts are locked for top-5 players.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        // Find this pitcher's team
+        const { data: pitcherRow } = await supabase
+          .from('pitchers')
+          .select('id, team_id, user_id')
+          .eq('id', pitcherId)
+          .maybeSingle();
+
+        if (!pitcherRow) { setIsInTop5(false); return; }
+
+        // Resolve leaderboard window: prefer team-level, then user-level
+        let from: string | null = null;
+        let to: string | null = null;
+        if ((pitcherRow as any).team_id) {
+          const { data: team } = await supabase
+            .from('teams')
+            .select('leaderboard_from, leaderboard_to')
+            .eq('id', (pitcherRow as any).team_id)
+            .maybeSingle();
+          from = (team as any)?.leaderboard_from ?? null;
+          to = (team as any)?.leaderboard_to ?? null;
+        } else if ((pitcherRow as any).user_id) {
+          const { data: ds } = await supabase
+            .from('dashboard_settings' as any)
+            .select('leaderboard_from, leaderboard_to')
+            .eq('user_id', (pitcherRow as any).user_id)
+            .maybeSingle();
+          from = (ds as any)?.leaderboard_from ?? null;
+          to = (ds as any)?.leaderboard_to ?? null;
+        }
+
+        // Default to current month if nothing set
+        const now = new Date();
+        const fromDate = from ? new Date(from + 'T00:00:00') : new Date(now.getFullYear(), now.getMonth(), 1);
+        const toDate = to ? new Date(to + 'T23:59:59') : now;
+
+        // Build week_start list
+        const weekStarts: string[] = [];
+        const cursor = new Date(fromDate);
+        const dayIdx = (cursor.getDay() + 6) % 7;
+        cursor.setDate(cursor.getDate() - dayIdx);
+        while (cursor <= toDate) {
+          weekStarts.push(format(cursor, 'yyyy-MM-dd'));
+          cursor.setDate(cursor.getDate() + 7);
+        }
+
+        // Get all team pitcher ids
+        let teammateIds: string[] = [pitcherId];
+        if ((pitcherRow as any).team_id) {
+          const { data: roster } = await supabase
+            .from('pitchers')
+            .select('id')
+            .eq('team_id', (pitcherRow as any).team_id);
+          teammateIds = (roster || []).map((r: any) => r.id);
+        }
+
+        if (teammateIds.length <= 5) {
+          // Fewer than enough players to even define a "top 5" — nobody is locked out.
+          if (!cancelled) setIsInTop5(false);
+          return;
+        }
+
+        const { data: completions } = await supabase
+          .from('workout_completions')
+          .select('pitcher_id, week_start')
+          .in('pitcher_id', teammateIds)
+          .in('week_start', weekStarts.length > 0 ? weekStarts : ['1970-01-01']);
+
+        const counts: Record<string, number> = {};
+        teammateIds.forEach(id => { counts[id] = 0; });
+        (completions || []).forEach((c: any) => {
+          counts[c.pitcher_id] = (counts[c.pitcher_id] || 0) + 1;
+        });
+
+        const ranked = [...teammateIds].sort((a, b) => (counts[b] || 0) - (counts[a] || 0));
+        const top5 = new Set(ranked.slice(0, 5));
+        if (!cancelled) setIsInTop5(top5.has(pitcherId));
+      } catch (err) {
+        console.error('Error computing catch-up eligibility:', err);
+        if (!cancelled) setIsInTop5(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [open, pitcherId]);
 
   const isCompleted = (assignmentId: string, dayOfWeek: number): boolean => {
