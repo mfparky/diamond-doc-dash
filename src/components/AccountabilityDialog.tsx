@@ -461,12 +461,18 @@ export function AccountabilityDialog({
                 className="p-4 rounded-lg bg-secondary/50 border border-border/50"
               >
                 <div className="mb-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-semibold text-foreground">{assignment.title}</h3>
                     {assignment.requiresPhoto && (
                       <span className="inline-flex items-center gap-1 text-xs text-muted-foreground border border-border/50 rounded px-1.5 py-0.5">
                         <Camera className="w-3 h-3" />
                         Photo required
+                      </span>
+                    )}
+                    {assignment.isCatchUp && (
+                      <span className={`inline-flex items-center gap-1 text-xs rounded px-1.5 py-0.5 border ${isInTop5 ? 'text-muted-foreground border-border/50 bg-muted/40' : 'text-amber-600 border-amber-500/30 bg-amber-500/10'}`}>
+                        {isInTop5 ? <Lock className="w-3 h-3" /> : <Users className="w-3 h-3" />}
+                        Catch-up{isInTop5 ? ' — top 5 locked' : ''}
                       </span>
                     )}
                   </div>
