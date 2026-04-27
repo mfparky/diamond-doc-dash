@@ -514,7 +514,8 @@ export function AccountabilityDialog({
 
                     const atCap = !completed && isAtFrequencyCap(assignment.id, assignment.frequency ?? 7);
                     const isExpired = !!assignment.expiresAt && new Date(assignment.expiresAt) < new Date();
-                    const disabled = isPending || atCap || isExpired;
+                    const catchUpLocked = !!assignment.isCatchUp && isInTop5 && !completed;
+                    const disabled = isPending || atCap || isExpired || catchUpLocked;
 
                     return (
                       <div key={dayIndex} className="flex flex-col items-center gap-1">
@@ -522,8 +523,9 @@ export function AccountabilityDialog({
                           {label}
                         </span>
                         <button
-                          onClick={() => !disabled && !isExpired && handleToggle(assignment.id, dayIndex, assignment.frequency ?? 7, !!assignment.requiresPhoto)}
+                          onClick={() => !disabled && !isExpired && handleToggle(assignment.id, dayIndex, assignment.frequency ?? 7, !!assignment.requiresPhoto, !!assignment.isCatchUp)}
                           disabled={disabled}
+                          title={catchUpLocked ? 'Catch-up workout — locked for top 5 players' : undefined}
                           className={`
                             w-10 h-10 rounded-lg border-2 flex items-center justify-center transition-all
                             ${completed
@@ -533,10 +535,12 @@ export function AccountabilityDialog({
                                 : 'bg-background border-border hover:border-primary/50'
                             }
                             ${isPending ? 'opacity-50' : ''}
-                            ${today && !completed && !atCap ? 'ring-2 ring-primary/30' : ''}
+                            ${today && !completed && !atCap && !catchUpLocked ? 'ring-2 ring-primary/30' : ''}
                           `}
                         >
-                          {completed && <Check className="w-5 h-5" />}
+                          {completed
+                            ? <Check className="w-5 h-5" />
+                            : (catchUpLocked ? <Lock className="w-3.5 h-3.5 text-muted-foreground" /> : null)}
                         </button>
                         {/* Notes/photo indicator */}
                         {completed && (
