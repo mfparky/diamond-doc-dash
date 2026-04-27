@@ -207,12 +207,22 @@ export function AccountabilityDialog({
     dayOfWeek: number,
     frequency: number,
     requiresPhoto: boolean,
+    isCatchUp: boolean,
   ) => {
     const key = `${assignmentId}-${dayOfWeek}`;
     if (pendingToggles.has(key)) return;
 
     const alreadyCompleted = isCompleted(assignmentId, dayOfWeek);
     if (!alreadyCompleted && isAtFrequencyCap(assignmentId, frequency)) return;
+
+    // Catch-up workouts are reserved for players outside the leaderboard top 5.
+    if (!alreadyCompleted && isCatchUp && isInTop5) {
+      toast({
+        title: 'Catch-up workout',
+        description: 'This workout is reserved for players outside the leaderboard top 5.',
+      });
+      return;
+    }
 
     // For photo-required workouts: when CHECKING ON, open the editor with a
     // "Photo required" message instead of saving the completion. The completion
