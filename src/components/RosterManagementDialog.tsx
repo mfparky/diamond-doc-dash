@@ -320,6 +320,7 @@ export function RosterManagementDialog({
             attachment_url: assignment.attachmentUrl,
             expires_at: assignment.expiresAt,
             requires_photo: assignment.requiresPhoto,
+            is_catch_up: assignment.isCatchUp,
             user_id: targetPitcher.teamId ? null : user.id,
           } as any);
           copiedCount++;
@@ -333,6 +334,92 @@ export function RosterManagementDialog({
       });
     } catch (error) {
       console.error('Error cascading workouts:', error);
+      toast({ title: 'Error copying workouts', description: 'Something went wrong. Please try again.', variant: 'destructive' });
+    }
+  };
+
+  // Cascade as a catch-up workout to players outside the leaderboard top 5
+  const handleCascadeToCatchUp = async (sourcePitcherId: string) => {
+    const sourceAssignments = workoutAssignments[sourcePitcherId] || [];
+    if (sourceAssignments.length === 0) {
+      toast({ title: 'No workouts to copy', description: 'This player has no workouts assigned.', variant: 'destructive' });
+      return;
+    }
+
+    const sourcePitcher = pitchers.find(p => p.id === sourcePitcherId);
+    if (!sourcePitcher) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Determine the leaderboard window (coach-defined dates, or default to current week)
+      const now = new Date();
+      const fromDate = leaderboardStartDate ?? new Date(now.getFullYear(), now.getMonth(), 1);
+      const toDate = leaderboardEndDate ?? now;
+
+      // Get all week_starts (Mondays) within the window
+      const weekStarts: string[] = [];
+      const cursor = new Date(fromDate);
+      // Snap to Monday
+      const dayIdx = (cursor.getDay() + 6) % 7;
+      cursor.setDate(cursor.getDate() - dayIdx);
+      while (cursor <= toDate) {
+        weekStarts.push(format(cursor, 'yyyy-MM-dd'));
+        cursor.setDate(cursor.getDate() + 7);
+      }
+
+      // Pull completion counts for all team pitchers in that window
+      const pitcherIds = pitchers.map(p => p.id);
+      const { data: completions, error: completionsError } = await supabase
+        .from('workout_completions')
+        .select('pitcher_id, week_start')
+        .in('pitcher_id', pitcherIds)
+        .in('week_start', weekStarts.length > 0 ? weekStarts : ['1970-01-01']);
+
+      if (completionsError) throw completionsError;
+
+      const counts: Record<string, number> = {};
+      pitcherIds.forEach(id => { counts[id] = 0; });
+      (completions || []).forEach(c => { counts[c.pitcher_id] = (counts[c.pitcher_id] || 0) + 1; });
+
+      // Rank pitchers by completions DESC; bottom = everyone outside top 5
+      const ranked = [...pitchers].sort((a, b) => (counts[b.id] || 0) - (counts[a.id] || 0));
+      const bottomGroup = ranked.slice(5);
+
+      if (bottomGroup.length === 0) {
+        toast({ title: 'No catch-up players', description: 'There are no players outside the top 5 yet.' });
+        return;
+      }
+
+      let copiedCount = 0;
+      for (const targetPitcher of bottomGroup) {
+        const existingTitles = new Set((workoutAssignments[targetPitcher.id] || []).map(a => a.title));
+        for (const assignment of sourceAssignments) {
+          if (existingTitles.has(assignment.title)) continue;
+          await supabase.from('workout_assignments').insert({
+            pitcher_id: targetPitcher.id,
+            team_id: targetPitcher.teamId,
+            title: assignment.title,
+            description: assignment.description,
+            frequency: assignment.frequency,
+            attachment_url: assignment.attachmentUrl,
+            expires_at: assignment.expiresAt,
+            requires_photo: assignment.requiresPhoto,
+            is_catch_up: true,
+            user_id: targetPitcher.teamId ? null : user.id,
+          } as any);
+          copiedCount++;
+        }
+      }
+
+      await fetchAllWorkoutAssignments();
+      toast({
+        title: 'Catch-up workouts assigned',
+        description: `${copiedCount} workout${copiedCount !== 1 ? 's' : ''} sent to ${bottomGroup.length} player${bottomGroup.length !== 1 ? 's' : ''} outside the top 5.`,
+      });
+    } catch (error) {
+      console.error('Error cascading catch-up workouts:', error);
       toast({ title: 'Error copying workouts', description: 'Something went wrong. Please try again.', variant: 'destructive' });
     }
   };
