@@ -305,6 +305,18 @@ export function WorkoutManagementSection({
                 Require photo to complete
               </span>
             </label>
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={isCatchUp}
+                onChange={(e) => setIsCatchUp(e.target.checked)}
+                className="w-4 h-4 rounded border-border accent-primary"
+              />
+              <span className="text-xs flex items-center gap-1">
+                <Users className="w-3 h-3" />
+                Catch-up workout (only players outside leaderboard top 5)
+              </span>
+            </label>
             <div className="flex justify-end gap-2">
               <Button variant="outline" size="sm" onClick={cancelEdit}>
                 Cancel
