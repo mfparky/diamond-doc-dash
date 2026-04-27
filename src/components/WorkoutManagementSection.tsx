@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, ClipboardCheck, Paperclip, ExternalLink, Pencil, Clock, Camera } from 'lucide-react';
+import { Plus, Trash2, ClipboardCheck, Paperclip, ExternalLink, Pencil, Clock, Camera, Users } from 'lucide-react';
 import { WorkoutAssignment } from '@/hooks/use-workouts';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
