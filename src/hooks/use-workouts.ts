@@ -12,6 +12,7 @@ export interface WorkoutAssignment {
   attachmentUrl: string | null;
   expiresAt: string | null;
   requiresPhoto: boolean;
+  isCatchUp: boolean;
   createdAt: string;
 }
 
