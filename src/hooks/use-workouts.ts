@@ -12,6 +12,7 @@ export interface WorkoutAssignment {
   attachmentUrl: string | null;
   expiresAt: string | null;
   requiresPhoto: boolean;
+  isCatchUp: boolean;
   createdAt: string;
 }
 
@@ -85,6 +86,7 @@ export function useWorkouts(pitcherId?: string) {
         attachmentUrl: row.attachment_url ?? null,
         expiresAt: (row as any).expires_at ?? null,
         requiresPhoto: (row as any).requires_photo ?? false,
+        isCatchUp: (row as any).is_catch_up ?? false,
         createdAt: row.created_at,
       }));
 
@@ -136,7 +138,8 @@ export function useWorkouts(pitcherId?: string) {
     frequency?: number,
     attachmentUrl?: string,
     expiresAt?: string | null,
-    requiresPhoto?: boolean
+    requiresPhoto?: boolean,
+    isCatchUp?: boolean,
   ): Promise<WorkoutAssignment | null> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -151,8 +154,9 @@ export function useWorkouts(pitcherId?: string) {
           attachment_url: attachmentUrl || null,
           expires_at: expiresAt || null,
           requires_photo: requiresPhoto ?? false,
+          is_catch_up: isCatchUp ?? false,
           user_id: user?.id || null,
-        })
+        } as any)
         .select()
         .single();
 
@@ -167,6 +171,7 @@ export function useWorkouts(pitcherId?: string) {
         attachmentUrl: data.attachment_url ?? null,
         expiresAt: (data as any).expires_at ?? null,
         requiresPhoto: (data as any).requires_photo ?? false,
+        isCatchUp: (data as any).is_catch_up ?? false,
         createdAt: data.created_at,
       };
 
@@ -190,7 +195,7 @@ export function useWorkouts(pitcherId?: string) {
   // Update a workout assignment
   const updateAssignment = useCallback(async (
     id: string,
-    updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null; requiresPhoto?: boolean }
+    updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null; requiresPhoto?: boolean; isCatchUp?: boolean }
   ): Promise<boolean> => {
     try {
       const dbUpdates: Record<string, unknown> = {};
@@ -200,6 +205,7 @@ export function useWorkouts(pitcherId?: string) {
       if (updates.attachmentUrl !== undefined) dbUpdates.attachment_url = updates.attachmentUrl;
       if (updates.expiresAt !== undefined) dbUpdates.expires_at = updates.expiresAt;
       if (updates.requiresPhoto !== undefined) dbUpdates.requires_photo = updates.requiresPhoto;
+      if (updates.isCatchUp !== undefined) dbUpdates.is_catch_up = updates.isCatchUp;
 
       const { error } = await supabase
         .from('workout_assignments')
@@ -217,6 +223,7 @@ export function useWorkouts(pitcherId?: string) {
           ...(updates.attachmentUrl !== undefined && { attachmentUrl: updates.attachmentUrl }),
           ...(updates.expiresAt !== undefined && { expiresAt: updates.expiresAt }),
           ...(updates.requiresPhoto !== undefined && { requiresPhoto: updates.requiresPhoto }),
+          ...(updates.isCatchUp !== undefined && { isCatchUp: updates.isCatchUp }),
         } : a)
       );
       toast({

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { ClipboardCheck, Check, MessageSquare, Trophy, Paperclip, ExternalLink, Camera, X, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ClipboardCheck, Check, MessageSquare, Trophy, Paperclip, ExternalLink, Camera, X, Loader2, ChevronLeft, ChevronRight, Lock, Users } from 'lucide-react';
 import { TeamLeaderboardDialog } from '@/components/TeamLeaderboardDialog';
 import { WorkoutGalleryDialog } from '@/components/WorkoutGalleryDialog';
 import { WorkoutAssignment, WorkoutCompletion, getWeekDayLabels, getCurrentWeekStart, getWeekStartFor } from '@/hooks/use-workouts';
@@ -75,6 +75,7 @@ export function AccountabilityDialog({
   const [showGallery, setShowGallery] = useState(false);
   const [galleryPhotoCount, setGalleryPhotoCount] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [isInTop5, setIsInTop5] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -88,6 +89,97 @@ export function AccountabilityDialog({
         .not('photo_url', 'is', null);
       if (count !== null) setGalleryPhotoCount(count);
     })();
+  }, [open, pitcherId]);
+
+  // Determine if THIS pitcher sits inside the leaderboard top 5 for the current
+  // coach-defined window. Catch-up workouts are locked for top-5 players.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        // Find this pitcher's team
+        const { data: pitcherRow } = await supabase
+          .from('pitchers')
+          .select('id, team_id, user_id')
+          .eq('id', pitcherId)
+          .maybeSingle();
+
+        if (!pitcherRow) { setIsInTop5(false); return; }
+
+        // Resolve leaderboard window: prefer team-level, then user-level
+        let from: string | null = null;
+        let to: string | null = null;
+        if ((pitcherRow as any).team_id) {
+          const { data: team } = await supabase
+            .from('teams')
+            .select('leaderboard_from, leaderboard_to')
+            .eq('id', (pitcherRow as any).team_id)
+            .maybeSingle();
+          from = (team as any)?.leaderboard_from ?? null;
+          to = (team as any)?.leaderboard_to ?? null;
+        } else if ((pitcherRow as any).user_id) {
+          const { data: ds } = await supabase
+            .from('dashboard_settings' as any)
+            .select('leaderboard_from, leaderboard_to')
+            .eq('user_id', (pitcherRow as any).user_id)
+            .maybeSingle();
+          from = (ds as any)?.leaderboard_from ?? null;
+          to = (ds as any)?.leaderboard_to ?? null;
+        }
+
+        // Default to current month if nothing set
+        const now = new Date();
+        const fromDate = from ? new Date(from + 'T00:00:00') : new Date(now.getFullYear(), now.getMonth(), 1);
+        const toDate = to ? new Date(to + 'T23:59:59') : now;
+
+        // Build week_start list
+        const weekStarts: string[] = [];
+        const cursor = new Date(fromDate);
+        const dayIdx = (cursor.getDay() + 6) % 7;
+        cursor.setDate(cursor.getDate() - dayIdx);
+        while (cursor <= toDate) {
+          weekStarts.push(format(cursor, 'yyyy-MM-dd'));
+          cursor.setDate(cursor.getDate() + 7);
+        }
+
+        // Get all team pitcher ids
+        let teammateIds: string[] = [pitcherId];
+        if ((pitcherRow as any).team_id) {
+          const { data: roster } = await supabase
+            .from('pitchers')
+            .select('id')
+            .eq('team_id', (pitcherRow as any).team_id);
+          teammateIds = (roster || []).map((r: any) => r.id);
+        }
+
+        if (teammateIds.length <= 5) {
+          // Fewer than enough players to even define a "top 5" — nobody is locked out.
+          if (!cancelled) setIsInTop5(false);
+          return;
+        }
+
+        const { data: completions } = await supabase
+          .from('workout_completions')
+          .select('pitcher_id, week_start')
+          .in('pitcher_id', teammateIds)
+          .in('week_start', weekStarts.length > 0 ? weekStarts : ['1970-01-01']);
+
+        const counts: Record<string, number> = {};
+        teammateIds.forEach(id => { counts[id] = 0; });
+        (completions || []).forEach((c: any) => {
+          counts[c.pitcher_id] = (counts[c.pitcher_id] || 0) + 1;
+        });
+
+        const ranked = [...teammateIds].sort((a, b) => (counts[b] || 0) - (counts[a] || 0));
+        const top5 = new Set(ranked.slice(0, 5));
+        if (!cancelled) setIsInTop5(top5.has(pitcherId));
+      } catch (err) {
+        console.error('Error computing catch-up eligibility:', err);
+        if (!cancelled) setIsInTop5(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [open, pitcherId]);
 
   const isCompleted = (assignmentId: string, dayOfWeek: number): boolean => {
@@ -115,12 +207,22 @@ export function AccountabilityDialog({
     dayOfWeek: number,
     frequency: number,
     requiresPhoto: boolean,
+    isCatchUp: boolean,
   ) => {
     const key = `${assignmentId}-${dayOfWeek}`;
     if (pendingToggles.has(key)) return;
 
     const alreadyCompleted = isCompleted(assignmentId, dayOfWeek);
     if (!alreadyCompleted && isAtFrequencyCap(assignmentId, frequency)) return;
+
+    // Catch-up workouts are reserved for players outside the leaderboard top 5.
+    if (!alreadyCompleted && isCatchUp && isInTop5) {
+      toast({
+        title: 'Catch-up workout',
+        description: 'This workout is reserved for players outside the leaderboard top 5.',
+      });
+      return;
+    }
 
     // For photo-required workouts: when CHECKING ON, open the editor with a
     // "Photo required" message instead of saving the completion. The completion
@@ -359,12 +461,18 @@ export function AccountabilityDialog({
                 className="p-4 rounded-lg bg-secondary/50 border border-border/50"
               >
                 <div className="mb-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-semibold text-foreground">{assignment.title}</h3>
                     {assignment.requiresPhoto && (
                       <span className="inline-flex items-center gap-1 text-xs text-muted-foreground border border-border/50 rounded px-1.5 py-0.5">
                         <Camera className="w-3 h-3" />
                         Photo required
+                      </span>
+                    )}
+                    {assignment.isCatchUp && (
+                      <span className={`inline-flex items-center gap-1 text-xs rounded px-1.5 py-0.5 border ${isInTop5 ? 'text-muted-foreground border-border/50 bg-muted/40' : 'text-amber-600 border-amber-500/30 bg-amber-500/10'}`}>
+                        {isInTop5 ? <Lock className="w-3 h-3" /> : <Users className="w-3 h-3" />}
+                        Catch-up{isInTop5 ? ' — top 5 locked' : ''}
                       </span>
                     )}
                   </div>
@@ -406,7 +514,8 @@ export function AccountabilityDialog({
 
                     const atCap = !completed && isAtFrequencyCap(assignment.id, assignment.frequency ?? 7);
                     const isExpired = !!assignment.expiresAt && new Date(assignment.expiresAt) < new Date();
-                    const disabled = isPending || atCap || isExpired;
+                    const catchUpLocked = !!assignment.isCatchUp && isInTop5 && !completed;
+                    const disabled = isPending || atCap || isExpired || catchUpLocked;
 
                     return (
                       <div key={dayIndex} className="flex flex-col items-center gap-1">
@@ -414,8 +523,9 @@ export function AccountabilityDialog({
                           {label}
                         </span>
                         <button
-                          onClick={() => !disabled && !isExpired && handleToggle(assignment.id, dayIndex, assignment.frequency ?? 7, !!assignment.requiresPhoto)}
+                          onClick={() => !disabled && !isExpired && handleToggle(assignment.id, dayIndex, assignment.frequency ?? 7, !!assignment.requiresPhoto, !!assignment.isCatchUp)}
                           disabled={disabled}
+                          title={catchUpLocked ? 'Catch-up workout — locked for top 5 players' : undefined}
                           className={`
                             w-10 h-10 rounded-lg border-2 flex items-center justify-center transition-all
                             ${completed
@@ -425,10 +535,12 @@ export function AccountabilityDialog({
                                 : 'bg-background border-border hover:border-primary/50'
                             }
                             ${isPending ? 'opacity-50' : ''}
-                            ${today && !completed && !atCap ? 'ring-2 ring-primary/30' : ''}
+                            ${today && !completed && !atCap && !catchUpLocked ? 'ring-2 ring-primary/30' : ''}
                           `}
                         >
-                          {completed && <Check className="w-5 h-5" />}
+                          {completed
+                            ? <Check className="w-5 h-5" />
+                            : (catchUpLocked ? <Lock className="w-3.5 h-3.5 text-muted-foreground" /> : null)}
                         </button>
                         {/* Notes/photo indicator */}
                         {completed && (

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, ClipboardCheck, Paperclip, ExternalLink, Pencil, Clock, Camera } from 'lucide-react';
+import { Plus, Trash2, ClipboardCheck, Paperclip, ExternalLink, Pencil, Clock, Camera, Users } from 'lucide-react';
 import { WorkoutAssignment } from '@/hooks/use-workouts';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -24,8 +24,8 @@ interface WorkoutManagementSectionProps {
   pitcherId: string;
   pitcherName: string;
   assignments: WorkoutAssignment[];
-  onAddAssignment: (pitcherId: string, title: string, description?: string, frequency?: number, attachmentUrl?: string, expiresAt?: string | null, requiresPhoto?: boolean) => Promise<WorkoutAssignment | null>;
-  onUpdateAssignment: (id: string, updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null; requiresPhoto?: boolean }) => Promise<boolean>;
+  onAddAssignment: (pitcherId: string, title: string, description?: string, frequency?: number, attachmentUrl?: string, expiresAt?: string | null, requiresPhoto?: boolean, isCatchUp?: boolean) => Promise<WorkoutAssignment | null>;
+  onUpdateAssignment: (id: string, updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null; requiresPhoto?: boolean; isCatchUp?: boolean }) => Promise<boolean>;
   onDeleteAssignment: (id: string) => Promise<boolean>;
 }
 
@@ -46,6 +46,7 @@ export function WorkoutManagementSection({
   const [expiresDate, setExpiresDate] = useState('');
   const [expiresTime, setExpiresTime] = useState('23:59');
   const [requiresPhoto, setRequiresPhoto] = useState(false);
+  const [isCatchUp, setIsCatchUp] = useState(false);
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -91,7 +92,8 @@ export function WorkoutManagementSection({
         parseInt(frequency),
         attachmentUrl,
         expiresAt,
-        requiresPhoto
+        requiresPhoto,
+        isCatchUp
       );
       if (result) {
         setTitle('');
@@ -101,6 +103,7 @@ export function WorkoutManagementSection({
         setExpiresTime('23:59');
         setAttachmentFile(null);
         setRequiresPhoto(false);
+        setIsCatchUp(false);
         setIsAdding(false);
       }
     } catch (err) {
@@ -121,6 +124,7 @@ export function WorkoutManagementSection({
     setDescription(assignment.description || '');
     setFrequency(String(assignment.frequency));
     setRequiresPhoto(assignment.requiresPhoto);
+    setIsCatchUp(assignment.isCatchUp);
     if (assignment.expiresAt) {
       const d = new Date(assignment.expiresAt);
       setExpiresDate(format(d, 'yyyy-MM-dd'));
@@ -141,6 +145,7 @@ export function WorkoutManagementSection({
     setExpiresDate('');
     setExpiresTime('23:59');
     setRequiresPhoto(false);
+    setIsCatchUp(false);
     setAttachmentFile(null);
   };
 
@@ -171,12 +176,13 @@ export function WorkoutManagementSection({
 
       const expiresAt = expiresDate ? new Date(`${expiresDate}T${expiresTime || '23:59'}`).toISOString() : null;
 
-      const updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null; requiresPhoto?: boolean } = {
+      const updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null; requiresPhoto?: boolean; isCatchUp?: boolean } = {
         title: title.trim(),
         description: description.trim() || null,
         frequency: parseInt(frequency),
         expiresAt,
         requiresPhoto,
+        isCatchUp,
       };
       if (attachmentUrl !== undefined) {
         updates.attachmentUrl = attachmentUrl;
@@ -299,6 +305,18 @@ export function WorkoutManagementSection({
                 Require photo to complete
               </span>
             </label>
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={isCatchUp}
+                onChange={(e) => setIsCatchUp(e.target.checked)}
+                className="w-4 h-4 rounded border-border accent-primary"
+              />
+              <span className="text-xs flex items-center gap-1">
+                <Users className="w-3 h-3" />
+                Catch-up workout (only players outside leaderboard top 5)
+              </span>
+            </label>
             <div className="flex justify-end gap-2">
               <Button variant="outline" size="sm" onClick={cancelEdit}>
                 Cancel
@@ -324,6 +342,12 @@ export function WorkoutManagementSection({
               {assignment.requiresPhoto && (
                 <span className="text-xs text-muted-foreground shrink-0 flex items-center gap-0.5" title="Requires photo">
                   <Camera className="w-3 h-3" />
+                </span>
+              )}
+              {assignment.isCatchUp && (
+                <span className="text-xs shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 border border-amber-500/30" title="Only players outside the leaderboard top 5 can complete this">
+                  <Users className="w-3 h-3" />
+                  Catch-up
                 </span>
               )}
               {assignment.expiresAt && (
@@ -447,6 +471,18 @@ export function WorkoutManagementSection({
               Require photo to complete
             </span>
           </label>
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={isCatchUp}
+              onChange={(e) => setIsCatchUp(e.target.checked)}
+              className="w-4 h-4 rounded border-border accent-primary"
+            />
+            <span className="text-xs flex items-center gap-1">
+              <Users className="w-3 h-3" />
+              Catch-up workout (only players outside leaderboard top 5)
+            </span>
+          </label>
           <div className="flex justify-end gap-2">
             <Button
               variant="outline"
@@ -460,6 +496,7 @@ export function WorkoutManagementSection({
                 setExpiresTime('23:59');
                 setAttachmentFile(null);
                 setRequiresPhoto(false);
+                setIsCatchUp(false);
               }}
             >
               Cancel
