@@ -149,7 +149,7 @@ export function RosterManagementDialog({
   }, [open, fetchAllWorkoutAssignments]);
 
   // Add assignment handler
-  const handleAddAssignment = async (pitcherId: string, title: string, description?: string, frequency?: number, attachmentUrl?: string, expiresAt?: string | null, requiresPhoto?: boolean, isCatchUp?: boolean): Promise<WorkoutAssignment | null> => {
+  const handleAddAssignment = async (pitcherId: string, title: string, description?: string, frequency?: number, attachmentUrl?: string, expiresAt?: string | null, requiresPhoto?: boolean, isCatchUp?: boolean, doublePoints?: boolean): Promise<WorkoutAssignment | null> => {
     const pitcher = pitchers.find((item) => item.id === pitcherId);
 
     if (!pitcher) {
@@ -185,6 +185,7 @@ export function RosterManagementDialog({
           expires_at: expiresAt || null,
           requires_photo: requiresPhoto ?? false,
           is_catch_up: isCatchUp ?? false,
+          double_points: doublePoints ?? false,
           user_id: pitcher.teamId ? null : user.id,
         } as any)
         .select()
@@ -202,6 +203,7 @@ export function RosterManagementDialog({
         expiresAt: (data as any).expires_at ?? null,
         requiresPhoto: (data as any).requires_photo ?? false,
         isCatchUp: (data as any).is_catch_up ?? false,
+        doublePoints: (data as any).double_points ?? false,
         createdAt: data.created_at,
       };
 
