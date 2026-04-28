@@ -12,28 +12,42 @@ import { useAuth } from '@/hooks/use-auth';
 
 const STORAGE_KEY_PREFIX = 'whatsNew_';
 
-export function WhatsNewDialog() {
+interface WhatsNewDialogProps {
+  /** When true, show to anonymous viewers (e.g. parents) using a scoped storage key. */
+  publicMode?: boolean;
+  /** Optional scope appended to the anon storage key (e.g. playerId). */
+  scopeKey?: string;
+}
+
+export function WhatsNewDialog({ publicMode = false, scopeKey }: WhatsNewDialogProps = {}) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
 
-  useEffect(() => {
-    if (!user || !CURRENT_RELEASE.enabled) return;
+  const storageKey = user
+    ? `${STORAGE_KEY_PREFIX}${user.id}`
+    : publicMode
+      ? `${STORAGE_KEY_PREFIX}public${scopeKey ? `_${scopeKey}` : ''}`
+      : null;
 
-    const key = `${STORAGE_KEY_PREFIX}${user.id}`;
-    const seen = localStorage.getItem(key);
+  useEffect(() => {
+    if (!CURRENT_RELEASE.enabled) return;
+    if (!storageKey) return;
+
+    const seen = localStorage.getItem(storageKey);
     if (seen !== CURRENT_RELEASE.version) {
       setOpen(true);
     }
-  }, [user]);
+  }, [storageKey]);
 
   const handleDismiss = () => {
-    if (user) {
-      localStorage.setItem(`${STORAGE_KEY_PREFIX}${user.id}`, CURRENT_RELEASE.version);
+    if (storageKey) {
+      localStorage.setItem(storageKey, CURRENT_RELEASE.version);
     }
     setOpen(false);
   };
 
-  if (!CURRENT_RELEASE.enabled || !user) return null;
+  if (!CURRENT_RELEASE.enabled) return null;
+  if (!storageKey) return null;
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleDismiss(); }}>
