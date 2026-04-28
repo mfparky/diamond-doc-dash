@@ -128,6 +128,7 @@ export function WorkoutManagementSection({
     setFrequency(String(assignment.frequency));
     setRequiresPhoto(assignment.requiresPhoto);
     setIsCatchUp(assignment.isCatchUp);
+    setDoublePoints(assignment.doublePoints);
     if (assignment.expiresAt) {
       const d = new Date(assignment.expiresAt);
       setExpiresDate(format(d, 'yyyy-MM-dd'));
