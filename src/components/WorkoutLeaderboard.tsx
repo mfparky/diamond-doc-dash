@@ -174,16 +174,21 @@ export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntrie
         // Fetch assignment counts + double-points flag per pitcher
         const { data: assignments, error: assignmentsError } = await supabase
           .from('workout_assignments')
-          .select('id, pitcher_id, double_points')
+          .select('id, pitcher_id, double_points, expires_at')
           .in('pitcher_id', pitchers.map((p) => p.id));
 
         if (assignmentsError) throw assignmentsError;
 
-        // Count assignments per pitcher + map of assignment id → weight (1 or 2)
+        // Count only ACTIVE (non-expired) assignments per pitcher,
+        // but keep weights for ALL assignments so completed expired workouts still tally.
+        const nowMs = Date.now();
         const assignmentCounts: Record<string, number> = {};
         const assignmentWeight: Record<string, number> = {};
         (assignments || []).forEach((a: any) => {
-          assignmentCounts[a.pitcher_id] = (assignmentCounts[a.pitcher_id] || 0) + 1;
+          const isExpired = a.expires_at && new Date(a.expires_at).getTime() < nowMs;
+          if (!isExpired) {
+            assignmentCounts[a.pitcher_id] = (assignmentCounts[a.pitcher_id] || 0) + 1;
+          }
           assignmentWeight[a.id] = a.double_points ? 2 : 1;
         });
 
