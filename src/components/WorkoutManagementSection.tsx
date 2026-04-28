@@ -529,6 +529,7 @@ export function WorkoutManagementSection({
                 setAttachmentFile(null);
                 setRequiresPhoto(false);
                 setIsCatchUp(false);
+                setDoublePoints(false);
               }}
             >
               Cancel
