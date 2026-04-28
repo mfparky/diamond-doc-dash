@@ -502,6 +502,19 @@ export function WorkoutManagementSection({
               Catch-up workout (only players outside leaderboard top 5)
             </span>
           </label>
+          {isCatchUp && (
+            <label className="flex items-center gap-2 cursor-pointer select-none ml-6">
+              <input
+                type="checkbox"
+                checked={doublePoints}
+                onChange={(e) => setDoublePoints(e.target.checked)}
+                className="w-4 h-4 rounded border-border accent-primary"
+              />
+              <span className="text-xs flex items-center gap-1">
+                Worth 2x (counts as 2 completions)
+              </span>
+            </label>
+          )}
           <div className="flex justify-end gap-2">
             <Button
               variant="outline"
