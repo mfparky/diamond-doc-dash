@@ -94,7 +94,8 @@ export function WorkoutManagementSection({
         attachmentUrl,
         expiresAt,
         requiresPhoto,
-        isCatchUp
+        isCatchUp,
+        isCatchUp ? doublePoints : false,
       );
       if (result) {
         setTitle('');
@@ -105,6 +106,7 @@ export function WorkoutManagementSection({
         setAttachmentFile(null);
         setRequiresPhoto(false);
         setIsCatchUp(false);
+        setDoublePoints(false);
         setIsAdding(false);
       }
     } catch (err) {
