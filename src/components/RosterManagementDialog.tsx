@@ -378,15 +378,24 @@ export function RosterManagementDialog({
       const pitcherIds = pitchers.map(p => p.id);
       const { data: completions, error: completionsError } = await supabase
         .from('workout_completions')
-        .select('pitcher_id, week_start')
+        .select('pitcher_id, week_start, assignment_id')
         .in('pitcher_id', pitcherIds)
         .in('week_start', weekStarts.length > 0 ? weekStarts : ['1970-01-01']);
 
       if (completionsError) throw completionsError;
 
+      // Map of assignment id → weight (double-points = 2)
+      const weightById: Record<string, number> = {};
+      Object.values(workoutAssignments).flat().forEach((a) => {
+        weightById[a.id] = a.doublePoints ? 2 : 1;
+      });
+
       const counts: Record<string, number> = {};
       pitcherIds.forEach(id => { counts[id] = 0; });
-      (completions || []).forEach(c => { counts[c.pitcher_id] = (counts[c.pitcher_id] || 0) + 1; });
+      (completions || []).forEach((c: any) => {
+        const w = weightById[c.assignment_id] ?? 1;
+        counts[c.pitcher_id] = (counts[c.pitcher_id] || 0) + w;
+      });
 
       // Rank pitchers by completions DESC; bottom = everyone outside top 5
       const ranked = [...pitchers].sort((a, b) => (counts[b.id] || 0) - (counts[a.id] || 0));
