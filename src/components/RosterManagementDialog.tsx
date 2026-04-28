@@ -325,6 +325,7 @@ export function RosterManagementDialog({
             expires_at: assignment.expiresAt,
             requires_photo: assignment.requiresPhoto,
             is_catch_up: assignment.isCatchUp,
+            double_points: assignment.doublePoints,
             user_id: targetPitcher.teamId ? null : user.id,
           } as any);
           copiedCount++;
