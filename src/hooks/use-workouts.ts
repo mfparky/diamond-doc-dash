@@ -142,6 +142,7 @@ export function useWorkouts(pitcherId?: string) {
     expiresAt?: string | null,
     requiresPhoto?: boolean,
     isCatchUp?: boolean,
+    doublePoints?: boolean,
   ): Promise<WorkoutAssignment | null> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -157,6 +158,7 @@ export function useWorkouts(pitcherId?: string) {
           expires_at: expiresAt || null,
           requires_photo: requiresPhoto ?? false,
           is_catch_up: isCatchUp ?? false,
+          double_points: doublePoints ?? false,
           user_id: user?.id || null,
         } as any)
         .select()
@@ -174,6 +176,7 @@ export function useWorkouts(pitcherId?: string) {
         expiresAt: (data as any).expires_at ?? null,
         requiresPhoto: (data as any).requires_photo ?? false,
         isCatchUp: (data as any).is_catch_up ?? false,
+        doublePoints: (data as any).double_points ?? false,
         createdAt: data.created_at,
       };
 
