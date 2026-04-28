@@ -373,6 +373,40 @@ export default function PlayerDashboard() {
             </Button>
             <ThemeToggle />
           </div>
+          {/* Last updated indicator */}
+          {(() => {
+            const timestamps: number[] = [];
+            outings.forEach((o) => {
+              if (o.timestamp) {
+                const t = new Date(o.timestamp).getTime();
+                if (Number.isFinite(t)) timestamps.push(t);
+              }
+            });
+            completions.forEach((c: any) => {
+              if (c?.created_at) {
+                const t = new Date(c.created_at).getTime();
+                if (Number.isFinite(t)) timestamps.push(t);
+              }
+            });
+            if (timestamps.length === 0) return null;
+            const latest = new Date(Math.max(...timestamps));
+            const now = Date.now();
+            const diffMs = now - latest.getTime();
+            const mins = Math.floor(diffMs / 60000);
+            const hours = Math.floor(mins / 60);
+            const days = Math.floor(hours / 24);
+            let rel: string;
+            if (mins < 1) rel = 'just now';
+            else if (mins < 60) rel = `${mins} min${mins !== 1 ? 's' : ''} ago`;
+            else if (hours < 24) rel = `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+            else if (days < 7) rel = `${days} day${days !== 1 ? 's' : ''} ago`;
+            else rel = latest.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            return (
+              <p className="text-[10px] text-muted-foreground/70 italic">
+                Last updated {rel}
+              </p>
+            );
+          })()}
         </div>
       </header>
 
