@@ -47,6 +47,7 @@ export function WorkoutManagementSection({
   const [expiresTime, setExpiresTime] = useState('23:59');
   const [requiresPhoto, setRequiresPhoto] = useState(false);
   const [isCatchUp, setIsCatchUp] = useState(false);
+  const [doublePoints, setDoublePoints] = useState(false);
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
