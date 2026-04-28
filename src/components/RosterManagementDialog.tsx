@@ -256,7 +256,7 @@ export function RosterManagementDialog({
   // Update assignment handler
   const handleUpdateAssignment = async (
     id: string,
-    updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null; requiresPhoto?: boolean; isCatchUp?: boolean }
+    updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null; requiresPhoto?: boolean; isCatchUp?: boolean; doublePoints?: boolean }
   ): Promise<boolean> => {
     try {
       const dbUpdates: Record<string, unknown> = {};
@@ -267,6 +267,7 @@ export function RosterManagementDialog({
       if (updates.expiresAt !== undefined) dbUpdates.expires_at = updates.expiresAt;
       if (updates.requiresPhoto !== undefined) dbUpdates.requires_photo = updates.requiresPhoto;
       if (updates.isCatchUp !== undefined) dbUpdates.is_catch_up = updates.isCatchUp;
+      if (updates.doublePoints !== undefined) dbUpdates.double_points = updates.doublePoints;
 
       const { error } = await supabase
         .from('workout_assignments')
