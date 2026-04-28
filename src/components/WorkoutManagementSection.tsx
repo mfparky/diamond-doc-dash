@@ -24,8 +24,8 @@ interface WorkoutManagementSectionProps {
   pitcherId: string;
   pitcherName: string;
   assignments: WorkoutAssignment[];
-  onAddAssignment: (pitcherId: string, title: string, description?: string, frequency?: number, attachmentUrl?: string, expiresAt?: string | null, requiresPhoto?: boolean, isCatchUp?: boolean) => Promise<WorkoutAssignment | null>;
-  onUpdateAssignment: (id: string, updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null; requiresPhoto?: boolean; isCatchUp?: boolean }) => Promise<boolean>;
+  onAddAssignment: (pitcherId: string, title: string, description?: string, frequency?: number, attachmentUrl?: string, expiresAt?: string | null, requiresPhoto?: boolean, isCatchUp?: boolean, doublePoints?: boolean) => Promise<WorkoutAssignment | null>;
+  onUpdateAssignment: (id: string, updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null; requiresPhoto?: boolean; isCatchUp?: boolean; doublePoints?: boolean }) => Promise<boolean>;
   onDeleteAssignment: (id: string) => Promise<boolean>;
 }
 
@@ -47,6 +47,7 @@ export function WorkoutManagementSection({
   const [expiresTime, setExpiresTime] = useState('23:59');
   const [requiresPhoto, setRequiresPhoto] = useState(false);
   const [isCatchUp, setIsCatchUp] = useState(false);
+  const [doublePoints, setDoublePoints] = useState(false);
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -93,7 +94,8 @@ export function WorkoutManagementSection({
         attachmentUrl,
         expiresAt,
         requiresPhoto,
-        isCatchUp
+        isCatchUp,
+        isCatchUp ? doublePoints : false,
       );
       if (result) {
         setTitle('');
@@ -104,6 +106,7 @@ export function WorkoutManagementSection({
         setAttachmentFile(null);
         setRequiresPhoto(false);
         setIsCatchUp(false);
+        setDoublePoints(false);
         setIsAdding(false);
       }
     } catch (err) {
@@ -125,6 +128,7 @@ export function WorkoutManagementSection({
     setFrequency(String(assignment.frequency));
     setRequiresPhoto(assignment.requiresPhoto);
     setIsCatchUp(assignment.isCatchUp);
+    setDoublePoints(assignment.doublePoints);
     if (assignment.expiresAt) {
       const d = new Date(assignment.expiresAt);
       setExpiresDate(format(d, 'yyyy-MM-dd'));
@@ -146,6 +150,7 @@ export function WorkoutManagementSection({
     setExpiresTime('23:59');
     setRequiresPhoto(false);
     setIsCatchUp(false);
+    setDoublePoints(false);
     setAttachmentFile(null);
   };
 
@@ -176,13 +181,14 @@ export function WorkoutManagementSection({
 
       const expiresAt = expiresDate ? new Date(`${expiresDate}T${expiresTime || '23:59'}`).toISOString() : null;
 
-      const updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null; requiresPhoto?: boolean; isCatchUp?: boolean } = {
+      const updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null; requiresPhoto?: boolean; isCatchUp?: boolean; doublePoints?: boolean } = {
         title: title.trim(),
         description: description.trim() || null,
         frequency: parseInt(frequency),
         expiresAt,
         requiresPhoto,
         isCatchUp,
+        doublePoints: isCatchUp ? doublePoints : false,
       };
       if (attachmentUrl !== undefined) {
         updates.attachmentUrl = attachmentUrl;
@@ -317,6 +323,19 @@ export function WorkoutManagementSection({
                 Catch-up workout (only players outside leaderboard top 5)
               </span>
             </label>
+            {isCatchUp && (
+              <label className="flex items-center gap-2 cursor-pointer select-none ml-6">
+                <input
+                  type="checkbox"
+                  checked={doublePoints}
+                  onChange={(e) => setDoublePoints(e.target.checked)}
+                  className="w-4 h-4 rounded border-border accent-primary"
+                />
+                <span className="text-xs flex items-center gap-1">
+                  Worth 2x (counts as 2 completions)
+                </span>
+              </label>
+            )}
             <div className="flex justify-end gap-2">
               <Button variant="outline" size="sm" onClick={cancelEdit}>
                 Cancel
@@ -347,7 +366,7 @@ export function WorkoutManagementSection({
               {assignment.isCatchUp && (
                 <span className="text-xs shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 border border-amber-500/30" title="Only players outside the leaderboard top 5 can complete this">
                   <Users className="w-3 h-3" />
-                  Catch-up
+                  Catch-up{assignment.doublePoints ? ' · 2x' : ''}
                 </span>
               )}
               {assignment.expiresAt && (
@@ -483,6 +502,19 @@ export function WorkoutManagementSection({
               Catch-up workout (only players outside leaderboard top 5)
             </span>
           </label>
+          {isCatchUp && (
+            <label className="flex items-center gap-2 cursor-pointer select-none ml-6">
+              <input
+                type="checkbox"
+                checked={doublePoints}
+                onChange={(e) => setDoublePoints(e.target.checked)}
+                className="w-4 h-4 rounded border-border accent-primary"
+              />
+              <span className="text-xs flex items-center gap-1">
+                Worth 2x (counts as 2 completions)
+              </span>
+            </label>
+          )}
           <div className="flex justify-end gap-2">
             <Button
               variant="outline"
@@ -497,6 +529,7 @@ export function WorkoutManagementSection({
                 setAttachmentFile(null);
                 setRequiresPhoto(false);
                 setIsCatchUp(false);
+                setDoublePoints(false);
               }}
             >
               Cancel

@@ -90,6 +90,7 @@ export function RosterManagementDialog({
           expiresAt: (row as any).expires_at ?? null,
           requiresPhoto: (row as any).requires_photo ?? false,
           isCatchUp: (row as any).is_catch_up ?? false,
+          doublePoints: (row as any).double_points ?? false,
           createdAt: row.created_at,
         });
       });
@@ -148,7 +149,7 @@ export function RosterManagementDialog({
   }, [open, fetchAllWorkoutAssignments]);
 
   // Add assignment handler
-  const handleAddAssignment = async (pitcherId: string, title: string, description?: string, frequency?: number, attachmentUrl?: string, expiresAt?: string | null, requiresPhoto?: boolean, isCatchUp?: boolean): Promise<WorkoutAssignment | null> => {
+  const handleAddAssignment = async (pitcherId: string, title: string, description?: string, frequency?: number, attachmentUrl?: string, expiresAt?: string | null, requiresPhoto?: boolean, isCatchUp?: boolean, doublePoints?: boolean): Promise<WorkoutAssignment | null> => {
     const pitcher = pitchers.find((item) => item.id === pitcherId);
 
     if (!pitcher) {
@@ -184,6 +185,7 @@ export function RosterManagementDialog({
           expires_at: expiresAt || null,
           requires_photo: requiresPhoto ?? false,
           is_catch_up: isCatchUp ?? false,
+          double_points: doublePoints ?? false,
           user_id: pitcher.teamId ? null : user.id,
         } as any)
         .select()
@@ -201,6 +203,7 @@ export function RosterManagementDialog({
         expiresAt: (data as any).expires_at ?? null,
         requiresPhoto: (data as any).requires_photo ?? false,
         isCatchUp: (data as any).is_catch_up ?? false,
+        doublePoints: (data as any).double_points ?? false,
         createdAt: data.created_at,
       };
 
@@ -253,7 +256,7 @@ export function RosterManagementDialog({
   // Update assignment handler
   const handleUpdateAssignment = async (
     id: string,
-    updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null; requiresPhoto?: boolean; isCatchUp?: boolean }
+    updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null; requiresPhoto?: boolean; isCatchUp?: boolean; doublePoints?: boolean }
   ): Promise<boolean> => {
     try {
       const dbUpdates: Record<string, unknown> = {};
@@ -264,6 +267,7 @@ export function RosterManagementDialog({
       if (updates.expiresAt !== undefined) dbUpdates.expires_at = updates.expiresAt;
       if (updates.requiresPhoto !== undefined) dbUpdates.requires_photo = updates.requiresPhoto;
       if (updates.isCatchUp !== undefined) dbUpdates.is_catch_up = updates.isCatchUp;
+      if (updates.doublePoints !== undefined) dbUpdates.double_points = updates.doublePoints;
 
       const { error } = await supabase
         .from('workout_assignments')
@@ -321,6 +325,7 @@ export function RosterManagementDialog({
             expires_at: assignment.expiresAt,
             requires_photo: assignment.requiresPhoto,
             is_catch_up: assignment.isCatchUp,
+            double_points: assignment.doublePoints,
             user_id: targetPitcher.teamId ? null : user.id,
           } as any);
           copiedCount++;
@@ -373,15 +378,24 @@ export function RosterManagementDialog({
       const pitcherIds = pitchers.map(p => p.id);
       const { data: completions, error: completionsError } = await supabase
         .from('workout_completions')
-        .select('pitcher_id, week_start')
+        .select('pitcher_id, week_start, assignment_id')
         .in('pitcher_id', pitcherIds)
         .in('week_start', weekStarts.length > 0 ? weekStarts : ['1970-01-01']);
 
       if (completionsError) throw completionsError;
 
+      // Map of assignment id → weight (double-points = 2)
+      const weightById: Record<string, number> = {};
+      Object.values(workoutAssignments).flat().forEach((a) => {
+        weightById[a.id] = a.doublePoints ? 2 : 1;
+      });
+
       const counts: Record<string, number> = {};
       pitcherIds.forEach(id => { counts[id] = 0; });
-      (completions || []).forEach(c => { counts[c.pitcher_id] = (counts[c.pitcher_id] || 0) + 1; });
+      (completions || []).forEach((c: any) => {
+        const w = weightById[c.assignment_id] ?? 1;
+        counts[c.pitcher_id] = (counts[c.pitcher_id] || 0) + w;
+      });
 
       // Rank pitchers by completions DESC; bottom = everyone outside top 5
       const ranked = [...pitchers].sort((a, b) => (counts[b.id] || 0) - (counts[a.id] || 0));
@@ -407,6 +421,7 @@ export function RosterManagementDialog({
             expires_at: assignment.expiresAt,
             requires_photo: assignment.requiresPhoto,
             is_catch_up: true,
+            double_points: assignment.doublePoints,
             user_id: targetPitcher.teamId ? null : user.id,
           } as any);
           copiedCount++;

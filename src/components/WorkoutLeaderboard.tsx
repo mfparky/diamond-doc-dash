@@ -171,18 +171,20 @@ export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntrie
 
         if (completionsError) throw completionsError;
 
-        // Fetch assignment counts per pitcher
+        // Fetch assignment counts + double-points flag per pitcher
         const { data: assignments, error: assignmentsError } = await supabase
           .from('workout_assignments')
-          .select('pitcher_id')
+          .select('id, pitcher_id, double_points')
           .in('pitcher_id', pitchers.map((p) => p.id));
 
         if (assignmentsError) throw assignmentsError;
 
-        // Count assignments per pitcher
+        // Count assignments per pitcher + map of assignment id → weight (1 or 2)
         const assignmentCounts: Record<string, number> = {};
-        (assignments || []).forEach((a) => {
+        const assignmentWeight: Record<string, number> = {};
+        (assignments || []).forEach((a: any) => {
           assignmentCounts[a.pitcher_id] = (assignmentCounts[a.pitcher_id] || 0) + 1;
+          assignmentWeight[a.id] = a.double_points ? 2 : 1;
         });
 
         // Split completions: selected period, this week, last week
@@ -191,14 +193,15 @@ export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntrie
         const thisWeekCounts: Record<string, number> = {};
         const lastWeekCounts: Record<string, number> = {};
         (completions || []).forEach((c) => {
+          const w = assignmentWeight[c.assignment_id] ?? 1;
           if (weekStartSet.has(c.week_start)) {
-            completionCounts[c.pitcher_id] = (completionCounts[c.pitcher_id] || 0) + 1;
+            completionCounts[c.pitcher_id] = (completionCounts[c.pitcher_id] || 0) + w;
           }
           if (c.week_start === thisWeekStart) {
-            thisWeekCounts[c.pitcher_id] = (thisWeekCounts[c.pitcher_id] || 0) + 1;
+            thisWeekCounts[c.pitcher_id] = (thisWeekCounts[c.pitcher_id] || 0) + w;
           }
           if (c.week_start === lastWeekStart) {
-            lastWeekCounts[c.pitcher_id] = (lastWeekCounts[c.pitcher_id] || 0) + 1;
+            lastWeekCounts[c.pitcher_id] = (lastWeekCounts[c.pitcher_id] || 0) + w;
           }
         });
 

@@ -1,0 +1,1 @@
+ALTER TABLE public.workout_assignments ADD COLUMN IF NOT EXISTS double_points boolean NOT NULL DEFAULT false;

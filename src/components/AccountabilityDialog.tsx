@@ -161,14 +161,23 @@ export function AccountabilityDialog({
 
         const { data: completions } = await supabase
           .from('workout_completions')
-          .select('pitcher_id, week_start')
+          .select('pitcher_id, week_start, assignment_id')
           .in('pitcher_id', teammateIds)
           .in('week_start', weekStarts.length > 0 ? weekStarts : ['1970-01-01']);
+
+        // Get double-points assignment ids so they count as 2
+        const { data: dpAssignments } = await supabase
+          .from('workout_assignments')
+          .select('id, double_points')
+          .in('pitcher_id', teammateIds);
+        const weightById: Record<string, number> = {};
+        (dpAssignments || []).forEach((a: any) => { weightById[a.id] = a.double_points ? 2 : 1; });
 
         const counts: Record<string, number> = {};
         teammateIds.forEach(id => { counts[id] = 0; });
         (completions || []).forEach((c: any) => {
-          counts[c.pitcher_id] = (counts[c.pitcher_id] || 0) + 1;
+          const w = weightById[c.assignment_id] ?? 1;
+          counts[c.pitcher_id] = (counts[c.pitcher_id] || 0) + w;
         });
 
         const ranked = [...teammateIds].sort((a, b) => (counts[b] || 0) - (counts[a] || 0));
