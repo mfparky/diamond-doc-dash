@@ -32,6 +32,7 @@ import { LiveAbsSummary } from '@/components/LiveAbsSummary';
 import { LiveAbsDashboard } from '@/components/LiveAbsDashboard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { WorkoutGallery } from '@/components/WorkoutGallery';
+import { WhatsNewDialog } from '@/components/WhatsNewDialog';
 
 export default function PlayerDashboard() {
   const { playerId } = useParams<{ playerId: string }>();
@@ -319,6 +320,7 @@ export default function PlayerDashboard() {
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
+      <WhatsNewDialog publicMode scopeKey={playerId} />
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
         <div className="max-w-4xl mx-auto px-4 py-2 space-y-2">
