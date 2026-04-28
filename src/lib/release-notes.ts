@@ -12,7 +12,7 @@ export interface ReleaseNotes {
 }
 
 export const CURRENT_RELEASE: ReleaseNotes = {
-  version: "2026-04-28b",
+  version: "2026-04-28c",
   enabled: true,
   title: "What's New 🎉",
   features: [
@@ -35,6 +35,11 @@ export const CURRENT_RELEASE: ReleaseNotes = {
       heading: "🕒 Last Updated Indicator",
       description:
         "Each player dashboard now shows when it was last updated, so parents always know how fresh the stats are.",
+    },
+    {
+      heading: "📣 What's New for Parents",
+      description:
+        "Parents now see the latest release notes the first time they open their player's dashboard after an update — so everyone stays in the loop.",
     },
     {
       heading: "🛠️ Bug Fixes",
