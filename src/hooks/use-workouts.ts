@@ -13,6 +13,7 @@ export interface WorkoutAssignment {
   expiresAt: string | null;
   requiresPhoto: boolean;
   isCatchUp: boolean;
+  doublePoints: boolean;
   createdAt: string;
 }
 
