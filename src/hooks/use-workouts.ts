@@ -230,6 +230,7 @@ export function useWorkouts(pitcherId?: string) {
           ...(updates.expiresAt !== undefined && { expiresAt: updates.expiresAt }),
           ...(updates.requiresPhoto !== undefined && { requiresPhoto: updates.requiresPhoto }),
           ...(updates.isCatchUp !== undefined && { isCatchUp: updates.isCatchUp }),
+          ...(updates.doublePoints !== undefined && { doublePoints: updates.doublePoints }),
         } : a)
       );
       toast({
