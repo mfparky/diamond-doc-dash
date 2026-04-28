@@ -181,13 +181,14 @@ export function WorkoutManagementSection({
 
       const expiresAt = expiresDate ? new Date(`${expiresDate}T${expiresTime || '23:59'}`).toISOString() : null;
 
-      const updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null; requiresPhoto?: boolean; isCatchUp?: boolean } = {
+      const updates: { title?: string; description?: string | null; frequency?: number; attachmentUrl?: string | null; expiresAt?: string | null; requiresPhoto?: boolean; isCatchUp?: boolean; doublePoints?: boolean } = {
         title: title.trim(),
         description: description.trim() || null,
         frequency: parseInt(frequency),
         expiresAt,
         requiresPhoto,
         isCatchUp,
+        doublePoints: isCatchUp ? doublePoints : false,
       };
       if (attachmentUrl !== undefined) {
         updates.attachmentUrl = attachmentUrl;
