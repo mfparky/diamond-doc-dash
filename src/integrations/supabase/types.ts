@@ -331,6 +331,7 @@ export type Database = {
           attachment_url: string | null
           created_at: string
           description: string | null
+          double_points: boolean
           expires_at: string | null
           frequency: number
           id: string
@@ -346,6 +347,7 @@ export type Database = {
           attachment_url?: string | null
           created_at?: string
           description?: string | null
+          double_points?: boolean
           expires_at?: string | null
           frequency?: number
           id?: string
@@ -361,6 +363,7 @@ export type Database = {
           attachment_url?: string | null
           created_at?: string
           description?: string | null
+          double_points?: boolean
           expires_at?: string | null
           frequency?: number
           id?: string
