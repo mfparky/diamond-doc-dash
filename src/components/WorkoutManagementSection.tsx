@@ -150,6 +150,7 @@ export function WorkoutManagementSection({
     setExpiresTime('23:59');
     setRequiresPhoto(false);
     setIsCatchUp(false);
+    setDoublePoints(false);
     setAttachmentFile(null);
   };
 
