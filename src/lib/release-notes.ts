@@ -12,28 +12,29 @@ export interface ReleaseNotes {
 }
 
 export const CURRENT_RELEASE: ReleaseNotes = {
-  version: "2026-04-12",
-  enabled: false,
+  version: "2026-04-28",
+  enabled: true,
   title: "What's New 🎉",
   features: [
     {
-      heading: "📸 Bonus Workouts",
+      heading: "🎯 Catch-Up Workouts",
       description:
-        "Coaches can now assign bonus workouts that require a photo to complete — prove you put in the work!",
+        "Coaches can now assign catch-up workouts that only players outside the top 5 on the leaderboard can complete — a fair way to help everyone close the gap.",
     },
     {
-      heading: "📅 Workout Wall Date Fix",
+      heading: "2️⃣ Double-Point Workouts",
       description:
-        "Photos on the Workout Wall now show the actual day you completed the workout instead of the start of the week.",
+        "Catch-up workouts can be marked as worth 2x, so each completion counts twice on the leaderboard. Climb faster by putting in the work!",
     },
     {
-      heading: "🔒 Frequency Limits",
+      heading: "📸 Photo-Required Enforcement",
       description:
-        "Bonus workouts are now properly capped so you can only log them the number of times assigned per week.",
+        "Workouts that require a photo now show a clear notice when opened and can't be saved without uploading proof.",
     },
     {
       heading: "🛠️ Bug Fixes",
-      description: "Fixed an issue that prevented some players from having workouts added to their profile.",
+      description:
+        "General stability improvements and small fixes across the app.",
     },
   ],
   signoff: "-Coach Matt",
