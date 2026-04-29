@@ -111,10 +111,11 @@ export function ProgressReportCard({
       },
       {
         label: 'Consistency',
-        grade: consistencyGrade.grade,
-        color: consistencyGrade.color,
-        value: strikePcts.length >= 2 ? `${consistencyScore.toFixed(0)}% stable` : 'Need data',
+        grade: consistency.hasData ? consistencyGrade.grade : '—',
+        color: consistency.hasData ? consistencyGrade.color : 'hsl(var(--muted-foreground))',
+        value: consistency.detail,
         trend: null,
+        skipInOverall: !consistency.hasData,
       },
       {
         label: 'Effort',
