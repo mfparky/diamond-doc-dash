@@ -90,14 +90,13 @@ export function ProgressReportCard({
     }
     const consistencyGrade = getGrade(consistencyScore);
 
-    // Work ethic grade (based on outings per week)
-    const firstDate = new Date(seasonOutings[0].date);
-    const lastDate = new Date(seasonOutings[seasonOutings.length - 1].date);
-    const weeks = Math.max(1, (lastDate.getTime() - firstDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
-    const outingsPerWeek = seasonOutings.length / weeks;
-    // 3+ per week = A+, 2 = B, 1 = C
-    const workEthicScore = Math.min(100, (outingsPerWeek / 3) * 100);
-    const workEthicGrade = getGrade(workEthicScore);
+    // Effort grade (based on workout completion vs expected).
+    // Players shouldn't be dinged for coaches not scheduling bullpens.
+    const effort = calculateEffortScore(workoutAssignments ?? [], workoutCompletions ?? []);
+    const effortGrade = getGrade(effort.score);
+    const effortValue = effort.hasData
+      ? `${effort.completed}/${effort.expected} workouts`
+      : 'No workouts assigned';
 
     // Badges earned grade
     const earned = badges.filter((b) => b.earned).length;
@@ -122,11 +121,12 @@ export function ProgressReportCard({
         trend: null,
       },
       {
-        label: 'Work Ethic',
-        grade: workEthicGrade.grade,
-        color: workEthicGrade.color,
-        value: `${outingsPerWeek.toFixed(1)}/week`,
+        label: 'Effort',
+        grade: effort.hasData ? effortGrade.grade : '—',
+        color: effort.hasData ? effortGrade.color : 'hsl(var(--muted-foreground))',
+        value: effortValue,
         trend: null,
+        skipInOverall: !effort.hasData,
       },
       {
         label: 'Achievements',
