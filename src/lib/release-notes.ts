@@ -37,14 +37,8 @@ export const CURRENT_RELEASE: ReleaseNotes = {
         "Each player dashboard now shows when it was last updated, so parents always know how fresh the stats are.",
     },
     {
-      heading: "📣 What's New for Parents",
-      description:
-        "Parents now see the latest release notes the first time they open their player's dashboard after an update — so everyone stays in the loop.",
-    },
-    {
       heading: "🛠️ Bug Fixes",
-      description:
-        "General stability improvements and small fixes across the app.",
+      description: "General stability improvements and small fixes across the app.",
     },
   ],
   signoff: "-Coach Matt",
