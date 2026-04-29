@@ -8,6 +8,3 @@ verify_jwt = false
 
 [functions.manage-approvals]
 verify_jwt = true
-
-[functions.set-bsorochan-password-once]
-verify_jwt = false
