@@ -12,6 +12,7 @@ export interface EffortAssignment {
 export interface EffortCompletion {
   assignmentId: string;
   weekStart: string; // yyyy-MM-dd (Monday)
+  dayOfWeek?: number; // 0=Mon..6=Sun (optional, used by consistency score)
 }
 
 export interface EffortResult {
