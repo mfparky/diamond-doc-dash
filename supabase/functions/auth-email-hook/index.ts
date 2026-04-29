@@ -17,12 +17,12 @@ const corsHeaders = {
 }
 
 const EMAIL_SUBJECTS: Record<string, string> = {
-  signup: 'Confirm your email',
-  invite: "You've been invited",
-  magiclink: 'Your login link',
-  recovery: 'Reset your password',
-  email_change: 'Confirm your new email',
-  reauthentication: 'Your verification code',
+  signup: 'Confirm your Arm Stats email',
+  invite: "You've been invited to Arm Stats",
+  magiclink: 'Your Arm Stats login link',
+  recovery: 'Reset your Arm Stats password',
+  email_change: 'Confirm your new Arm Stats email',
+  reauthentication: 'Your Arm Stats verification code',
 }
 
 // Template mapping
