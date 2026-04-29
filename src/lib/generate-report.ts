@@ -43,7 +43,7 @@ function formatDate(dateStr: string): string {
 }
 
 export function generateReport(data: ReportData): void {
-  const { pitcherName, outings, badges, sevenDayPulse, maxVelo, strikePercentage, lastOuting } = data;
+  const { pitcherName, outings, badges, sevenDayPulse, maxVelo, strikePercentage, lastOuting, workoutAssignments, workoutCompletions } = data;
 
   const currentYear = new Date().getFullYear();
   const seasonOutings = outings
@@ -75,15 +75,9 @@ export function generateReport(data: ReportData): void {
   }
   const consistencyGrade = getGrade(consistencyScore);
 
-  let workEthicScore = 0;
-  if (seasonOutings.length > 0) {
-    const firstDate = new Date(seasonOutings[0].date);
-    const lastDate = new Date(seasonOutings[seasonOutings.length - 1].date);
-    const weeks = Math.max(1, (lastDate.getTime() - firstDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
-    const outingsPerWeek = seasonOutings.length / weeks;
-    workEthicScore = Math.min(100, (outingsPerWeek / 3) * 100);
-  }
-  const workEthicGrade = getGrade(workEthicScore);
+  // Effort grade — based on completed vs assigned workouts (player-controlled).
+  const effort = calculateEffortScore(workoutAssignments ?? [], workoutCompletions ?? []);
+  const effortGrade = getGrade(effort.score);
 
   const badgeScore = badges.length > 0 ? (earnedBadges.length / badges.length) * 100 : 0;
   const badgeGrade = getGrade(badgeScore);
@@ -91,8 +85,9 @@ export function generateReport(data: ReportData): void {
   const gradeValues: Record<string, number> = {
     'A+': 97, A: 93, 'B+': 87, B: 83, 'C+': 77, C: 73, D: 65,
   };
-  const allGrades = [accuracyGrade, consistencyGrade, workEthicGrade, badgeGrade];
-  const avgGradeVal = allGrades.reduce((sum, g) => sum + (gradeValues[g.grade] || 70), 0) / allGrades.length;
+  const overallGrades = [accuracyGrade, consistencyGrade, badgeGrade];
+  if (effort.hasData) overallGrades.push(effortGrade);
+  const avgGradeVal = overallGrades.reduce((sum, g) => sum + (gradeValues[g.grade] || 70), 0) / overallGrades.length;
   const overallGrade = getGrade(avgGradeVal);
 
   const sortedOutings = [...outings].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
