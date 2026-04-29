@@ -180,10 +180,10 @@ export function generateReport(data: ReportData): void {
           </div>
         </div>
         <div class="grade-item">
-          <span class="grade-letter" style="color: ${workEthicGrade.color}">${workEthicGrade.grade}</span>
+          <span class="grade-letter" style="color: ${effort.hasData ? effortGrade.color : '#999'}">${effort.hasData ? effortGrade.grade : '—'}</span>
           <div>
-            <div class="grade-label">Work Ethic</div>
-            <div class="grade-detail">${(seasonOutings.length / Math.max(1, (new Date(seasonOutings[seasonOutings.length - 1].date).getTime() - new Date(seasonOutings[0].date).getTime()) / (7 * 24 * 60 * 60 * 1000))).toFixed(1)}/week</div>
+            <div class="grade-label">Effort</div>
+            <div class="grade-detail">${effort.hasData ? `${effort.completed}/${effort.expected} workouts` : 'No workouts assigned'}</div>
           </div>
         </div>
         <div class="grade-item">
