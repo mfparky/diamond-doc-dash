@@ -359,6 +359,111 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
           </Button>
         </div>
       )}
+
+      {/* Coach-only Enhanced View toggle (Report Card + Progress Timeline) */}
+      <div className="flex items-center justify-between px-1">
+        <div className="flex items-center gap-2">
+          <Star className="w-4 h-4 text-yellow-500" />
+          <Label htmlFor="coach-enhanced-view" className="text-sm font-medium cursor-pointer">
+            Enhanced View
+          </Label>
+        </div>
+        <Switch
+          id="coach-enhanced-view"
+          checked={showEnhancedView}
+          onCheckedChange={setShowEnhancedView}
+        />
+      </div>
+
+      {showEnhancedView && (() => {
+        const badgeResults = evaluateBadges(filterByWindow(pitcher.outings, 'date'), filterByWindow(allPitchLocations, 'createdAt'), pitchTypes);
+        const seasonOutings = pitcher.outings
+          .filter((o) => new Date(o.date).getFullYear() === new Date().getFullYear())
+          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        return (
+          <div className="space-y-4">
+            <ProgressReportCard
+              outings={pitcher.outings}
+              badges={badgeResults}
+              pitcherName={pitcher.name}
+              workoutAssignments={effortAssignments}
+              workoutCompletions={effortCompletions}
+            />
+
+            {seasonOutings.length >= 2 && (
+              <Card className="glass-card">
+                <CardHeader className="pb-3">
+                  <CardTitle className="font-display text-lg flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-primary" />
+                    Progress Timeline
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    Outing-by-outing performance this season
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="relative">
+                    <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-border" />
+                    <div className="space-y-4">
+                      {seasonOutings.map((outing, idx) => {
+                        const strikePct = outing.strikes !== null && outing.pitchCount > 0
+                          ? ((outing.strikes / outing.pitchCount) * 100)
+                          : null;
+                        const prevOuting = idx > 0 ? seasonOutings[idx - 1] : null;
+                        const prevStrikePct = prevOuting && prevOuting.strikes !== null && prevOuting.pitchCount > 0
+                          ? ((prevOuting.strikes / prevOuting.pitchCount) * 100)
+                          : null;
+                        const strikeDiff = strikePct !== null && prevStrikePct !== null
+                          ? strikePct - prevStrikePct
+                          : null;
+                        const dotColor = strikePct !== null
+                          ? strikePct >= 60 ? 'bg-[hsl(142,70%,45%)]'
+                            : strikePct >= 45 ? 'bg-[hsl(38,92%,50%)]'
+                            : 'bg-[hsl(0,72%,55%)]'
+                          : 'bg-muted-foreground';
+
+                        return (
+                          <div key={outing.id} className="relative flex items-start gap-4 pl-1">
+                            <div className={`relative z-10 w-7 h-7 rounded-full ${dotColor} flex items-center justify-center shrink-0`}>
+                              <span className="text-[10px] font-bold text-white">{idx + 1}</span>
+                            </div>
+                            <div className="flex-1 min-w-0 pb-1">
+                              <div className="flex items-baseline justify-between gap-2">
+                                <p className="text-sm font-semibold text-foreground truncate">
+                                  {formatDate(outing.date)}
+                                </p>
+                                <span className="text-xs text-muted-foreground shrink-0">{outing.eventType}</span>
+                              </div>
+                              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                                <span>{outing.pitchCount} pitches</span>
+                                {strikePct !== null && (
+                                  <span className="font-medium text-foreground">
+                                    {strikePct.toFixed(0)}% strikes
+                                  </span>
+                                )}
+                                {outing.maxVelo > 0 && <span>{outing.maxVelo} mph</span>}
+                                {strikeDiff !== null && Math.abs(strikeDiff) >= 1 && (
+                                  <span className={strikeDiff > 0 ? 'text-[hsl(142,70%,45%)]' : 'text-[hsl(0,72%,55%)]'}>
+                                    {strikeDiff > 0 ? '+' : ''}{strikeDiff.toFixed(0)}%
+                                  </span>
+                                )}
+                              </div>
+                              {outing.focus && (
+                                <p className="text-xs text-primary mt-1 truncate">Focus: {outing.focus}</p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        );
+      })()}
       {/* Arm Care Status + Share Buttons */}
       <Card className="glass-card border-primary/30 bg-primary/5">
           <CardContent className="p-4">
