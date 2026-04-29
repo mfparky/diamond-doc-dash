@@ -1,5 +1,10 @@
 import { Outing, getDaysRestNeeded } from '@/types/pitcher';
 import { BadgeResult } from '@/types/badges';
+import {
+  calculateEffortScore,
+  EffortAssignment,
+  EffortCompletion,
+} from '@/lib/effort-score';
 
 interface ReportData {
   pitcherName: string;
@@ -9,6 +14,8 @@ interface ReportData {
   maxVelo: number;
   strikePercentage: number;
   lastOuting: string;
+  workoutAssignments?: EffortAssignment[];
+  workoutCompletions?: EffortCompletion[];
 }
 
 function getGrade(pct: number): { grade: string; color: string } {
