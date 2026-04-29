@@ -170,10 +170,10 @@ export function generateReport(data: ReportData): void {
           </div>
         </div>
         <div class="grade-item">
-          <span class="grade-letter" style="color: ${consistencyGrade.color}">${consistencyGrade.grade}</span>
+          <span class="grade-letter" style="color: ${consistency.hasData ? consistencyGrade.color : '#999'}">${consistency.hasData ? consistencyGrade.grade : '—'}</span>
           <div>
             <div class="grade-label">Consistency</div>
-            <div class="grade-detail">${consistencyScore.toFixed(0)}% stable</div>
+            <div class="grade-detail">${consistency.detail}</div>
           </div>
         </div>
         <div class="grade-item">
