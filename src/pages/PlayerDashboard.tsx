@@ -542,6 +542,8 @@ export default function PlayerDashboard() {
                 outings={pitcher.outings}
                 badges={badgeResults}
                 pitcherName={pitcher.name}
+                workoutAssignments={effortAssignments}
+                workoutCompletions={allCompletions}
               />
 
               {/* Progress Timeline */}
