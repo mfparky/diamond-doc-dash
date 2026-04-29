@@ -36,7 +36,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "diamond-doc-dash"
+const SITE_NAME = "Arm Stats"
 const SENDER_DOMAIN = "notify.armcaretracker.ca"
 const ROOT_DOMAIN = "armcaretracker.ca"
 const FROM_DOMAIN = "armcaretracker.ca" // Domain shown in From address (may be root or sender subdomain)
