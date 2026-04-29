@@ -48,7 +48,13 @@ function calcTrend(outings: Outing[], getValue: (o: Outing) => number | null): '
   return diff > 0 ? 'up' : 'down';
 }
 
-export function ProgressReportCard({ outings, badges, pitcherName }: ProgressReportCardProps) {
+export function ProgressReportCard({
+  outings,
+  badges,
+  pitcherName,
+  workoutAssignments,
+  workoutCompletions,
+}: ProgressReportCardProps) {
   const seasonOutings = useMemo(
     () =>
       outings
