@@ -23,6 +23,7 @@ interface GradeResult {
   color: string;
   value: string;
   trend: 'up' | 'down' | 'stable' | null;
+  skipInOverall?: boolean;
 }
 
 function getGrade(pct: number): { grade: string; color: string } {
