@@ -392,6 +392,8 @@ export default function PlayerDashboard() {
                   maxVelo: pitcher.maxVelo,
                   strikePercentage: pitcher.strikePercentage,
                   lastOuting: pitcher.lastOuting,
+                  workoutAssignments: effortAssignments,
+                  workoutCompletions: allCompletions,
                 });
               }}
               className="h-7 w-7 p-0"
