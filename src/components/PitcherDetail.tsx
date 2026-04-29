@@ -71,9 +71,9 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
   const [achievementStart, setAchievementStart] = useState<Date | undefined>();
   const [achievementEnd, setAchievementEnd] = useState<Date | undefined>();
   const [effortAssignments, setEffortAssignments] = useState<{ id: string; frequency: number; createdAt: string; expiresAt: string | null }[]>([]);
-  const [effortCompletions, setEffortCompletions] = useState<{ assignmentId: string; weekStart: string }[]>([]);
+  const [effortCompletions, setEffortCompletions] = useState<{ assignmentId: string; weekStart: string; dayOfWeek: number }[]>([]);
 
-  // Fetch workout assignments + completions for the Effort grade in the report
+  // Fetch workout assignments + completions for the Effort/Consistency grades in the report
   useEffect(() => {
     if (!pitcher.id) return;
     let cancelled = false;
@@ -85,7 +85,7 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
           .eq('pitcher_id', pitcher.id),
         supabase
           .from('workout_completions')
-          .select('assignment_id, week_start')
+          .select('assignment_id, week_start, day_of_week')
           .eq('pitcher_id', pitcher.id),
       ]);
       if (cancelled) return;
@@ -98,7 +98,7 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
         }))
       );
       setEffortCompletions(
-        (cData || []).map((r: any) => ({ assignmentId: r.assignment_id, weekStart: r.week_start }))
+        (cData || []).map((r: any) => ({ assignmentId: r.assignment_id, weekStart: r.week_start, dayOfWeek: r.day_of_week }))
       );
     })();
     return () => { cancelled = true; };

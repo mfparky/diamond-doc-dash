@@ -88,18 +88,18 @@ export default function PlayerDashboard() {
     updateCompletionPhoto,
   } = useWorkouts(playerId);
 
-  // All-time completions for Effort grade (useWorkouts only loads selected week)
-  const [allCompletions, setAllCompletions] = useState<{ assignmentId: string; weekStart: string }[]>([]);
+  // All-time completions for Effort/Consistency grades (useWorkouts only loads selected week)
+  const [allCompletions, setAllCompletions] = useState<{ assignmentId: string; weekStart: string; dayOfWeek: number }[]>([]);
   useEffect(() => {
     if (!playerId) return;
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase
         .from('workout_completions')
-        .select('assignment_id, week_start')
+        .select('assignment_id, week_start, day_of_week')
         .eq('pitcher_id', playerId);
       if (cancelled || error || !data) return;
-      setAllCompletions(data.map((r: any) => ({ assignmentId: r.assignment_id, weekStart: r.week_start })));
+      setAllCompletions(data.map((r: any) => ({ assignmentId: r.assignment_id, weekStart: r.week_start, dayOfWeek: r.day_of_week })));
     })();
     return () => { cancelled = true; };
   }, [playerId, completions.length]);

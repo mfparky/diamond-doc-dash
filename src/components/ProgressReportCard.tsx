@@ -8,6 +8,7 @@ import {
   EffortAssignment,
   EffortCompletion,
 } from '@/lib/effort-score';
+import { calculateConsistency } from '@/lib/consistency-score';
 
 interface ProgressReportCardProps {
   outings: Outing[];
@@ -75,21 +76,15 @@ export function ProgressReportCard({
     const accuracyScore = Math.min(100, (strikePct / 65) * 90);
     const accuracyGrade = getGrade(accuracyScore);
 
-    // Consistency grade (based on how close outings are to each other in strike %)
-    const strikePcts = withStrikes
-      .filter((o) => o.pitchCount > 0)
-      .map((o) => ((o.strikes ?? 0) / o.pitchCount) * 100);
-    let consistencyScore = 0;
-    if (strikePcts.length >= 2) {
-      const diffs: number[] = [];
-      for (let i = 1; i < strikePcts.length; i++) {
-        diffs.push(Math.abs(strikePcts[i] - strikePcts[i - 1]));
-      }
-      const avgDiff = diffs.reduce((a, b) => a + b, 0) / diffs.length;
-      // 0% diff = 100 score, 20%+ diff = 0 score
-      consistencyScore = Math.max(0, Math.min(100, (1 - avgDiff / 20) * 100));
-    }
-    const consistencyGrade = getGrade(consistencyScore);
+    // Consistency = blend of strike-% std dev (own mean) + workout days/week.
+    // Rewards both pitching stability AND regular work.
+    const consistency = calculateConsistency(
+      seasonOutings.map((o) => ({ pitchCount: o.pitchCount, strikes: o.strikes })),
+      (workoutCompletions ?? [])
+        .filter((c) => typeof c.dayOfWeek === 'number')
+        .map((c) => ({ weekStart: c.weekStart, dayOfWeek: c.dayOfWeek as number }))
+    );
+    const consistencyGrade = getGrade(consistency.score);
 
     // Effort grade (based on workout completion vs expected).
     // Players shouldn't be dinged for coaches not scheduling bullpens.
@@ -116,10 +111,11 @@ export function ProgressReportCard({
       },
       {
         label: 'Consistency',
-        grade: consistencyGrade.grade,
-        color: consistencyGrade.color,
-        value: strikePcts.length >= 2 ? `${consistencyScore.toFixed(0)}% stable` : 'Need data',
+        grade: consistency.hasData ? consistencyGrade.grade : '—',
+        color: consistency.hasData ? consistencyGrade.color : 'hsl(var(--muted-foreground))',
+        value: consistency.detail,
         trend: null,
+        skipInOverall: !consistency.hasData,
       },
       {
         label: 'Effort',

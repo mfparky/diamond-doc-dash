@@ -5,6 +5,7 @@ import {
   EffortAssignment,
   EffortCompletion,
 } from '@/lib/effort-score';
+import { calculateConsistency } from '@/lib/consistency-score';
 
 interface ReportData {
   pitcherName: string;
@@ -61,19 +62,14 @@ export function generateReport(data: ReportData): void {
   const accuracyScore = Math.min(100, (strikePct / 65) * 90);
   const accuracyGrade = getGrade(accuracyScore);
 
-  const strikePcts = withStrikes
-    .filter((o) => o.pitchCount > 0)
-    .map((o) => ((o.strikes ?? 0) / o.pitchCount) * 100);
-  let consistencyScore = 0;
-  if (strikePcts.length >= 2) {
-    const diffs: number[] = [];
-    for (let i = 1; i < strikePcts.length; i++) {
-      diffs.push(Math.abs(strikePcts[i] - strikePcts[i - 1]));
-    }
-    const avgDiff = diffs.reduce((a, b) => a + b, 0) / diffs.length;
-    consistencyScore = Math.max(0, Math.min(100, (1 - avgDiff / 20) * 100));
-  }
-  const consistencyGrade = getGrade(consistencyScore);
+  // Consistency: blend of strike-% std dev (own mean) + workout days/week
+  const consistency = calculateConsistency(
+    seasonOutings.map((o) => ({ pitchCount: o.pitchCount, strikes: o.strikes })),
+    (workoutCompletions ?? [])
+      .filter((c) => typeof c.dayOfWeek === 'number')
+      .map((c) => ({ weekStart: c.weekStart, dayOfWeek: c.dayOfWeek as number }))
+  );
+  const consistencyGrade = getGrade(consistency.score);
 
   // Effort grade — based on completed vs assigned workouts (player-controlled).
   const effort = calculateEffortScore(workoutAssignments ?? [], workoutCompletions ?? []);
@@ -85,7 +81,8 @@ export function generateReport(data: ReportData): void {
   const gradeValues: Record<string, number> = {
     'A+': 97, A: 93, 'B+': 87, B: 83, 'C+': 77, C: 73, D: 65,
   };
-  const overallGrades = [accuracyGrade, consistencyGrade, badgeGrade];
+  const overallGrades = [accuracyGrade, badgeGrade];
+  if (consistency.hasData) overallGrades.push(consistencyGrade);
   if (effort.hasData) overallGrades.push(effortGrade);
   const avgGradeVal = overallGrades.reduce((sum, g) => sum + (gradeValues[g.grade] || 70), 0) / overallGrades.length;
   const overallGrade = getGrade(avgGradeVal);
@@ -173,10 +170,10 @@ export function generateReport(data: ReportData): void {
           </div>
         </div>
         <div class="grade-item">
-          <span class="grade-letter" style="color: ${consistencyGrade.color}">${consistencyGrade.grade}</span>
+          <span class="grade-letter" style="color: ${consistency.hasData ? consistencyGrade.color : '#999'}">${consistency.hasData ? consistencyGrade.grade : '—'}</span>
           <div>
             <div class="grade-label">Consistency</div>
-            <div class="grade-detail">${consistencyScore.toFixed(0)}% stable</div>
+            <div class="grade-detail">${consistency.detail}</div>
           </div>
         </div>
         <div class="grade-item">
