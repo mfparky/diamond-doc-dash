@@ -18,10 +18,10 @@ const corsHeaders = {
 
 const EMAIL_SUBJECTS: Record<string, string> = {
   signup: 'Confirm your Arm Stats email',
-  invite: "You've been invited",
+  invite: "You've been invited to Arm Stats",
   magiclink: 'Your Arm Stats login link',
   recovery: 'Reset your Arm Stats password',
-  email_change: 'Confirm your Arm Stats email change',
+  email_change: 'Confirm your new Arm Stats email',
   reauthentication: 'Your Arm Stats verification code',
 }
 
@@ -46,7 +46,7 @@ const FROM_DOMAIN = "armcaretracker.ca" // Domain shown in From address (may be 
 // The sample email uses a fixed placeholder (RFC 6761 .test TLD) so the Go backend
 // can always find-and-replace it with the actual recipient when sending test emails,
 // even if the project's domain has changed since the template was scaffolded.
-const SAMPLE_PROJECT_URL = "https://armcaretracker.ca"
+const SAMPLE_PROJECT_URL = "https://diamond-doc-dash.lovable.app"
 const SAMPLE_EMAIL = "user@example.test"
 const SAMPLE_DATA: Record<string, object> = {
   signup: {
