@@ -64,6 +64,7 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
   const [pitchTypes, setPitchTypes] = useState<PitchTypeConfig>(DEFAULT_PITCH_TYPES);
   const [outingPitchCounts, setOutingPitchCounts] = useState<Record<string, number>>({});
   const [refreshKey, setRefreshKey] = useState(0);
+  const [showEnhancedView, setShowEnhancedView] = useState(false);
   const [allPitchLocations, setAllPitchLocations] = useState<PitchLocation[]>([]);
   const { fetchPitchTypes, fetchPitchLocationsForOuting, fetchPitchLocationsForPitcher, addPitchLocations } = usePitchLocations();
   const { toast } = useToast();
