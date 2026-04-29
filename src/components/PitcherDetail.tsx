@@ -32,6 +32,9 @@ import { LiveAbsDashboard } from './LiveAbsDashboard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { generateReport } from '@/lib/generate-report';
 import { supabase } from '@/integrations/supabase/client';
+import { ProgressReportCard } from '@/components/ProgressReportCard';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 
 interface PitcherDetailProps {
