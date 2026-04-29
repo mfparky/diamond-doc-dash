@@ -51,7 +51,7 @@ export function WhatsNewDialog({ publicMode = false, scopeKey }: WhatsNewDialogP
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleDismiss(); }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] sm:max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl">{CURRENT_RELEASE.title}</DialogTitle>
           <DialogDescription>
