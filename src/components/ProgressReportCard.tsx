@@ -145,8 +145,10 @@ export function ProgressReportCard({
     const gradeValues: Record<string, number> = {
       'A+': 97, A: 93, 'B+': 87, B: 83, 'C+': 77, C: 73, D: 65,
     };
+    const counted = grades.filter((g) => !g.skipInOverall);
+    if (counted.length === 0) return null;
     const avg =
-      grades.reduce((sum, g) => sum + (gradeValues[g.grade] || 70), 0) / grades.length;
+      counted.reduce((sum, g) => sum + (gradeValues[g.grade] || 70), 0) / counted.length;
     return getGrade(avg);
   }, [grades]);
 
