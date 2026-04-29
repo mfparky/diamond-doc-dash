@@ -88,6 +88,32 @@ export default function PlayerDashboard() {
     updateCompletionPhoto,
   } = useWorkouts(playerId);
 
+  // All-time completions for Effort grade (useWorkouts only loads selected week)
+  const [allCompletions, setAllCompletions] = useState<{ assignmentId: string; weekStart: string }[]>([]);
+  useEffect(() => {
+    if (!playerId) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('workout_completions')
+        .select('assignment_id, week_start')
+        .eq('pitcher_id', playerId);
+      if (cancelled || error || !data) return;
+      setAllCompletions(data.map((r: any) => ({ assignmentId: r.assignment_id, weekStart: r.week_start })));
+    })();
+    return () => { cancelled = true; };
+  }, [playerId, completions.length]);
+
+  const effortAssignments = useMemo(
+    () => assignments.map((a) => ({
+      id: a.id,
+      frequency: a.frequency,
+      createdAt: a.createdAt,
+      expiresAt: a.expiresAt,
+    })),
+    [assignments]
+  );
+
   const withTimeout = <T,>(promise: Promise<T>, ms = 8000): Promise<T> => {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('timeout')), ms);
@@ -366,6 +392,8 @@ export default function PlayerDashboard() {
                   maxVelo: pitcher.maxVelo,
                   strikePercentage: pitcher.strikePercentage,
                   lastOuting: pitcher.lastOuting,
+                  workoutAssignments: effortAssignments,
+                  workoutCompletions: allCompletions,
                 });
               }}
               className="h-7 w-7 p-0"
@@ -514,6 +542,8 @@ export default function PlayerDashboard() {
                 outings={pitcher.outings}
                 badges={badgeResults}
                 pitcherName={pitcher.name}
+                workoutAssignments={effortAssignments}
+                workoutCompletions={allCompletions}
               />
 
               {/* Progress Timeline */}

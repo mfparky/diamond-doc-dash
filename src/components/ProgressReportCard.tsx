@@ -3,11 +3,18 @@ import { Outing } from '@/types/pitcher';
 import { BadgeResult } from '@/types/badges';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, Minus, Star } from 'lucide-react';
+import {
+  calculateEffortScore,
+  EffortAssignment,
+  EffortCompletion,
+} from '@/lib/effort-score';
 
 interface ProgressReportCardProps {
   outings: Outing[];
   badges: BadgeResult[];
   pitcherName: string;
+  workoutAssignments?: EffortAssignment[];
+  workoutCompletions?: EffortCompletion[];
 }
 
 interface GradeResult {
@@ -16,6 +23,7 @@ interface GradeResult {
   color: string;
   value: string;
   trend: 'up' | 'down' | 'stable' | null;
+  skipInOverall?: boolean;
 }
 
 function getGrade(pct: number): { grade: string; color: string } {
@@ -41,7 +49,13 @@ function calcTrend(outings: Outing[], getValue: (o: Outing) => number | null): '
   return diff > 0 ? 'up' : 'down';
 }
 
-export function ProgressReportCard({ outings, badges, pitcherName }: ProgressReportCardProps) {
+export function ProgressReportCard({
+  outings,
+  badges,
+  pitcherName,
+  workoutAssignments,
+  workoutCompletions,
+}: ProgressReportCardProps) {
   const seasonOutings = useMemo(
     () =>
       outings
@@ -77,14 +91,13 @@ export function ProgressReportCard({ outings, badges, pitcherName }: ProgressRep
     }
     const consistencyGrade = getGrade(consistencyScore);
 
-    // Work ethic grade (based on outings per week)
-    const firstDate = new Date(seasonOutings[0].date);
-    const lastDate = new Date(seasonOutings[seasonOutings.length - 1].date);
-    const weeks = Math.max(1, (lastDate.getTime() - firstDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
-    const outingsPerWeek = seasonOutings.length / weeks;
-    // 3+ per week = A+, 2 = B, 1 = C
-    const workEthicScore = Math.min(100, (outingsPerWeek / 3) * 100);
-    const workEthicGrade = getGrade(workEthicScore);
+    // Effort grade (based on workout completion vs expected).
+    // Players shouldn't be dinged for coaches not scheduling bullpens.
+    const effort = calculateEffortScore(workoutAssignments ?? [], workoutCompletions ?? []);
+    const effortGrade = getGrade(effort.score);
+    const effortValue = effort.hasData
+      ? `${effort.completed}/${effort.expected} workouts`
+      : 'No workouts assigned';
 
     // Badges earned grade
     const earned = badges.filter((b) => b.earned).length;
@@ -109,11 +122,12 @@ export function ProgressReportCard({ outings, badges, pitcherName }: ProgressRep
         trend: null,
       },
       {
-        label: 'Work Ethic',
-        grade: workEthicGrade.grade,
-        color: workEthicGrade.color,
-        value: `${outingsPerWeek.toFixed(1)}/week`,
+        label: 'Effort',
+        grade: effort.hasData ? effortGrade.grade : '—',
+        color: effort.hasData ? effortGrade.color : 'hsl(var(--muted-foreground))',
+        value: effortValue,
         trend: null,
+        skipInOverall: !effort.hasData,
       },
       {
         label: 'Achievements',
@@ -131,8 +145,10 @@ export function ProgressReportCard({ outings, badges, pitcherName }: ProgressRep
     const gradeValues: Record<string, number> = {
       'A+': 97, A: 93, 'B+': 87, B: 83, 'C+': 77, C: 73, D: 65,
     };
+    const counted = grades.filter((g) => !g.skipInOverall);
+    if (counted.length === 0) return null;
     const avg =
-      grades.reduce((sum, g) => sum + (gradeValues[g.grade] || 70), 0) / grades.length;
+      counted.reduce((sum, g) => sum + (gradeValues[g.grade] || 70), 0) / counted.length;
     return getGrade(avg);
   }, [grades]);
 
