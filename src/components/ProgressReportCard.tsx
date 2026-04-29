@@ -8,6 +8,7 @@ import {
   EffortAssignment,
   EffortCompletion,
 } from '@/lib/effort-score';
+import { calculateConsistency } from '@/lib/consistency-score';
 
 interface ProgressReportCardProps {
   outings: Outing[];
