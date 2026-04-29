@@ -3,11 +3,18 @@ import { Outing } from '@/types/pitcher';
 import { BadgeResult } from '@/types/badges';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, Minus, Star } from 'lucide-react';
+import {
+  calculateEffortScore,
+  EffortAssignment,
+  EffortCompletion,
+} from '@/lib/effort-score';
 
 interface ProgressReportCardProps {
   outings: Outing[];
   badges: BadgeResult[];
   pitcherName: string;
+  workoutAssignments?: EffortAssignment[];
+  workoutCompletions?: EffortCompletion[];
 }
 
 interface GradeResult {
