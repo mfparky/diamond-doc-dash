@@ -66,6 +66,39 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
   const { toast } = useToast();
   const [achievementStart, setAchievementStart] = useState<Date | undefined>();
   const [achievementEnd, setAchievementEnd] = useState<Date | undefined>();
+  const [effortAssignments, setEffortAssignments] = useState<{ id: string; frequency: number; createdAt: string; expiresAt: string | null }[]>([]);
+  const [effortCompletions, setEffortCompletions] = useState<{ assignmentId: string; weekStart: string }[]>([]);
+
+  // Fetch workout assignments + completions for the Effort grade in the report
+  useEffect(() => {
+    if (!pitcher.id) return;
+    let cancelled = false;
+    (async () => {
+      const [{ data: aData }, { data: cData }] = await Promise.all([
+        supabase
+          .from('workout_assignments')
+          .select('id, frequency, created_at, expires_at')
+          .eq('pitcher_id', pitcher.id),
+        supabase
+          .from('workout_completions')
+          .select('assignment_id, week_start')
+          .eq('pitcher_id', pitcher.id),
+      ]);
+      if (cancelled) return;
+      setEffortAssignments(
+        (aData || []).map((r: any) => ({
+          id: r.id,
+          frequency: r.frequency ?? 7,
+          createdAt: r.created_at,
+          expiresAt: r.expires_at ?? null,
+        }))
+      );
+      setEffortCompletions(
+        (cData || []).map((r: any) => ({ assignmentId: r.assignment_id, weekStart: r.week_start }))
+      );
+    })();
+    return () => { cancelled = true; };
+  }, [pitcher.id]);
   
   // Fetch achievement window dates from DB (team or dashboard_settings)
   useEffect(() => {
