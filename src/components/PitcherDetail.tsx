@@ -320,6 +320,8 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
                 maxVelo: pitcher.maxVelo,
                 strikePercentage: pitcher.strikePercentage,
                 lastOuting: pitcher.lastOuting,
+                workoutAssignments: effortAssignments,
+                workoutCompletions: effortCompletions,
               });
             }}
           >
