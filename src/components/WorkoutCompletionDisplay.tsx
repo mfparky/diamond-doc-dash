@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ClipboardCheck, Check, MessageSquare, Paperclip, ExternalLink, Camera } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { startOfWeek, format, addDays, differenceInHours } from 'date-fns';
+
+const DESCRIPTION_TRUNCATE = 140;
 
 interface WorkoutCompletionDisplayProps {
   pitcherId: string;
@@ -164,12 +167,43 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
           ).length;
 
           return (
-            <div key={assignment.id} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-sm text-foreground">{assignment.title}</p>
+            <div key={assignment.id} className="space-y-2 min-w-0">
+              <div className="flex items-start justify-between gap-2 min-w-0">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-sm text-foreground break-words">{assignment.title}</p>
                   {assignment.description && (
-                    <p className="text-xs text-muted-foreground">{assignment.description}</p>
+                    <>
+                      <p className="text-xs text-muted-foreground break-words line-clamp-2">{assignment.description}</p>
+                      {assignment.description.length > DESCRIPTION_TRUNCATE && (
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <button className="text-xs text-primary hover:underline mt-0.5">
+                              Read more
+                            </button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle>{assignment.title}</DialogTitle>
+                            </DialogHeader>
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words">
+                              {assignment.description}
+                            </p>
+                            {assignment.attachmentUrl && (
+                              <a
+                                href={assignment.attachmentUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                              >
+                                <Paperclip className="w-3 h-3" />
+                                View details
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                    </>
                   )}
                   {assignment.attachmentUrl && (
                     <a
@@ -184,7 +218,7 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
                     </a>
                   )}
                 </div>
-                <span className="text-xs font-medium text-primary">{completedDays}/{assignment.frequency ?? 7}</span>
+                <span className="text-xs font-medium text-primary shrink-0">{completedDays}/{assignment.frequency ?? 7}</span>
               </div>
 
               {/* Day grid */}
