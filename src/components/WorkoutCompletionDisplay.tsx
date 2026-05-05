@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ClipboardCheck, Check, MessageSquare, Paperclip, ExternalLink, Camera } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { startOfWeek, format, addDays, differenceInHours } from 'date-fns';
+
+const DESCRIPTION_TRUNCATE = 140;
 
 interface WorkoutCompletionDisplayProps {
   pitcherId: string;
