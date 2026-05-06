@@ -322,7 +322,7 @@ const Index = () => {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onAddOuting={() => setShowOutingForm(true)}
-        onOpenWorkouts={() => navigate('/accountability')}
+        onOpenRoster={() => setShowRosterManagement(true)}
         onOpenMore={() => setShowMoreSheet(true)}
         isOnPlayerDetail={currentView === 'detail'}
         onBackToPlayers={handleBackToDashboard}
