@@ -21,6 +21,7 @@ import { PitchPlotter } from './PitchPlotter';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
 import { AB_OUTCOMES, AB_OUTCOME_LABELS } from '@/types/at-bats';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 interface PlottedPitch {
@@ -73,6 +74,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
   const [plottedPitches, setPlottedPitches] = useState<PlottedPitch[]>([]);
   const [pitchTypes, setPitchTypes] = useState<PitchTypeConfig>(DEFAULT_PITCH_TYPES);
   const { fetchPitchTypes } = usePitchLocations();
+  const { toast } = useToast();
 
   // Load pitch types when pitcher is selected
   useEffect(() => {
@@ -105,7 +107,23 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
     if (!formData.pitchCount) return;
 
     const pitchCount = parseInt(formData.pitchCount) || 0;
+    if (pitchCount < 1) {
+      toast({
+        title: 'Pitch count required',
+        description: 'Log at least one pitch before saving the outing.',
+        variant: 'destructive',
+      });
+      return;
+    }
     const strikes = formData.strikesNotTracked ? null : (parseInt(formData.strikes) || 0);
+    if (strikes !== null && strikes > pitchCount) {
+      toast({
+        title: 'Strikes exceed pitches',
+        description: 'Strikes cannot be greater than total pitch count.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     // For Live ABs, encode batters faced and outcome notes in notes JSON
     let notesValue = formData.notes;
@@ -457,10 +475,15 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
           )}
 
           {/* Submit Button */}
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground"
-            disabled={!formData.pitcherName || !formData.eventType || !formData.pitchCount}
+            disabled={
+              !formData.pitcherName ||
+              !formData.eventType ||
+              !formData.pitchCount ||
+              (parseInt(formData.pitchCount) || 0) < 1
+            }
           >
             <Send className="w-4 h-4 mr-2" />
             Log Outing
