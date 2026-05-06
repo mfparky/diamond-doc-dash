@@ -12,7 +12,8 @@ import { RosterManagementDialog } from '@/components/RosterManagementDialog';
 import { PaperFormScanner } from '@/components/PaperFormScanner';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Settings, Camera, Printer, ClipboardList } from 'lucide-react';
+import { MoreSheet, type MoreSheetItem } from '@/components/MoreSheet';
+import { Settings, Camera, Printer, ClipboardList, MoreHorizontal, ShieldCheck, ScanLine } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { getDaysRestNeeded } from '@/types/pitcher';
@@ -40,8 +41,54 @@ const Index = () => {
   const [showOutingForm, setShowOutingForm] = useState(false);
   const [showRosterManagement, setShowRosterManagement] = useState(false);
   const [showFormScanner, setShowFormScanner] = useState(false);
+  const [showMoreSheet, setShowMoreSheet] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const moreSheetItems: MoreSheetItem[] = [
+    {
+      id: 'roster',
+      label: 'Manage roster',
+      description: 'Add or edit pitchers',
+      icon: <Settings className="w-5 h-5" />,
+      onSelect: () => setShowRosterManagement(true),
+    },
+    {
+      id: 'scan',
+      label: 'Scan paper form',
+      description: 'Capture a printed pitch chart',
+      icon: <Camera className="w-5 h-5" />,
+      onSelect: () => setShowFormScanner(true),
+    },
+    {
+      id: 'print-form',
+      label: 'Print pitch chart',
+      description: 'Open a printable session sheet',
+      icon: <Printer className="w-5 h-5" />,
+      onSelect: () => navigate('/print-form'),
+    },
+    {
+      id: 'print-live-abs',
+      label: 'Print Live ABs form',
+      description: 'Open a printable Live ABs sheet',
+      icon: <ClipboardList className="w-5 h-5" />,
+      onSelect: () => navigate('/print-live-abs'),
+    },
+    {
+      id: 'accountability',
+      label: 'Workout accountability',
+      description: 'Track workout completions',
+      icon: <ShieldCheck className="w-5 h-5" />,
+      onSelect: () => navigate('/accountability'),
+    },
+    {
+      id: 'calibrate',
+      label: 'Calibrate strike zone',
+      description: 'Tune the scanner alignment',
+      icon: <ScanLine className="w-5 h-5" />,
+      onSelect: () => navigate('/calibrate'),
+    },
+  ];
 
   // Create a map of pitcher name to max weekly pitches
   const pitcherMaxPitches = useMemo(() => {
@@ -185,37 +232,17 @@ const Index = () => {
                   <h2 className="font-display text-2xl font-bold text-foreground">
                     Roster
                   </h2>
-                  <button
-                    onClick={() => setShowRosterManagement(true)}
-                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                    aria-label="Manage roster"
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="gap-2 text-muted-foreground hover:text-foreground"
+                    onClick={() => setShowMoreSheet(true)}
+                    aria-label="Open more tools"
                   >
-                    <Settings className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => setShowFormScanner(true)}
-                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                    aria-label="Scan paper form"
-                    title="Scan paper pitch form"
-                  >
-                    <Camera className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => navigate('/print-form')}
-                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                    aria-label="Print pitch chart"
-                    title="Print structured pitch chart"
-                  >
-                    <Printer className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => navigate('/print-live-abs')}
-                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                    aria-label="Print Live ABs form"
-                    title="Print Live ABs form"
-                  >
-                    <ClipboardList className="w-5 h-5" />
-                  </button>
+                    <MoreHorizontal className="w-5 h-5" />
+                    <span className="hidden sm:inline text-sm font-medium">More</span>
+                  </Button>
                 </div>
                 <p className="text-muted-foreground">
                   {pitchers.length} pitchers •{' '}
@@ -328,6 +355,13 @@ const Index = () => {
         onClose={() => setShowFormScanner(false)}
         pitchers={pitchers}
         onSave={handleScanSave}
+      />
+
+      {/* Tools sheet — replaces the old icon row */}
+      <MoreSheet
+        open={showMoreSheet}
+        onOpenChange={setShowMoreSheet}
+        items={moreSheetItems}
       />
 
       {/* What's New Release Notes */}
