@@ -22,14 +22,8 @@ export const CURRENT_RELEASE: ReleaseNotes = {
         "Coaches now see a blended Consistency grade for each pitcher — combining strike % stability (60%) with workout regularity (40%), shown as ±pp · days/wk.",
     },
     {
-      heading: "🔍 Advanced Coach View",
-      description:
-        "Toggle the advanced player dashboard from the coach view to dig deeper into trends and metrics — coaches only.",
-    },
-    {
       heading: "📋 Roster on Mobile Nav",
-      description:
-        "The mobile bottom nav now has quick access to Roster management instead of Workouts.",
+      description: "The mobile bottom nav now has quick access to Roster management instead of Workouts.",
     },
     {
       heading: "📝 Long Workout Descriptions",
