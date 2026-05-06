@@ -202,6 +202,7 @@ const Index = () => {
         onAddOuting={() => setShowOutingForm(true)}
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        onOpenMore={() => setShowMoreSheet(true)}
       />
 
       {/* Pull-to-refresh indicator */}

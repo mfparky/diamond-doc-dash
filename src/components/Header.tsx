@@ -1,20 +1,19 @@
 import { Button } from '@/components/ui/button';
-import { Plus, LayoutGrid, BarChart3, ScanLine, ShieldCheck } from 'lucide-react';
+import { Plus, LayoutGrid, BarChart3, MoreHorizontal } from 'lucide-react';
 import hawksLogo from '@/assets/hawks-logo.png';
 import { useScrollDirection } from '@/hooks/use-scroll-direction';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   onAddOuting: () => void;
   activeTab?: 'players' | 'team';
   onTabChange?: (tab: 'players' | 'team') => void;
+  onOpenMore?: () => void;
 }
 
-export function Header({ onAddOuting, activeTab = 'players', onTabChange }: HeaderProps) {
+export function Header({ onAddOuting, activeTab = 'players', onTabChange, onOpenMore }: HeaderProps) {
   const scrollDirection = useScrollDirection();
   const isMobile = useIsMobile();
-  const navigate = useNavigate();
   
   const isHidden = isMobile && scrollDirection === 'down';
   
@@ -71,25 +70,18 @@ export function Header({ onAddOuting, activeTab = 'players', onTabChange }: Head
               </Button>
             </div>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 px-2"
-              onClick={() => navigate('/accountability')}
-              title="Workout Accountability"
-            >
-              <ShieldCheck className="w-4 h-4" />
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 px-2"
-              onClick={() => navigate('/calibrate')}
-              title="Scan Calibration"
-            >
-              <ScanLine className="w-4 h-4" />
-            </Button>
+            {onOpenMore && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-3 gap-2"
+                onClick={onOpenMore}
+                aria-label="Open more tools"
+              >
+                <MoreHorizontal className="w-4 h-4" />
+                More
+              </Button>
+            )}
 
             <Button
               onClick={onAddOuting}
