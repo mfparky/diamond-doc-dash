@@ -62,21 +62,16 @@ export function OutingVideoSection({
         ? { video_url_1: url, video_1_pitch_type: pitchType, video_1_velocity: velocity }
         : { video_url_2: url, video_2_pitch_type: pitchType, video_2_velocity: velocity };
 
-      console.log('Saving video:', { outingId, slot, url, updateData });
-
       const { data, error } = await supabase
         .from('outings')
         .update(updateData)
         .eq('id', outingId)
         .select();
 
-      console.log('Supabase response:', { data, error });
-
       if (error) throw error;
 
-      // Check if any rows were actually updated
+      // No rows returned means RLS blocked the update
       if (!data || data.length === 0) {
-        console.warn('No rows updated - RLS may be blocking the update');
         toast({
           title: 'Unable to save',
           description: 'You may not have permission to update this outing.',
@@ -137,6 +132,11 @@ export function OutingVideoSection({
       onVideosUpdated?.();
     } catch (error) {
       console.error('Error removing video:', error);
+      toast({
+        title: 'Error removing video',
+        description: 'Could not remove the video from this outing.',
+        variant: 'destructive',
+      });
     }
   };
 
