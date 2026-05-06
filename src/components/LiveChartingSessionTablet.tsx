@@ -175,11 +175,12 @@ export function LiveChartingSessionTablet({
         <div className="flex items-center gap-4">
           <h2 className="font-display text-2xl font-bold text-foreground">{pitcher.name}</h2>
           {/* Session type picker */}
-          <div className="flex bg-secondary rounded-lg p-0.5">
+          <div className="flex bg-secondary rounded-lg p-1 gap-1">
             {(['Bullpen', 'Game', 'Live ABs'] as const).map(type => (
               <button
                 key={type}
-                className={`text-sm font-medium px-3 py-1.5 rounded-md transition-colors ${
+                type="button"
+                className={`min-h-[44px] text-base font-medium px-4 py-2 rounded-md transition-colors ${
                   sessionType === type ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground'
                 }`}
                 onClick={() => setSessionType(type)}

@@ -128,7 +128,7 @@ export function usePitchers() {
   // Update a pitcher
   const updatePitcher = useCallback(async (id: string, updates: { name?: string; maxWeeklyPitches?: number }): Promise<boolean> => {
     try {
-      const updateData: any = {};
+      const updateData: { name?: string; max_weekly_pitches?: number } = {};
       if (updates.name !== undefined) updateData.name = updates.name.trim();
       if (updates.maxWeeklyPitches !== undefined) updateData.max_weekly_pitches = updates.maxWeeklyPitches;
 
