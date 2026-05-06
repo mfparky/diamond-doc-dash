@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { CalendarIcon, Video, Send, X, Target, MessageSquare, Loader2 } from 'lucide-react';
+import { CalendarIcon, Video, Send, X, Target, MessageSquare, Loader2, Minus, Plus, ChevronDown } from 'lucide-react';
 import { Outing, Pitcher } from '@/types/pitcher';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { PitchPlotter } from './PitchPlotter';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
@@ -95,6 +96,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
   const [plottedPitches, setPlottedPitches] = useState<PlottedPitch[]>([]);
   const [pitchTypes, setPitchTypes] = useState<PitchTypeConfig>(DEFAULT_PITCH_TYPES);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const { fetchPitchTypes } = usePitchLocations();
   const { toast } = useToast();
 
@@ -195,6 +197,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
       setSelectedDate(today);
       setPlottedPitches([]);
       setShowPitchPlotter(false);
+      setDetailsOpen(false);
     } finally {
       setIsSubmitting(false);
     }
@@ -391,15 +394,44 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
           {formData.eventType !== 'Live ABs' && <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="pitchCount" className="text-sm font-medium">Pitch Count</Label>
-              <Input
-                id="pitchCount"
-                type="number"
-                inputMode="numeric"
-                placeholder="0"
-                value={formData.pitchCount}
-                onChange={(e) => setFormData(prev => ({ ...prev, pitchCount: e.target.value }))}
-                className="mobile-input"
-              />
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label="Decrease pitch count"
+                  className="h-12 w-12 shrink-0"
+                  onClick={() => {
+                    const next = Math.max(0, (parseInt(formData.pitchCount) || 0) - 1);
+                    setFormData(prev => ({ ...prev, pitchCount: String(next) }));
+                  }}
+                  disabled={(parseInt(formData.pitchCount) || 0) <= 0}
+                >
+                  <Minus className="w-5 h-5" />
+                </Button>
+                <Input
+                  id="pitchCount"
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="0"
+                  value={formData.pitchCount}
+                  onChange={(e) => setFormData(prev => ({ ...prev, pitchCount: e.target.value }))}
+                  className="mobile-input text-center font-semibold text-lg"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label="Increase pitch count"
+                  className="h-12 w-12 shrink-0"
+                  onClick={() => {
+                    const next = (parseInt(formData.pitchCount) || 0) + 1;
+                    setFormData(prev => ({ ...prev, pitchCount: String(next) }));
+                  }}
+                >
+                  <Plus className="w-5 h-5" />
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="strikes" className="text-sm font-medium">Strikes</Label>
@@ -432,77 +464,97 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
             </div>
           </div>}
 
-          {/* Max Velo */}
-          <div className="space-y-2">
-            <Label htmlFor="maxVelo" className="text-sm font-medium">Max Velo (mph)</Label>
-            <Input
-              id="maxVelo"
-              type="number"
-              inputMode="numeric"
-              placeholder="0"
-              value={formData.maxVelo}
-              onChange={(e) => setFormData(prev => ({ ...prev, maxVelo: e.target.value }))}
-              className="mobile-input"
-            />
-          </div>
+          {/* Optional details — collapsed by default to keep the dugout flow short */}
+          <Collapsible open={detailsOpen} onOpenChange={setDetailsOpen}>
+            <CollapsibleTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-between"
+              >
+                <span>Add details (optional)</span>
+                <ChevronDown
+                  className={cn(
+                    'w-4 h-4 transition-transform',
+                    detailsOpen && 'rotate-180',
+                  )}
+                />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 pt-4">
+              {/* Max Velo */}
+              <div className="space-y-2">
+                <Label htmlFor="maxVelo" className="text-sm font-medium">Max Velo (mph)</Label>
+                <Input
+                  id="maxVelo"
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="0"
+                  value={formData.maxVelo}
+                  onChange={(e) => setFormData(prev => ({ ...prev, maxVelo: e.target.value }))}
+                  className="mobile-input"
+                />
+              </div>
 
-          {/* Focus */}
-          <div className="space-y-2">
-            <Label htmlFor="focus" className="text-sm font-medium">
-              Focus (mechanical cue - optional)
-            </Label>
-            <Input
-              id="focus"
-              type="text"
-              placeholder="e.g., Stay tall, drive through..."
-              value={formData.focus}
-              onChange={(e) => setFormData(prev => ({ ...prev, focus: e.target.value }))}
-              className="mobile-input"
-            />
-          </div>
+              {/* Focus */}
+              <div className="space-y-2">
+                <Label htmlFor="focus" className="text-sm font-medium">
+                  Focus (mechanical cue - optional)
+                </Label>
+                <Input
+                  id="focus"
+                  type="text"
+                  placeholder="e.g., Stay tall, drive through..."
+                  value={formData.focus}
+                  onChange={(e) => setFormData(prev => ({ ...prev, focus: e.target.value }))}
+                  className="mobile-input"
+                />
+              </div>
 
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="notes" className="text-sm font-medium">Notes</Label>
-            <Textarea
-              id="notes"
-              placeholder="Session notes..."
-              value={formData.notes}
-              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              className="min-h-[80px] text-base"
-            />
-          </div>
+              {/* Notes */}
+              <div className="space-y-2">
+                <Label htmlFor="notes" className="text-sm font-medium">Notes</Label>
+                <Textarea
+                  id="notes"
+                  placeholder="Session notes..."
+                  value={formData.notes}
+                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                  className="min-h-[80px] text-base"
+                />
+              </div>
 
-          {/* Coach's Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="coachNotes" className="text-sm font-medium flex items-center gap-2">
-              <MessageSquare className="w-4 h-4 text-purple-500" />
-              Coach's Notes (optional)
-            </Label>
-            <Textarea
-              id="coachNotes"
-              placeholder="Private coaching observations..."
-              value={formData.coachNotes}
-              onChange={(e) => setFormData(prev => ({ ...prev, coachNotes: e.target.value }))}
-              className="min-h-[80px] text-base"
-            />
-          </div>
+              {/* Coach's Notes */}
+              <div className="space-y-2">
+                <Label htmlFor="coachNotes" className="text-sm font-medium flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-purple-500" />
+                  Coach's Notes (optional)
+                </Label>
+                <Textarea
+                  id="coachNotes"
+                  placeholder="Private coaching observations..."
+                  value={formData.coachNotes}
+                  onChange={(e) => setFormData(prev => ({ ...prev, coachNotes: e.target.value }))}
+                  className="min-h-[80px] text-base"
+                />
+              </div>
 
-          {/* Video URL */}
-          <div className="space-y-2">
-            <Label htmlFor="videoUrl1" className="text-sm font-medium flex items-center gap-2">
-              <Video className="w-4 h-4 text-accent" />
-              YouTube Link (optional)
-            </Label>
-            <Input
-              id="videoUrl1"
-              type="url"
-              placeholder="https://youtube.com/watch?v=... or youtu.be/..."
-              value={formData.videoUrl1}
-              onChange={(e) => setFormData(prev => ({ ...prev, videoUrl1: e.target.value }))}
-              className="mobile-input"
-            />
-          </div>
+              {/* Video URL */}
+              <div className="space-y-2">
+                <Label htmlFor="videoUrl1" className="text-sm font-medium flex items-center gap-2">
+                  <Video className="w-4 h-4 text-accent" />
+                  YouTube Link (optional)
+                </Label>
+                <Input
+                  id="videoUrl1"
+                  type="url"
+                  placeholder="https://youtube.com/watch?v=... or youtu.be/..."
+                  value={formData.videoUrl1}
+                  onChange={(e) => setFormData(prev => ({ ...prev, videoUrl1: e.target.value }))}
+                  className="mobile-input"
+                />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
           {/* Plot Pitch Locations Button — only for non-Live-ABs outings */}
           {formData.pitcherName && formData.eventType !== 'Live ABs' && (
