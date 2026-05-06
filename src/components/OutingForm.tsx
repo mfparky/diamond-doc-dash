@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { CalendarIcon, Video, Send, X, Target, MessageSquare } from 'lucide-react';
+import { CalendarIcon, Video, Send, X, Target, MessageSquare, Loader2 } from 'lucide-react';
 import { Outing, Pitcher } from '@/types/pitcher';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,7 +34,10 @@ interface PlottedPitch {
 
 interface OutingFormProps {
   pitchers: Pitcher[];
-  onSubmit: (outing: Omit<Outing, 'id' | 'timestamp'>, pitchLocations?: PlottedPitch[]) => void;
+  onSubmit: (
+    outing: Omit<Outing, 'id' | 'timestamp'>,
+    pitchLocations?: PlottedPitch[],
+  ) => void | Promise<unknown>;
   onCancel?: () => void;
   defaultPitcherName?: string;
 }
@@ -73,6 +76,7 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
   const [showPitchPlotter, setShowPitchPlotter] = useState(false);
   const [plottedPitches, setPlottedPitches] = useState<PlottedPitch[]>([]);
   const [pitchTypes, setPitchTypes] = useState<PitchTypeConfig>(DEFAULT_PITCH_TYPES);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { fetchPitchTypes } = usePitchLocations();
   const { toast } = useToast();
 
@@ -99,9 +103,10 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
     setDatePickerOpen(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    if (isSubmitting) return;
+
     const isLiveAbs = formData.eventType === 'Live ABs';
     if (!formData.pitcherName || !formData.eventType) return;
     if (!formData.pitchCount) return;
@@ -137,39 +142,44 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
 
     const pitchesToSave = plottedPitches.length > 0 ? plottedPitches : undefined;
 
-    onSubmit({
-      pitcherName: formData.pitcherName,
-      date: formData.date,
-      eventType: formData.eventType as Outing['eventType'],
-      pitchCount,
-      strikes,
-      maxVelo: parseInt(formData.maxVelo) || 0,
-      notes: notesValue,
-      coachNotes: formData.coachNotes || undefined,
-      videoUrl1: formData.videoUrl1 || undefined,
-      focus: formData.focus || undefined,
-    }, pitchesToSave);
+    setIsSubmitting(true);
+    try {
+      await onSubmit({
+        pitcherName: formData.pitcherName,
+        date: formData.date,
+        eventType: formData.eventType as Outing['eventType'],
+        pitchCount,
+        strikes,
+        maxVelo: parseInt(formData.maxVelo) || 0,
+        notes: notesValue,
+        coachNotes: formData.coachNotes || undefined,
+        videoUrl1: formData.videoUrl1 || undefined,
+        focus: formData.focus || undefined,
+      }, pitchesToSave);
 
-    // Reset form
-    const today = toLocalNoon(new Date());
-    setFormData({
-      pitcherName: '',
-      date: getTodayDateString(),
-      eventType: '',
-      pitchCount: '',
-      strikes: '',
-      strikesNotTracked: false,
-      maxVelo: '',
-      notes: '',
-      coachNotes: '',
-      videoUrl1: '',
-      focus: '',
-      battersFaced: '',
-      outcomeNotes: '',
-    });
-    setSelectedDate(today);
-    setPlottedPitches([]);
-    setShowPitchPlotter(false);
+      // Reset form
+      const today = toLocalNoon(new Date());
+      setFormData({
+        pitcherName: '',
+        date: getTodayDateString(),
+        eventType: '',
+        pitchCount: '',
+        strikes: '',
+        strikesNotTracked: false,
+        maxVelo: '',
+        notes: '',
+        coachNotes: '',
+        videoUrl1: '',
+        focus: '',
+        battersFaced: '',
+        outcomeNotes: '',
+      });
+      setSelectedDate(today);
+      setPlottedPitches([]);
+      setShowPitchPlotter(false);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handlePlotterSave = (pitches: PlottedPitch[]) => {
@@ -479,14 +489,24 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
             type="submit"
             className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground"
             disabled={
+              isSubmitting ||
               !formData.pitcherName ||
               !formData.eventType ||
               !formData.pitchCount ||
               (parseInt(formData.pitchCount) || 0) < 1
             }
           >
-            <Send className="w-4 h-4 mr-2" />
-            Log Outing
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving…
+              </>
+            ) : (
+              <>
+                <Send className="w-4 h-4 mr-2" />
+                Log Outing
+              </>
+            )}
           </Button>
         </form>
       </CardContent>
