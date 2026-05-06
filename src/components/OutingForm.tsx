@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { CalendarIcon, Video, Send, X, Target, MessageSquare, Loader2 } from 'lucide-react';
+import { CalendarIcon, Video, Send, X, Target, MessageSquare, Loader2, Minus, Plus } from 'lucide-react';
 import { Outing, Pitcher } from '@/types/pitcher';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -391,15 +391,44 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
           {formData.eventType !== 'Live ABs' && <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="pitchCount" className="text-sm font-medium">Pitch Count</Label>
-              <Input
-                id="pitchCount"
-                type="number"
-                inputMode="numeric"
-                placeholder="0"
-                value={formData.pitchCount}
-                onChange={(e) => setFormData(prev => ({ ...prev, pitchCount: e.target.value }))}
-                className="mobile-input"
-              />
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label="Decrease pitch count"
+                  className="h-12 w-12 shrink-0"
+                  onClick={() => {
+                    const next = Math.max(0, (parseInt(formData.pitchCount) || 0) - 1);
+                    setFormData(prev => ({ ...prev, pitchCount: String(next) }));
+                  }}
+                  disabled={(parseInt(formData.pitchCount) || 0) <= 0}
+                >
+                  <Minus className="w-5 h-5" />
+                </Button>
+                <Input
+                  id="pitchCount"
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="0"
+                  value={formData.pitchCount}
+                  onChange={(e) => setFormData(prev => ({ ...prev, pitchCount: e.target.value }))}
+                  className="mobile-input text-center font-semibold text-lg"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label="Increase pitch count"
+                  className="h-12 w-12 shrink-0"
+                  onClick={() => {
+                    const next = (parseInt(formData.pitchCount) || 0) + 1;
+                    setFormData(prev => ({ ...prev, pitchCount: String(next) }));
+                  }}
+                >
+                  <Plus className="w-5 h-5" />
+                </Button>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="strikes" className="text-sm font-medium">Strikes</Label>
