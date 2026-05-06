@@ -55,6 +55,24 @@ function toLocalNoon(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0, 0);
 }
 
+function todayLocalNoon() {
+  return toLocalNoon(new Date());
+}
+
+function yesterdayLocalNoon() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return toLocalNoon(d);
+}
+
+function isSameLocalDay(a: Date, b: Date) {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
 export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }: OutingFormProps) {
   const [formData, setFormData] = useState({
     pitcherName: defaultPitcherName || '',
@@ -228,9 +246,28 @@ export function OutingForm({ pitchers, onSubmit, onCancel, defaultPitcherName }:
           {/* Date */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Date</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant={isSameLocalDay(selectedDate, todayLocalNoon()) ? 'default' : 'outline'}
+                onClick={() => handleDateSelect(todayLocalNoon())}
+                className="mobile-input"
+              >
+                Today
+              </Button>
+              <Button
+                type="button"
+                variant={isSameLocalDay(selectedDate, yesterdayLocalNoon()) ? 'default' : 'outline'}
+                onClick={() => handleDateSelect(yesterdayLocalNoon())}
+                className="mobile-input"
+              >
+                Yesterday
+              </Button>
+            </div>
             <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
               <PopoverTrigger asChild>
                 <Button
+                  type="button"
                   variant="outline"
                   className={cn(
                     "w-full justify-start text-left font-normal mobile-input",

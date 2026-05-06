@@ -60,8 +60,8 @@ export default function PlayerDashboard() {
     const start = teamAchievementStart;
     if (!start) return localFilterByWindow(items, dateField);
     const startTime = start.getTime();
-    return items.filter(item => {
-      const val = dateField === 'date' ? (item as any).date : (item as any).createdAt;
+    return items.filter((item) => {
+      const val = dateField === 'date' ? item.date : item.createdAt;
       if (!val) return true;
       return new Date(val).getTime() >= startTime;
     });

@@ -31,9 +31,14 @@ export function usePitchLocations() {
       }));
     } catch (error) {
       console.error('Error fetching pitch locations:', error);
+      toast({
+        title: 'Error loading pitch locations',
+        description: 'Could not load pitch locations for this outing.',
+        variant: 'destructive',
+      });
       return [];
     }
-  }, []);
+  }, [toast]);
 
   // Fetch pitch locations for a pitcher within a date range
   const fetchPitchLocationsForPitcher = useCallback(async (
@@ -78,9 +83,14 @@ export function usePitchLocations() {
       }));
     } catch (error) {
       console.error('Error fetching pitch locations:', error);
+      toast({
+        title: 'Error loading pitch history',
+        description: 'Could not load this pitcher’s pitch history.',
+        variant: 'destructive',
+      });
       return [];
     }
-  }, []);
+  }, [toast]);
 
   // Add pitch locations for an outing
   const addPitchLocations = useCallback(async (

@@ -12,6 +12,7 @@ import { DateRangePicker } from '@/components/DateRangePicker';
 import { WorkoutLeaderboard } from '@/components/WorkoutLeaderboard';
 import { PitcherRecord } from '@/hooks/use-pitchers';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { Activity, Target, Calendar, Flame, TrendingUp, TrendingDown, Minus, Dumbbell, Trophy } from 'lucide-react';
 
 interface CombinedDashboardProps {
@@ -49,6 +50,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
   const [leaderboardDates, setLeaderboardDates] = useState<{ from?: Date; to?: Date }>({});
   const [coachWorkoutCount, setCoachWorkoutCount] = useState(0);
   const [coachLeaderboardDates, setCoachLeaderboardDates] = useState<{ from?: Date; to?: Date }>({});
+  const { toast } = useToast();
 
   // Fetch total workout completions for the season (parent mode)
   useEffect(() => {
@@ -77,11 +79,16 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
         }
       } catch (err) {
         console.error('Error fetching workout count:', err);
+        toast({
+          title: 'Could not load workout count',
+          description: 'Some dashboard stats may be incomplete.',
+          variant: 'destructive',
+        });
       }
     }
 
     fetchWorkoutCount();
-  }, [parentMode, outings]);
+  }, [parentMode, outings, toast]);
 
   // Fetch team pitchers and leaderboard dates for parent mode
   useEffect(() => {
@@ -154,11 +161,16 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
         }
       } catch (err) {
         console.error('Error fetching team pitchers:', err);
+        toast({
+          title: 'Could not load team roster',
+          description: 'The team leaderboard may be empty until you retry.',
+          variant: 'destructive',
+        });
       }
     }
 
     fetchTeamPitchersAndDates();
-  }, [parentMode, teamId, outings]);
+  }, [parentMode, teamId, outings, toast]);
 
   // Fetch workout count + leaderboard dates for coach (non-parent) view
   useEffect(() => {
@@ -186,11 +198,16 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
         }
       } catch (err) {
         console.error('Error fetching coach workout data:', err);
+        toast({
+          title: 'Could not load workout summary',
+          description: 'Some dashboard stats may be incomplete.',
+          variant: 'destructive',
+        });
       }
     }
 
     fetchCoachWorkoutData();
-  }, [parentMode, pitchers]);
+  }, [parentMode, pitchers, toast]);
 
   // Calculate date range based on view mode
   const dateRange = useMemo(() => {
