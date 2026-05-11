@@ -57,8 +57,8 @@ export function usePageMeta(options: PageMetaOptions) {
     if (absoluteOgImage) {
       setMetaTag('og:image', absoluteOgImage);
       setMetaTag('og:image:secure_url', absoluteOgImage);
-      setMetaTag('og:image:width', '1200');
-      setMetaTag('og:image:height', '630');
+      setMetaTag('og:image:width', '1024');
+      setMetaTag('og:image:height', '1024');
       setMetaTag('og:image:type', 'image/jpeg');
     }
 
