@@ -165,11 +165,18 @@ export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntrie
 
         const { data: completions, error: completionsError } = await supabase
           .from('workout_completions')
-          .select('pitcher_id, week_start, assignment_id')
+          .select('pitcher_id, week_start, assignment_id, created_at')
           .in('pitcher_id', pitchers.map((p) => p.id))
           .in('week_start', allWeekStarts);
 
         if (completionsError) throw completionsError;
+
+        // Enforce window cutoff: completions logged AFTER the window ended don't count
+        // toward the leaderboard, even if attributed to an in-window week. This keeps
+        // standings frozen once the coach's window closes.
+        const windowCutoffMs = lockedToCoachDates
+          ? endOfWeek(dateRange.to, { weekStartsOn: 1 }).getTime()
+          : Infinity;
 
         // Fetch assignment counts + double-points flag per pitcher
         const { data: assignments, error: assignmentsError } = await supabase
