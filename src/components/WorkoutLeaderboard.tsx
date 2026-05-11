@@ -165,11 +165,16 @@ export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntrie
 
         const { data: completions, error: completionsError } = await supabase
           .from('workout_completions')
-          .select('pitcher_id, week_start, assignment_id')
+          .select('pitcher_id, week_start, assignment_id, created_at')
           .in('pitcher_id', pitchers.map((p) => p.id))
           .in('week_start', allWeekStarts);
 
         if (completionsError) throw completionsError;
+
+        // Enforce window cutoff: completions logged AFTER the window's end-of-week
+        // don't count toward the leaderboard, even if attributed to an in-window week.
+        // This freezes standings the moment the window closes.
+        const windowCutoffMs = endOfWeek(dateRange.to, { weekStartsOn: 1 }).getTime();
 
         // Fetch assignment counts + double-points flag per pitcher
         const { data: assignments, error: assignmentsError } = await supabase
@@ -197,9 +202,11 @@ export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntrie
         const completionCounts: Record<string, number> = {};
         const thisWeekCounts: Record<string, number> = {};
         const lastWeekCounts: Record<string, number> = {};
-        (completions || []).forEach((c) => {
+        (completions || []).forEach((c: any) => {
           const w = assignmentWeight[c.assignment_id] ?? 1;
-          if (weekStartSet.has(c.week_start)) {
+          const createdMs = c.created_at ? new Date(c.created_at).getTime() : 0;
+          const withinWindow = createdMs <= windowCutoffMs;
+          if (withinWindow && weekStartSet.has(c.week_start)) {
             completionCounts[c.pitcher_id] = (completionCounts[c.pitcher_id] || 0) + w;
           }
           if (c.week_start === thisWeekStart) {
