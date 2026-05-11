@@ -50,6 +50,7 @@ function AppRoutes() {
           <Route path="/team/:teamId" element={<TeamDashboard />} />
           <Route path="/team/:teamId/wall" element={<TeamWallPage />} />
           <Route path="/team/:teamId/podium" element={<PodiumPage />} />
+          <Route path="/podium" element={<PodiumPage />} />
           <Route path="/dashboard/:userId" element={<CoachDashboard />} />
 
           {/* Protected routes require authentication */}
