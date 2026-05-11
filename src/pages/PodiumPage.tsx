@@ -14,7 +14,8 @@ interface Entry {
 }
 
 export default function PodiumPage() {
-  const { teamId } = useParams<{ teamId: string }>();
+  const params = useParams<{ teamId: string }>();
+  const teamId = params.teamId ?? 'df9e0d02-60e2-4379-906e-ddcc5e404fec';
   const [teamName, setTeamName] = useState('Team');
   const [entries, setEntries] = useState<Entry[]>([]);
   const [totalAll, setTotalAll] = useState(0);
