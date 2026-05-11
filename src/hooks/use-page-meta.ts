@@ -70,8 +70,8 @@ export function usePageMeta(options: PageMetaOptions) {
       setMetaTag('twitter:description', ogDescription || description || '', false);
     }
     
-    if (ogImage) {
-      setMetaTag('twitter:image', ogImage, false);
+    if (absoluteOgImage) {
+      setMetaTag('twitter:image', absoluteOgImage, false);
     }
 
     // Cleanup on unmount
