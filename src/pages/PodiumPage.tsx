@@ -6,6 +6,7 @@ import { Trophy, Medal, Sparkles, Flame } from "lucide-react";
 import { WorkoutGallery } from "@/components/WorkoutGallery";
 import { usePageMeta } from "@/hooks/use-page-meta";
 import confetti from "canvas-confetti";
+import podiumShareImage from "@/assets/podium-share.jpg";
 
 interface Entry {
   pitcherId: string;
@@ -26,6 +27,7 @@ export default function PodiumPage() {
   usePageMeta({
     title: `${teamName} | Workout Podium`,
     description: `Top performers from ${teamName}.`,
+    ogImage: podiumShareImage,
   });
 
   useEffect(() => {
