@@ -204,9 +204,11 @@ export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntrie
         const completionCounts: Record<string, number> = {};
         const thisWeekCounts: Record<string, number> = {};
         const lastWeekCounts: Record<string, number> = {};
-        (completions || []).forEach((c) => {
+        (completions || []).forEach((c: any) => {
           const w = assignmentWeight[c.assignment_id] ?? 1;
-          if (weekStartSet.has(c.week_start)) {
+          const createdMs = c.created_at ? new Date(c.created_at).getTime() : 0;
+          const withinWindow = createdMs <= windowCutoffMs;
+          if (withinWindow && weekStartSet.has(c.week_start)) {
             completionCounts[c.pitcher_id] = (completionCounts[c.pitcher_id] || 0) + w;
           }
           if (c.week_start === thisWeekStart) {
