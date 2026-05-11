@@ -1,11 +1,11 @@
-import { useEffect, useState, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { format, eachWeekOfInterval, endOfWeek, startOfWeek } from 'date-fns';
-import { Trophy, Medal, Sparkles, Flame } from 'lucide-react';
-import { WorkoutGallery } from '@/components/WorkoutGallery';
-import { usePageMeta } from '@/hooks/use-page-meta';
-import confetti from 'canvas-confetti';
+import { useEffect, useState, useMemo } from "react";
+import { useParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { format, eachWeekOfInterval, endOfWeek, startOfWeek } from "date-fns";
+import { Trophy, Medal, Sparkles, Flame } from "lucide-react";
+import { WorkoutGallery } from "@/components/WorkoutGallery";
+import { usePageMeta } from "@/hooks/use-page-meta";
+import confetti from "canvas-confetti";
 
 interface Entry {
   pitcherId: string;
@@ -15,13 +15,13 @@ interface Entry {
 
 export default function PodiumPage() {
   const params = useParams<{ teamId: string }>();
-  const teamId = params.teamId ?? 'df9e0d02-60e2-4379-906e-ddcc5e404fec';
-  const [teamName, setTeamName] = useState('Team');
+  const teamId = params.teamId ?? "df9e0d02-60e2-4379-906e-ddcc5e404fec";
+  const [teamName, setTeamName] = useState("Team");
   const [entries, setEntries] = useState<Entry[]>([]);
   const [totalAll, setTotalAll] = useState(0);
   const [pitcherIds, setPitcherIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [windowLabel, setWindowLabel] = useState('');
+  const [windowLabel, setWindowLabel] = useState("");
 
   usePageMeta({
     title: `${teamName} | Workout Podium`,
@@ -34,33 +34,28 @@ export default function PodiumPage() {
 
     async function load() {
       const { data: team } = await supabase
-        .from('teams')
-        .select('name, leaderboard_from, leaderboard_to')
-        .eq('id', teamId!)
+        .from("teams")
+        .select("name, leaderboard_from, leaderboard_to")
+        .eq("id", teamId!)
         .single();
       if (!team || cancelled) return;
       setTeamName(team.name);
 
       const now = new Date();
       const from = team.leaderboard_from
-        ? new Date(team.leaderboard_from + 'T12:00:00')
+        ? new Date(team.leaderboard_from + "T12:00:00")
         : startOfWeek(new Date(now.getFullYear(), now.getMonth(), 1), { weekStartsOn: 1 });
       const to = team.leaderboard_to
-        ? new Date(team.leaderboard_to + 'T12:00:00')
+        ? new Date(team.leaderboard_to + "T12:00:00")
         : endOfWeek(now, { weekStartsOn: 1 });
-      setWindowLabel(`${format(from, 'MMM d')} – ${format(to, 'MMM d, yyyy')}`);
+      setWindowLabel(`${format(from, "MMM d")} – ${format(to, "MMM d, yyyy")}`);
 
-      const { data: pitchers } = await supabase
-        .from('pitchers')
-        .select('id, name')
-        .eq('team_id', teamId!);
+      const { data: pitchers } = await supabase.from("pitchers").select("id, name").eq("team_id", teamId!);
       if (!pitchers || cancelled) return;
 
       const ids = pitchers.map((p) => p.id);
       setPitcherIds(ids);
-      const nameMap: Record<string, string> = Object.fromEntries(
-        pitchers.map((p) => [p.id, p.name]),
-      );
+      const nameMap: Record<string, string> = Object.fromEntries(pitchers.map((p) => [p.id, p.name]));
 
       if (ids.length === 0) {
         setEntries([]);
@@ -70,20 +65,20 @@ export default function PodiumPage() {
       }
 
       const weekStarts = eachWeekOfInterval({ start: from, end: to }, { weekStartsOn: 1 }).map((w) =>
-        format(w, 'yyyy-MM-dd'),
+        format(w, "yyyy-MM-dd"),
       );
       const cutoffMs = endOfWeek(to, { weekStartsOn: 1 }).getTime();
 
       const { data: completions } = await supabase
-        .from('workout_completions')
-        .select('pitcher_id, week_start, assignment_id, created_at')
-        .in('pitcher_id', ids)
-        .in('week_start', weekStarts);
+        .from("workout_completions")
+        .select("pitcher_id, week_start, assignment_id, created_at")
+        .in("pitcher_id", ids)
+        .in("week_start", weekStarts);
 
       const { data: assignments } = await supabase
-        .from('workout_assignments')
-        .select('id, double_points')
-        .in('pitcher_id', ids);
+        .from("workout_assignments")
+        .select("id, double_points")
+        .in("pitcher_id", ids);
 
       const weight: Record<string, number> = {};
       (assignments || []).forEach((a: any) => {
@@ -155,19 +150,15 @@ export default function PodiumPage() {
             Congratulations!
           </h1>
           <p className="mt-3 text-muted-foreground text-base sm:text-lg max-w-xl mx-auto">
-            Celebrating the top 5 grinders this season. The work shows up.
+            Celebrating the top 5 grinders this session. The work shows up. We will be in touch about prizing!
           </p>
-          {windowLabel && (
-            <p className="mt-2 text-xs text-muted-foreground/70">{windowLabel}</p>
-          )}
+          {windowLabel && <p className="mt-2 text-xs text-muted-foreground/70">{windowLabel}</p>}
         </div>
 
         {loading ? (
           <div className="text-center py-20 text-muted-foreground">Loading podium…</div>
         ) : entries.length === 0 ? (
-          <div className="text-center py-20 text-muted-foreground">
-            No completions logged yet for this window.
-          </div>
+          <div className="text-center py-20 text-muted-foreground">No completions logged yet for this window.</div>
         ) : (
           <>
             {/* Podium */}
@@ -227,10 +218,7 @@ export default function PodiumPage() {
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     {top3.map((e, i) => (
                       <span key={e.pitcherId} className="flex items-center gap-1.5">
-                        <span
-                          className="w-2.5 h-2.5 rounded-full"
-                          style={{ background: PODIUM_COLORS[i] }}
-                        />
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ background: PODIUM_COLORS[i] }} />
                         {e.pitcherName} · {e.total}
                       </span>
                     ))}
@@ -258,16 +246,14 @@ export default function PodiumPage() {
               <p className="text-xs text-muted-foreground">Every check-in. Every rep.</p>
             </div>
           </div>
-          {teamId && pitcherIds.length > 0 && (
-            <WorkoutGallery teamId={teamId} pitcherIds={pitcherIds} />
-          )}
+          {teamId && pitcherIds.length > 0 && <WorkoutGallery teamId={teamId} pitcherIds={pitcherIds} />}
         </div>
       </div>
     </div>
   );
 }
 
-const PODIUM_COLORS = ['#facc15', '#cbd5e1', '#d97706'];
+const PODIUM_COLORS = ["#facc15", "#cbd5e1", "#d97706"];
 
 function Podium({ top3 }: { top3: Entry[] }) {
   // order display: 2nd, 1st, 3rd
@@ -283,9 +269,9 @@ function Podium({ top3 }: { top3: Entry[] }) {
         const color = PODIUM_COLORS[rank];
         const Icon = rank === 0 ? Trophy : Medal;
         const initials = entry.pitcherName
-          .split(' ')
+          .split(" ")
           .map((w) => w[0])
-          .join('')
+          .join("")
           .toUpperCase()
           .slice(0, 2);
 
@@ -299,12 +285,8 @@ function Podium({ top3 }: { top3: Entry[] }) {
               >
                 {initials}
               </div>
-              <p className="font-bold text-foreground text-sm sm:text-base mt-2 truncate w-full">
-                {entry.pitcherName}
-              </p>
-              <p className="text-2xl sm:text-3xl font-extrabold text-foreground leading-none mt-1">
-                {entry.total}
-              </p>
+              <p className="font-bold text-foreground text-sm sm:text-base mt-2 truncate w-full">{entry.pitcherName}</p>
+              <p className="text-2xl sm:text-3xl font-extrabold text-foreground leading-none mt-1">{entry.total}</p>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">workouts</p>
             </div>
 
@@ -316,13 +298,10 @@ function Podium({ top3 }: { top3: Entry[] }) {
                 background: `linear-gradient(180deg, ${color} 0%, ${color}cc 100%)`,
               }}
             >
-              <Icon
-                className="w-6 h-6 sm:w-7 sm:h-7"
-                style={{ color: rank === 1 ? '#475569' : '#1f2937' }}
-              />
+              <Icon className="w-6 h-6 sm:w-7 sm:h-7" style={{ color: rank === 1 ? "#475569" : "#1f2937" }} />
               <span
                 className="font-display font-extrabold text-3xl sm:text-4xl mt-1"
-                style={{ color: rank === 1 ? '#475569' : '#1f2937' }}
+                style={{ color: rank === 1 ? "#475569" : "#1f2937" }}
               >
                 {rank + 1}
               </span>
@@ -344,7 +323,7 @@ function BaseballShareBar({ top3, totalAll }: { top3: Entry[]; totalAll: number 
   }));
   const restValue = totalAll - segs.reduce((s, x) => s + x.value, 0);
   if (restValue > 0) {
-    segs.push({ name: 'Rest of team', value: restValue, color: 'hsl(var(--muted))' });
+    segs.push({ name: "Rest of team", value: restValue, color: "hsl(var(--muted))" });
   }
 
   return (
@@ -361,10 +340,7 @@ function BaseballShareBar({ top3, totalAll }: { top3: Entry[]; totalAll: number 
           >
             {pct > 10 && <span className="drop-shadow-sm">{s.value}</span>}
             {/* baseball stitch */}
-            <span
-              className="absolute inset-y-1 left-0 w-px bg-foreground/20"
-              aria-hidden
-            />
+            <span className="absolute inset-y-1 left-0 w-px bg-foreground/20" aria-hidden />
           </div>
         );
       })}
