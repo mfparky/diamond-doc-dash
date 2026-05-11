@@ -27,6 +27,7 @@ export default function PodiumPage() {
   usePageMeta({
     title: `${teamName} | Workout Podium`,
     description: `Top performers from ${teamName}.`,
+    ogImage: podiumShareImage,
   });
 
   useEffect(() => {
