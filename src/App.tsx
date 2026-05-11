@@ -21,6 +21,7 @@ const PrintFormPage = lazy(() => import("./pages/PrintFormPage"));
 const PrintLiveAbsPage = lazy(() => import("./pages/PrintLiveAbsPage"));
 const DesignSystemPage = lazy(() => import("./pages/DesignSystemPage"));
 const WorkoutAccountabilityPage = lazy(() => import("./pages/WorkoutAccountabilityPage"));
+const PodiumPage = lazy(() => import("./pages/PodiumPage"));
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ function AppRoutes() {
           <Route path="/player/:playerId" element={<PlayerDashboard />} />
           <Route path="/team/:teamId" element={<TeamDashboard />} />
           <Route path="/team/:teamId/wall" element={<TeamWallPage />} />
+          <Route path="/team/:teamId/podium" element={<PodiumPage />} />
           <Route path="/dashboard/:userId" element={<CoachDashboard />} />
 
           {/* Protected routes require authentication */}
