@@ -247,7 +247,7 @@ function GameReview({ gameId }: { gameId: string }) {
         </div>
 
         {/* Team totals */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <Card><CardContent className="p-4 text-center">
             <p className="text-3xl font-bold">{stats.total}</p>
             <p className="text-xs text-muted-foreground uppercase">Total Pitches</p>
@@ -260,7 +260,16 @@ function GameReview({ gameId }: { gameId: string }) {
             <p className="text-3xl font-bold">{stats.strikes}/{stats.total - stats.strikes}</p>
             <p className="text-xs text-muted-foreground uppercase">K / B</p>
           </CardContent></Card>
+          <Card><CardContent className="p-4 text-center">
+            <p className="text-3xl font-bold">{stats.teamMaxVelo ? `${stats.teamMaxVelo}` : '—'}</p>
+            <p className="text-xs text-muted-foreground uppercase">Top Velo</p>
+          </CardContent></Card>
         </div>
+        {outings.length > 0 && (
+          <p className="text-[11px] text-muted-foreground -mt-2">
+            Velo & notes pulled from {outings.length} outing{outings.length === 1 ? '' : 's'} logged on {game.date}.
+          </p>
+        )}
 
         {/* Per pitcher */}
         <Card>
