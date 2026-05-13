@@ -80,6 +80,16 @@ function computeAtBatStats(pitches: { outcome: Outcome | null; is_strike: boolea
 
 export default function GameModePage() {
   usePageMeta({ title: 'Game Mode | Arm Stats', description: 'Live pitch-by-pitch counter for games.' });
+
+  // Lock viewport zoom while in Game Mode so iOS auto-zoom on input focus
+  // (and accidental pinch) can't push UI past the viewport.
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="viewport"]');
+    if (!meta) return;
+    const original = meta.getAttribute('content') || '';
+    meta.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover');
+    return () => { meta.setAttribute('content', original); };
+  }, []);
   const { gameId: paramGameId } = useParams<{ gameId?: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -383,11 +393,11 @@ export default function GameModePage() {
             <CardContent className="space-y-4">
               <div>
                 <Label>Date</Label>
-                <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
+                <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="h-11 text-base" />
               </div>
               <div>
                 <Label>Opponent (optional)</Label>
-                <Input value={opponent} onChange={e => setOpponent(e.target.value)} placeholder="e.g. Markham Mariners" />
+                <Input value={opponent} onChange={e => setOpponent(e.target.value)} placeholder="e.g. Markham Mariners" className="h-11 text-base" />
               </div>
               <Button className="w-full h-12" onClick={startGame} disabled={busy || pitchersLoading}>
                 Start Game
