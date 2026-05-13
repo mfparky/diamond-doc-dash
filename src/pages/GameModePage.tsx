@@ -371,7 +371,7 @@ export default function GameModePage() {
 
   if (!game) {
     return (
-      <div className="min-h-screen bg-background p-4 overflow-x-hidden">
+      <div className="h-[100dvh] w-full bg-background p-4 overflow-y-auto overflow-x-hidden">
         <div className="max-w-md mx-auto">
           <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="mb-4">
             <ArrowLeft className="w-4 h-4 mr-1" /> Back
