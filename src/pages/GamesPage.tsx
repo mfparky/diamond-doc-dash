@@ -283,11 +283,18 @@ function GameReview({ gameId }: { gameId: string }) {
                   <span className="font-semibold">{p.name}</span>
                   <span className="text-sm text-muted-foreground">{p.share}% of game</span>
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-center text-sm">
+                <div className="grid grid-cols-4 gap-2 text-center text-sm">
                   <div><span className="font-bold text-base">{p.pitches}</span><p className="text-xs text-muted-foreground">Pitches</p></div>
                   <div><span className="font-bold text-base text-primary">{p.pct}%</span><p className="text-xs text-muted-foreground">Strike %</p></div>
                   <div><span className="font-bold text-base">{p.strikes}/{p.pitches - p.strikes}</span><p className="text-xs text-muted-foreground">K / B</p></div>
+                  <div><span className="font-bold text-base">{p.maxVelo ?? '—'}</span><p className="text-xs text-muted-foreground">Max Velo</p></div>
                 </div>
+                {(p.focus || p.coachNotes) && (
+                  <div className="mt-2 pt-2 border-t border-border space-y-1">
+                    {p.focus && <p className="text-xs"><span className="text-muted-foreground">Focus: </span>{p.focus}</p>}
+                    {p.coachNotes && <p className="text-xs"><span className="text-muted-foreground">Notes: </span>{p.coachNotes}</p>}
+                  </div>
+                )}
               </div>
             ))}
           </CardContent>
