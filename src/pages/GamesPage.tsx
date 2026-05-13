@@ -8,6 +8,10 @@ import { Label } from '@/components/ui/label';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { ArrowLeft, Plus, Trash2, Radio } from 'lucide-react';
 import { usePageMeta } from '@/hooks/use-page-meta';
 import { useToast } from '@/hooks/use-toast';
