@@ -47,6 +47,81 @@ export type Database = {
         }
         Relationships: []
       }
+      game_pitches: {
+        Row: {
+          created_at: string
+          game_id: string
+          id: string
+          inning: number
+          is_strike: boolean
+          pitcher_id: string
+          pitcher_name: string
+          sequence: number
+          team_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          id?: string
+          inning?: number
+          is_strike: boolean
+          pitcher_id: string
+          pitcher_name: string
+          sequence: number
+          team_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          id?: string
+          inning?: number
+          is_strike?: boolean
+          pitcher_id?: string
+          pitcher_name?: string
+          sequence?: number
+          team_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      games: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          notes: string | null
+          opponent_name: string | null
+          status: string
+          team_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          notes?: string | null
+          opponent_name?: string | null
+          status?: string
+          team_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          opponent_name?: string | null
+          status?: string
+          team_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       outings: {
         Row: {
           coach_notes: string | null
