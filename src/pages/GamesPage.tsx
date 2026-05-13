@@ -1,11 +1,17 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog';
+import { ArrowLeft, Plus, Trash2, Radio } from 'lucide-react';
 import { usePageMeta } from '@/hooks/use-page-meta';
 import { useToast } from '@/hooks/use-toast';
+import { usePitchers } from '@/hooks/use-pitchers';
 
 interface GameRow {
   id: string;
@@ -35,17 +41,27 @@ interface OutingRow {
   coach_notes: string | null;
 }
 
+function todayISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export default function GamesPage() {
   const { gameId } = useParams<{ gameId?: string }>();
   return gameId ? <GameReview gameId={gameId} /> : <GamesList />;
 }
 
 function GamesList() {
-  usePageMeta({ title: 'Games | Arm Stats', description: 'Game history with pitch-by-pitch review.' });
+  usePageMeta({ title: 'Games | Arm Stats', description: 'Post-game review of pitch totals, strike % and per-pitcher splits.' });
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { pitchers } = usePitchers();
   const [games, setGames] = useState<GameRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [date, setDate] = useState(todayISO());
+  const [opponent, setOpponent] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -61,7 +77,7 @@ function GamesList() {
   useEffect(() => { load(); }, []);
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this game and its pitches?')) return;
+    if (!confirm('Delete this game record? Outings logged on the same date are NOT deleted.')) return;
     await supabase.from('game_pitches').delete().eq('game_id', id);
     const { error } = await supabase.from('games').delete().eq('id', id);
     if (error) {
@@ -71,6 +87,36 @@ function GamesList() {
     setGames(prev => prev.filter(g => g.id !== id));
   };
 
+  const createGame = useCallback(async () => {
+    setBusy(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({ title: 'Sign in required', variant: 'destructive' });
+        return;
+      }
+      const teamId = pitchers.find(p => p.teamId)?.teamId ?? null;
+      const { data, error } = await supabase
+        .from('games')
+        .insert({
+          date,
+          opponent_name: opponent.trim() || null,
+          status: 'completed',
+          user_id: user.id,
+          team_id: teamId,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      setCreating(false);
+      navigate(`/games/${data.id}`);
+    } catch (e: any) {
+      toast({ title: 'Could not create game', description: e.message, variant: 'destructive' });
+    } finally {
+      setBusy(false);
+    }
+  }, [date, opponent, pitchers, navigate, toast]);
+
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-2xl mx-auto">
@@ -79,10 +125,14 @@ function GamesList() {
             <ArrowLeft className="w-4 h-4 mr-1" /> Home
           </Button>
           <h1 className="font-display text-xl font-bold">Games</h1>
-          <Button size="sm" onClick={() => navigate('/game')}>
+          <Button size="sm" onClick={() => setCreating(true)}>
             <Plus className="w-4 h-4 mr-1" /> New
           </Button>
         </div>
+
+        <p className="text-xs text-muted-foreground mb-4">
+          Each game pulls in every outing logged on that date — live charting, post-session entries, paper-form scans — and rolls them up.
+        </p>
 
         {loading ? (
           <p className="text-center text-muted-foreground py-12">Loading…</p>
@@ -90,8 +140,8 @@ function GamesList() {
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">
               <p className="mb-4">No games yet.</p>
-              <Button onClick={() => navigate('/game')}>
-                <Plus className="w-4 h-4 mr-1" /> Start a Game
+              <Button onClick={() => setCreating(true)}>
+                <Plus className="w-4 h-4 mr-1" /> Add a Game
               </Button>
             </CardContent>
           </Card>
@@ -121,13 +171,47 @@ function GamesList() {
             ))}
           </div>
         )}
+
+        <div className="mt-8 pt-4 border-t border-border">
+          <Button variant="outline" size="sm" className="w-full" onClick={() => navigate('/game')}>
+            <Radio className="w-4 h-4 mr-2" /> Open live ball/strike counter
+          </Button>
+          <p className="text-[11px] text-muted-foreground text-center mt-2">
+            Optional dugout tool for tap-by-tap counting.
+          </p>
+        </div>
       </div>
+
+      <Dialog open={creating} onOpenChange={setCreating}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add a Game</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Date</Label>
+              <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
+            </div>
+            <div>
+              <Label>Opponent (optional)</Label>
+              <Input value={opponent} onChange={e => setOpponent(e.target.value)} placeholder="e.g. Markham Mariners" />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              The review will pull in any outing already logged for {date} and let you add more from the outing form.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreating(false)}>Cancel</Button>
+            <Button onClick={createGame} disabled={busy}>Create</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
 function GameReview({ gameId }: { gameId: string }) {
-  usePageMeta({ title: 'Game Review | Arm Stats', description: 'Per-pitcher and per-inning game breakdown.' });
+  usePageMeta({ title: 'Game Review | Arm Stats', description: 'Per-pitcher game breakdown, strike %, and totals from all outings on the game date.' });
   const navigate = useNavigate();
   const [game, setGame] = useState<GameRow | null>(null);
   const [pitches, setPitches] = useState<PitchRow[]>([]);
@@ -157,50 +241,71 @@ function GameReview({ gameId }: { gameId: string }) {
   }, [gameId]);
 
   const stats = useMemo(() => {
-    const total = pitches.length;
-    const strikes = pitches.filter(p => p.is_strike).length;
-    const pct = total ? Math.round((strikes / total) * 100) : 0;
+    // Game outings = source of truth for per-pitcher totals
+    const gameOutings = outings.filter(o => o.event_type === 'Game');
 
-    // per pitcher
-    const byPitcher = new Map<string, { name: string; pitches: number; strikes: number }>();
+    type P = { key: string; name: string; pitches: number; strikes: number; maxVelo: number; focus: string | null; coachNotes: string | null; source: 'outing' | 'live' };
+    const pitcherMap = new Map<string, P>();
+
+    gameOutings.forEach(o => {
+      const k = o.pitcher_name.toLowerCase();
+      const cur = pitcherMap.get(k) || { key: k, name: o.pitcher_name, pitches: 0, strikes: 0, maxVelo: 0, focus: null, coachNotes: null, source: 'outing' as const };
+      cur.pitches += o.pitch_count || 0;
+      cur.strikes += o.strikes || 0;
+      cur.maxVelo = Math.max(cur.maxVelo, o.max_velocity || 0);
+      cur.focus = cur.focus || o.focus;
+      cur.coachNotes = cur.coachNotes || o.coach_notes;
+      pitcherMap.set(k, cur);
+    });
+
+    // Live game_pitches — only fold in for pitchers not already covered by an outing
+    const liveByPitcher = new Map<string, { name: string; pitches: number; strikes: number }>();
     pitches.forEach(p => {
-      const cur = byPitcher.get(p.pitcher_id) || { name: p.pitcher_name, pitches: 0, strikes: 0 };
+      const k = p.pitcher_name.toLowerCase();
+      const cur = liveByPitcher.get(k) || { name: p.pitcher_name, pitches: 0, strikes: 0 };
       cur.pitches += 1;
       if (p.is_strike) cur.strikes += 1;
-      byPitcher.set(p.pitcher_id, cur);
+      liveByPitcher.set(k, cur);
     });
-    // outings on this date, indexed by pitcher_name (case-insensitive)
-    const outingByName = new Map<string, OutingRow[]>();
-    outings.forEach(o => {
-      const k = o.pitcher_name.toLowerCase();
-      const arr = outingByName.get(k) || [];
-      arr.push(o);
-      outingByName.set(k, arr);
+    liveByPitcher.forEach((v, k) => {
+      if (!pitcherMap.has(k)) {
+        pitcherMap.set(k, { key: k, name: v.name, pitches: v.pitches, strikes: v.strikes, maxVelo: 0, focus: null, coachNotes: null, source: 'live' });
+      }
     });
 
-    const pitchers = Array.from(byPitcher.entries())
-      .map(([id, v]) => {
-        const os = outingByName.get(v.name.toLowerCase()) || [];
-        const maxVelo = os.reduce((m, o) => Math.max(m, o.max_velocity || 0), 0);
-        const focus = os.find(o => o.focus)?.focus || null;
-        const coachNotes = os.find(o => o.coach_notes)?.coach_notes || null;
-        return {
-          id,
-          name: v.name,
-          pitches: v.pitches,
-          strikes: v.strikes,
-          pct: v.pitches ? Math.round((v.strikes / v.pitches) * 100) : 0,
-          share: total ? Math.round((v.pitches / total) * 100) : 0,
-          maxVelo: maxVelo || null,
-          focus,
-          coachNotes,
-        };
-      })
+    // Pull non-game-day notes (Bullpen, Practice, etc.) for richer context
+    const otherOutingByName = new Map<string, OutingRow[]>();
+    outings.filter(o => o.event_type !== 'Game').forEach(o => {
+      const k = o.pitcher_name.toLowerCase();
+      const arr = otherOutingByName.get(k) || [];
+      arr.push(o);
+      otherOutingByName.set(k, arr);
+    });
+    pitcherMap.forEach(p => {
+      const others = otherOutingByName.get(p.key) || [];
+      others.forEach(o => {
+        if (o.max_velocity) p.maxVelo = Math.max(p.maxVelo, o.max_velocity);
+        if (!p.focus && o.focus) p.focus = o.focus;
+        if (!p.coachNotes && o.coach_notes) p.coachNotes = o.coach_notes;
+      });
+    });
+
+    let total = 0, strikes = 0;
+    pitcherMap.forEach(p => { total += p.pitches; strikes += p.strikes; });
+
+    const pitchers = Array.from(pitcherMap.values())
+      .map(p => ({
+        ...p,
+        pct: p.pitches ? Math.round((p.strikes / p.pitches) * 100) : 0,
+        share: total ? Math.round((p.pitches / total) * 100) : 0,
+        maxVelo: p.maxVelo || null,
+      }))
       .sort((a, b) => b.pitches - a.pitches);
 
     const teamMaxVelo = pitchers.reduce((m, p) => Math.max(m, p.maxVelo || 0), 0) || null;
+    const pct = total ? Math.round((strikes / total) * 100) : 0;
 
-    // per inning
+    // Per inning — only available from live pitch_by_pitch tool
     const byInning = new Map<number, { pitches: number; strikes: number }>();
     pitches.forEach(p => {
       const cur = byInning.get(p.inning) || { pitches: 0, strikes: 0 };
@@ -217,7 +322,7 @@ function GameReview({ gameId }: { gameId: string }) {
       }))
       .sort((a, b) => a.inning - b.inning);
 
-    return { total, strikes, pct, pitchers, innings, teamMaxVelo };
+    return { total, strikes, pct, pitchers, innings, teamMaxVelo, gameOutingCount: gameOutings.length };
   }, [pitches, outings]);
 
   if (loading) {
@@ -236,7 +341,7 @@ function GameReview({ gameId }: { gameId: string }) {
           </Button>
           {game.status !== 'completed' && (
             <Button size="sm" onClick={() => navigate(`/game/${game.id}`)}>
-              Resume
+              Resume live
             </Button>
           )}
         </div>
@@ -245,6 +350,14 @@ function GameReview({ gameId }: { gameId: string }) {
           <h1 className="font-display text-2xl font-bold">{game.opponent_name || 'Game'}</h1>
           <p className="text-sm text-muted-foreground">{game.date}</p>
         </div>
+
+        {stats.total === 0 && (
+          <Card className="border-dashed">
+            <CardContent className="py-6 text-center text-sm text-muted-foreground">
+              No outings logged for {game.date} yet. Add a Game outing for any pitcher (Live Charting, Post-Session form, or paper-form scan) and it'll appear here automatically.
+            </CardContent>
+          </Card>
+        )}
 
         {/* Team totals */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -267,7 +380,8 @@ function GameReview({ gameId }: { gameId: string }) {
         </div>
         {outings.length > 0 && (
           <p className="text-[11px] text-muted-foreground -mt-2">
-            Velo & notes pulled from {outings.length} outing{outings.length === 1 ? '' : 's'} logged on {game.date}.
+            Pulled from {stats.gameOutingCount} game outing{stats.gameOutingCount === 1 ? '' : 's'}
+            {outings.length - stats.gameOutingCount > 0 && ` (+${outings.length - stats.gameOutingCount} other session${outings.length - stats.gameOutingCount === 1 ? '' : 's'} on this date)`}.
           </p>
         )}
 
@@ -276,9 +390,9 @@ function GameReview({ gameId }: { gameId: string }) {
           <CardHeader><CardTitle className="text-base">By Pitcher</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             {stats.pitchers.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No pitches logged.</p>
+              <p className="text-sm text-muted-foreground">No pitchers logged.</p>
             ) : stats.pitchers.map(p => (
-              <div key={p.id} className="border border-border rounded-lg p-3">
+              <div key={p.key} className="border border-border rounded-lg p-3">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-semibold">{p.name}</span>
                   <span className="text-sm text-muted-foreground">{p.share}% of game</span>
@@ -300,13 +414,11 @@ function GameReview({ gameId }: { gameId: string }) {
           </CardContent>
         </Card>
 
-        {/* Per inning */}
-        <Card>
-          <CardHeader><CardTitle className="text-base">By Inning</CardTitle></CardHeader>
-          <CardContent>
-            {stats.innings.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No innings yet.</p>
-            ) : (
+        {/* Per inning — only when live tool was used */}
+        {stats.innings.length > 0 && (
+          <Card>
+            <CardHeader><CardTitle className="text-base">By Inning <span className="text-xs font-normal text-muted-foreground">(from live counter)</span></CardTitle></CardHeader>
+            <CardContent>
               <div className="space-y-1">
                 {stats.innings.map(i => (
                   <div key={i.inning} className="flex items-center justify-between py-2 border-b border-border last:border-0">
@@ -316,9 +428,9 @@ function GameReview({ gameId }: { gameId: string }) {
                   </div>
                 ))}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
