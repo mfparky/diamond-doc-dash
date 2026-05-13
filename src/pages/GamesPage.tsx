@@ -82,15 +82,24 @@ function GamesList() {
 
   useEffect(() => { load(); }, []);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this game record? Outings logged on the same date are NOT deleted.')) return;
-    await supabase.from('game_pitches').delete().eq('game_id', id);
-    const { error } = await supabase.from('games').delete().eq('id', id);
-    if (error) {
-      toast({ title: 'Delete failed', description: error.message, variant: 'destructive' });
-      return;
+  const [pendingDelete, setPendingDelete] = useState<GameRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    try {
+      await supabase.from('game_pitches').delete().eq('game_id', pendingDelete.id);
+      const { error } = await supabase.from('games').delete().eq('id', pendingDelete.id);
+      if (error) {
+        toast({ title: 'Delete failed', description: error.message, variant: 'destructive' });
+        return;
+      }
+      setGames(prev => prev.filter(g => g.id !== pendingDelete.id));
+      setPendingDelete(null);
+    } finally {
+      setDeleting(false);
     }
-    setGames(prev => prev.filter(g => g.id !== id));
   };
 
   const createGame = useCallback(async () => {
