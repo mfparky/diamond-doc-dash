@@ -371,7 +371,7 @@ export default function GameModePage() {
 
   if (!game) {
     return (
-      <div className="min-h-screen bg-background p-4 overflow-x-hidden">
+      <div className="h-[100dvh] w-full bg-background p-4 overflow-y-auto overflow-x-hidden">
         <div className="max-w-md mx-auto">
           <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="mb-4">
             <ArrowLeft className="w-4 h-4 mr-1" /> Back
@@ -404,8 +404,9 @@ export default function GameModePage() {
   );
 
   return (
-    <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
-      <div className="px-3 py-2 border-b border-border bg-card flex items-center gap-2">
+    <div className="h-[100dvh] w-full bg-background flex flex-col overflow-hidden touch-pan-y">
+      {/* Header (fixed) */}
+      <div className="px-3 py-2 border-b border-border bg-card flex items-center gap-2 shrink-0">
         <Button variant="ghost" size="sm" onClick={() => navigate('/games')} className="px-2 shrink-0">
           <ArrowLeft className="w-4 h-4 sm:mr-1" />
           <span className="hidden sm:inline">Games</span>
@@ -420,150 +421,159 @@ export default function GameModePage() {
         </Button>
       </div>
 
-      <div className="px-3 pt-3">
-        <div className="grid grid-cols-2 rounded-lg bg-secondary p-1 text-sm font-semibold">
-          <button type="button" onClick={() => setSide('us')}
-            className={`h-9 rounded-md transition-colors ${side === 'us' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'}`}>
-            Our Pitcher
-          </button>
-          <button type="button" onClick={() => setSide('opp')}
-            className={`h-9 rounded-md transition-colors ${side === 'opp' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'}`}>
-            Opponent
-          </button>
-        </div>
-      </div>
-
-      <div className="p-3 space-y-3 border-b border-border">
-        {side === 'us' ? (
-          <div className="min-w-0">
-            <Label className="text-xs">Pitcher</Label>
-            <Select value={activePitcherId} onValueChange={setActivePitcherId}>
-              <SelectTrigger className="h-12 w-full">
-                <SelectValue placeholder="Select pitcher" />
-              </SelectTrigger>
-              <SelectContent>
-                {pitchers.map(p => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}
-              </SelectContent>
-            </Select>
+      {/* Scrollable middle: selectors, BSO, tally */}
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
+        <div className="px-3 pt-3">
+          <div className="grid grid-cols-2 rounded-lg bg-secondary p-1 text-sm font-semibold">
+            <button type="button" onClick={() => setSide('us')}
+              className={`h-9 rounded-md transition-colors ${side === 'us' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'}`}
+              style={{ touchAction: 'manipulation' }}>
+              Our Pitcher
+            </button>
+            <button type="button" onClick={() => setSide('opp')}
+              className={`h-9 rounded-md transition-colors ${side === 'opp' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'}`}
+              style={{ touchAction: 'manipulation' }}>
+              Opponent
+            </button>
           </div>
-        ) : (
-          <div className="min-w-0">
-            <Label className="text-xs">Opponent jersey #</Label>
-            <Input type="number" inputMode="numeric" pattern="[0-9]*" min={0}
-              value={oppJersey} onChange={e => setOppJersey(e.target.value.replace(/[^0-9]/g, ''))}
-              placeholder="e.g. 12" className="h-12 text-lg w-full" />
+        </div>
+
+        <div className="px-3 pt-3 pb-2 space-y-2 border-b border-border">
+          {side === 'us' ? (
+            <div className="min-w-0">
+              <Label className="text-xs">Pitcher</Label>
+              <Select value={activePitcherId} onValueChange={setActivePitcherId}>
+                <SelectTrigger className="h-11 w-full">
+                  <SelectValue placeholder="Select pitcher" />
+                </SelectTrigger>
+                <SelectContent>
+                  {pitchers.map(p => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <div className="min-w-0">
+              <Label className="text-xs">Opponent jersey #</Label>
+              <Input type="number" inputMode="numeric" pattern="[0-9]*" min={0}
+                value={oppJersey} onChange={e => setOppJersey(e.target.value.replace(/[^0-9]/g, ''))}
+                placeholder="e.g. 12" className="h-11 text-base w-full" />
+            </div>
+          )}
+          <div className="flex items-center justify-between gap-2">
+            <Label className="text-xs">Inning</Label>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentInning(i => Math.max(1, i - 1))}>
+                <ChevronDown className="w-4 h-4" />
+              </Button>
+              <span className="text-xl font-bold w-8 text-center">{currentInning}</span>
+              <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentInning(i => i + 1)}>
+                <ChevronUp className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {activeSubjectLabel && activeStats && (
+          <div className="px-3 py-2 border-b border-border bg-secondary/30 space-y-2">
+            <div className="flex items-center justify-center gap-5 text-sm font-semibold">
+              <div className="flex items-center gap-1.5">
+                <span className="text-muted-foreground">B</span>
+                {dot(activeStats.curBalls >= 1, 'bg-emerald-500')}
+                {dot(activeStats.curBalls >= 2, 'bg-emerald-500')}
+                {dot(activeStats.curBalls >= 3, 'bg-emerald-500')}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-muted-foreground">S</span>
+                {dot(activeStats.curStrikes >= 1, 'bg-orange-500')}
+                {dot(activeStats.curStrikes >= 2, 'bg-orange-500')}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-muted-foreground">O</span>
+                <span className="text-base font-bold tabular-nums">{activeStats.outs}</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-0.5 text-xs max-w-xs mx-auto">
+              <div className="flex justify-between"><span className="text-muted-foreground">Balls:</span><span className="font-bold">{activeStats.total - activeStats.strikes}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Strikes:</span><span className="font-bold">{activeStats.strikes}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">BBs:</span><span className="font-bold">{activeStats.bbs}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Ks:</span><span className="font-bold">{activeStats.ks}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">BB%:</span><span className="font-bold">{activeStats.bbPct}%</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">K%:</span><span className="font-bold">{activeStats.kPct}%</span></div>
+            </div>
+            <p className="text-center text-[10px] uppercase tracking-wide text-muted-foreground truncate">{activeSubjectLabel}</p>
           </div>
         )}
-        <div className="flex items-center justify-between gap-2">
-          <Label className="text-xs">Inning</Label>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" size="icon" onClick={() => setCurrentInning(i => Math.max(1, i - 1))}>
-              <ChevronDown className="w-4 h-4" />
-            </Button>
-            <span className="text-2xl font-bold w-10 text-center">{currentInning}</span>
-            <Button variant="outline" size="icon" onClick={() => setCurrentInning(i => i + 1)}>
-              <ChevronUp className="w-4 h-4" />
-            </Button>
+
+        {/* Tally */}
+        <div className="px-3 py-3">
+          <div className="rounded-lg border border-border bg-card">
+            <div className="px-3 py-2 border-b border-border flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">All Pitchers</p>
+              <p className="text-[11px] text-muted-foreground">{tally.length} tracked</p>
+            </div>
+            {tally.length === 0 ? (
+              <p className="px-3 py-4 text-sm text-muted-foreground text-center">No pitches logged yet.</p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {tally.map(row => {
+                  const isActive = row.key === activeKey;
+                  return (
+                    <li key={row.key} className={`px-3 py-2 flex items-center gap-2 text-sm ${isActive ? 'bg-secondary/40' : ''}`}>
+                      <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded shrink-0 ${
+                        row.isOpponent ? 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-400' : 'bg-primary/15 text-primary'
+                      }`}>{row.isOpponent ? 'Opp' : 'Us'}</span>
+                      <span className="font-semibold truncate flex-1 min-w-0">{row.name}</span>
+                      <span className="font-bold tabular-nums shrink-0">{row.pitches}</span>
+                      <span className="text-muted-foreground tabular-nums shrink-0 w-16 text-right">{row.ks}K/{row.bbs}BB</span>
+                      <span className="text-primary font-semibold tabular-nums shrink-0 w-12 text-right">{row.pct}%</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
         </div>
       </div>
 
-      {/* B / S / O dot display + stats */}
-      {activeSubjectLabel && activeStats && (
-        <div className="px-3 py-3 border-b border-border bg-secondary/30 space-y-3">
-          <div className="flex items-center justify-center gap-5 text-sm font-semibold">
-            <div className="flex items-center gap-1.5">
-              <span className="text-muted-foreground">B</span>
-              {dot(activeStats.curBalls >= 1, 'bg-emerald-500')}
-              {dot(activeStats.curBalls >= 2, 'bg-emerald-500')}
-              {dot(activeStats.curBalls >= 3, 'bg-emerald-500')}
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-muted-foreground">S</span>
-              {dot(activeStats.curStrikes >= 1, 'bg-orange-500')}
-              {dot(activeStats.curStrikes >= 2, 'bg-orange-500')}
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-muted-foreground">O</span>
-              <span className="text-base font-bold tabular-nums">{activeStats.outs}</span>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm max-w-xs mx-auto">
-            <div className="flex justify-between"><span className="text-muted-foreground">Balls:</span><span className="font-bold">{activeStats.total - activeStats.strikes}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Strikes:</span><span className="font-bold">{activeStats.strikes}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">BBs:</span><span className="font-bold">{activeStats.bbs}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Ks:</span><span className="font-bold">{activeStats.ks}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">BB%:</span><span className="font-bold">{activeStats.bbPct}%</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">K%:</span><span className="font-bold">{activeStats.kPct}%</span></div>
-          </div>
-          <p className="text-center text-[10px] uppercase tracking-wide text-muted-foreground">{activeSubjectLabel}</p>
-        </div>
-      )}
-
-      {/* Buttons */}
-      <div className="flex flex-col p-3 gap-3">
+      {/* Pinned action buttons */}
+      <div className="shrink-0 border-t border-border bg-card/95 backdrop-blur p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] space-y-2">
         <div className="grid grid-cols-3 gap-2">
           <button type="button" onClick={() => logPitch('ball')} disabled={!canLog}
-            className="h-20 rounded-2xl bg-secondary text-foreground text-lg sm:text-xl font-bold active:scale-95 transition-transform disabled:opacity-40 border border-border shadow">
+            style={{ touchAction: 'manipulation' }}
+            className="h-14 rounded-2xl bg-secondary text-foreground text-base font-bold active:scale-95 transition-transform disabled:opacity-40 border border-border shadow">
             Ball
           </button>
           <button type="button" onClick={() => logPitch('strike')} disabled={!canLog}
-            className="h-20 rounded-2xl bg-primary text-primary-foreground text-lg sm:text-xl font-bold active:scale-95 transition-transform disabled:opacity-40 shadow-lg">
+            style={{ touchAction: 'manipulation' }}
+            className="h-14 rounded-2xl bg-primary text-primary-foreground text-base font-bold active:scale-95 transition-transform disabled:opacity-40 shadow-lg">
             Strike
           </button>
           <button type="button" onClick={() => logPitch('foul')} disabled={!canLog}
-            className="h-20 rounded-2xl bg-secondary text-foreground text-lg sm:text-xl font-bold active:scale-95 transition-transform disabled:opacity-40 border border-border shadow">
+            style={{ touchAction: 'manipulation' }}
+            className="h-14 rounded-2xl bg-secondary text-foreground text-base font-bold active:scale-95 transition-transform disabled:opacity-40 border border-border shadow">
             Foul
           </button>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <button type="button" onClick={() => logPitch('in_play_safe')} disabled={!canLog}
-            className="h-16 rounded-2xl bg-secondary text-foreground text-base sm:text-lg font-bold active:scale-95 transition-transform disabled:opacity-40 border border-border shadow">
+            style={{ touchAction: 'manipulation' }}
+            className="h-12 rounded-2xl bg-secondary text-foreground text-sm font-bold active:scale-95 transition-transform disabled:opacity-40 border border-border shadow">
             In Play – Safe
           </button>
           <button type="button" onClick={() => logPitch('in_play_out')} disabled={!canLog}
-            className="h-16 rounded-2xl bg-secondary text-foreground text-base sm:text-lg font-bold active:scale-95 transition-transform disabled:opacity-40 border border-border shadow">
+            style={{ touchAction: 'manipulation' }}
+            className="h-12 rounded-2xl bg-secondary text-foreground text-sm font-bold active:scale-95 transition-transform disabled:opacity-40 border border-border shadow">
             In Play – Out
           </button>
         </div>
-
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <Button variant="outline" onClick={undoLast} disabled={pitches.length === 0}>
+        <div className="flex items-center justify-between gap-2">
+          <Button variant="outline" size="sm" onClick={undoLast} disabled={pitches.length === 0}>
             <Undo2 className="w-4 h-4 mr-1" /> Undo
           </Button>
-          <div className="text-sm text-muted-foreground">
+          <div className="text-xs text-muted-foreground">
             Total: <span className="font-bold text-foreground">{totals.total}</span>
             {' · '}<span className="text-primary font-bold">{totals.pct}% K</span>
           </div>
-        </div>
-      </div>
-
-      <div className="px-3 pb-6">
-        <div className="rounded-lg border border-border bg-card">
-          <div className="px-3 py-2 border-b border-border flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">All Pitchers</p>
-            <p className="text-[11px] text-muted-foreground">{tally.length} tracked</p>
-          </div>
-          {tally.length === 0 ? (
-            <p className="px-3 py-4 text-sm text-muted-foreground text-center">No pitches logged yet.</p>
-          ) : (
-            <ul className="divide-y divide-border">
-              {tally.map(row => {
-                const isActive = row.key === activeKey;
-                return (
-                  <li key={row.key} className={`px-3 py-2 flex items-center gap-2 text-sm ${isActive ? 'bg-secondary/40' : ''}`}>
-                    <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded shrink-0 ${
-                      row.isOpponent ? 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-400' : 'bg-primary/15 text-primary'
-                    }`}>{row.isOpponent ? 'Opp' : 'Us'}</span>
-                    <span className="font-semibold truncate flex-1 min-w-0">{row.name}</span>
-                    <span className="font-bold tabular-nums shrink-0">{row.pitches}</span>
-                    <span className="text-muted-foreground tabular-nums shrink-0 w-16 text-right">{row.ks}K/{row.bbs}BB</span>
-                    <span className="text-primary font-semibold tabular-nums shrink-0 w-12 text-right">{row.pct}%</span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
         </div>
       </div>
     </div>
