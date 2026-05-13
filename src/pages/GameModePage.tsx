@@ -393,11 +393,11 @@ export default function GameModePage() {
             <CardContent className="space-y-4">
               <div>
                 <Label>Date</Label>
-                <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
+                <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="h-11 text-base" />
               </div>
               <div>
                 <Label>Opponent (optional)</Label>
-                <Input value={opponent} onChange={e => setOpponent(e.target.value)} placeholder="e.g. Markham Mariners" />
+                <Input value={opponent} onChange={e => setOpponent(e.target.value)} placeholder="e.g. Markham Mariners" className="h-11 text-base" />
               </div>
               <Button className="w-full h-12" onClick={startGame} disabled={busy || pitchersLoading}>
                 Start Game
