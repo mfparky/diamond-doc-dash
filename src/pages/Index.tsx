@@ -13,7 +13,7 @@ import { PaperFormScanner } from '@/components/PaperFormScanner';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { MoreSheet, type MoreSheetItem } from '@/components/MoreSheet';
-import { Settings, Camera, Printer, ClipboardList, MoreHorizontal, ShieldCheck, ScanLine } from 'lucide-react';
+import { Settings, Camera, Printer, ClipboardList, MoreHorizontal, ShieldCheck, ScanLine, Gamepad2, ListChecks } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { getDaysRestNeeded } from '@/types/pitcher';
@@ -46,6 +46,20 @@ const Index = () => {
   const { toast } = useToast();
 
   const moreSheetItems: MoreSheetItem[] = [
+    {
+      id: 'game-mode',
+      label: 'Game mode',
+      description: 'Live pitch-by-pitch counter',
+      icon: <Gamepad2 className="w-5 h-5" />,
+      onSelect: () => navigate('/game'),
+    },
+    {
+      id: 'games',
+      label: 'Games',
+      description: 'Review past games & strike %',
+      icon: <ListChecks className="w-5 h-5" />,
+      onSelect: () => navigate('/games'),
+    },
     {
       id: 'roster',
       label: 'Manage roster',
