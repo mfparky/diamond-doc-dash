@@ -22,10 +22,12 @@ interface GameRow {
 
 interface PitchRow {
   id: string;
-  pitcher_id: string;
+  pitcher_id: string | null;
   pitcher_name: string;
   inning: number;
   is_strike: boolean;
+  is_opponent: boolean;
+  opponent_jersey: string | null;
   sequence: number;
 }
 
@@ -258,9 +260,11 @@ function GameReview({ gameId }: { gameId: string }) {
       pitcherMap.set(k, cur);
     });
 
-    // Live game_pitches — only fold in for pitchers not already covered by an outing
+    // Live game_pitches — only fold our own pitchers in (skip opponents).
+    // Opponent jerseys are tallied separately below.
+    const ourPitches = pitches.filter(p => !p.is_opponent);
     const liveByPitcher = new Map<string, { name: string; pitches: number; strikes: number }>();
-    pitches.forEach(p => {
+    ourPitches.forEach(p => {
       const k = p.pitcher_name.toLowerCase();
       const cur = liveByPitcher.get(k) || { name: p.pitcher_name, pitches: 0, strikes: 0 };
       cur.pitches += 1;
@@ -305,9 +309,9 @@ function GameReview({ gameId }: { gameId: string }) {
     const teamMaxVelo = pitchers.reduce((m, p) => Math.max(m, p.maxVelo || 0), 0) || null;
     const pct = total ? Math.round((strikes / total) * 100) : 0;
 
-    // Per inning — only available from live pitch_by_pitch tool
+    // Per inning — only available from live pitch_by_pitch tool (our pitches only)
     const byInning = new Map<number, { pitches: number; strikes: number }>();
-    pitches.forEach(p => {
+    ourPitches.forEach(p => {
       const cur = byInning.get(p.inning) || { pitches: 0, strikes: 0 };
       cur.pitches += 1;
       if (p.is_strike) cur.strikes += 1;
@@ -322,7 +326,20 @@ function GameReview({ gameId }: { gameId: string }) {
       }))
       .sort((a, b) => a.inning - b.inning);
 
-    return { total, strikes, pct, pitchers, innings, teamMaxVelo, gameOutingCount: gameOutings.length };
+    // Opponent pitchers — tallied from live counter only, kept separate from our stats.
+    const oppMap = new Map<string, { jersey: string; pitches: number; strikes: number }>();
+    pitches.filter(p => p.is_opponent).forEach(p => {
+      const jersey = p.opponent_jersey || '?';
+      const cur = oppMap.get(jersey) || { jersey, pitches: 0, strikes: 0 };
+      cur.pitches += 1;
+      if (p.is_strike) cur.strikes += 1;
+      oppMap.set(jersey, cur);
+    });
+    const opponents = Array.from(oppMap.values())
+      .map(o => ({ ...o, pct: o.pitches ? Math.round((o.strikes / o.pitches) * 100) : 0 }))
+      .sort((a, b) => b.pitches - a.pitches);
+
+    return { total, strikes, pct, pitchers, innings, teamMaxVelo, gameOutingCount: gameOutings.length, opponents };
   }, [pitches, outings]);
 
   if (loading) {
@@ -413,6 +430,24 @@ function GameReview({ gameId }: { gameId: string }) {
             ))}
           </CardContent>
         </Card>
+
+        {/* Opponent pitchers — live counter only */}
+        {stats.opponents.length > 0 && (
+          <Card>
+            <CardHeader><CardTitle className="text-base">Opponent Pitchers <span className="text-xs font-normal text-muted-foreground">(from live counter)</span></CardTitle></CardHeader>
+            <CardContent>
+              <div className="space-y-1">
+                {stats.opponents.map(o => (
+                  <div key={o.jersey} className="flex items-center justify-between py-2 border-b border-border last:border-0 gap-2">
+                    <span className="font-bold w-16 shrink-0">#{o.jersey}</span>
+                    <span className="flex-1 text-center text-muted-foreground text-sm">{o.pitches} pitches · {o.strikes}/{o.pitches - o.strikes} K/B</span>
+                    <span className="text-primary font-semibold w-16 text-right shrink-0">{o.pct}% K</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Per inning — only when live tool was used */}
         {stats.innings.length > 0 && (
