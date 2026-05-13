@@ -392,6 +392,8 @@ const Index = () => {
 
       {/* What's New Release Notes */}
       <WhatsNewDialog />
+
+      <ManageScorekeepersDialog open={showScorekeepers} onOpenChange={setShowScorekeepers} />
     </div>
   );
 };
