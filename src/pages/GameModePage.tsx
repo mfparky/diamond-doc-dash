@@ -80,6 +80,16 @@ function computeAtBatStats(pitches: { outcome: Outcome | null; is_strike: boolea
 
 export default function GameModePage() {
   usePageMeta({ title: 'Game Mode | Arm Stats', description: 'Live pitch-by-pitch counter for games.' });
+
+  // Lock viewport zoom while in Game Mode so iOS auto-zoom on input focus
+  // (and accidental pinch) can't push UI past the viewport.
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="viewport"]');
+    if (!meta) return;
+    const original = meta.getAttribute('content') || '';
+    meta.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover');
+    return () => { meta.setAttribute('content', original); };
+  }, []);
   const { gameId: paramGameId } = useParams<{ gameId?: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
