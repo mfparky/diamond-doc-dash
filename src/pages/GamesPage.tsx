@@ -131,18 +131,26 @@ function GameReview({ gameId }: { gameId: string }) {
   const navigate = useNavigate();
   const [game, setGame] = useState<GameRow | null>(null);
   const [pitches, setPitches] = useState<PitchRow[]>([]);
+  const [outings, setOutings] = useState<OutingRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [{ data: g }, { data: ps }] = await Promise.all([
-        supabase.from('games').select('*').eq('id', gameId).maybeSingle(),
-        supabase.from('game_pitches').select('*').eq('game_id', gameId).order('sequence'),
-      ]);
+      const { data: g } = await supabase.from('games').select('*').eq('id', gameId).maybeSingle();
+      const { data: ps } = await supabase.from('game_pitches').select('*').eq('game_id', gameId).order('sequence');
+      let outs: OutingRow[] = [];
+      if (g?.date) {
+        const { data: os } = await supabase
+          .from('outings')
+          .select('id, pitcher_name, event_type, pitch_count, strikes, max_velocity, notes, focus, coach_notes')
+          .eq('date', g.date);
+        outs = (os || []) as OutingRow[];
+      }
       if (cancelled) return;
       setGame(g as GameRow);
       setPitches((ps || []) as PitchRow[]);
+      setOutings(outs);
       setLoading(false);
     })();
     return () => { cancelled = true; };
