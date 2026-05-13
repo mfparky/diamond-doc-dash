@@ -53,10 +53,8 @@ export type Database = {
           game_id: string
           id: string
           inning: number
-          is_opponent: boolean
           is_strike: boolean
-          opponent_jersey: string | null
-          pitcher_id: string | null
+          pitcher_id: string
           pitcher_name: string
           sequence: number
           team_id: string | null
@@ -67,10 +65,8 @@ export type Database = {
           game_id: string
           id?: string
           inning?: number
-          is_opponent?: boolean
           is_strike: boolean
-          opponent_jersey?: string | null
-          pitcher_id?: string | null
+          pitcher_id: string
           pitcher_name: string
           sequence: number
           team_id?: string | null
@@ -81,10 +77,8 @@ export type Database = {
           game_id?: string
           id?: string
           inning?: number
-          is_opponent?: boolean
           is_strike?: boolean
-          opponent_jersey?: string | null
-          pitcher_id?: string | null
+          pitcher_id?: string
           pitcher_name?: string
           sequence?: number
           team_id?: string | null
