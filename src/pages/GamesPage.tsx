@@ -23,6 +23,18 @@ interface PitchRow {
   sequence: number;
 }
 
+interface OutingRow {
+  id: string;
+  pitcher_name: string;
+  event_type: string;
+  pitch_count: number;
+  strikes: number | null;
+  max_velocity: number | null;
+  notes: string | null;
+  focus: string | null;
+  coach_notes: string | null;
+}
+
 export default function GamesPage() {
   const { gameId } = useParams<{ gameId?: string }>();
   return gameId ? <GameReview gameId={gameId} /> : <GamesList />;
@@ -119,18 +131,26 @@ function GameReview({ gameId }: { gameId: string }) {
   const navigate = useNavigate();
   const [game, setGame] = useState<GameRow | null>(null);
   const [pitches, setPitches] = useState<PitchRow[]>([]);
+  const [outings, setOutings] = useState<OutingRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [{ data: g }, { data: ps }] = await Promise.all([
-        supabase.from('games').select('*').eq('id', gameId).maybeSingle(),
-        supabase.from('game_pitches').select('*').eq('game_id', gameId).order('sequence'),
-      ]);
+      const { data: g } = await supabase.from('games').select('*').eq('id', gameId).maybeSingle();
+      const { data: ps } = await supabase.from('game_pitches').select('*').eq('game_id', gameId).order('sequence');
+      let outs: OutingRow[] = [];
+      if (g?.date) {
+        const { data: os } = await supabase
+          .from('outings')
+          .select('id, pitcher_name, event_type, pitch_count, strikes, max_velocity, notes, focus, coach_notes')
+          .eq('date', g.date);
+        outs = (os || []) as OutingRow[];
+      }
       if (cancelled) return;
       setGame(g as GameRow);
       setPitches((ps || []) as PitchRow[]);
+      setOutings(outs);
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -149,16 +169,36 @@ function GameReview({ gameId }: { gameId: string }) {
       if (p.is_strike) cur.strikes += 1;
       byPitcher.set(p.pitcher_id, cur);
     });
+    // outings on this date, indexed by pitcher_name (case-insensitive)
+    const outingByName = new Map<string, OutingRow[]>();
+    outings.forEach(o => {
+      const k = o.pitcher_name.toLowerCase();
+      const arr = outingByName.get(k) || [];
+      arr.push(o);
+      outingByName.set(k, arr);
+    });
+
     const pitchers = Array.from(byPitcher.entries())
-      .map(([id, v]) => ({
-        id,
-        name: v.name,
-        pitches: v.pitches,
-        strikes: v.strikes,
-        pct: v.pitches ? Math.round((v.strikes / v.pitches) * 100) : 0,
-        share: total ? Math.round((v.pitches / total) * 100) : 0,
-      }))
+      .map(([id, v]) => {
+        const os = outingByName.get(v.name.toLowerCase()) || [];
+        const maxVelo = os.reduce((m, o) => Math.max(m, o.max_velocity || 0), 0);
+        const focus = os.find(o => o.focus)?.focus || null;
+        const coachNotes = os.find(o => o.coach_notes)?.coach_notes || null;
+        return {
+          id,
+          name: v.name,
+          pitches: v.pitches,
+          strikes: v.strikes,
+          pct: v.pitches ? Math.round((v.strikes / v.pitches) * 100) : 0,
+          share: total ? Math.round((v.pitches / total) * 100) : 0,
+          maxVelo: maxVelo || null,
+          focus,
+          coachNotes,
+        };
+      })
       .sort((a, b) => b.pitches - a.pitches);
+
+    const teamMaxVelo = pitchers.reduce((m, p) => Math.max(m, p.maxVelo || 0), 0) || null;
 
     // per inning
     const byInning = new Map<number, { pitches: number; strikes: number }>();
@@ -177,8 +217,8 @@ function GameReview({ gameId }: { gameId: string }) {
       }))
       .sort((a, b) => a.inning - b.inning);
 
-    return { total, strikes, pct, pitchers, innings };
-  }, [pitches]);
+    return { total, strikes, pct, pitchers, innings, teamMaxVelo };
+  }, [pitches, outings]);
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading…</div>;
@@ -207,7 +247,7 @@ function GameReview({ gameId }: { gameId: string }) {
         </div>
 
         {/* Team totals */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <Card><CardContent className="p-4 text-center">
             <p className="text-3xl font-bold">{stats.total}</p>
             <p className="text-xs text-muted-foreground uppercase">Total Pitches</p>
@@ -220,7 +260,16 @@ function GameReview({ gameId }: { gameId: string }) {
             <p className="text-3xl font-bold">{stats.strikes}/{stats.total - stats.strikes}</p>
             <p className="text-xs text-muted-foreground uppercase">K / B</p>
           </CardContent></Card>
+          <Card><CardContent className="p-4 text-center">
+            <p className="text-3xl font-bold">{stats.teamMaxVelo ? `${stats.teamMaxVelo}` : '—'}</p>
+            <p className="text-xs text-muted-foreground uppercase">Top Velo</p>
+          </CardContent></Card>
         </div>
+        {outings.length > 0 && (
+          <p className="text-[11px] text-muted-foreground -mt-2">
+            Velo & notes pulled from {outings.length} outing{outings.length === 1 ? '' : 's'} logged on {game.date}.
+          </p>
+        )}
 
         {/* Per pitcher */}
         <Card>
@@ -234,11 +283,18 @@ function GameReview({ gameId }: { gameId: string }) {
                   <span className="font-semibold">{p.name}</span>
                   <span className="text-sm text-muted-foreground">{p.share}% of game</span>
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-center text-sm">
+                <div className="grid grid-cols-4 gap-2 text-center text-sm">
                   <div><span className="font-bold text-base">{p.pitches}</span><p className="text-xs text-muted-foreground">Pitches</p></div>
                   <div><span className="font-bold text-base text-primary">{p.pct}%</span><p className="text-xs text-muted-foreground">Strike %</p></div>
                   <div><span className="font-bold text-base">{p.strikes}/{p.pitches - p.strikes}</span><p className="text-xs text-muted-foreground">K / B</p></div>
+                  <div><span className="font-bold text-base">{p.maxVelo ?? '—'}</span><p className="text-xs text-muted-foreground">Max Velo</p></div>
                 </div>
+                {(p.focus || p.coachNotes) && (
+                  <div className="mt-2 pt-2 border-t border-border space-y-1">
+                    {p.focus && <p className="text-xs"><span className="text-muted-foreground">Focus: </span>{p.focus}</p>}
+                    {p.coachNotes && <p className="text-xs"><span className="text-muted-foreground">Notes: </span>{p.coachNotes}</p>}
+                  </div>
+                )}
               </div>
             ))}
           </CardContent>
