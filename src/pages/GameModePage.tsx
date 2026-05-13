@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import type { TablesInsert } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 import { usePitchers } from '@/hooks/use-pitchers';
 import { Button } from '@/components/ui/button';
@@ -22,12 +23,19 @@ interface GameRow {
 
 interface PitchRow {
   id: string;
-  pitcher_id: string;
+  pitcher_id: string | null;
   pitcher_name: string;
   inning: number;
   is_strike: boolean;
+  is_opponent: boolean;
+  opponent_jersey: string | null;
   sequence: number;
 }
+
+type Side = 'us' | 'opp';
+
+const OPP_KEY_PREFIX = 'opp:';
+const opponentLabel = (jersey: string) => `Opp #${jersey}`;
 
 function todayISO() {
   const d = new Date();
@@ -43,7 +51,9 @@ export default function GameModePage() {
 
   const [game, setGame] = useState<GameRow | null>(null);
   const [pitches, setPitches] = useState<PitchRow[]>([]);
+  const [side, setSide] = useState<Side>('us');
   const [activePitcherId, setActivePitcherId] = useState<string>('');
+  const [oppJersey, setOppJersey] = useState<string>('');
   const [currentInning, setCurrentInning] = useState(1);
   const [busy, setBusy] = useState(false);
 
@@ -68,8 +78,15 @@ export default function GameModePage() {
       const rows = (ps || []) as PitchRow[];
       setPitches(rows);
       if (rows.length) {
-        setActivePitcherId(rows[rows.length - 1].pitcher_id);
-        setCurrentInning(rows[rows.length - 1].inning);
+        const last = rows[rows.length - 1];
+        setCurrentInning(last.inning);
+        if (last.is_opponent && last.opponent_jersey) {
+          setSide('opp');
+          setOppJersey(last.opponent_jersey);
+        } else if (last.pitcher_id) {
+          setSide('us');
+          setActivePitcherId(last.pitcher_id);
+        }
       }
     })();
     return () => { cancelled = true; };
@@ -107,31 +124,70 @@ export default function GameModePage() {
   }, [date, opponent, pitchers, navigate, toast]);
 
   const logPitch = useCallback(async (isStrike: boolean) => {
-    if (!game || !activePitcherId) return;
-    const pitcher = pitchers.find(p => p.id === activePitcherId);
-    if (!pitcher) return;
+    if (!game) return;
+
+    let optimistic: PitchRow;
+    let insertPayload: TablesInsert<'game_pitches'>;
     const sequence = pitches.length + 1;
-    const optimistic: PitchRow = {
-      id: `tmp-${sequence}`,
-      pitcher_id: pitcher.id,
-      pitcher_name: pitcher.name,
-      inning: currentInning,
-      is_strike: isStrike,
-      sequence,
-    };
-    setPitches(prev => [...prev, optimistic]);
-    const { data, error } = await supabase
-      .from('game_pitches')
-      .insert({
+
+    if (side === 'us') {
+      if (!activePitcherId) return;
+      const pitcher = pitchers.find(p => p.id === activePitcherId);
+      if (!pitcher) return;
+      optimistic = {
+        id: `tmp-${sequence}`,
+        pitcher_id: pitcher.id,
+        pitcher_name: pitcher.name,
+        inning: currentInning,
+        is_strike: isStrike,
+        is_opponent: false,
+        opponent_jersey: null,
+        sequence,
+      };
+      insertPayload = {
         game_id: game.id,
         pitcher_id: pitcher.id,
         pitcher_name: pitcher.name,
         inning: currentInning,
         is_strike: isStrike,
+        is_opponent: false,
+        opponent_jersey: null,
         sequence,
         team_id: game.team_id,
         user_id: game.user_id,
-      })
+      };
+    } else {
+      const jersey = oppJersey.trim();
+      if (!jersey) return;
+      const name = opponentLabel(jersey);
+      optimistic = {
+        id: `tmp-${sequence}`,
+        pitcher_id: null,
+        pitcher_name: name,
+        inning: currentInning,
+        is_strike: isStrike,
+        is_opponent: true,
+        opponent_jersey: jersey,
+        sequence,
+      };
+      insertPayload = {
+        game_id: game.id,
+        pitcher_id: null,
+        pitcher_name: name,
+        inning: currentInning,
+        is_strike: isStrike,
+        is_opponent: true,
+        opponent_jersey: jersey,
+        sequence,
+        team_id: game.team_id,
+        user_id: game.user_id,
+      };
+    }
+
+    setPitches(prev => [...prev, optimistic]);
+    const { data, error } = await supabase
+      .from('game_pitches')
+      .insert(insertPayload)
       .select()
       .single();
     if (error) {
@@ -140,7 +196,7 @@ export default function GameModePage() {
       return;
     }
     setPitches(prev => prev.map(p => (p.id === optimistic.id ? (data as PitchRow) : p)));
-  }, [game, activePitcherId, pitchers, pitches.length, currentInning, toast]);
+  }, [game, side, activePitcherId, oppJersey, pitchers, pitches.length, currentInning, toast]);
 
   const undoLast = useCallback(async () => {
     if (!pitches.length) return;
@@ -155,9 +211,10 @@ export default function GameModePage() {
     if (!game) return;
     setBusy(true);
     try {
-      // Aggregate per-pitcher
+      // Aggregate per-pitcher — only OUR pitchers feed Arm Tracker outings.
       const byPitcher = new Map<string, { name: string; pitches: number; strikes: number }>();
       pitches.forEach(p => {
+        if (p.is_opponent || !p.pitcher_id) return;
         const cur = byPitcher.get(p.pitcher_id) || { name: p.pitcher_name, pitches: 0, strikes: 0 };
         cur.pitches += 1;
         if (p.is_strike) cur.strikes += 1;
@@ -205,24 +262,55 @@ export default function GameModePage() {
     return { total, strikes, balls: total - strikes, pct: total ? Math.round((strikes / total) * 100) : 0 };
   }, [pitches]);
 
-  const activePitcher = pitchers.find(p => p.id === activePitcherId);
-  const activePitcherStats = useMemo(() => {
-    if (!activePitcherId) return null;
-    const list = pitches.filter(p => p.pitcher_id === activePitcherId);
-    const inningList = list.filter(p => p.inning === currentInning);
-    const strikes = list.filter(p => p.is_strike).length;
+  // Active subject — either our pitcher or an opponent jersey
+  const activeKey = side === 'us'
+    ? activePitcherId
+    : (oppJersey.trim() ? `${OPP_KEY_PREFIX}${oppJersey.trim()}` : '');
+
+  const activeSubjectLabel = side === 'us'
+    ? (pitchers.find(p => p.id === activePitcherId)?.name ?? '')
+    : (oppJersey.trim() ? opponentLabel(oppJersey.trim()) : '');
+
+  const activeStats = useMemo(() => {
+    if (!activeKey) return null;
+    const matches = pitches.filter(p => {
+      if (side === 'us') return !p.is_opponent && p.pitcher_id === activePitcherId;
+      return p.is_opponent && p.opponent_jersey === oppJersey.trim();
+    });
+    const strikes = matches.filter(p => p.is_strike).length;
+    const inningCount = matches.filter(p => p.inning === currentInning).length;
     return {
-      total: list.length,
+      total: matches.length,
       strikes,
-      pct: list.length ? Math.round((strikes / list.length) * 100) : 0,
-      inningCount: inningList.length,
+      pct: matches.length ? Math.round((strikes / matches.length) * 100) : 0,
+      inningCount,
     };
-  }, [pitches, activePitcherId, currentInning]);
+  }, [pitches, side, activePitcherId, oppJersey, activeKey, currentInning]);
+
+  // Tally — grouped per pitcher, both teams
+  const tally = useMemo(() => {
+    type Row = { key: string; name: string; isOpponent: boolean; pitches: number; strikes: number };
+    const map = new Map<string, Row>();
+    pitches.forEach(p => {
+      const key = p.is_opponent
+        ? `${OPP_KEY_PREFIX}${p.opponent_jersey ?? ''}`
+        : (p.pitcher_id ?? p.pitcher_name);
+      const cur = map.get(key) || { key, name: p.pitcher_name, isOpponent: p.is_opponent, pitches: 0, strikes: 0 };
+      cur.pitches += 1;
+      if (p.is_strike) cur.strikes += 1;
+      map.set(key, cur);
+    });
+    return Array.from(map.values())
+      .map(r => ({ ...r, pct: r.pitches ? Math.round((r.strikes / r.pitches) * 100) : 0 }))
+      .sort((a, b) => Number(a.isOpponent) - Number(b.isOpponent) || b.pitches - a.pitches);
+  }, [pitches]);
+
+  const canLog = side === 'us' ? !!activePitcherId : !!oppJersey.trim();
 
   // ---- Setup screen ----
   if (!game) {
     return (
-      <div className="min-h-screen bg-background p-4">
+      <div className="min-h-screen bg-background p-4 overflow-x-hidden">
         <div className="max-w-md mx-auto">
           <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="mb-4">
             <ArrowLeft className="w-4 h-4 mr-1" /> Back
@@ -252,37 +340,75 @@ export default function GameModePage() {
 
   // ---- Active game screen ----
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-border bg-card flex items-center justify-between gap-2">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/games')}>
-          <ArrowLeft className="w-4 h-4 mr-1" /> Games
+      <div className="px-3 py-2 border-b border-border bg-card flex items-center gap-2">
+        <Button variant="ghost" size="sm" onClick={() => navigate('/games')} className="px-2 shrink-0">
+          <ArrowLeft className="w-4 h-4 sm:mr-1" />
+          <span className="hidden sm:inline">Games</span>
         </Button>
-        <div className="text-center flex-1">
-          <p className="text-xs text-muted-foreground">{game.date}</p>
-          <p className="font-semibold">{game.opponent_name || 'Game'}</p>
+        <div className="flex-1 min-w-0 text-center">
+          <p className="text-[11px] text-muted-foreground leading-none">{game.date}</p>
+          <p className="font-semibold text-sm truncate">{game.opponent_name || 'Game'}</p>
         </div>
-        <Button size="sm" onClick={finishGame} disabled={busy || pitches.length === 0}>
-          <Check className="w-4 h-4 mr-1" /> Finish
+        <Button size="sm" onClick={finishGame} disabled={busy || pitches.length === 0} className="px-2 shrink-0">
+          <Check className="w-4 h-4 sm:mr-1" />
+          <span className="hidden sm:inline">Finish</span>
         </Button>
       </div>
 
-      {/* Pitcher + inning selectors */}
-      <div className="p-4 space-y-3 border-b border-border">
-        <div>
-          <Label className="text-xs">Pitcher</Label>
-          <Select value={activePitcherId} onValueChange={setActivePitcherId}>
-            <SelectTrigger className="h-12">
-              <SelectValue placeholder="Select pitcher" />
-            </SelectTrigger>
-            <SelectContent>
-              {pitchers.map(p => (
-                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      {/* Side toggle */}
+      <div className="px-3 pt-3">
+        <div className="grid grid-cols-2 rounded-lg bg-secondary p-1 text-sm font-semibold">
+          <button
+            type="button"
+            onClick={() => setSide('us')}
+            className={`h-9 rounded-md transition-colors ${side === 'us' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'}`}
+          >
+            Our Pitcher
+          </button>
+          <button
+            type="button"
+            onClick={() => setSide('opp')}
+            className={`h-9 rounded-md transition-colors ${side === 'opp' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'}`}
+          >
+            Opponent
+          </button>
         </div>
-        <div className="flex items-center justify-between">
+      </div>
+
+      {/* Pitcher + inning selectors */}
+      <div className="p-3 space-y-3 border-b border-border">
+        {side === 'us' ? (
+          <div className="min-w-0">
+            <Label className="text-xs">Pitcher</Label>
+            <Select value={activePitcherId} onValueChange={setActivePitcherId}>
+              <SelectTrigger className="h-12 w-full">
+                <SelectValue placeholder="Select pitcher" />
+              </SelectTrigger>
+              <SelectContent>
+                {pitchers.map(p => (
+                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : (
+          <div className="min-w-0">
+            <Label className="text-xs">Opponent jersey #</Label>
+            <Input
+              type="number"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              min={0}
+              value={oppJersey}
+              onChange={e => setOppJersey(e.target.value.replace(/[^0-9]/g, ''))}
+              placeholder="e.g. 12"
+              className="h-12 text-lg w-full"
+            />
+          </div>
+        )}
+        <div className="flex items-center justify-between gap-2">
           <Label className="text-xs">Inning</Label>
           <div className="flex items-center gap-3">
             <Button variant="outline" size="icon" onClick={() => setCurrentInning(i => Math.max(1, i - 1))}>
@@ -296,53 +422,98 @@ export default function GameModePage() {
         </div>
       </div>
 
-      {/* Active pitcher mini stats */}
-      {activePitcher && (
-        <div className="px-4 py-3 grid grid-cols-3 gap-2 text-center border-b border-border bg-secondary/30">
-          <div>
-            <p className="text-2xl font-bold">{activePitcherStats?.total ?? 0}</p>
-            <p className="text-[11px] text-muted-foreground uppercase">{activePitcher.name} pitches</p>
+      {/* Active subject mini stats */}
+      {activeSubjectLabel && (
+        <div className="px-3 py-3 grid grid-cols-3 gap-2 text-center border-b border-border bg-secondary/30">
+          <div className="min-w-0">
+            <p className="text-2xl font-bold">{activeStats?.total ?? 0}</p>
+            <p className="text-[11px] text-muted-foreground uppercase truncate">{activeSubjectLabel}</p>
           </div>
-          <div>
-            <p className="text-2xl font-bold text-primary">{activePitcherStats?.pct ?? 0}%</p>
+          <div className="min-w-0">
+            <p className="text-2xl font-bold text-primary">{activeStats?.pct ?? 0}%</p>
             <p className="text-[11px] text-muted-foreground uppercase">Strike %</p>
           </div>
-          <div>
-            <p className="text-2xl font-bold">{activePitcherStats?.inningCount ?? 0}</p>
+          <div className="min-w-0">
+            <p className="text-2xl font-bold">{activeStats?.inningCount ?? 0}</p>
             <p className="text-[11px] text-muted-foreground uppercase">Inn {currentInning}</p>
           </div>
         </div>
       )}
 
       {/* Big tap buttons */}
-      <div className="flex-1 flex flex-col p-4 gap-3">
-        <div className="grid grid-cols-2 gap-3 flex-1 min-h-[300px]">
+      <div className="flex flex-col p-3 gap-3">
+        <div className="grid grid-cols-2 gap-3 min-h-[200px] sm:min-h-[260px]">
           <button
             type="button"
             onClick={() => logPitch(true)}
-            disabled={!activePitcherId}
-            className="rounded-2xl bg-primary text-primary-foreground text-4xl font-bold active:scale-95 transition-transform disabled:opacity-40 shadow-lg"
+            disabled={!canLog}
+            className="rounded-2xl bg-primary text-primary-foreground text-3xl sm:text-4xl font-bold active:scale-95 transition-transform disabled:opacity-40 shadow-lg"
           >
             STRIKE
           </button>
           <button
             type="button"
             onClick={() => logPitch(false)}
-            disabled={!activePitcherId}
-            className="rounded-2xl bg-secondary text-foreground text-4xl font-bold active:scale-95 transition-transform disabled:opacity-40 shadow-lg border border-border"
+            disabled={!canLog}
+            className="rounded-2xl bg-secondary text-foreground text-3xl sm:text-4xl font-bold active:scale-95 transition-transform disabled:opacity-40 shadow-lg border border-border"
           >
             BALL
           </button>
         </div>
 
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <Button variant="outline" onClick={undoLast} disabled={pitches.length === 0}>
             <Undo2 className="w-4 h-4 mr-1" /> Undo
           </Button>
           <div className="text-sm text-muted-foreground">
-            Total: <span className="font-bold text-foreground">{totals.total}</span> ·
-            {' '}<span className="text-primary font-bold">{totals.pct}% K</span>
+            Total: <span className="font-bold text-foreground">{totals.total}</span>
+            {' · '}<span className="text-primary font-bold">{totals.pct}% K</span>
           </div>
+        </div>
+      </div>
+
+      {/* All-pitchers tally */}
+      <div className="px-3 pb-6">
+        <div className="rounded-lg border border-border bg-card">
+          <div className="px-3 py-2 border-b border-border flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">All Pitchers</p>
+            <p className="text-[11px] text-muted-foreground">{tally.length} tracked</p>
+          </div>
+          {tally.length === 0 ? (
+            <p className="px-3 py-4 text-sm text-muted-foreground text-center">
+              No pitches logged yet.
+            </p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {tally.map(row => {
+                const isActive = row.key === activeKey;
+                return (
+                  <li
+                    key={row.key}
+                    className={`px-3 py-2 flex items-center gap-2 text-sm ${isActive ? 'bg-secondary/40' : ''}`}
+                  >
+                    <span
+                      className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded shrink-0 ${
+                        row.isOpponent
+                          ? 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-400'
+                          : 'bg-primary/15 text-primary'
+                      }`}
+                    >
+                      {row.isOpponent ? 'Opp' : 'Us'}
+                    </span>
+                    <span className="font-semibold truncate flex-1 min-w-0">{row.name}</span>
+                    <span className="font-bold tabular-nums shrink-0">{row.pitches}</span>
+                    <span className="text-muted-foreground tabular-nums shrink-0 w-14 text-right">
+                      {row.strikes}/{row.pitches - row.strikes}
+                    </span>
+                    <span className="text-primary font-semibold tabular-nums shrink-0 w-12 text-right">
+                      {row.pct}%
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
       </div>
     </div>
