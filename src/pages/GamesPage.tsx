@@ -23,6 +23,18 @@ interface PitchRow {
   sequence: number;
 }
 
+interface OutingRow {
+  id: string;
+  pitcher_name: string;
+  event_type: string;
+  pitch_count: number;
+  strikes: number | null;
+  max_velocity: number | null;
+  notes: string | null;
+  focus: string | null;
+  coach_notes: string | null;
+}
+
 export default function GamesPage() {
   const { gameId } = useParams<{ gameId?: string }>();
   return gameId ? <GameReview gameId={gameId} /> : <GamesList />;
