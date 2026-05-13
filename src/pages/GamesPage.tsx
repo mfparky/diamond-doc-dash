@@ -169,16 +169,36 @@ function GameReview({ gameId }: { gameId: string }) {
       if (p.is_strike) cur.strikes += 1;
       byPitcher.set(p.pitcher_id, cur);
     });
+    // outings on this date, indexed by pitcher_name (case-insensitive)
+    const outingByName = new Map<string, OutingRow[]>();
+    outings.forEach(o => {
+      const k = o.pitcher_name.toLowerCase();
+      const arr = outingByName.get(k) || [];
+      arr.push(o);
+      outingByName.set(k, arr);
+    });
+
     const pitchers = Array.from(byPitcher.entries())
-      .map(([id, v]) => ({
-        id,
-        name: v.name,
-        pitches: v.pitches,
-        strikes: v.strikes,
-        pct: v.pitches ? Math.round((v.strikes / v.pitches) * 100) : 0,
-        share: total ? Math.round((v.pitches / total) * 100) : 0,
-      }))
+      .map(([id, v]) => {
+        const os = outingByName.get(v.name.toLowerCase()) || [];
+        const maxVelo = os.reduce((m, o) => Math.max(m, o.max_velocity || 0), 0);
+        const focus = os.find(o => o.focus)?.focus || null;
+        const coachNotes = os.find(o => o.coach_notes)?.coach_notes || null;
+        return {
+          id,
+          name: v.name,
+          pitches: v.pitches,
+          strikes: v.strikes,
+          pct: v.pitches ? Math.round((v.strikes / v.pitches) * 100) : 0,
+          share: total ? Math.round((v.pitches / total) * 100) : 0,
+          maxVelo: maxVelo || null,
+          focus,
+          coachNotes,
+        };
+      })
       .sort((a, b) => b.pitches - a.pitches);
+
+    const teamMaxVelo = pitchers.reduce((m, p) => Math.max(m, p.maxVelo || 0), 0) || null;
 
     // per inning
     const byInning = new Map<number, { pitches: number; strikes: number }>();
@@ -197,8 +217,8 @@ function GameReview({ gameId }: { gameId: string }) {
       }))
       .sort((a, b) => a.inning - b.inning);
 
-    return { total, strikes, pct, pitchers, innings };
-  }, [pitches]);
+    return { total, strikes, pct, pitchers, innings, teamMaxVelo };
+  }, [pitches, outings]);
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading…</div>;
