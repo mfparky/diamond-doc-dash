@@ -56,6 +56,7 @@ export type Database = {
           is_opponent: boolean
           is_strike: boolean
           opponent_jersey: string | null
+          outcome: string | null
           pitcher_id: string | null
           pitcher_name: string
           sequence: number
@@ -70,6 +71,7 @@ export type Database = {
           is_opponent?: boolean
           is_strike: boolean
           opponent_jersey?: string | null
+          outcome?: string | null
           pitcher_id?: string | null
           pitcher_name: string
           sequence: number
@@ -84,6 +86,7 @@ export type Database = {
           is_opponent?: boolean
           is_strike?: boolean
           opponent_jersey?: string | null
+          outcome?: string | null
           pitcher_id?: string | null
           pitcher_name?: string
           sequence?: number
