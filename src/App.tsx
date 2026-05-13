@@ -22,6 +22,8 @@ const PrintLiveAbsPage = lazy(() => import("./pages/PrintLiveAbsPage"));
 const DesignSystemPage = lazy(() => import("./pages/DesignSystemPage"));
 const WorkoutAccountabilityPage = lazy(() => import("./pages/WorkoutAccountabilityPage"));
 const PodiumPage = lazy(() => import("./pages/PodiumPage"));
+const GameModePage = lazy(() => import("./pages/GameModePage"));
+const GamesPage = lazy(() => import("./pages/GamesPage"));
 
 const queryClient = new QueryClient();
 
@@ -63,6 +65,10 @@ function AppRoutes() {
           <Route path="/print-form" element={user ? <PrintFormPage /> : <Auth />} />
           <Route path="/print-live-abs" element={user ? <PrintLiveAbsPage /> : <Auth />} />
           <Route path="/accountability" element={user ? <WorkoutAccountabilityPage /> : <Auth />} />
+          <Route path="/game" element={user ? <GameModePage /> : <Auth />} />
+          <Route path="/game/:gameId" element={user ? <GameModePage /> : <Auth />} />
+          <Route path="/games" element={user ? <GamesPage /> : <Auth />} />
+          <Route path="/games/:gameId" element={<GamesPage />} />
 
           {/* Design system evaluation — no auth required */}
           <Route path="/design-systems" element={<DesignSystemPage />} />
