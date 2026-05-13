@@ -8,6 +8,10 @@ import { Label } from '@/components/ui/label';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { ArrowLeft, Plus, Trash2, Radio } from 'lucide-react';
 import { usePageMeta } from '@/hooks/use-page-meta';
 import { useToast } from '@/hooks/use-toast';
@@ -78,15 +82,24 @@ function GamesList() {
 
   useEffect(() => { load(); }, []);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this game record? Outings logged on the same date are NOT deleted.')) return;
-    await supabase.from('game_pitches').delete().eq('game_id', id);
-    const { error } = await supabase.from('games').delete().eq('id', id);
-    if (error) {
-      toast({ title: 'Delete failed', description: error.message, variant: 'destructive' });
-      return;
+  const [pendingDelete, setPendingDelete] = useState<GameRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    try {
+      await supabase.from('game_pitches').delete().eq('game_id', pendingDelete.id);
+      const { error } = await supabase.from('games').delete().eq('id', pendingDelete.id);
+      if (error) {
+        toast({ title: 'Delete failed', description: error.message, variant: 'destructive' });
+        return;
+      }
+      setGames(prev => prev.filter(g => g.id !== pendingDelete.id));
+      setPendingDelete(null);
+    } finally {
+      setDeleting(false);
     }
-    setGames(prev => prev.filter(g => g.id !== id));
   };
 
   const createGame = useCallback(async () => {
@@ -165,7 +178,7 @@ function GamesList() {
                       </span>
                     </div>
                   </Link>
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(g.id)} className="text-muted-foreground hover:text-destructive">
+                  <Button variant="ghost" size="icon" onClick={() => setPendingDelete(g)} className="text-muted-foreground hover:text-destructive">
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </CardContent>
@@ -208,6 +221,24 @@ function GamesList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this game?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Removes "{pendingDelete?.opponent_name || 'Game'}" on {pendingDelete?.date} and its live pitch log.
+              Outings already saved on the same date are NOT deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleting ? 'Deleting…' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
