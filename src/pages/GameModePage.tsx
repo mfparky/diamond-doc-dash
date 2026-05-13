@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, Undo2, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { usePageMeta } from '@/hooks/use-page-meta';
 
+type Outcome = 'ball' | 'strike' | 'foul' | 'in_play_safe' | 'in_play_out';
+
 interface GameRow {
   id: string;
   date: string;
@@ -30,6 +32,7 @@ interface PitchRow {
   is_opponent: boolean;
   opponent_jersey: string | null;
   sequence: number;
+  outcome: Outcome | null;
 }
 
 type Side = 'us' | 'opp';
@@ -40,6 +43,39 @@ const opponentLabel = (jersey: string) => `Opp #${jersey}`;
 function todayISO() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Walk a pitcher's pitches in order to compute at-bat results & current BSO state
+interface AtBatStats {
+  bbs: number;
+  ks: number;
+  outs: number;
+  hits: number; // in_play_safe approximations
+  // current open at-bat
+  curBalls: number;
+  curStrikes: number;
+}
+
+function computeAtBatStats(pitches: { outcome: Outcome | null; is_strike: boolean }[]): AtBatStats {
+  let bbs = 0, ks = 0, outs = 0, hits = 0;
+  let b = 0, s = 0;
+  for (const p of pitches) {
+    const o: Outcome = p.outcome ?? (p.is_strike ? 'strike' : 'ball');
+    if (o === 'ball') {
+      b++;
+      if (b >= 4) { bbs++; b = 0; s = 0; }
+    } else if (o === 'strike') {
+      s++;
+      if (s >= 3) { ks++; outs++; b = 0; s = 0; }
+    } else if (o === 'foul') {
+      if (s < 2) s++;
+    } else if (o === 'in_play_safe') {
+      hits++; b = 0; s = 0;
+    } else if (o === 'in_play_out') {
+      outs++; b = 0; s = 0;
+    }
+  }
+  return { bbs, ks, outs, hits, curBalls: b, curStrikes: s };
 }
 
 export default function GameModePage() {
@@ -61,7 +97,6 @@ export default function GameModePage() {
   const [opponent, setOpponent] = useState('');
   const [date, setDate] = useState(todayISO());
 
-  // Load existing game if id in url
   useEffect(() => {
     if (!paramGameId) return;
     let cancelled = false;
@@ -100,7 +135,6 @@ export default function GameModePage() {
         toast({ title: 'Sign in required', variant: 'destructive' });
         return;
       }
-      // inherit team_id from any pitcher (they all share one team in this MVP)
       const teamId = pitchers.find(p => p.teamId)?.teamId ?? null;
       const { data, error } = await supabase
         .from('games')
@@ -123,12 +157,13 @@ export default function GameModePage() {
     }
   }, [date, opponent, pitchers, navigate, toast]);
 
-  const logPitch = useCallback(async (isStrike: boolean) => {
+  const logPitch = useCallback(async (outcome: Outcome) => {
     if (!game) return;
+    const isStrike = outcome !== 'ball'; // foul + in_play count toward strikes/pitches-as-strikes
+    const sequence = pitches.length + 1;
 
     let optimistic: PitchRow;
     let insertPayload: TablesInsert<'game_pitches'>;
-    const sequence = pitches.length + 1;
 
     if (side === 'us') {
       if (!activePitcherId) return;
@@ -143,6 +178,7 @@ export default function GameModePage() {
         is_opponent: false,
         opponent_jersey: null,
         sequence,
+        outcome,
       };
       insertPayload = {
         game_id: game.id,
@@ -153,6 +189,7 @@ export default function GameModePage() {
         is_opponent: false,
         opponent_jersey: null,
         sequence,
+        outcome,
         team_id: game.team_id,
         user_id: game.user_id,
       };
@@ -169,6 +206,7 @@ export default function GameModePage() {
         is_opponent: true,
         opponent_jersey: jersey,
         sequence,
+        outcome,
       };
       insertPayload = {
         game_id: game.id,
@@ -179,6 +217,7 @@ export default function GameModePage() {
         is_opponent: true,
         opponent_jersey: jersey,
         sequence,
+        outcome,
         team_id: game.team_id,
         user_id: game.user_id,
       };
@@ -211,30 +250,38 @@ export default function GameModePage() {
     if (!game) return;
     setBusy(true);
     try {
-      // Aggregate per-pitcher — only OUR pitchers feed Arm Tracker outings.
-      const byPitcher = new Map<string, { name: string; pitches: number; strikes: number }>();
+      // Aggregate per-pitcher (our side only)
+      const byPitcher = new Map<string, { name: string; rows: PitchRow[] }>();
       pitches.forEach(p => {
         if (p.is_opponent || !p.pitcher_id) return;
-        const cur = byPitcher.get(p.pitcher_id) || { name: p.pitcher_name, pitches: 0, strikes: 0 };
-        cur.pitches += 1;
-        if (p.is_strike) cur.strikes += 1;
+        const cur = byPitcher.get(p.pitcher_id) || { name: p.pitcher_name, rows: [] };
+        cur.rows.push(p);
         byPitcher.set(p.pitcher_id, cur);
       });
 
-      // Create one outing per pitcher (feeds Arm Tracker)
       const { data: { user } } = await supabase.auth.getUser();
-      const outingRows = Array.from(byPitcher.entries()).map(([pid, agg]) => ({
-        pitcher_id: pid,
-        pitcher_name: agg.name,
-        date: game.date,
-        event_type: 'Game',
-        pitch_count: agg.pitches,
-        strikes: agg.strikes,
-        max_velocity: 0,
-        notes: game.opponent_name ? `Game vs ${game.opponent_name}` : 'Game',
-        team_id: game.team_id,
-        user_id: user?.id ?? game.user_id,
-      }));
+      const outingRows = Array.from(byPitcher.entries()).map(([pid, agg]) => {
+        const pitches = agg.rows.length;
+        const strikes = agg.rows.filter(r => r.is_strike).length;
+        const ab = computeAtBatStats(agg.rows);
+        const noteParts = [
+          game.opponent_name ? `Game vs ${game.opponent_name}` : 'Game',
+          `${ab.ks} K`,
+          `${ab.bbs} BB`,
+        ];
+        return {
+          pitcher_id: pid,
+          pitcher_name: agg.name,
+          date: game.date,
+          event_type: 'Game',
+          pitch_count: pitches,
+          strikes,
+          max_velocity: 0,
+          notes: noteParts.join(' · '),
+          team_id: game.team_id,
+          user_id: user?.id ?? game.user_id,
+        };
+      });
       if (outingRows.length) {
         const { error: oErr } = await supabase.from('outings').insert(outingRows);
         if (oErr) throw oErr;
@@ -255,14 +302,12 @@ export default function GameModePage() {
     }
   }, [game, pitches, navigate, toast]);
 
-  // Stats
   const totals = useMemo(() => {
     const total = pitches.length;
     const strikes = pitches.filter(p => p.is_strike).length;
     return { total, strikes, balls: total - strikes, pct: total ? Math.round((strikes / total) * 100) : 0 };
   }, [pitches]);
 
-  // Active subject — either our pitcher or an opponent jersey
   const activeKey = side === 'us'
     ? activePitcherId
     : (oppJersey.trim() ? `${OPP_KEY_PREFIX}${oppJersey.trim()}` : '');
@@ -271,34 +316,51 @@ export default function GameModePage() {
     ? (pitchers.find(p => p.id === activePitcherId)?.name ?? '')
     : (oppJersey.trim() ? opponentLabel(oppJersey.trim()) : '');
 
-  const activeStats = useMemo(() => {
-    if (!activeKey) return null;
-    const matches = pitches.filter(p => {
+  const activePitches = useMemo(() => {
+    return pitches.filter(p => {
       if (side === 'us') return !p.is_opponent && p.pitcher_id === activePitcherId;
       return p.is_opponent && p.opponent_jersey === oppJersey.trim();
     });
-    const strikes = matches.filter(p => p.is_strike).length;
-    const inningCount = matches.filter(p => p.inning === currentInning).length;
-    return {
-      total: matches.length,
-      strikes,
-      pct: matches.length ? Math.round((strikes / matches.length) * 100) : 0,
-      inningCount,
-    };
-  }, [pitches, side, activePitcherId, oppJersey, activeKey, currentInning]);
+  }, [pitches, side, activePitcherId, oppJersey]);
 
-  // Tally — grouped per pitcher, both teams
+  const activeStats = useMemo(() => {
+    if (!activeKey) return null;
+    const total = activePitches.length;
+    const strikes = activePitches.filter(p => p.is_strike).length;
+    const ab = computeAtBatStats(activePitches);
+    const decisions = ab.bbs + ab.ks;
+    return {
+      total,
+      strikes,
+      pct: total ? Math.round((strikes / total) * 100) : 0,
+      ...ab,
+      bbPct: decisions ? +(ab.bbs / decisions * 100).toFixed(1) : 0,
+      kPct: decisions ? +(ab.ks / decisions * 100).toFixed(1) : 0,
+    };
+  }, [activePitches, activeKey]);
+
+  // Tally
   const tally = useMemo(() => {
-    type Row = { key: string; name: string; isOpponent: boolean; pitches: number; strikes: number };
+    type Row = { key: string; name: string; isOpponent: boolean; pitches: number; strikes: number; bbs: number; ks: number };
     const map = new Map<string, Row>();
+    const grouped = new Map<string, PitchRow[]>();
     pitches.forEach(p => {
       const key = p.is_opponent
         ? `${OPP_KEY_PREFIX}${p.opponent_jersey ?? ''}`
         : (p.pitcher_id ?? p.pitcher_name);
-      const cur = map.get(key) || { key, name: p.pitcher_name, isOpponent: p.is_opponent, pitches: 0, strikes: 0 };
-      cur.pitches += 1;
-      if (p.is_strike) cur.strikes += 1;
-      map.set(key, cur);
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key)!.push(p);
+      if (!map.has(key)) {
+        map.set(key, { key, name: p.pitcher_name, isOpponent: p.is_opponent, pitches: 0, strikes: 0, bbs: 0, ks: 0 });
+      }
+    });
+    grouped.forEach((rows, key) => {
+      const r = map.get(key)!;
+      r.pitches = rows.length;
+      r.strikes = rows.filter(x => x.is_strike).length;
+      const ab = computeAtBatStats(rows);
+      r.bbs = ab.bbs;
+      r.ks = ab.ks;
     });
     return Array.from(map.values())
       .map(r => ({ ...r, pct: r.pitches ? Math.round((r.strikes / r.pitches) * 100) : 0 }))
@@ -307,7 +369,6 @@ export default function GameModePage() {
 
   const canLog = side === 'us' ? !!activePitcherId : !!oppJersey.trim();
 
-  // ---- Setup screen ----
   if (!game) {
     return (
       <div className="min-h-screen bg-background p-4 overflow-x-hidden">
@@ -338,10 +399,12 @@ export default function GameModePage() {
     );
   }
 
-  // ---- Active game screen ----
+  const dot = (filled: boolean, color: string) => (
+    <span className={`inline-block w-2.5 h-2.5 rounded-full ${filled ? color : 'bg-muted'}`} />
+  );
+
   return (
     <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
-      {/* Header */}
       <div className="px-3 py-2 border-b border-border bg-card flex items-center gap-2">
         <Button variant="ghost" size="sm" onClick={() => navigate('/games')} className="px-2 shrink-0">
           <ArrowLeft className="w-4 h-4 sm:mr-1" />
@@ -357,27 +420,19 @@ export default function GameModePage() {
         </Button>
       </div>
 
-      {/* Side toggle */}
       <div className="px-3 pt-3">
         <div className="grid grid-cols-2 rounded-lg bg-secondary p-1 text-sm font-semibold">
-          <button
-            type="button"
-            onClick={() => setSide('us')}
-            className={`h-9 rounded-md transition-colors ${side === 'us' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'}`}
-          >
+          <button type="button" onClick={() => setSide('us')}
+            className={`h-9 rounded-md transition-colors ${side === 'us' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'}`}>
             Our Pitcher
           </button>
-          <button
-            type="button"
-            onClick={() => setSide('opp')}
-            className={`h-9 rounded-md transition-colors ${side === 'opp' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'}`}
-          >
+          <button type="button" onClick={() => setSide('opp')}
+            className={`h-9 rounded-md transition-colors ${side === 'opp' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'}`}>
             Opponent
           </button>
         </div>
       </div>
 
-      {/* Pitcher + inning selectors */}
       <div className="p-3 space-y-3 border-b border-border">
         {side === 'us' ? (
           <div className="min-w-0">
@@ -387,25 +442,16 @@ export default function GameModePage() {
                 <SelectValue placeholder="Select pitcher" />
               </SelectTrigger>
               <SelectContent>
-                {pitchers.map(p => (
-                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                ))}
+                {pitchers.map(p => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}
               </SelectContent>
             </Select>
           </div>
         ) : (
           <div className="min-w-0">
             <Label className="text-xs">Opponent jersey #</Label>
-            <Input
-              type="number"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              min={0}
-              value={oppJersey}
-              onChange={e => setOppJersey(e.target.value.replace(/[^0-9]/g, ''))}
-              placeholder="e.g. 12"
-              className="h-12 text-lg w-full"
-            />
+            <Input type="number" inputMode="numeric" pattern="[0-9]*" min={0}
+              value={oppJersey} onChange={e => setOppJersey(e.target.value.replace(/[^0-9]/g, ''))}
+              placeholder="e.g. 12" className="h-12 text-lg w-full" />
           </div>
         )}
         <div className="flex items-center justify-between gap-2">
@@ -422,42 +468,62 @@ export default function GameModePage() {
         </div>
       </div>
 
-      {/* Active subject mini stats */}
-      {activeSubjectLabel && (
-        <div className="px-3 py-3 grid grid-cols-3 gap-2 text-center border-b border-border bg-secondary/30">
-          <div className="min-w-0">
-            <p className="text-2xl font-bold">{activeStats?.total ?? 0}</p>
-            <p className="text-[11px] text-muted-foreground uppercase truncate">{activeSubjectLabel}</p>
+      {/* B / S / O dot display + stats */}
+      {activeSubjectLabel && activeStats && (
+        <div className="px-3 py-3 border-b border-border bg-secondary/30 space-y-3">
+          <div className="flex items-center justify-center gap-5 text-sm font-semibold">
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">B</span>
+              {dot(activeStats.curBalls >= 1, 'bg-emerald-500')}
+              {dot(activeStats.curBalls >= 2, 'bg-emerald-500')}
+              {dot(activeStats.curBalls >= 3, 'bg-emerald-500')}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">S</span>
+              {dot(activeStats.curStrikes >= 1, 'bg-orange-500')}
+              {dot(activeStats.curStrikes >= 2, 'bg-orange-500')}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">O</span>
+              <span className="text-base font-bold tabular-nums">{activeStats.outs}</span>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="text-2xl font-bold text-primary">{activeStats?.pct ?? 0}%</p>
-            <p className="text-[11px] text-muted-foreground uppercase">Strike %</p>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm max-w-xs mx-auto">
+            <div className="flex justify-between"><span className="text-muted-foreground">Balls:</span><span className="font-bold">{activeStats.total - activeStats.strikes}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Strikes:</span><span className="font-bold">{activeStats.strikes}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">BBs:</span><span className="font-bold">{activeStats.bbs}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Ks:</span><span className="font-bold">{activeStats.ks}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">BB%:</span><span className="font-bold">{activeStats.bbPct}%</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">K%:</span><span className="font-bold">{activeStats.kPct}%</span></div>
           </div>
-          <div className="min-w-0">
-            <p className="text-2xl font-bold">{activeStats?.inningCount ?? 0}</p>
-            <p className="text-[11px] text-muted-foreground uppercase">Inn {currentInning}</p>
-          </div>
+          <p className="text-center text-[10px] uppercase tracking-wide text-muted-foreground">{activeSubjectLabel}</p>
         </div>
       )}
 
-      {/* Big tap buttons */}
+      {/* Buttons */}
       <div className="flex flex-col p-3 gap-3">
-        <div className="grid grid-cols-2 gap-3 min-h-[200px] sm:min-h-[260px]">
-          <button
-            type="button"
-            onClick={() => logPitch(true)}
-            disabled={!canLog}
-            className="rounded-2xl bg-primary text-primary-foreground text-3xl sm:text-4xl font-bold active:scale-95 transition-transform disabled:opacity-40 shadow-lg"
-          >
-            STRIKE
+        <div className="grid grid-cols-3 gap-2">
+          <button type="button" onClick={() => logPitch('ball')} disabled={!canLog}
+            className="h-20 rounded-2xl bg-secondary text-foreground text-lg sm:text-xl font-bold active:scale-95 transition-transform disabled:opacity-40 border border-border shadow">
+            Ball
           </button>
-          <button
-            type="button"
-            onClick={() => logPitch(false)}
-            disabled={!canLog}
-            className="rounded-2xl bg-secondary text-foreground text-3xl sm:text-4xl font-bold active:scale-95 transition-transform disabled:opacity-40 shadow-lg border border-border"
-          >
-            BALL
+          <button type="button" onClick={() => logPitch('strike')} disabled={!canLog}
+            className="h-20 rounded-2xl bg-primary text-primary-foreground text-lg sm:text-xl font-bold active:scale-95 transition-transform disabled:opacity-40 shadow-lg">
+            Strike
+          </button>
+          <button type="button" onClick={() => logPitch('foul')} disabled={!canLog}
+            className="h-20 rounded-2xl bg-secondary text-foreground text-lg sm:text-xl font-bold active:scale-95 transition-transform disabled:opacity-40 border border-border shadow">
+            Foul
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <button type="button" onClick={() => logPitch('in_play_safe')} disabled={!canLog}
+            className="h-16 rounded-2xl bg-secondary text-foreground text-base sm:text-lg font-bold active:scale-95 transition-transform disabled:opacity-40 border border-border shadow">
+            In Play – Safe
+          </button>
+          <button type="button" onClick={() => logPitch('in_play_out')} disabled={!canLog}
+            className="h-16 rounded-2xl bg-secondary text-foreground text-base sm:text-lg font-bold active:scale-95 transition-transform disabled:opacity-40 border border-border shadow">
+            In Play – Out
           </button>
         </div>
 
@@ -472,7 +538,6 @@ export default function GameModePage() {
         </div>
       </div>
 
-      {/* All-pitchers tally */}
       <div className="px-3 pb-6">
         <div className="rounded-lg border border-border bg-card">
           <div className="px-3 py-2 border-b border-border flex items-center justify-between">
@@ -480,35 +545,20 @@ export default function GameModePage() {
             <p className="text-[11px] text-muted-foreground">{tally.length} tracked</p>
           </div>
           {tally.length === 0 ? (
-            <p className="px-3 py-4 text-sm text-muted-foreground text-center">
-              No pitches logged yet.
-            </p>
+            <p className="px-3 py-4 text-sm text-muted-foreground text-center">No pitches logged yet.</p>
           ) : (
             <ul className="divide-y divide-border">
               {tally.map(row => {
                 const isActive = row.key === activeKey;
                 return (
-                  <li
-                    key={row.key}
-                    className={`px-3 py-2 flex items-center gap-2 text-sm ${isActive ? 'bg-secondary/40' : ''}`}
-                  >
-                    <span
-                      className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded shrink-0 ${
-                        row.isOpponent
-                          ? 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-400'
-                          : 'bg-primary/15 text-primary'
-                      }`}
-                    >
-                      {row.isOpponent ? 'Opp' : 'Us'}
-                    </span>
+                  <li key={row.key} className={`px-3 py-2 flex items-center gap-2 text-sm ${isActive ? 'bg-secondary/40' : ''}`}>
+                    <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded shrink-0 ${
+                      row.isOpponent ? 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-400' : 'bg-primary/15 text-primary'
+                    }`}>{row.isOpponent ? 'Opp' : 'Us'}</span>
                     <span className="font-semibold truncate flex-1 min-w-0">{row.name}</span>
                     <span className="font-bold tabular-nums shrink-0">{row.pitches}</span>
-                    <span className="text-muted-foreground tabular-nums shrink-0 w-14 text-right">
-                      {row.strikes}/{row.pitches - row.strikes}
-                    </span>
-                    <span className="text-primary font-semibold tabular-nums shrink-0 w-12 text-right">
-                      {row.pct}%
-                    </span>
+                    <span className="text-muted-foreground tabular-nums shrink-0 w-16 text-right">{row.ks}K/{row.bbs}BB</span>
+                    <span className="text-primary font-semibold tabular-nums shrink-0 w-12 text-right">{row.pct}%</span>
                   </li>
                 );
               })}
