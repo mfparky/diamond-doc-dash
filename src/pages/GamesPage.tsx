@@ -178,7 +178,7 @@ function GamesList() {
                       </span>
                     </div>
                   </Link>
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(g.id)} className="text-muted-foreground hover:text-destructive">
+                  <Button variant="ghost" size="icon" onClick={() => setPendingDelete(g)} className="text-muted-foreground hover:text-destructive">
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </CardContent>
