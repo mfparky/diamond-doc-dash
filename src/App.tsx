@@ -6,8 +6,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import { DesignSystemProvider } from "@/contexts/DesignSystemContext";
 import { useAuth } from "@/hooks/use-auth";
+import { useUserRole } from "@/hooks/use-user-role";
 import { Auth } from "@/components/Auth";
 import { HomeButton } from "@/components/HomeButton";
+import { Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -37,10 +39,15 @@ function RouteFallback() {
 
 function AppRoutes() {
   const { user, loading } = useAuth();
+  const { isScorekeeper, loading: roleLoading } = useUserRole();
 
-  if (loading) {
+  if (loading || (user && roleLoading)) {
     return <RouteFallback />;
   }
+
+  // Scorekeepers can ONLY access the live pitch counter.
+  const gate = (el: JSX.Element) =>
+    !user ? <Auth /> : isScorekeeper ? <Navigate to="/game" replace /> : el;
 
   return (
     <BrowserRouter>
@@ -56,19 +63,17 @@ function AppRoutes() {
           <Route path="/dashboard/:userId" element={<CoachDashboard />} />
 
           {/* Protected routes require authentication */}
-          <Route
-            path="/"
-            element={user ? <Index /> : <Auth />}
-          />
+          <Route path="/" element={gate(<Index />)} />
 
-          <Route path="/calibrate" element={user ? <CalibratePage /> : <Auth />} />
-          <Route path="/print-form" element={user ? <PrintFormPage /> : <Auth />} />
-          <Route path="/print-live-abs" element={user ? <PrintLiveAbsPage /> : <Auth />} />
-          <Route path="/accountability" element={user ? <WorkoutAccountabilityPage /> : <Auth />} />
+          <Route path="/calibrate" element={gate(<CalibratePage />)} />
+          <Route path="/print-form" element={gate(<PrintFormPage />)} />
+          <Route path="/print-live-abs" element={gate(<PrintLiveAbsPage />)} />
+          <Route path="/accountability" element={gate(<WorkoutAccountabilityPage />)} />
+          {/* Game mode is allowed for scorekeepers */}
           <Route path="/game" element={user ? <GameModePage /> : <Auth />} />
           <Route path="/game/:gameId" element={user ? <GameModePage /> : <Auth />} />
-          <Route path="/games" element={user ? <GamesPage /> : <Auth />} />
-          <Route path="/games/:gameId" element={<GamesPage />} />
+          <Route path="/games" element={gate(<GamesPage />)} />
+          <Route path="/games/:gameId" element={isScorekeeper ? <Navigate to="/game" replace /> : <GamesPage />} />
 
           {/* Design system evaluation — no auth required */}
           <Route path="/design-systems" element={<DesignSystemPage />} />
