@@ -52,13 +52,15 @@ Deno.serve(async (req) => {
       .eq("user_id", userId)
       .maybeSingle();
     if (!existingMember) {
-      await admin.from("team_members").insert({
+      const { error: insErr } = await admin.from("team_members").insert({
         team_id: TEAM_ID,
         user_id: userId,
         role: "scorekeeper",
       });
+      if (insErr) throw new Error(`team_members insert: ${insErr.message}`);
     } else if (existingMember.role !== "scorekeeper") {
-      await admin.from("team_members").update({ role: "scorekeeper" }).eq("id", existingMember.id);
+      const { error: updErr } = await admin.from("team_members").update({ role: "scorekeeper" }).eq("id", existingMember.id);
+      if (updErr) throw new Error(`team_members update: ${updErr.message}`);
     }
 
     return new Response(
