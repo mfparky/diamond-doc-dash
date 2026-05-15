@@ -370,7 +370,11 @@ function GameReview({ gameId }: { gameId: string }) {
       .map(o => ({ ...o, pct: o.pitches ? Math.round((o.strikes / o.pitches) * 100) : 0 }))
       .sort((a, b) => b.pitches - a.pitches);
 
-    return { total, strikes, pct, pitchers, innings, teamMaxVelo, gameOutingCount: gameOutings.length, opponents };
+    const oppTotal = opponents.reduce((s, o) => s + o.pitches, 0);
+    const oppStrikes = opponents.reduce((s, o) => s + o.strikes, 0);
+    const oppPct = oppTotal ? Math.round((oppStrikes / oppTotal) * 100) : 0;
+
+    return { total, strikes, pct, pitchers, innings, teamMaxVelo, gameOutingCount: gameOutings.length, opponents, oppTotal, oppStrikes, oppPct };
   }, [pitches, outings]);
 
   if (loading) {
@@ -407,35 +411,40 @@ function GameReview({ gameId }: { gameId: string }) {
           </Card>
         )}
 
-        {/* Team totals */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <Card><CardContent className="p-4 text-center">
-            <p className="text-3xl font-bold">{stats.total}</p>
-            <p className="text-xs text-muted-foreground uppercase">Total Pitches</p>
-          </CardContent></Card>
-          <Card><CardContent className="p-4 text-center">
-            <p className="text-3xl font-bold text-primary">{stats.pct}%</p>
-            <p className="text-xs text-muted-foreground uppercase">Strike %</p>
-          </CardContent></Card>
-          <Card><CardContent className="p-4 text-center">
-            <p className="text-3xl font-bold">{stats.strikes}/{stats.total - stats.strikes}</p>
-            <p className="text-xs text-muted-foreground uppercase">K / B</p>
-          </CardContent></Card>
-          <Card><CardContent className="p-4 text-center">
-            <p className="text-3xl font-bold">{stats.teamMaxVelo ? `${stats.teamMaxVelo}` : '—'}</p>
-            <p className="text-xs text-muted-foreground uppercase">Top Velo</p>
-          </CardContent></Card>
+        {/* Our team totals */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <h2 className="text-xs font-bold uppercase tracking-wide text-primary">Our Team</h2>
+            {outings.length > 0 && (
+              <p className="text-[11px] text-muted-foreground">
+                {stats.gameOutingCount} game outing{stats.gameOutingCount === 1 ? '' : 's'}
+                {outings.length - stats.gameOutingCount > 0 && ` · +${outings.length - stats.gameOutingCount} other`}
+              </p>
+            )}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <Card><CardContent className="p-4 text-center">
+              <p className="text-3xl font-bold">{stats.total}</p>
+              <p className="text-xs text-muted-foreground uppercase">Total Pitches</p>
+            </CardContent></Card>
+            <Card><CardContent className="p-4 text-center">
+              <p className="text-3xl font-bold text-primary">{stats.pct}%</p>
+              <p className="text-xs text-muted-foreground uppercase">Strike %</p>
+            </CardContent></Card>
+            <Card><CardContent className="p-4 text-center">
+              <p className="text-3xl font-bold">{stats.strikes}/{stats.total - stats.strikes}</p>
+              <p className="text-xs text-muted-foreground uppercase">K / B</p>
+            </CardContent></Card>
+            <Card><CardContent className="p-4 text-center">
+              <p className="text-3xl font-bold">{stats.teamMaxVelo ? `${stats.teamMaxVelo}` : '—'}</p>
+              <p className="text-xs text-muted-foreground uppercase">Top Velo</p>
+            </CardContent></Card>
+          </div>
         </div>
-        {outings.length > 0 && (
-          <p className="text-[11px] text-muted-foreground -mt-2">
-            Pulled from {stats.gameOutingCount} game outing{stats.gameOutingCount === 1 ? '' : 's'}
-            {outings.length - stats.gameOutingCount > 0 && ` (+${outings.length - stats.gameOutingCount} other session${outings.length - stats.gameOutingCount === 1 ? '' : 's'} on this date)`}.
-          </p>
-        )}
 
-        {/* Per pitcher */}
+        {/* Per pitcher (us) */}
         <Card>
-          <CardHeader><CardTitle className="text-base">By Pitcher</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Our Pitchers</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             {stats.pitchers.length === 0 ? (
               <p className="text-sm text-muted-foreground">No pitchers logged.</p>
@@ -443,7 +452,7 @@ function GameReview({ gameId }: { gameId: string }) {
               <div key={p.key} className="border border-border rounded-lg p-3">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-semibold">{p.name}</span>
-                  <span className="text-sm text-muted-foreground">{p.share}% of game</span>
+                  <span className="text-sm text-muted-foreground">{p.share}% of team</span>
                 </div>
                 <div className="grid grid-cols-4 gap-2 text-center text-sm">
                   <div><span className="font-bold text-base">{p.pitches}</span><p className="text-xs text-muted-foreground">Pitches</p></div>
@@ -462,22 +471,44 @@ function GameReview({ gameId }: { gameId: string }) {
           </CardContent>
         </Card>
 
-        {/* Opponent pitchers — live counter only */}
+        {/* Opponent — totals + per-jersey list (live counter only) */}
         {stats.opponents.length > 0 && (
-          <Card>
-            <CardHeader><CardTitle className="text-base">Opponent Pitchers <span className="text-xs font-normal text-muted-foreground">(from live counter)</span></CardTitle></CardHeader>
-            <CardContent>
-              <div className="space-y-1">
-                {stats.opponents.map(o => (
-                  <div key={o.jersey} className="flex items-center justify-between py-2 border-b border-border last:border-0 gap-2">
-                    <span className="font-bold w-16 shrink-0">#{o.jersey}</span>
-                    <span className="flex-1 text-center text-muted-foreground text-sm">{o.pitches} pitches · {o.strikes}/{o.pitches - o.strikes} K/B</span>
-                    <span className="text-primary font-semibold w-16 text-right shrink-0">{o.pct}% K</span>
-                  </div>
-                ))}
+          <>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <h2 className="text-xs font-bold uppercase tracking-wide text-yellow-600 dark:text-yellow-400">Opponent</h2>
+                <p className="text-[11px] text-muted-foreground">From live counter</p>
               </div>
-            </CardContent>
-          </Card>
+              <div className="grid grid-cols-3 gap-2">
+                <Card><CardContent className="p-4 text-center">
+                  <p className="text-3xl font-bold">{stats.oppTotal}</p>
+                  <p className="text-xs text-muted-foreground uppercase">Total Pitches</p>
+                </CardContent></Card>
+                <Card><CardContent className="p-4 text-center">
+                  <p className="text-3xl font-bold text-primary">{stats.oppPct}%</p>
+                  <p className="text-xs text-muted-foreground uppercase">Strike %</p>
+                </CardContent></Card>
+                <Card><CardContent className="p-4 text-center">
+                  <p className="text-3xl font-bold">{stats.oppStrikes}/{stats.oppTotal - stats.oppStrikes}</p>
+                  <p className="text-xs text-muted-foreground uppercase">K / B</p>
+                </CardContent></Card>
+              </div>
+            </div>
+            <Card>
+              <CardHeader><CardTitle className="text-base">Opponent Pitchers</CardTitle></CardHeader>
+              <CardContent>
+                <div className="space-y-1">
+                  {stats.opponents.map(o => (
+                    <div key={o.jersey} className="flex items-center justify-between py-2 border-b border-border last:border-0 gap-2">
+                      <span className="font-bold w-16 shrink-0">#{o.jersey}</span>
+                      <span className="flex-1 text-center text-muted-foreground text-sm">{o.pitches} pitches · {o.strikes}/{o.pitches - o.strikes} K/B</span>
+                      <span className="text-primary font-semibold w-16 text-right shrink-0">{o.pct}% K</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </>
         )}
 
         {/* Per inning — only when live tool was used */}
