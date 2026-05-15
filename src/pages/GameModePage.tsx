@@ -126,12 +126,13 @@ export default function GameModePage() {
       for (const o of data) {
         if (!o.pitcher_name) continue;
         const current = lastByName.get(o.pitcher_name);
-        const currentTime = current
-          ? parseLocalDateAtNoon(current.date).getTime() + new Date(current.created_at).getTime() / 1e13
-          : -Infinity;
-        const nextTime = parseLocalDateAtNoon(o.date).getTime() + new Date(o.created_at).getTime() / 1e13;
-        if (!current || nextTime > currentTime) {
+        if (!current || parseLocalDateAtNoon(o.date).getTime() > parseLocalDateAtNoon(current.date).getTime()) {
           lastByName.set(o.pitcher_name, { date: o.date, pitch_count: o.pitch_count, created_at: o.created_at });
+        } else if (current.date === o.date) {
+          current.pitch_count += o.pitch_count;
+          if (new Date(o.created_at).getTime() > new Date(current.created_at).getTime()) {
+            current.created_at = o.created_at;
+          }
         }
       }
       const map: Record<string, RestStatus> = {};
