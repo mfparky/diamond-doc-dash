@@ -370,7 +370,11 @@ function GameReview({ gameId }: { gameId: string }) {
       .map(o => ({ ...o, pct: o.pitches ? Math.round((o.strikes / o.pitches) * 100) : 0 }))
       .sort((a, b) => b.pitches - a.pitches);
 
-    return { total, strikes, pct, pitchers, innings, teamMaxVelo, gameOutingCount: gameOutings.length, opponents };
+    const oppTotal = opponents.reduce((s, o) => s + o.pitches, 0);
+    const oppStrikes = opponents.reduce((s, o) => s + o.strikes, 0);
+    const oppPct = oppTotal ? Math.round((oppStrikes / oppTotal) * 100) : 0;
+
+    return { total, strikes, pct, pitchers, innings, teamMaxVelo, gameOutingCount: gameOutings.length, opponents, oppTotal, oppStrikes, oppPct };
   }, [pitches, outings]);
 
   if (loading) {
