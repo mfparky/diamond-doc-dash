@@ -114,23 +114,23 @@ export default function GameModePage() {
     if (pitchers.length === 0) return;
     let cancelled = false;
     (async () => {
-      const ids = pitchers.map(p => p.id);
+      const names = pitchers.map(p => p.name);
       const { data } = await supabase
         .from('outings')
-        .select('pitcher_id, date, pitch_count')
-        .in('pitcher_id', ids)
+        .select('pitcher_name, date, pitch_count')
+        .in('pitcher_name', names)
         .order('date', { ascending: false });
       if (cancelled || !data) return;
-      const lastByPitcher = new Map<string, { date: string; pitch_count: number }>();
+      const lastByName = new Map<string, { date: string; pitch_count: number }>();
       for (const o of data) {
-        if (!o.pitcher_id) continue;
-        if (!lastByPitcher.has(o.pitcher_id)) {
-          lastByPitcher.set(o.pitcher_id, { date: o.date, pitch_count: o.pitch_count });
+        if (!o.pitcher_name) continue;
+        if (!lastByName.has(o.pitcher_name)) {
+          lastByName.set(o.pitcher_name, { date: o.date, pitch_count: o.pitch_count });
         }
       }
       const map: Record<string, RestStatus> = {};
       for (const p of pitchers) {
-        const last = lastByPitcher.get(p.id);
+        const last = lastByName.get(p.name);
         map[p.id] = calculateRestStatus(last?.date ?? null, last?.pitch_count ?? 0);
       }
       setRestByPitcher(map);
