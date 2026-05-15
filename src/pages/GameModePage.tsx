@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { TablesInsert } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 import { usePitchers } from '@/hooks/use-pitchers';
+import { calculateRestStatus, type RestStatus } from '@/types/pitcher';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
