@@ -220,6 +220,30 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
     fetchCoachWorkoutData();
   }, [parentMode, pitchers, toast]);
 
+  useEffect(() => {
+    if (parentMode || !coachTeamId) return;
+    let cancelled = false;
+
+    async function fetchCoachGames() {
+      const { data, error } = await supabase
+        .from('games')
+        .select('id, date, opponent_name, status, team_id, user_id')
+        .eq('team_id', coachTeamId)
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (cancelled) return;
+      if (error) {
+        console.error('Error fetching games:', error);
+        return;
+      }
+      setGames((data || []) as GameDashboardRow[]);
+    }
+
+    fetchCoachGames();
+    return () => { cancelled = true; };
+  }, [parentMode, coachTeamId]);
+
   // Calculate date range based on view mode
   const dateRange = useMemo(() => {
     if (viewMode === '7-day') {
