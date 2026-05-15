@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Outing } from '@/types/pitcher';
+import { Outing, parseLocalDateAtNoon } from '@/types/pitcher';
 import { PitchLocation, PitchTypeConfig, DEFAULT_PITCH_TYPES, PITCH_TYPE_COLORS } from '@/types/pitch-location';
 import { SmoothHeatmap } from '@/components/SmoothHeatmap';
 import { StrikePercentBar } from '@/components/StrikePercentBar';
@@ -13,7 +13,7 @@ import { WorkoutLeaderboard } from '@/components/WorkoutLeaderboard';
 import { PitcherRecord } from '@/hooks/use-pitchers';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Activity, Target, Calendar, Flame, TrendingUp, TrendingDown, Minus, Dumbbell, Trophy } from 'lucide-react';
+import { Activity, Target, Calendar, Flame, TrendingUp, TrendingDown, Minus, Dumbbell, Trophy, ListChecks } from 'lucide-react';
 
 interface CombinedDashboardProps {
   outings: Outing[];
@@ -21,6 +21,15 @@ interface CombinedDashboardProps {
   parentMode?: boolean;
   teamId?: string;
   pitchers?: PitcherRecord[];
+}
+
+interface GameDashboardRow {
+  id: string;
+  date: string;
+  opponent_name: string | null;
+  status: string;
+  team_id: string | null;
+  user_id: string | null;
 }
 
 const EVENT_COLORS: Record<string, string> = {
@@ -50,7 +59,9 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
   const [leaderboardDates, setLeaderboardDates] = useState<{ from?: Date; to?: Date }>({});
   const [coachWorkoutCount, setCoachWorkoutCount] = useState(0);
   const [coachLeaderboardDates, setCoachLeaderboardDates] = useState<{ from?: Date; to?: Date }>({});
+  const [games, setGames] = useState<GameDashboardRow[]>([]);
   const { toast } = useToast();
+  const coachTeamId = useMemo(() => teamId ?? pitchers?.find((p) => p.teamId)?.teamId ?? null, [teamId, pitchers]);
 
   // Fetch total workout completions for the season (parent mode)
   useEffect(() => {
