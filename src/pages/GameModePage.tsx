@@ -505,10 +505,28 @@ export default function GameModePage() {
               <Label className="text-xs">Pitcher</Label>
               <Select value={activePitcherId} onValueChange={setActivePitcherId}>
                 <SelectTrigger className="h-11 w-full">
-                  <SelectValue placeholder="Select pitcher" />
+                  <SelectValue placeholder="Select pitcher">
+                    {activePitcherId && (() => {
+                      const p = pitchers.find(p => p.id === activePitcherId);
+                      if (!p) return null;
+                      return (
+                        <span className="flex items-center gap-2 min-w-0">
+                          {restDot(restByPitcher[p.id])}
+                          <span className="truncate">{p.name}{restSuffix(restByPitcher[p.id])}</span>
+                        </span>
+                      );
+                    })()}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {pitchers.map(p => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}
+                  {pitchers.map(p => (
+                    <SelectItem key={p.id} value={p.id}>
+                      <span className="flex items-center gap-2">
+                        {restDot(restByPitcher[p.id])}
+                        <span>{p.name}{restSuffix(restByPitcher[p.id])}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
