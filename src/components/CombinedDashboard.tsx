@@ -1,7 +1,8 @@
 import { useMemo, useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Outing } from '@/types/pitcher';
+import { Outing, parseLocalDateAtNoon } from '@/types/pitcher';
 import { PitchLocation, PitchTypeConfig, DEFAULT_PITCH_TYPES, PITCH_TYPE_COLORS } from '@/types/pitch-location';
 import { SmoothHeatmap } from '@/components/SmoothHeatmap';
 import { StrikePercentBar } from '@/components/StrikePercentBar';
@@ -13,7 +14,7 @@ import { WorkoutLeaderboard } from '@/components/WorkoutLeaderboard';
 import { PitcherRecord } from '@/hooks/use-pitchers';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Activity, Target, Calendar, Flame, TrendingUp, TrendingDown, Minus, Dumbbell, Trophy } from 'lucide-react';
+import { Activity, Target, Calendar, Flame, TrendingUp, TrendingDown, Minus, Dumbbell, Trophy, ListChecks } from 'lucide-react';
 
 interface CombinedDashboardProps {
   outings: Outing[];
@@ -21,6 +22,27 @@ interface CombinedDashboardProps {
   parentMode?: boolean;
   teamId?: string;
   pitchers?: PitcherRecord[];
+}
+
+interface GameDashboardRow {
+  id: string;
+  date: string;
+  opponent_name: string | null;
+  status: string;
+  team_id: string | null;
+  user_id: string | null;
+}
+
+interface PitchLocationRow {
+  id: string;
+  outing_id: string;
+  pitcher_id: string;
+  pitch_number: number;
+  pitch_type: number;
+  x_location: number | string;
+  y_location: number | string;
+  is_strike: boolean;
+  created_at: string;
 }
 
 const EVENT_COLORS: Record<string, string> = {
@@ -50,7 +72,9 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
   const [leaderboardDates, setLeaderboardDates] = useState<{ from?: Date; to?: Date }>({});
   const [coachWorkoutCount, setCoachWorkoutCount] = useState(0);
   const [coachLeaderboardDates, setCoachLeaderboardDates] = useState<{ from?: Date; to?: Date }>({});
+  const [games, setGames] = useState<GameDashboardRow[]>([]);
   const { toast } = useToast();
+  const coachTeamId = useMemo(() => teamId ?? pitchers?.find((p) => p.teamId)?.teamId ?? null, [teamId, pitchers]);
 
   // Fetch total workout completions for the season (parent mode)
   useEffect(() => {
@@ -209,6 +233,30 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
     fetchCoachWorkoutData();
   }, [parentMode, pitchers, toast]);
 
+  useEffect(() => {
+    if (parentMode || !coachTeamId) return;
+    let cancelled = false;
+
+    async function fetchCoachGames() {
+      const { data, error } = await supabase
+        .from('games')
+        .select('id, date, opponent_name, status, team_id, user_id')
+        .eq('team_id', coachTeamId)
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (cancelled) return;
+      if (error) {
+        console.error('Error fetching games:', error);
+        return;
+      }
+      setGames((data || []) as GameDashboardRow[]);
+    }
+
+    fetchCoachGames();
+    return () => { cancelled = true; };
+  }, [parentMode, coachTeamId]);
+
   // Calculate date range based on view mode
   const dateRange = useMemo(() => {
     if (viewMode === '7-day') {
@@ -270,7 +318,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
       setIsLoadingLocations(true);
       try {
         // Paginate to avoid Supabase's 1000-row default limit
-        const allRows: any[] = [];
+        const allRows: PitchLocationRow[] = [];
         const PAGE_SIZE = 1000;
         let from = 0;
         let hasMore = true;
@@ -390,6 +438,62 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
     };
   }, [stats, previousStats]);
 
+  const gamesStats = useMemo(() => {
+    const start = parseLocalDateAtNoon(dateRange.start);
+    const end = parseLocalDateAtNoon(dateRange.end);
+    const inRange = (date: string) => {
+      const d = parseLocalDateAtNoon(date);
+      return d >= start && d <= end;
+    };
+
+    const gamesInRange = games.filter((game) => inRange(game.date));
+    const knownGameDates = new Set(gamesInRange.map((game) => game.date));
+    const gameOutings = filteredOutings.filter((outing) => outing.eventType === 'Game');
+    const outingOnlyGames: GameDashboardRow[] = [...new Set(gameOutings.map((outing) => outing.date))]
+      .filter((date) => !knownGameDates.has(date))
+      .map((date) => ({ id: `outing-${date}`, date, opponent_name: null, status: 'completed', team_id: coachTeamId, user_id: null }));
+
+    const displayGames = [...gamesInRange, ...outingOnlyGames]
+      .sort((a, b) => parseLocalDateAtNoon(b.date).getTime() - parseLocalDateAtNoon(a.date).getTime());
+
+    const totalGamePitches = gameOutings.reduce((sum, outing) => sum + outing.pitchCount, 0);
+    const gameOutingsWithStrikes = gameOutings.filter((outing) => outing.strikes !== null);
+    const pitchesWithStrikes = gameOutingsWithStrikes.reduce((sum, outing) => sum + outing.pitchCount, 0);
+    const strikes = gameOutingsWithStrikes.reduce((sum, outing) => sum + (outing.strikes ?? 0), 0);
+
+    const byPitcher = new Map<string, number>();
+    gameOutings.forEach((outing) => {
+      byPitcher.set(outing.pitcherName, (byPitcher.get(outing.pitcherName) ?? 0) + outing.pitchCount);
+    });
+
+    const pitcherNames = (pitchers?.map((pitcher) => pitcher.name) ?? [...new Set(filteredOutings.map((outing) => outing.pitcherName))])
+      .sort((a, b) => a.localeCompare(b));
+    const recentGames = displayGames.slice(0, 5);
+    const matrix = pitcherNames.map((name) => ({
+      name,
+      total: recentGames.reduce((sum, game) => sum + gameOutings
+        .filter((outing) => outing.date === game.date && outing.pitcherName === name)
+        .reduce((pitchSum, outing) => pitchSum + outing.pitchCount, 0), 0),
+      cells: recentGames.map((game) => ({
+        gameId: game.id,
+        date: game.date,
+        pitches: gameOutings
+          .filter((outing) => outing.date === game.date && outing.pitcherName === name)
+          .reduce((sum, outing) => sum + outing.pitchCount, 0),
+      })),
+    })).filter((row) => row.total > 0);
+
+    return {
+      games: displayGames,
+      recentGames,
+      totalGamePitches,
+      avgPitches: displayGames.length > 0 ? Math.round(totalGamePitches / displayGames.length) : 0,
+      strikePercentage: pitchesWithStrikes > 0 ? Math.round((strikes / pitchesWithStrikes) * 100) : null,
+      topArms: Array.from(byPitcher.entries()).sort((a, b) => b[1] - a[1]).slice(0, 3),
+      matrix,
+    };
+  }, [coachTeamId, dateRange, filteredOutings, games, pitchers]);
+
   // Trend arrow component
   const TrendIndicator = ({ trend, diff, suffix = '' }: { trend: 'up' | 'down' | 'neutral'; diff: number; suffix?: string }) => {
     if (viewMode !== '7-day') return null;
@@ -468,6 +572,15 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
       balls: baseLocations.length - strikes,
     };
   }, [pitchLocations, filterPitchType]);
+
+  const formatGameDate = (date: string) => parseLocalDateAtNoon(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const getPitchLoadClass = (pitches: number) => {
+    if (pitches >= 76) return 'bg-status-danger/25 text-status-danger border-status-danger/30';
+    if (pitches >= 61) return 'bg-status-warning/25 text-status-warning border-status-warning/30';
+    if (pitches >= 46) return 'bg-status-caution/25 text-status-caution border-status-caution/30';
+    if (pitches >= 31) return 'bg-muted text-foreground border-border';
+    return 'bg-secondary/70 text-muted-foreground border-border/60';
+  };
 
   // Time toggle pills component - matches Players view design
   const TimeTogglePills = () => (
@@ -607,6 +720,84 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
           </CardContent>
         </Card>
       </div>
+
+      {!parentMode && gamesStats.games.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="font-display text-xl font-bold text-foreground">Games</h3>
+              <p className="text-xs text-muted-foreground">Game outings in the selected range</p>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/games" className="gap-2">
+                <ListChecks className="w-4 h-4" /> Review
+              </Link>
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <Card className="glass-card">
+              <CardContent className="p-3 sm:p-4">
+                <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Games</p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground">{gamesStats.games.length}</p>
+              </CardContent>
+            </Card>
+            <Card className="glass-card">
+              <CardContent className="p-3 sm:p-4">
+                <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Avg Pitches</p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground">{gamesStats.avgPitches}</p>
+              </CardContent>
+            </Card>
+            <Card className="glass-card">
+              <CardContent className="p-3 sm:p-4">
+                <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Game Strike %</p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground">{gamesStats.strikePercentage !== null ? `${gamesStats.strikePercentage}%` : '—'}</p>
+              </CardContent>
+            </Card>
+            <Card className="glass-card">
+              <CardContent className="p-3 sm:p-4">
+                <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Most Used</p>
+                <p className="text-sm sm:text-base font-semibold text-foreground truncate">{gamesStats.topArms[0]?.[0] ?? '—'}</p>
+                {gamesStats.topArms[0] && <p className="text-xs text-muted-foreground">{gamesStats.topArms[0][1]} pitches</p>}
+              </CardContent>
+            </Card>
+          </div>
+
+          {gamesStats.matrix.length > 0 && (
+            <Card className="glass-card">
+              <CardHeader className="pb-2 px-3 sm:px-6">
+                <CardTitle className="font-display text-base sm:text-lg">Pitcher × Last 5 Games</CardTitle>
+              </CardHeader>
+              <CardContent className="px-3 sm:px-6">
+                <div className="overflow-x-auto">
+                  <div className="min-w-[560px] space-y-2">
+                    <div className="grid grid-cols-[minmax(130px,1.2fr)_repeat(5,minmax(68px,0.7fr))_64px] gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+                      <span>Pitcher</span>
+                      {gamesStats.recentGames.map((game) => (
+                        <span key={game.id} className="text-center truncate">{formatGameDate(game.date)}</span>
+                      ))}
+                      {Array.from({ length: Math.max(0, 5 - gamesStats.recentGames.length) }).map((_, idx) => <span key={`blank-head-${idx}`} />)}
+                      <span className="text-right">Total</span>
+                    </div>
+                    {gamesStats.matrix.map((row) => (
+                      <div key={row.name} className="grid grid-cols-[minmax(130px,1.2fr)_repeat(5,minmax(68px,0.7fr))_64px] gap-2 items-center">
+                        <span className="text-sm font-medium text-foreground truncate">{row.name}</span>
+                        {row.cells.map((cell) => (
+                          <span key={`${row.name}-${cell.gameId}`} className={`h-8 rounded-md border flex items-center justify-center text-xs font-semibold ${getPitchLoadClass(cell.pitches)}`}>
+                            {cell.pitches || '—'}
+                          </span>
+                        ))}
+                        {Array.from({ length: Math.max(0, 5 - row.cells.length) }).map((_, idx) => <span key={`${row.name}-blank-${idx}`} className="h-8" />)}
+                        <span className="text-right text-sm font-semibold text-foreground">{row.total}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </section>
+      )}
 
       {/* Velocity & Strike % Side by Side */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">

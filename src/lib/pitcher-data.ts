@@ -1,4 +1,4 @@
-import { Pitcher, Outing, calculateRestStatus } from '@/types/pitcher';
+import { Pitcher, Outing, calculateRestStatus, parseLocalDateAtNoon } from '@/types/pitcher';
 
 export const initialPitchers: Pitcher[] = [
   { id: '1', name: 'Owen Parkinson', sevenDayPulse: 0, strikePercentage: 0, maxVelo: 0, lastOuting: '', lastPitchCount: 0, restStatus: { type: 'no-data' }, notes: '', outings: [] },
@@ -51,12 +51,18 @@ export function calculatePitcherStats(pitcher: Pitcher, allOutings: Outing[]): P
   const maxVelo = recentMaxVelo > 0 ? recentMaxVelo : Math.max(...pitcherOutings.map(o => o.maxVelo || 0));
 
   // Get most recent outing
-  const sortedOutings = [...pitcherOutings].sort((a, b) => 
-    new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  const sortedOutings = [...pitcherOutings].sort((a, b) => {
+    const dateDiff = parseLocalDateAtNoon(b.date).getTime() - parseLocalDateAtNoon(a.date).getTime();
+    if (dateDiff !== 0) return dateDiff;
+    return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+  });
   const lastOutingData = sortedOutings[0];
   const lastOuting = lastOutingData?.date || '';
-  const lastPitchCount = lastOutingData?.pitchCount || 0;
+  const lastPitchCount = lastOuting
+    ? pitcherOutings
+        .filter((o) => o.date === lastOuting)
+        .reduce((sum, o) => sum + o.pitchCount, 0)
+    : 0;
   const notes = sortedOutings.find(o => o.eventType !== 'Live ABs' && !!o.notes)?.notes || '';
 
   // Get the most recent focus (find the most recent outing that has a focus set)

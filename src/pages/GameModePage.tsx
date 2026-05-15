@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { TablesInsert } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 import { usePitchers } from '@/hooks/use-pitchers';
-import { calculateRestStatus, type RestStatus } from '@/types/pitcher';
+import { calculateRestStatus, parseLocalDateAtNoon, type RestStatus } from '@/types/pitcher';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -40,6 +40,10 @@ type Side = 'us' | 'opp';
 
 const OPP_KEY_PREFIX = 'opp:';
 const opponentLabel = (jersey: string) => `Opp #${jersey}`;
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Please try again.';
+}
 
 function todayISO() {
   const d = new Date();
@@ -117,15 +121,22 @@ export default function GameModePage() {
       const names = pitchers.map(p => p.name);
       const { data } = await supabase
         .from('outings')
-        .select('pitcher_name, date, pitch_count')
+        .select('pitcher_name, date, pitch_count, created_at')
         .in('pitcher_name', names)
-        .order('date', { ascending: false });
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false });
       if (cancelled || !data) return;
-      const lastByName = new Map<string, { date: string; pitch_count: number }>();
+      const lastByName = new Map<string, { date: string; pitch_count: number; created_at: string }>();
       for (const o of data) {
         if (!o.pitcher_name) continue;
-        if (!lastByName.has(o.pitcher_name)) {
-          lastByName.set(o.pitcher_name, { date: o.date, pitch_count: o.pitch_count });
+        const current = lastByName.get(o.pitcher_name);
+        if (!current || parseLocalDateAtNoon(o.date).getTime() > parseLocalDateAtNoon(current.date).getTime()) {
+          lastByName.set(o.pitcher_name, { date: o.date, pitch_count: o.pitch_count, created_at: o.created_at });
+        } else if (current.date === o.date) {
+          current.pitch_count += o.pitch_count;
+          if (new Date(o.created_at).getTime() > new Date(current.created_at).getTime()) {
+            current.created_at = o.created_at;
+          }
         }
       }
       const map: Record<string, RestStatus> = {};
@@ -211,8 +222,8 @@ export default function GameModePage() {
       if (error) throw error;
       setGame(data as GameRow);
       navigate(`/game/${data.id}`, { replace: true });
-    } catch (e: any) {
-      toast({ title: 'Could not start game', description: e.message, variant: 'destructive' });
+    } catch (e) {
+      toast({ title: 'Could not start game', description: getErrorMessage(e), variant: 'destructive' });
     } finally {
       setBusy(false);
     }
@@ -356,8 +367,8 @@ export default function GameModePage() {
 
       toast({ title: 'Game saved', description: `${outingRows.length} outing${outingRows.length === 1 ? '' : 's'} added to Arm Tracker.` });
       navigate(`/games/${game.id}`);
-    } catch (e: any) {
-      toast({ title: 'Could not finish game', description: e.message, variant: 'destructive' });
+    } catch (e) {
+      toast({ title: 'Could not finish game', description: getErrorMessage(e), variant: 'destructive' });
     } finally {
       setBusy(false);
     }
