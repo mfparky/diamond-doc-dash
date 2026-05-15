@@ -41,6 +41,10 @@ type Side = 'us' | 'opp';
 const OPP_KEY_PREFIX = 'opp:';
 const opponentLabel = (jersey: string) => `Opp #${jersey}`;
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Please try again.';
+}
+
 function todayISO() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -218,8 +222,8 @@ export default function GameModePage() {
       if (error) throw error;
       setGame(data as GameRow);
       navigate(`/game/${data.id}`, { replace: true });
-    } catch (e: any) {
-      toast({ title: 'Could not start game', description: e.message, variant: 'destructive' });
+    } catch (e) {
+      toast({ title: 'Could not start game', description: getErrorMessage(e), variant: 'destructive' });
     } finally {
       setBusy(false);
     }
@@ -363,8 +367,8 @@ export default function GameModePage() {
 
       toast({ title: 'Game saved', description: `${outingRows.length} outing${outingRows.length === 1 ? '' : 's'} added to Arm Tracker.` });
       navigate(`/games/${game.id}`);
-    } catch (e: any) {
-      toast({ title: 'Could not finish game', description: e.message, variant: 'destructive' });
+    } catch (e) {
+      toast({ title: 'Could not finish game', description: getErrorMessage(e), variant: 'destructive' });
     } finally {
       setBusy(false);
     }
