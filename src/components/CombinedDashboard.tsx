@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Outing, parseLocalDateAtNoon } from '@/types/pitcher';
@@ -559,6 +560,15 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
       balls: baseLocations.length - strikes,
     };
   }, [pitchLocations, filterPitchType]);
+
+  const formatGameDate = (date: string) => parseLocalDateAtNoon(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const getPitchLoadClass = (pitches: number) => {
+    if (pitches >= 76) return 'bg-status-danger/25 text-status-danger border-status-danger/30';
+    if (pitches >= 61) return 'bg-status-warning/25 text-status-warning border-status-warning/30';
+    if (pitches >= 46) return 'bg-status-caution/25 text-status-caution border-status-caution/30';
+    if (pitches >= 31) return 'bg-muted text-foreground border-border';
+    return 'bg-secondary/70 text-muted-foreground border-border/60';
+  };
 
   // Time toggle pills component - matches Players view design
   const TimeTogglePills = () => (
