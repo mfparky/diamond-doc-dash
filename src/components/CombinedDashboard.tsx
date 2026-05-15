@@ -425,6 +425,62 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
     };
   }, [stats, previousStats]);
 
+  const gamesStats = useMemo(() => {
+    const start = parseLocalDateAtNoon(dateRange.start);
+    const end = parseLocalDateAtNoon(dateRange.end);
+    const inRange = (date: string) => {
+      const d = parseLocalDateAtNoon(date);
+      return d >= start && d <= end;
+    };
+
+    const gamesInRange = games.filter((game) => inRange(game.date));
+    const knownGameDates = new Set(gamesInRange.map((game) => game.date));
+    const gameOutings = filteredOutings.filter((outing) => outing.eventType === 'Game');
+    const outingOnlyGames: GameDashboardRow[] = [...new Set(gameOutings.map((outing) => outing.date))]
+      .filter((date) => !knownGameDates.has(date))
+      .map((date) => ({ id: `outing-${date}`, date, opponent_name: null, status: 'completed', team_id: coachTeamId, user_id: null }));
+
+    const displayGames = [...gamesInRange, ...outingOnlyGames]
+      .sort((a, b) => parseLocalDateAtNoon(b.date).getTime() - parseLocalDateAtNoon(a.date).getTime());
+
+    const totalGamePitches = gameOutings.reduce((sum, outing) => sum + outing.pitchCount, 0);
+    const gameOutingsWithStrikes = gameOutings.filter((outing) => outing.strikes !== null);
+    const pitchesWithStrikes = gameOutingsWithStrikes.reduce((sum, outing) => sum + outing.pitchCount, 0);
+    const strikes = gameOutingsWithStrikes.reduce((sum, outing) => sum + (outing.strikes ?? 0), 0);
+
+    const byPitcher = new Map<string, number>();
+    gameOutings.forEach((outing) => {
+      byPitcher.set(outing.pitcherName, (byPitcher.get(outing.pitcherName) ?? 0) + outing.pitchCount);
+    });
+
+    const pitcherNames = (pitchers?.map((pitcher) => pitcher.name) ?? [...new Set(filteredOutings.map((outing) => outing.pitcherName))])
+      .sort((a, b) => a.localeCompare(b));
+    const recentGames = displayGames.slice(0, 5);
+    const matrix = pitcherNames.map((name) => ({
+      name,
+      total: recentGames.reduce((sum, game) => sum + gameOutings
+        .filter((outing) => outing.date === game.date && outing.pitcherName === name)
+        .reduce((pitchSum, outing) => pitchSum + outing.pitchCount, 0), 0),
+      cells: recentGames.map((game) => ({
+        gameId: game.id,
+        date: game.date,
+        pitches: gameOutings
+          .filter((outing) => outing.date === game.date && outing.pitcherName === name)
+          .reduce((sum, outing) => sum + outing.pitchCount, 0),
+      })),
+    })).filter((row) => row.total > 0);
+
+    return {
+      games: displayGames,
+      recentGames,
+      totalGamePitches,
+      avgPitches: displayGames.length > 0 ? Math.round(totalGamePitches / displayGames.length) : 0,
+      strikePercentage: pitchesWithStrikes > 0 ? Math.round((strikes / pitchesWithStrikes) * 100) : null,
+      topArms: Array.from(byPitcher.entries()).sort((a, b) => b[1] - a[1]).slice(0, 3),
+      matrix,
+    };
+  }, [coachTeamId, dateRange, filteredOutings, games, pitchers]);
+
   // Trend arrow component
   const TrendIndicator = ({ trend, diff, suffix = '' }: { trend: 'up' | 'down' | 'neutral'; diff: number; suffix?: string }) => {
     if (viewMode !== '7-day') return null;
