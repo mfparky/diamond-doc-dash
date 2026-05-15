@@ -108,6 +108,56 @@ export default function GameModePage() {
   const [opponent, setOpponent] = useState('');
   const [date, setDate] = useState(todayISO());
 
+  // Per-pitcher rest status, derived from each pitcher's most recent outing.
+  const [restByPitcher, setRestByPitcher] = useState<Record<string, RestStatus>>({});
+  useEffect(() => {
+    if (pitchers.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const ids = pitchers.map(p => p.id);
+      const { data } = await supabase
+        .from('outings')
+        .select('pitcher_id, date, pitch_count')
+        .in('pitcher_id', ids)
+        .order('date', { ascending: false });
+      if (cancelled || !data) return;
+      const lastByPitcher = new Map<string, { date: string; pitch_count: number }>();
+      for (const o of data) {
+        if (!o.pitcher_id) continue;
+        if (!lastByPitcher.has(o.pitcher_id)) {
+          lastByPitcher.set(o.pitcher_id, { date: o.date, pitch_count: o.pitch_count });
+        }
+      }
+      const map: Record<string, RestStatus> = {};
+      for (const p of pitchers) {
+        const last = lastByPitcher.get(p.id);
+        map[p.id] = calculateRestStatus(last?.date ?? null, last?.pitch_count ?? 0);
+      }
+      setRestByPitcher(map);
+    })();
+    return () => { cancelled = true; };
+  }, [pitchers]);
+
+  const restDot = (status?: RestStatus) => {
+    if (!status) return null;
+    const cls =
+      status.type === 'active' ? 'bg-emerald-500'
+      : status.type === 'threw-today' ? 'bg-red-500'
+      : status.type === 'resting'
+        ? (status.daysNeeded >= 4 ? 'bg-red-500'
+          : status.daysNeeded === 3 ? 'bg-orange-500'
+          : status.daysNeeded === 2 ? 'bg-yellow-500'
+          : 'bg-slate-400')
+      : 'bg-muted';
+    return <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${cls}`} />;
+  };
+  const restSuffix = (status?: RestStatus) => {
+    if (!status) return '';
+    if (status.type === 'resting') return ` · Rest ${status.daysCurrent}/${status.daysNeeded}`;
+    if (status.type === 'threw-today') return ' · Threw today';
+    return '';
+  };
+
   useEffect(() => {
     if (!paramGameId) return;
     let cancelled = false;
