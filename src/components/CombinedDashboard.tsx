@@ -709,6 +709,84 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
         </Card>
       </div>
 
+      {!parentMode && gamesStats.games.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="font-display text-xl font-bold text-foreground">Games</h3>
+              <p className="text-xs text-muted-foreground">Game outings in the selected range</p>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/games" className="gap-2">
+                <ListChecks className="w-4 h-4" /> Review
+              </Link>
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <Card className="glass-card">
+              <CardContent className="p-3 sm:p-4">
+                <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Games</p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground">{gamesStats.games.length}</p>
+              </CardContent>
+            </Card>
+            <Card className="glass-card">
+              <CardContent className="p-3 sm:p-4">
+                <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Avg Pitches</p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground">{gamesStats.avgPitches}</p>
+              </CardContent>
+            </Card>
+            <Card className="glass-card">
+              <CardContent className="p-3 sm:p-4">
+                <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Game Strike %</p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground">{gamesStats.strikePercentage !== null ? `${gamesStats.strikePercentage}%` : '—'}</p>
+              </CardContent>
+            </Card>
+            <Card className="glass-card">
+              <CardContent className="p-3 sm:p-4">
+                <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Most Used</p>
+                <p className="text-sm sm:text-base font-semibold text-foreground truncate">{gamesStats.topArms[0]?.[0] ?? '—'}</p>
+                {gamesStats.topArms[0] && <p className="text-xs text-muted-foreground">{gamesStats.topArms[0][1]} pitches</p>}
+              </CardContent>
+            </Card>
+          </div>
+
+          {gamesStats.matrix.length > 0 && (
+            <Card className="glass-card">
+              <CardHeader className="pb-2 px-3 sm:px-6">
+                <CardTitle className="font-display text-base sm:text-lg">Pitcher × Last 5 Games</CardTitle>
+              </CardHeader>
+              <CardContent className="px-3 sm:px-6">
+                <div className="overflow-x-auto">
+                  <div className="min-w-[560px] space-y-2">
+                    <div className="grid grid-cols-[minmax(130px,1.2fr)_repeat(5,minmax(68px,0.7fr))_64px] gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+                      <span>Pitcher</span>
+                      {gamesStats.recentGames.map((game) => (
+                        <span key={game.id} className="text-center truncate">{formatGameDate(game.date)}</span>
+                      ))}
+                      {Array.from({ length: Math.max(0, 5 - gamesStats.recentGames.length) }).map((_, idx) => <span key={`blank-head-${idx}`} />)}
+                      <span className="text-right">Total</span>
+                    </div>
+                    {gamesStats.matrix.map((row) => (
+                      <div key={row.name} className="grid grid-cols-[minmax(130px,1.2fr)_repeat(5,minmax(68px,0.7fr))_64px] gap-2 items-center">
+                        <span className="text-sm font-medium text-foreground truncate">{row.name}</span>
+                        {row.cells.map((cell) => (
+                          <span key={`${row.name}-${cell.gameId}`} className={`h-8 rounded-md border flex items-center justify-center text-xs font-semibold ${getPitchLoadClass(cell.pitches)}`}>
+                            {cell.pitches || '—'}
+                          </span>
+                        ))}
+                        {Array.from({ length: Math.max(0, 5 - row.cells.length) }).map((_, idx) => <span key={`${row.name}-blank-${idx}`} className="h-8" />)}
+                        <span className="text-right text-sm font-semibold text-foreground">{row.total}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </section>
+      )}
+
       {/* Velocity & Strike % Side by Side */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {stats.velocities.length > 0 && (
