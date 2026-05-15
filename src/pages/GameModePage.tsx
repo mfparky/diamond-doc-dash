@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { TablesInsert } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 import { usePitchers } from '@/hooks/use-pitchers';
+import { calculateRestStatus, type RestStatus } from '@/types/pitcher';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -106,6 +107,56 @@ export default function GameModePage() {
   // Setup form
   const [opponent, setOpponent] = useState('');
   const [date, setDate] = useState(todayISO());
+
+  // Per-pitcher rest status, derived from each pitcher's most recent outing.
+  const [restByPitcher, setRestByPitcher] = useState<Record<string, RestStatus>>({});
+  useEffect(() => {
+    if (pitchers.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const ids = pitchers.map(p => p.id);
+      const { data } = await supabase
+        .from('outings')
+        .select('pitcher_id, date, pitch_count')
+        .in('pitcher_id', ids)
+        .order('date', { ascending: false });
+      if (cancelled || !data) return;
+      const lastByPitcher = new Map<string, { date: string; pitch_count: number }>();
+      for (const o of data) {
+        if (!o.pitcher_id) continue;
+        if (!lastByPitcher.has(o.pitcher_id)) {
+          lastByPitcher.set(o.pitcher_id, { date: o.date, pitch_count: o.pitch_count });
+        }
+      }
+      const map: Record<string, RestStatus> = {};
+      for (const p of pitchers) {
+        const last = lastByPitcher.get(p.id);
+        map[p.id] = calculateRestStatus(last?.date ?? null, last?.pitch_count ?? 0);
+      }
+      setRestByPitcher(map);
+    })();
+    return () => { cancelled = true; };
+  }, [pitchers]);
+
+  const restDot = (status?: RestStatus) => {
+    if (!status) return null;
+    const cls =
+      status.type === 'active' ? 'bg-emerald-500'
+      : status.type === 'threw-today' ? 'bg-red-500'
+      : status.type === 'resting'
+        ? (status.daysNeeded >= 4 ? 'bg-red-500'
+          : status.daysNeeded === 3 ? 'bg-orange-500'
+          : status.daysNeeded === 2 ? 'bg-yellow-500'
+          : 'bg-slate-400')
+      : 'bg-muted';
+    return <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${cls}`} />;
+  };
+  const restSuffix = (status?: RestStatus) => {
+    if (!status) return '';
+    if (status.type === 'resting') return ` · Rest ${status.daysCurrent}/${status.daysNeeded}`;
+    if (status.type === 'threw-today') return ' · Threw today';
+    return '';
+  };
 
   useEffect(() => {
     if (!paramGameId) return;
@@ -454,10 +505,28 @@ export default function GameModePage() {
               <Label className="text-xs">Pitcher</Label>
               <Select value={activePitcherId} onValueChange={setActivePitcherId}>
                 <SelectTrigger className="h-11 w-full">
-                  <SelectValue placeholder="Select pitcher" />
+                  <SelectValue placeholder="Select pitcher">
+                    {activePitcherId && (() => {
+                      const p = pitchers.find(p => p.id === activePitcherId);
+                      if (!p) return null;
+                      return (
+                        <span className="flex items-center gap-2 min-w-0">
+                          {restDot(restByPitcher[p.id])}
+                          <span className="truncate">{p.name}{restSuffix(restByPitcher[p.id])}</span>
+                        </span>
+                      );
+                    })()}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {pitchers.map(p => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}
+                  {pitchers.map(p => (
+                    <SelectItem key={p.id} value={p.id}>
+                      <span className="flex items-center gap-2">
+                        {restDot(restByPitcher[p.id])}
+                        <span>{p.name}{restSuffix(restByPitcher[p.id])}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
