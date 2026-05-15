@@ -33,6 +33,18 @@ interface GameDashboardRow {
   user_id: string | null;
 }
 
+interface PitchLocationRow {
+  id: string;
+  outing_id: string;
+  pitcher_id: string;
+  pitch_number: number;
+  pitch_type: number;
+  x_location: number | string;
+  y_location: number | string;
+  is_strike: boolean;
+  created_at: string;
+}
+
 const EVENT_COLORS: Record<string, string> = {
   'Bullpen': 'hsl(220, 70%, 45%)',
   'Game': 'hsl(142, 70%, 45%)',
@@ -306,7 +318,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
       setIsLoadingLocations(true);
       try {
         // Paginate to avoid Supabase's 1000-row default limit
-        const allRows: any[] = [];
+        const allRows: PitchLocationRow[] = [];
         const PAGE_SIZE = 1000;
         let from = 0;
         let hasMore = true;
