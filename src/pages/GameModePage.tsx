@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { TablesInsert } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 import { usePitchers } from '@/hooks/use-pitchers';
-import { calculateRestStatus, type RestStatus } from '@/types/pitcher';
+import { calculateRestStatus, parseLocalDateAtNoon, type RestStatus } from '@/types/pitcher';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -117,15 +117,21 @@ export default function GameModePage() {
       const names = pitchers.map(p => p.name);
       const { data } = await supabase
         .from('outings')
-        .select('pitcher_name, date, pitch_count')
+        .select('pitcher_name, date, pitch_count, created_at')
         .in('pitcher_name', names)
-        .order('date', { ascending: false });
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false });
       if (cancelled || !data) return;
-      const lastByName = new Map<string, { date: string; pitch_count: number }>();
+      const lastByName = new Map<string, { date: string; pitch_count: number; created_at: string }>();
       for (const o of data) {
         if (!o.pitcher_name) continue;
-        if (!lastByName.has(o.pitcher_name)) {
-          lastByName.set(o.pitcher_name, { date: o.date, pitch_count: o.pitch_count });
+        const current = lastByName.get(o.pitcher_name);
+        const currentTime = current
+          ? parseLocalDateAtNoon(current.date).getTime() + new Date(current.created_at).getTime() / 1e13
+          : -Infinity;
+        const nextTime = parseLocalDateAtNoon(o.date).getTime() + new Date(o.created_at).getTime() / 1e13;
+        if (!current || nextTime > currentTime) {
+          lastByName.set(o.pitcher_name, { date: o.date, pitch_count: o.pitch_count, created_at: o.created_at });
         }
       }
       const map: Record<string, RestStatus> = {};
