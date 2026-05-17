@@ -409,15 +409,25 @@ function GameReview({ gameId }: { gameId: string }) {
           )}
         </div>
 
-        <div>
-          <h1 className="font-display text-2xl font-bold">{game.opponent_name || 'Game'}</h1>
-          <p className="text-sm text-muted-foreground">{game.date}</p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="font-display text-2xl font-bold">{game.opponent_name || 'Game'}</h1>
+            <p className="text-sm text-muted-foreground">{game.date}</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setPickerOpen(true)}>
+            Outings ({linkedOutings.length}{availableOutings.length > 0 ? ` · +${availableOutings.length} avail` : ''})
+          </Button>
         </div>
 
         {stats.total === 0 && (
           <Card className="border-dashed">
-            <CardContent className="py-6 text-center text-sm text-muted-foreground">
-              No outings logged for {game.date} yet. Add a Game outing for any pitcher (Live Charting, Post-Session form, or paper-form scan) and it'll appear here automatically.
+            <CardContent className="py-6 text-center text-sm text-muted-foreground space-y-2">
+              <p>No outings attached to this game yet.</p>
+              {availableOutings.length > 0 ? (
+                <p>{availableOutings.length} outing{availableOutings.length === 1 ? '' : 's'} logged on {game.date} can be attached — tap "Outings" above.</p>
+              ) : (
+                <p>Log a Game outing (Live Charting, Post-Session, or paper-form scan) for {game.date} and attach it here.</p>
+              )}
             </CardContent>
           </Card>
         )}
@@ -426,10 +436,10 @@ function GameReview({ gameId }: { gameId: string }) {
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <h2 className="text-xs font-bold uppercase tracking-wide text-primary">Our Team</h2>
-            {outings.length > 0 && (
+            {linkedOutings.length > 0 && (
               <p className="text-[11px] text-muted-foreground">
                 {stats.gameOutingCount} game outing{stats.gameOutingCount === 1 ? '' : 's'}
-                {outings.length - stats.gameOutingCount > 0 && ` · +${outings.length - stats.gameOutingCount} other`}
+                {linkedOutings.length - stats.gameOutingCount > 0 && ` · +${linkedOutings.length - stats.gameOutingCount} other`}
               </p>
             )}
           </div>
