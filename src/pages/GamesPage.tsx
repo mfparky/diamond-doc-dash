@@ -319,9 +319,9 @@ function GameReview({ gameId }: { gameId: string }) {
       }
     });
 
-    // Pull non-game-day notes (Bullpen, Practice, etc.) for richer context
+    // Pull non-game-day notes (Bullpen, Practice, etc.) from linked outings for richer context
     const otherOutingByName = new Map<string, OutingRow[]>();
-    outings.filter(o => o.event_type !== 'Game').forEach(o => {
+    linkedOutings.filter(o => o.event_type !== 'Game').forEach(o => {
       const k = o.pitcher_name.toLowerCase();
       const arr = otherOutingByName.get(k) || [];
       arr.push(o);
