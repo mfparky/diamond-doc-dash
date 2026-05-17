@@ -548,8 +548,115 @@ function GameReview({ gameId }: { gameId: string }) {
               </div>
             </CardContent>
           </Card>
-        )}
       </div>
+
+      <OutingPicker
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        gameId={gameId}
+        gameDate={game.date}
+        linked={linkedOutings}
+        available={availableOutings}
+        busy={linking}
+        onChange={async (id, attach) => {
+          setLinking(true);
+          try {
+            await supabase.from('outings').update({ game_id: attach ? gameId : null }).eq('id', id);
+            await reload();
+          } finally {
+            setLinking(false);
+          }
+        }}
+        onAttachAllGames={async () => {
+          const ids = availableOutings.filter(o => o.event_type === 'Game').map(o => o.id);
+          if (ids.length === 0) return;
+          setLinking(true);
+          try {
+            await supabase.from('outings').update({ game_id: gameId }).in('id', ids);
+            await reload();
+          } finally {
+            setLinking(false);
+          }
+        }}
+      />
+    </div>
+  );
+}
+
+function OutingPicker({
+  open, onOpenChange, gameId, gameDate, linked, available, busy, onChange, onAttachAllGames,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  gameId: string;
+  gameDate: string;
+  linked: OutingRow[];
+  available: OutingRow[];
+  busy: boolean;
+  onChange: (id: string, attach: boolean) => void;
+  onAttachAllGames: () => void;
+}) {
+  const availableGameCount = available.filter(o => o.event_type === 'Game').length;
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Outings in this game</DialogTitle>
+        </DialogHeader>
+        <p className="text-xs text-muted-foreground -mt-2">
+          Only attached outings count toward this game's totals. Other outings on {gameDate} stay independent.
+        </p>
+
+        {availableGameCount > 0 && (
+          <Button size="sm" variant="secondary" onClick={onAttachAllGames} disabled={busy}>
+            Attach all {availableGameCount} game outing{availableGameCount === 1 ? '' : 's'} on this date
+          </Button>
+        )}
+
+        <div className="space-y-3">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-primary mb-1">Attached ({linked.length})</p>
+            {linked.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic">None yet.</p>
+            ) : (
+              <div className="space-y-1">
+                {linked.map(o => (
+                  <OutingPickRow key={o.id} o={o} attached busy={busy} onToggle={() => onChange(o.id, false)} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground mb-1">Available on {gameDate} ({available.length})</p>
+            {available.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic">No other outings logged for this date.</p>
+            ) : (
+              <div className="space-y-1">
+                {available.map(o => (
+                  <OutingPickRow key={o.id} o={o} attached={false} busy={busy} onToggle={() => onChange(o.id, true)} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function OutingPickRow({ o, attached, busy, onToggle }: { o: OutingRow; attached: boolean; busy: boolean; onToggle: () => void }) {
+  return (
+    <div className="flex items-center justify-between gap-2 border border-border rounded p-2">
+      <div className="min-w-0">
+        <p className="font-semibold text-sm truncate">{o.pitcher_name}</p>
+        <p className="text-[11px] text-muted-foreground">
+          {o.event_type} · {o.pitch_count} pitches{o.strikes != null ? ` · ${o.strikes} K` : ''}
+        </p>
+      </div>
+      <Button size="sm" variant={attached ? 'outline' : 'default'} onClick={onToggle} disabled={busy}>
+        {attached ? 'Remove' : 'Attach'}
+      </Button>
     </div>
   );
 }
