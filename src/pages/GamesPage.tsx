@@ -45,6 +45,8 @@ interface OutingRow {
   notes: string | null;
   focus: string | null;
   coach_notes: string | null;
+  game_id: string | null;
+  date: string;
 }
 
 function todayISO() {
@@ -251,31 +253,40 @@ function GameReview({ gameId }: { gameId: string }) {
   const [outings, setOutings] = useState<OutingRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data: g } = await supabase.from('games').select('*').eq('id', gameId).maybeSingle();
-      const { data: ps } = await supabase.from('game_pitches').select('*').eq('game_id', gameId).order('sequence');
-      let outs: OutingRow[] = [];
-      if (g?.date) {
-        const { data: os } = await supabase
-          .from('outings')
-          .select('id, pitcher_name, event_type, pitch_count, strikes, max_velocity, notes, focus, coach_notes')
-          .eq('date', g.date);
-        outs = (os || []) as OutingRow[];
-      }
-      if (cancelled) return;
-      setGame(g as GameRow);
-      setPitches((ps || []) as PitchRow[]);
-      setOutings(outs);
-      setLoading(false);
-    })();
-    return () => { cancelled = true; };
+  const [linking, setLinking] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const reload = useCallback(async () => {
+    const { data: g } = await supabase.from('games').select('*').eq('id', gameId).maybeSingle();
+    const { data: ps } = await supabase.from('game_pitches').select('*').eq('game_id', gameId).order('sequence');
+    let outs: OutingRow[] = [];
+    if (g?.date) {
+      // Pull outings that are EITHER linked to this game OR on the same date (so coach can attach them).
+      const { data: os } = await supabase
+        .from('outings')
+        .select('id, pitcher_name, event_type, pitch_count, strikes, max_velocity, notes, focus, coach_notes, game_id, date')
+        .or(`game_id.eq.${gameId},date.eq.${g.date}`);
+      outs = (os || []) as OutingRow[];
+    }
+    setGame(g as GameRow);
+    setPitches((ps || []) as PitchRow[]);
+    setOutings(outs);
+    setLoading(false);
   }, [gameId]);
 
+  useEffect(() => { reload(); }, [reload]);
+
+  // Outings actually counted toward this game = explicitly linked via game_id.
+  const linkedOutings = useMemo(() => outings.filter(o => o.game_id === gameId), [outings, gameId]);
+  // Same-date outings that aren't linked to this game (candidates to attach).
+  const availableOutings = useMemo(
+    () => outings.filter(o => o.game_id !== gameId && o.date === game?.date),
+    [outings, gameId, game?.date]
+  );
+
   const stats = useMemo(() => {
-    // Game outings = source of truth for per-pitcher totals
-    const gameOutings = outings.filter(o => o.event_type === 'Game');
+    // Game outings = explicitly linked outings of event_type 'Game'.
+    const gameOutings = linkedOutings.filter(o => o.event_type === 'Game');
 
     type P = { key: string; name: string; pitches: number; strikes: number; maxVelo: number; focus: string | null; coachNotes: string | null; source: 'outing' | 'live' };
     const pitcherMap = new Map<string, P>();
@@ -308,9 +319,9 @@ function GameReview({ gameId }: { gameId: string }) {
       }
     });
 
-    // Pull non-game-day notes (Bullpen, Practice, etc.) for richer context
+    // Pull non-game-day notes (Bullpen, Practice, etc.) from linked outings for richer context
     const otherOutingByName = new Map<string, OutingRow[]>();
-    outings.filter(o => o.event_type !== 'Game').forEach(o => {
+    linkedOutings.filter(o => o.event_type !== 'Game').forEach(o => {
       const k = o.pitcher_name.toLowerCase();
       const arr = otherOutingByName.get(k) || [];
       arr.push(o);
@@ -375,7 +386,7 @@ function GameReview({ gameId }: { gameId: string }) {
     const oppPct = oppTotal ? Math.round((oppStrikes / oppTotal) * 100) : 0;
 
     return { total, strikes, pct, pitchers, innings, teamMaxVelo, gameOutingCount: gameOutings.length, opponents, oppTotal, oppStrikes, oppPct };
-  }, [pitches, outings]);
+  }, [pitches, linkedOutings]);
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading…</div>;
@@ -398,15 +409,25 @@ function GameReview({ gameId }: { gameId: string }) {
           )}
         </div>
 
-        <div>
-          <h1 className="font-display text-2xl font-bold">{game.opponent_name || 'Game'}</h1>
-          <p className="text-sm text-muted-foreground">{game.date}</p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="font-display text-2xl font-bold">{game.opponent_name || 'Game'}</h1>
+            <p className="text-sm text-muted-foreground">{game.date}</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setPickerOpen(true)}>
+            Outings ({linkedOutings.length}{availableOutings.length > 0 ? ` · +${availableOutings.length} avail` : ''})
+          </Button>
         </div>
 
         {stats.total === 0 && (
           <Card className="border-dashed">
-            <CardContent className="py-6 text-center text-sm text-muted-foreground">
-              No outings logged for {game.date} yet. Add a Game outing for any pitcher (Live Charting, Post-Session form, or paper-form scan) and it'll appear here automatically.
+            <CardContent className="py-6 text-center text-sm text-muted-foreground space-y-2">
+              <p>No outings attached to this game yet.</p>
+              {availableOutings.length > 0 ? (
+                <p>{availableOutings.length} outing{availableOutings.length === 1 ? '' : 's'} logged on {game.date} can be attached — tap "Outings" above.</p>
+              ) : (
+                <p>Log a Game outing (Live Charting, Post-Session, or paper-form scan) for {game.date} and attach it here.</p>
+              )}
             </CardContent>
           </Card>
         )}
@@ -415,10 +436,10 @@ function GameReview({ gameId }: { gameId: string }) {
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <h2 className="text-xs font-bold uppercase tracking-wide text-primary">Our Team</h2>
-            {outings.length > 0 && (
+            {linkedOutings.length > 0 && (
               <p className="text-[11px] text-muted-foreground">
                 {stats.gameOutingCount} game outing{stats.gameOutingCount === 1 ? '' : 's'}
-                {outings.length - stats.gameOutingCount > 0 && ` · +${outings.length - stats.gameOutingCount} other`}
+                {linkedOutings.length - stats.gameOutingCount > 0 && ` · +${linkedOutings.length - stats.gameOutingCount} other`}
               </p>
             )}
           </div>
@@ -529,6 +550,114 @@ function GameReview({ gameId }: { gameId: string }) {
           </Card>
         )}
       </div>
+
+      <OutingPicker
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        gameId={gameId}
+        gameDate={game.date}
+        linked={linkedOutings}
+        available={availableOutings}
+        busy={linking}
+        onChange={async (id, attach) => {
+          setLinking(true);
+          try {
+            await supabase.from('outings').update({ game_id: attach ? gameId : null }).eq('id', id);
+            await reload();
+          } finally {
+            setLinking(false);
+          }
+        }}
+        onAttachAllGames={async () => {
+          const ids = availableOutings.filter(o => o.event_type === 'Game').map(o => o.id);
+          if (ids.length === 0) return;
+          setLinking(true);
+          try {
+            await supabase.from('outings').update({ game_id: gameId }).in('id', ids);
+            await reload();
+          } finally {
+            setLinking(false);
+          }
+        }}
+      />
+    </div>
+  );
+}
+
+function OutingPicker({
+  open, onOpenChange, gameId, gameDate, linked, available, busy, onChange, onAttachAllGames,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  gameId: string;
+  gameDate: string;
+  linked: OutingRow[];
+  available: OutingRow[];
+  busy: boolean;
+  onChange: (id: string, attach: boolean) => void;
+  onAttachAllGames: () => void;
+}) {
+  const availableGameCount = available.filter(o => o.event_type === 'Game').length;
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Outings in this game</DialogTitle>
+        </DialogHeader>
+        <p className="text-xs text-muted-foreground -mt-2">
+          Only attached outings count toward this game's totals. Other outings on {gameDate} stay independent.
+        </p>
+
+        {availableGameCount > 0 && (
+          <Button size="sm" variant="secondary" onClick={onAttachAllGames} disabled={busy}>
+            Attach all {availableGameCount} game outing{availableGameCount === 1 ? '' : 's'} on this date
+          </Button>
+        )}
+
+        <div className="space-y-3">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-primary mb-1">Attached ({linked.length})</p>
+            {linked.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic">None yet.</p>
+            ) : (
+              <div className="space-y-1">
+                {linked.map(o => (
+                  <OutingPickRow key={o.id} o={o} attached busy={busy} onToggle={() => onChange(o.id, false)} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground mb-1">Available on {gameDate} ({available.length})</p>
+            {available.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic">No other outings logged for this date.</p>
+            ) : (
+              <div className="space-y-1">
+                {available.map(o => (
+                  <OutingPickRow key={o.id} o={o} attached={false} busy={busy} onToggle={() => onChange(o.id, true)} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function OutingPickRow({ o, attached, busy, onToggle }: { o: OutingRow; attached: boolean; busy: boolean; onToggle: () => void }) {
+  return (
+    <div className="flex items-center justify-between gap-2 border border-border rounded p-2">
+      <div className="min-w-0">
+        <p className="font-semibold text-sm truncate">{o.pitcher_name}</p>
+        <p className="text-[11px] text-muted-foreground">
+          {o.event_type} · {o.pitch_count} pitches{o.strikes != null ? ` · ${o.strikes} K` : ''}
+        </p>
+      </div>
+      <Button size="sm" variant={attached ? 'outline' : 'default'} onClick={onToggle} disabled={busy}>
+        {attached ? 'Remove' : 'Attach'}
+      </Button>
     </div>
   );
 }
