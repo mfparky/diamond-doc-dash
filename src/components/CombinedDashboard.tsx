@@ -469,6 +469,26 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
     const pitcherNames = (pitchers?.map((pitcher) => pitcher.name) ?? [...new Set(filteredOutings.map((outing) => outing.pitcherName))])
       .sort((a, b) => a.localeCompare(b));
     const recentGames = displayGames.slice(0, 5);
+
+    const gameSummaries = displayGames.map((game) => {
+      const outingsForGame = gameOutings.filter((o) => o.date === game.date);
+      const pitches = outingsForGame.reduce((sum, o) => sum + o.pitchCount, 0);
+      const withStrikes = outingsForGame.filter((o) => o.strikes !== null);
+      const sPitches = withStrikes.reduce((sum, o) => sum + o.pitchCount, 0);
+      const sStrikes = withStrikes.reduce((sum, o) => sum + (o.strikes ?? 0), 0);
+      const topVelo = outingsForGame.reduce((max, o) => Math.max(max, o.maxVelo ?? 0), 0);
+      const pitcherCount = new Set(outingsForGame.map((o) => o.pitcherName)).size;
+      return {
+        id: game.id,
+        date: game.date,
+        opponent: game.opponent_name,
+        pitches,
+        strikePct: sPitches > 0 ? Math.round((sStrikes / sPitches) * 100) : null,
+        pitcherCount,
+        topVelo,
+      };
+    });
+
     const matrix = pitcherNames.map((name) => ({
       name,
       total: recentGames.reduce((sum, game) => sum + gameOutings
