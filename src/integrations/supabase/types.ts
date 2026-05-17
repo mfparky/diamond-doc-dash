@@ -138,6 +138,7 @@ export type Database = {
           date: string
           event_type: string
           focus: string | null
+          game_id: string | null
           id: string
           max_velocity: number | null
           notes: string | null
@@ -161,6 +162,7 @@ export type Database = {
           date: string
           event_type: string
           focus?: string | null
+          game_id?: string | null
           id?: string
           max_velocity?: number | null
           notes?: string | null
@@ -184,6 +186,7 @@ export type Database = {
           date?: string
           event_type?: string
           focus?: string | null
+          game_id?: string | null
           id?: string
           max_velocity?: number | null
           notes?: string | null
