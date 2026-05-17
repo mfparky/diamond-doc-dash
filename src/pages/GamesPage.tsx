@@ -386,7 +386,7 @@ function GameReview({ gameId }: { gameId: string }) {
     const oppPct = oppTotal ? Math.round((oppStrikes / oppTotal) * 100) : 0;
 
     return { total, strikes, pct, pitchers, innings, teamMaxVelo, gameOutingCount: gameOutings.length, opponents, oppTotal, oppStrikes, oppPct };
-  }, [pitches, outings]);
+  }, [pitches, linkedOutings]);
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading…</div>;
