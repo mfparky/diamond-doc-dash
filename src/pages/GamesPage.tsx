@@ -253,26 +253,37 @@ function GameReview({ gameId }: { gameId: string }) {
   const [outings, setOutings] = useState<OutingRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data: g } = await supabase.from('games').select('*').eq('id', gameId).maybeSingle();
-      const { data: ps } = await supabase.from('game_pitches').select('*').eq('game_id', gameId).order('sequence');
-      let outs: OutingRow[] = [];
-      if (g?.date) {
-        const { data: os } = await supabase
-          .from('outings')
-          .select('id, pitcher_name, event_type, pitch_count, strikes, max_velocity, notes, focus, coach_notes')
-          .eq('date', g.date);
-        outs = (os || []) as OutingRow[];
-      }
-      if (cancelled) return;
-      setGame(g as GameRow);
-      setPitches((ps || []) as PitchRow[]);
-      setOutings(outs);
-      setLoading(false);
-    })();
-    return () => { cancelled = true; };
+  const [linking, setLinking] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const reload = useCallback(async () => {
+    const { data: g } = await supabase.from('games').select('*').eq('id', gameId).maybeSingle();
+    const { data: ps } = await supabase.from('game_pitches').select('*').eq('game_id', gameId).order('sequence');
+    let outs: OutingRow[] = [];
+    if (g?.date) {
+      // Pull outings that are EITHER linked to this game OR on the same date (so coach can attach them).
+      const { data: os } = await supabase
+        .from('outings')
+        .select('id, pitcher_name, event_type, pitch_count, strikes, max_velocity, notes, focus, coach_notes, game_id, date')
+        .or(`game_id.eq.${gameId},date.eq.${g.date}`);
+      outs = (os || []) as OutingRow[];
+    }
+    setGame(g as GameRow);
+    setPitches((ps || []) as PitchRow[]);
+    setOutings(outs);
+    setLoading(false);
+  }, [gameId]);
+
+  useEffect(() => { reload(); }, [reload]);
+
+  // Outings actually counted toward this game = explicitly linked via game_id.
+  const linkedOutings = useMemo(() => outings.filter(o => o.game_id === gameId), [outings, gameId]);
+  // Same-date outings that aren't linked to this game (candidates to attach).
+  const availableOutings = useMemo(
+    () => outings.filter(o => o.game_id !== gameId && o.date === game?.date),
+    [outings, gameId, game?.date]
+  );
+
   }, [gameId]);
 
   const stats = useMemo(() => {
