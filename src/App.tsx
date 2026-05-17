@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, type ComponentType } from "react";
 import { DesignSystemProvider } from "@/contexts/DesignSystemContext";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserRole } from "@/hooks/use-user-role";
@@ -13,19 +13,38 @@ import { Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
+// Auto-reload once if a lazy chunk fails (typically after a redeploy
+// invalidated the chunk hashes the current page is still referencing).
+function lazyWithReload<T extends ComponentType<any>>(
+  factory: () => Promise<{ default: T }>
+) {
+  return lazy(() =>
+    factory().catch((err) => {
+      const key = "lovable:chunk-reload";
+      if (typeof window !== "undefined" && !sessionStorage.getItem(key)) {
+        sessionStorage.setItem(key, "1");
+        window.location.reload();
+        return new Promise<{ default: T }>(() => {});
+      }
+      throw err;
+    })
+  );
+}
+
 // Secondary routes are split out so the primary coach flow loads fast.
-const PlayerDashboard = lazy(() => import("./pages/PlayerDashboard"));
-const TeamDashboard = lazy(() => import("./pages/TeamDashboard"));
-const CoachDashboard = lazy(() => import("./pages/CoachDashboard"));
-const TeamWallPage = lazy(() => import("./pages/TeamWallPage"));
-const CalibratePage = lazy(() => import("./pages/CalibratePage"));
-const PrintFormPage = lazy(() => import("./pages/PrintFormPage"));
-const PrintLiveAbsPage = lazy(() => import("./pages/PrintLiveAbsPage"));
-const DesignSystemPage = lazy(() => import("./pages/DesignSystemPage"));
-const WorkoutAccountabilityPage = lazy(() => import("./pages/WorkoutAccountabilityPage"));
-const PodiumPage = lazy(() => import("./pages/PodiumPage"));
-const GameModePage = lazy(() => import("./pages/GameModePage"));
-const GamesPage = lazy(() => import("./pages/GamesPage"));
+const PlayerDashboard = lazyWithReload(() => import("./pages/PlayerDashboard"));
+const TeamDashboard = lazyWithReload(() => import("./pages/TeamDashboard"));
+const CoachDashboard = lazyWithReload(() => import("./pages/CoachDashboard"));
+const TeamWallPage = lazyWithReload(() => import("./pages/TeamWallPage"));
+const CalibratePage = lazyWithReload(() => import("./pages/CalibratePage"));
+const PrintFormPage = lazyWithReload(() => import("./pages/PrintFormPage"));
+const PrintLiveAbsPage = lazyWithReload(() => import("./pages/PrintLiveAbsPage"));
+const DesignSystemPage = lazyWithReload(() => import("./pages/DesignSystemPage"));
+const WorkoutAccountabilityPage = lazyWithReload(() => import("./pages/WorkoutAccountabilityPage"));
+const PodiumPage = lazyWithReload(() => import("./pages/PodiumPage"));
+const GameModePage = lazyWithReload(() => import("./pages/GameModePage"));
+const GamesPage = lazyWithReload(() => import("./pages/GamesPage"));
+
 
 const queryClient = new QueryClient();
 
