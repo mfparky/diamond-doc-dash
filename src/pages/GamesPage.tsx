@@ -548,6 +548,7 @@ function GameReview({ gameId }: { gameId: string }) {
               </div>
             </CardContent>
           </Card>
+        )}
       </div>
 
       <OutingPicker
