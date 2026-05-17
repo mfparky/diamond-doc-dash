@@ -784,6 +784,48 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
             </Card>
           </div>
 
+          {gamesStats.gameSummaries.length > 0 && (
+            <Card className="glass-card">
+              <CardHeader className="pb-2 px-3 sm:px-6">
+                <CardTitle className="font-display text-base sm:text-lg">Game-by-Game</CardTitle>
+              </CardHeader>
+              <CardContent className="px-3 sm:px-6">
+                <div className="overflow-x-auto">
+                  <div className="min-w-[520px] space-y-1">
+                    <div className="grid grid-cols-[minmax(80px,0.9fr)_minmax(120px,1.4fr)_repeat(4,minmax(64px,0.7fr))] gap-2 text-[10px] uppercase tracking-wider text-muted-foreground px-2 pb-1 border-b border-border/50">
+                      <span>Date</span>
+                      <span>Opponent</span>
+                      <span className="text-right">Pitches</span>
+                      <span className="text-right">Strike %</span>
+                      <span className="text-right">Top Velo</span>
+                      <span className="text-right">Arms</span>
+                    </div>
+                    {gamesStats.gameSummaries.map((g) => (
+                      <Link
+                        key={g.id}
+                        to={g.id.startsWith('outing-') ? '/games' : `/games/${g.id}`}
+                        className="grid grid-cols-[minmax(80px,0.9fr)_minmax(120px,1.4fr)_repeat(4,minmax(64px,0.7fr))] gap-2 items-center px-2 py-2 rounded-md hover:bg-muted/40 transition-colors"
+                      >
+                        <span className="text-sm font-medium text-foreground">{formatGameDate(g.date)}</span>
+                        <span className="text-sm text-foreground truncate">{g.opponent || <span className="text-muted-foreground italic">—</span>}</span>
+                        <span className="text-right text-sm font-semibold text-foreground tabular-nums">{g.pitches || '—'}</span>
+                        <span className="text-right text-sm font-semibold tabular-nums">
+                          {g.strikePct !== null ? (
+                            <span className={g.strikePct >= 60 ? 'text-success' : g.strikePct >= 50 ? 'text-foreground' : 'text-destructive'}>
+                              {g.strikePct}%
+                            </span>
+                          ) : <span className="text-muted-foreground">—</span>}
+                        </span>
+                        <span className="text-right text-sm text-foreground tabular-nums">{g.topVelo > 0 ? g.topVelo : <span className="text-muted-foreground">—</span>}</span>
+                        <span className="text-right text-sm text-muted-foreground tabular-nums">{g.pitcherCount || '—'}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {gamesStats.matrix.length > 0 && (
             <Card className="glass-card">
               <CardHeader className="pb-2 px-3 sm:px-6">
