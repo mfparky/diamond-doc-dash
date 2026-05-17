@@ -45,6 +45,8 @@ interface OutingRow {
   notes: string | null;
   focus: string | null;
   coach_notes: string | null;
+  game_id: string | null;
+  date: string;
 }
 
 function todayISO() {
