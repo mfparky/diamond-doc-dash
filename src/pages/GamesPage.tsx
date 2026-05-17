@@ -284,11 +284,9 @@ function GameReview({ gameId }: { gameId: string }) {
     [outings, gameId, game?.date]
   );
 
-  }, [gameId]);
-
   const stats = useMemo(() => {
-    // Game outings = source of truth for per-pitcher totals
-    const gameOutings = outings.filter(o => o.event_type === 'Game');
+    // Game outings = explicitly linked outings of event_type 'Game'.
+    const gameOutings = linkedOutings.filter(o => o.event_type === 'Game');
 
     type P = { key: string; name: string; pitches: number; strikes: number; maxVelo: number; focus: string | null; coachNotes: string | null; source: 'outing' | 'live' };
     const pitcherMap = new Map<string, P>();
