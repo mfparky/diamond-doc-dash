@@ -506,6 +506,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
     return {
       games: displayGames,
       recentGames,
+      gameSummaries,
       totalGamePitches,
       avgPitches: displayGames.length > 0 ? Math.round(totalGamePitches / displayGames.length) : 0,
       strikePercentage: pitchesWithStrikes > 0 ? Math.round((strikes / pitchesWithStrikes) * 100) : null,
