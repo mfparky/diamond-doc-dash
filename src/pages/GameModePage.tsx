@@ -233,7 +233,7 @@ export default function GameModePage() {
 
   const logPitch = useCallback(async (outcome: Outcome) => {
     if (!game) return;
-    const isStrike = outcome !== 'ball'; // foul + in_play count toward strikes/pitches-as-strikes
+    const isStrike = outcome !== 'ball' && outcome !== 'ab_end';
     const sequence = pitches.length + 1;
 
     let optimistic: PitchRow;
