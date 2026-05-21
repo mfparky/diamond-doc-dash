@@ -335,8 +335,9 @@ export default function GameModePage() {
 
       const { data: { user } } = await supabase.auth.getUser();
       const outingRows = Array.from(byPitcher.entries()).map(([pid, agg]) => {
-        const pitches = agg.rows.length;
-        const strikes = agg.rows.filter(r => r.is_strike).length;
+        const countable = agg.rows.filter(r => r.outcome !== 'ab_end');
+        const pitches = countable.length;
+        const strikes = countable.filter(r => r.is_strike).length;
         const ab = computeAtBatStats(agg.rows);
         const noteParts = [
           game.opponent_name ? `Game vs ${game.opponent_name}` : 'Game',
