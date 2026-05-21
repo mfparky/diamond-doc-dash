@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, Undo2, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { usePageMeta } from '@/hooks/use-page-meta';
 
-type Outcome = 'ball' | 'strike' | 'foul' | 'in_play_safe' | 'in_play_out';
+type Outcome = 'ball' | 'strike' | 'foul' | 'in_play_safe' | 'in_play_out' | 'ab_end';
 
 interface GameRow {
   id: string;
