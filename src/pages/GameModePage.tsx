@@ -662,6 +662,11 @@ export default function GameModePage() {
             In Play – Out
           </button>
         </div>
+        <button type="button" onClick={() => logPitch('ab_end')} disabled={!canLog}
+          style={{ touchAction: 'manipulation' }}
+          className="w-full h-11 rounded-2xl bg-accent text-accent-foreground text-sm font-bold active:scale-95 transition-transform disabled:opacity-40 border border-border shadow">
+          Next Batter →
+        </button>
         <div className="flex items-center justify-between gap-2">
           <Button variant="outline" size="sm" onClick={undoLast} disabled={pitches.length === 0}>
             <Undo2 className="w-4 h-4 mr-1" /> Undo
