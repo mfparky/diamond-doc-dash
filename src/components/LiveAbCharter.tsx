@@ -90,6 +90,18 @@ export function LiveAbCharter({ pitchTypes = DEFAULT_PITCH_TYPES, onChange, init
     emit(allPitches, updatedAbs);
   }, [currentAbNumber, allPitches, completedAbs, emit]);
 
+  const handleNextBatter = useCallback(() => {
+    if (pitchesInCurrentAb.length === 0) return;
+    const newAb: AtBat = {
+      ab: currentAbNumber,
+      outcome: null,
+      endPitch: allPitches.length,
+    };
+    const updatedAbs = [...completedAbs, newAb];
+    setCompletedAbs(updatedAbs);
+    emit(allPitches, updatedAbs);
+  }, [pitchesInCurrentAb.length, currentAbNumber, allPitches, completedAbs, emit]);
+
   const canUndo = allPitches.length > lastAbEndPitch; // only undo within current AB
 
   return (
