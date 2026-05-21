@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, Undo2, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { usePageMeta } from '@/hooks/use-page-meta';
 
-type Outcome = 'ball' | 'strike' | 'foul' | 'in_play_safe' | 'in_play_out';
+type Outcome = 'ball' | 'strike' | 'foul' | 'in_play_safe' | 'in_play_out' | 'ab_end';
 
 interface GameRow {
   id: string;
@@ -78,6 +78,8 @@ function computeAtBatStats(pitches: { outcome: Outcome | null; is_strike: boolea
       hits++; b = 0; s = 0;
     } else if (o === 'in_play_out') {
       outs++; b = 0; s = 0;
+    } else if (o === 'ab_end') {
+      b = 0; s = 0;
     }
   }
   return { bbs, ks, outs, hits, curBalls: b, curStrikes: s };
@@ -231,7 +233,7 @@ export default function GameModePage() {
 
   const logPitch = useCallback(async (outcome: Outcome) => {
     if (!game) return;
-    const isStrike = outcome !== 'ball'; // foul + in_play count toward strikes/pitches-as-strikes
+    const isStrike = outcome !== 'ball' && outcome !== 'ab_end';
     const sequence = pitches.length + 1;
 
     let optimistic: PitchRow;
@@ -333,8 +335,9 @@ export default function GameModePage() {
 
       const { data: { user } } = await supabase.auth.getUser();
       const outingRows = Array.from(byPitcher.entries()).map(([pid, agg]) => {
-        const pitches = agg.rows.length;
-        const strikes = agg.rows.filter(r => r.is_strike).length;
+        const countable = agg.rows.filter(r => r.outcome !== 'ab_end');
+        const pitches = countable.length;
+        const strikes = countable.filter(r => r.is_strike).length;
         const ab = computeAtBatStats(agg.rows);
         const noteParts = [
           game.opponent_name ? `Game vs ${game.opponent_name}` : 'Game',
@@ -375,8 +378,9 @@ export default function GameModePage() {
   }, [game, pitches, navigate, toast]);
 
   const totals = useMemo(() => {
-    const total = pitches.length;
-    const strikes = pitches.filter(p => p.is_strike).length;
+    const countable = pitches.filter(p => p.outcome !== 'ab_end');
+    const total = countable.length;
+    const strikes = countable.filter(p => p.is_strike).length;
     return { total, strikes, balls: total - strikes, pct: total ? Math.round((strikes / total) * 100) : 0 };
   }, [pitches]);
 
@@ -397,8 +401,9 @@ export default function GameModePage() {
 
   const activeStats = useMemo(() => {
     if (!activeKey) return null;
-    const total = activePitches.length;
-    const strikes = activePitches.filter(p => p.is_strike).length;
+    const countable = activePitches.filter(p => p.outcome !== 'ab_end');
+    const total = countable.length;
+    const strikes = countable.filter(p => p.is_strike).length;
     const ab = computeAtBatStats(activePitches);
     const decisions = ab.bbs + ab.ks;
     return {
@@ -428,8 +433,9 @@ export default function GameModePage() {
     });
     grouped.forEach((rows, key) => {
       const r = map.get(key)!;
-      r.pitches = rows.length;
-      r.strikes = rows.filter(x => x.is_strike).length;
+      const countable = rows.filter(x => x.outcome !== 'ab_end');
+      r.pitches = countable.length;
+      r.strikes = countable.filter(x => x.is_strike).length;
       const ab = computeAtBatStats(rows);
       r.bbs = ab.bbs;
       r.ks = ab.ks;
@@ -656,6 +662,11 @@ export default function GameModePage() {
             In Play – Out
           </button>
         </div>
+        <button type="button" onClick={() => logPitch('ab_end')} disabled={!canLog}
+          style={{ touchAction: 'manipulation' }}
+          className="w-full h-11 rounded-2xl bg-accent text-accent-foreground text-sm font-bold active:scale-95 transition-transform disabled:opacity-40 border border-border shadow">
+          Next Batter →
+        </button>
         <div className="flex items-center justify-between gap-2">
           <Button variant="outline" size="sm" onClick={undoLast} disabled={pitches.length === 0}>
             <Undo2 className="w-4 h-4 mr-1" /> Undo
