@@ -78,6 +78,8 @@ function computeAtBatStats(pitches: { outcome: Outcome | null; is_strike: boolea
       hits++; b = 0; s = 0;
     } else if (o === 'in_play_out') {
       outs++; b = 0; s = 0;
+    } else if (o === 'ab_end') {
+      b = 0; s = 0;
     }
   }
   return { bbs, ks, outs, hits, curBalls: b, curStrikes: s };
