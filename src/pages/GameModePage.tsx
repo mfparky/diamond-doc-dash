@@ -433,8 +433,9 @@ export default function GameModePage() {
     });
     grouped.forEach((rows, key) => {
       const r = map.get(key)!;
-      r.pitches = rows.length;
-      r.strikes = rows.filter(x => x.is_strike).length;
+      const countable = rows.filter(x => x.outcome !== 'ab_end');
+      r.pitches = countable.length;
+      r.strikes = countable.filter(x => x.is_strike).length;
       const ab = computeAtBatStats(rows);
       r.bbs = ab.bbs;
       r.ks = ab.ks;
