@@ -401,8 +401,9 @@ export default function GameModePage() {
 
   const activeStats = useMemo(() => {
     if (!activeKey) return null;
-    const total = activePitches.length;
-    const strikes = activePitches.filter(p => p.is_strike).length;
+    const countable = activePitches.filter(p => p.outcome !== 'ab_end');
+    const total = countable.length;
+    const strikes = countable.filter(p => p.is_strike).length;
     const ab = computeAtBatStats(activePitches);
     const decisions = ab.bbs + ab.ks;
     return {
