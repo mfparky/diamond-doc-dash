@@ -378,8 +378,9 @@ export default function GameModePage() {
   }, [game, pitches, navigate, toast]);
 
   const totals = useMemo(() => {
-    const total = pitches.length;
-    const strikes = pitches.filter(p => p.is_strike).length;
+    const countable = pitches.filter(p => p.outcome !== 'ab_end');
+    const total = countable.length;
+    const strikes = countable.filter(p => p.is_strike).length;
     return { total, strikes, balls: total - strikes, pct: total ? Math.round((strikes / total) * 100) : 0 };
   }, [pitches]);
 
