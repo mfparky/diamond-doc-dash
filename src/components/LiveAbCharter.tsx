@@ -237,25 +237,37 @@ export function LiveAbCharter({ pitchTypes = DEFAULT_PITCH_TYPES, onChange, init
         </div>
       ) : (
         /* Controls row */
-        <div className="flex gap-2">
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={handleUndo}
+              disabled={!canUndo}
+            >
+              <Undo2 className="w-3.5 h-3.5 mr-1.5" />
+              Undo
+            </Button>
+            <Button
+              size="sm"
+              className="flex-1"
+              onClick={handleEndAb}
+              disabled={pitchesInCurrentAb.length === 0}
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+              End AB
+            </Button>
+          </div>
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
-            className="flex-1"
-            onClick={handleUndo}
-            disabled={!canUndo}
-          >
-            <Undo2 className="w-3.5 h-3.5 mr-1.5" />
-            Undo
-          </Button>
-          <Button
-            size="sm"
-            className="flex-1"
-            onClick={handleEndAb}
+            className="w-full"
+            onClick={handleNextBatter}
             disabled={pitchesInCurrentAb.length === 0}
+            title="End AB without picking an outcome — for in-play balls"
           >
-            <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
-            End AB
+            Next batter →
           </Button>
         </div>
       )}
