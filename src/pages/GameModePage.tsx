@@ -35,7 +35,9 @@ interface PitchRow {
   pitcher_id: string | null;
   pitcher_name: string;
   inning: number;
-  half: Half | null;
+  // In-memory only — not persisted to DB. UI uses it for the Top/Bot label and outs scoping
+  // during a session; on reload it defaults to 'top'.
+  half?: Half | null;
   is_strike: boolean;
   is_opponent: boolean;
   opponent_jersey: string | null;
@@ -335,7 +337,6 @@ export default function GameModePage() {
         pitcher_id: pitcher.id,
         pitcher_name: pitcher.name,
         inning: currentInning,
-        half: currentHalf,
         is_strike: isStrike,
         is_opponent: false,
         opponent_jersey: null,
@@ -365,7 +366,6 @@ export default function GameModePage() {
         pitcher_id: null,
         pitcher_name: name,
         inning: currentInning,
-        half: currentHalf,
         is_strike: isStrike,
         is_opponent: true,
         opponent_jersey: jersey,
@@ -387,7 +387,11 @@ export default function GameModePage() {
       toast({ title: 'Pitch not saved', description: error.message, variant: 'destructive' });
       return;
     }
-    setPitches(prev => prev.map(p => (p.id === optimistic.id ? (data as PitchRow) : p)));
+    // Carry the in-session `half` across the DB → state swap.
+    setPitches(prev => prev.map(p => {
+      if (p.id !== optimistic.id) return p;
+      return { ...(data as PitchRow), half: optimistic.half };
+    }));
   }, [game, side, activePitcherId, oppJersey, pitchers, pitches.length, currentInning, currentHalf, toast]);
 
   const undoLast = useCallback(async () => {
