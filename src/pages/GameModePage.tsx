@@ -4,13 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 import type { TablesInsert } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 import { usePitchers } from '@/hooks/use-pitchers';
+import { useAuth } from '@/hooks/use-auth';
 import { calculateRestStatus, parseLocalDateAtNoon, type RestStatus } from '@/types/pitcher';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Undo2, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Undo2, Check, ChevronDown, ChevronUp, LogOut } from 'lucide-react';
 import { usePageMeta } from '@/hooks/use-page-meta';
 
 type Outcome = 'ball' | 'strike' | 'foul' | 'in_play_safe' | 'in_play_out' | 'ab_end';
@@ -101,6 +102,7 @@ export default function GameModePage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { pitchers, isLoading: pitchersLoading } = usePitchers();
+  const { signOut } = useAuth();
 
   const [game, setGame] = useState<GameRow | null>(null);
   const [pitches, setPitches] = useState<PitchRow[]>([]);
@@ -451,21 +453,26 @@ export default function GameModePage() {
     return (
       <div className="h-[100dvh] w-full bg-background p-4 overflow-y-auto overflow-x-hidden">
         <div className="max-w-md mx-auto">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="mb-4">
-            <ArrowLeft className="w-4 h-4 mr-1" /> Back
-          </Button>
+          <div className="flex items-center justify-between mb-4 gap-2">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
+              <ArrowLeft className="w-4 h-4 mr-1" /> Back
+            </Button>
+            <Button variant="ghost" size="sm" onClick={signOut}>
+              <LogOut className="w-4 h-4 mr-1" /> Sign out
+            </Button>
+          </div>
           <Card>
             <CardHeader>
               <CardTitle>Start a Game</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label>Date</Label>
-                <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="h-11 text-base" />
+              <div className="space-y-1.5">
+                <Label htmlFor="game-date">Date</Label>
+                <Input id="game-date" type="date" value={date} onChange={e => setDate(e.target.value)} className="block w-full h-11 text-base appearance-none" />
               </div>
-              <div>
-                <Label>Opponent (optional)</Label>
-                <Input value={opponent} onChange={e => setOpponent(e.target.value)} placeholder="e.g. Markham Mariners" className="h-11 text-base" />
+              <div className="space-y-1.5">
+                <Label htmlFor="game-opp">Opponent (optional)</Label>
+                <Input id="game-opp" value={opponent} onChange={e => setOpponent(e.target.value)} placeholder="e.g. Markham Mariners" className="h-11 text-base" />
               </div>
               <Button className="w-full h-12" onClick={startGame} disabled={busy || pitchersLoading}>
                 Start Game
