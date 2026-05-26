@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import type { TablesInsert } from '@/integrations/supabase/types';
@@ -7,11 +7,14 @@ import { usePitchers } from '@/hooks/use-pitchers';
 import { useAuth } from '@/hooks/use-auth';
 import { calculateRestStatus, parseLocalDateAtNoon, type RestStatus } from '@/types/pitcher';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Undo2, Check, ChevronDown, ChevronUp, LogOut } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { ArrowLeft, Undo2, Check, ChevronDown, ChevronUp, LogOut, AlertTriangle, X } from 'lucide-react';
 import { usePageMeta } from '@/hooks/use-page-meta';
 
 type Outcome = 'ball' | 'strike' | 'foul' | 'in_play_safe' | 'in_play_out' | 'ab_end';
@@ -42,6 +45,11 @@ type Side = 'us' | 'opp';
 const OPP_KEY_PREFIX = 'opp:';
 const opponentLabel = (jersey: string) => `Opp #${jersey}`;
 
+// Youth pitch-limit thresholds (mirrors getDaysRestNeeded in types/pitcher.ts).
+const PITCH_WARN_YELLOW = 31;  // first rest day kicks in
+const PITCH_WARN_ORANGE = 46;
+const PITCH_WARN_RED = 76;     // 4-day rest territory
+
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Please try again.';
 }
@@ -51,13 +59,26 @@ function todayISO() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+function pitchCountClass(n: number) {
+  if (n >= PITCH_WARN_RED) return 'text-red-600 dark:text-red-400';
+  if (n >= PITCH_WARN_ORANGE) return 'text-orange-600 dark:text-orange-400';
+  if (n >= PITCH_WARN_YELLOW) return 'text-yellow-600 dark:text-yellow-400';
+  return 'text-foreground';
+}
+
+function vibrate(ms = 10) {
+  // Best-effort haptic; no-op on unsupported browsers (iOS Safari).
+  if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+    try { navigator.vibrate(ms); } catch { /* ignore */ }
+  }
+}
+
 // Walk a pitcher's pitches in order to compute at-bat results & current BSO state
 interface AtBatStats {
   bbs: number;
   ks: number;
   outs: number;
-  hits: number; // in_play_safe approximations
-  // current open at-bat
+  hits: number;
   curBalls: number;
   curStrikes: number;
 }
@@ -86,11 +107,24 @@ function computeAtBatStats(pitches: { outcome: Outcome | null; is_strike: boolea
   return { bbs, ks, outs, hits, curBalls: b, curStrikes: s };
 }
 
+// Rank rest statuses so unavailable pitchers fall to the bottom of the dropdown.
+function restSortRank(status?: RestStatus): number {
+  if (!status) return 1;
+  if (status.type === 'active' || status.type === 'no-data') return 0;
+  if (status.type === 'resting') return 1;
+  if (status.type === 'threw-today') return 2;
+  return 1;
+}
+
+function restIsRisky(status?: RestStatus): boolean {
+  if (!status) return false;
+  return status.type === 'threw-today' || status.type === 'resting';
+}
+
 export default function GameModePage() {
   usePageMeta({ title: 'Game Mode | Arm Stats', description: 'Live pitch-by-pitch counter for games.' });
 
-  // Lock viewport zoom while in Game Mode so iOS auto-zoom on input focus
-  // (and accidental pinch) can't push UI past the viewport.
+  // Lock viewport zoom so iOS auto-zoom on input focus can't push UI past the viewport.
   useEffect(() => {
     const meta = document.querySelector('meta[name="viewport"]');
     if (!meta) return;
@@ -98,6 +132,7 @@ export default function GameModePage() {
     meta.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover');
     return () => { meta.setAttribute('content', original); };
   }, []);
+
   const { gameId: paramGameId } = useParams<{ gameId?: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -115,6 +150,13 @@ export default function GameModePage() {
   // Setup form
   const [opponent, setOpponent] = useState('');
   const [date, setDate] = useState(todayISO());
+
+  // UX state
+  const [selectorOpen, setSelectorOpen] = useState(true);
+  const [pendingPitcherId, setPendingPitcherId] = useState<string | null>(null);
+  const [finishConfirmOpen, setFinishConfirmOpen] = useState(false);
+  const [inningAdvanceOpen, setInningAdvanceOpen] = useState(false);
+  const inningPromptedRef = useRef<number | null>(null);
 
   // Per-pitcher rest status, derived from each pitcher's most recent outing.
   const [restByPitcher, setRestByPitcher] = useState<Record<string, RestStatus>>({});
@@ -153,7 +195,7 @@ export default function GameModePage() {
     return () => { cancelled = true; };
   }, [pitchers]);
 
-  const restDot = (status?: RestStatus) => {
+  const restDot = (status?: RestStatus, big = false) => {
     if (!status) return null;
     const cls =
       status.type === 'active' ? 'bg-emerald-500'
@@ -164,7 +206,7 @@ export default function GameModePage() {
           : status.daysNeeded === 2 ? 'bg-yellow-500'
           : 'bg-slate-400')
       : 'bg-muted';
-    return <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${cls}`} />;
+    return <span className={`inline-block rounded-full shrink-0 ${big ? 'w-3 h-3' : 'w-2 h-2'} ${cls}`} />;
   };
   const restSuffix = (status?: RestStatus) => {
     if (!status) return '';
@@ -198,6 +240,7 @@ export default function GameModePage() {
           setSide('us');
           setActivePitcherId(last.pitcher_id);
         }
+        setSelectorOpen(false);
       }
     })();
     return () => { cancelled = true; };
@@ -233,10 +276,29 @@ export default function GameModePage() {
     }
   }, [date, opponent, pitchers, navigate, toast]);
 
+  // Try to select a pitcher; if they have insufficient rest, intercept.
+  const trySelectPitcher = useCallback((pid: string) => {
+    const status = restByPitcher[pid];
+    if (restIsRisky(status)) {
+      setPendingPitcherId(pid);
+      return;
+    }
+    setActivePitcherId(pid);
+    setSelectorOpen(false);
+  }, [restByPitcher]);
+
+  const confirmRiskyPitcher = useCallback(() => {
+    if (!pendingPitcherId) return;
+    setActivePitcherId(pendingPitcherId);
+    setPendingPitcherId(null);
+    setSelectorOpen(false);
+  }, [pendingPitcherId]);
+
   const logPitch = useCallback(async (outcome: Outcome) => {
     if (!game) return;
     const isStrike = outcome !== 'ball' && outcome !== 'ab_end';
     const sequence = pitches.length + 1;
+    vibrate(10);
 
     let optimistic: PitchRow;
     let insertPayload: TablesInsert<'game_pitches'>;
@@ -315,6 +377,7 @@ export default function GameModePage() {
 
   const undoLast = useCallback(async () => {
     if (!pitches.length) return;
+    vibrate(15);
     const last = pitches[pitches.length - 1];
     setPitches(prev => prev.slice(0, -1));
     if (!last.id.startsWith('tmp-')) {
@@ -322,11 +385,10 @@ export default function GameModePage() {
     }
   }, [pitches]);
 
-  const finishGame = useCallback(async () => {
+  const performFinish = useCallback(async () => {
     if (!game) return;
     setBusy(true);
     try {
-      // Aggregate per-pitcher (our side only)
       const byPitcher = new Map<string, { name: string; rows: PitchRow[] }>();
       pitches.forEach(p => {
         if (p.is_opponent || !p.pitcher_id) return;
@@ -338,7 +400,7 @@ export default function GameModePage() {
       const { data: { user } } = await supabase.auth.getUser();
       const outingRows = Array.from(byPitcher.entries()).map(([pid, agg]) => {
         const countable = agg.rows.filter(r => r.outcome !== 'ab_end');
-        const pitches = countable.length;
+        const pcount = countable.length;
         const strikes = countable.filter(r => r.is_strike).length;
         const ab = computeAtBatStats(agg.rows);
         const noteParts = [
@@ -351,7 +413,7 @@ export default function GameModePage() {
           pitcher_name: agg.name,
           date: game.date,
           event_type: 'Game',
-          pitch_count: pitches,
+          pitch_count: pcount,
           strikes,
           max_velocity: 0,
           notes: noteParts.join(' · '),
@@ -364,10 +426,7 @@ export default function GameModePage() {
         if (oErr) throw oErr;
       }
 
-      const { error } = await supabase
-        .from('games')
-        .update({ status: 'completed' })
-        .eq('id', game.id);
+      const { error } = await supabase.from('games').update({ status: 'completed' }).eq('id', game.id);
       if (error) throw error;
 
       toast({ title: 'Game saved', description: `${outingRows.length} outing${outingRows.length === 1 ? '' : 's'} added to Arm Tracker.` });
@@ -376,6 +435,7 @@ export default function GameModePage() {
       toast({ title: 'Could not finish game', description: getErrorMessage(e), variant: 'destructive' });
     } finally {
       setBusy(false);
+      setFinishConfirmOpen(false);
     }
   }, [game, pitches, navigate, toast]);
 
@@ -394,12 +454,10 @@ export default function GameModePage() {
     ? (pitchers.find(p => p.id === activePitcherId)?.name ?? '')
     : (oppJersey.trim() ? opponentLabel(oppJersey.trim()) : '');
 
-  const activePitches = useMemo(() => {
-    return pitches.filter(p => {
-      if (side === 'us') return !p.is_opponent && p.pitcher_id === activePitcherId;
-      return p.is_opponent && p.opponent_jersey === oppJersey.trim();
-    });
-  }, [pitches, side, activePitcherId, oppJersey]);
+  const activePitches = useMemo(() => pitches.filter(p => {
+    if (side === 'us') return !p.is_opponent && p.pitcher_id === activePitcherId;
+    return p.is_opponent && p.opponent_jersey === oppJersey.trim();
+  }), [pitches, side, activePitcherId, oppJersey]);
 
   const activeStats = useMemo(() => {
     if (!activeKey) return null;
@@ -418,9 +476,40 @@ export default function GameModePage() {
     };
   }, [activePitches, activeKey]);
 
-  // Tally
+  // Outs in the current inning for the active side — drives auto-advance prompt.
+  const outsThisInning = useMemo(() => {
+    const inSide = pitches.filter(p => p.inning === currentInning && p.is_opponent === (side === 'opp'));
+    return computeAtBatStats(inSide).outs;
+  }, [pitches, currentInning, side]);
+
+  // Prompt to advance inning once outs reach 3 (per side, per inning).
+  useEffect(() => {
+    if (outsThisInning >= 3 && inningPromptedRef.current !== currentInning) {
+      inningPromptedRef.current = currentInning;
+      setInningAdvanceOpen(true);
+    }
+  }, [outsThisInning, currentInning]);
+
+  const advanceInning = useCallback(() => {
+    setCurrentInning(i => i + 1);
+    setInningAdvanceOpen(false);
+  }, []);
+
+  // Last-pitch chip
+  const lastPitch = pitches.length ? pitches[pitches.length - 1] : null;
+  const lastPitchLabel = useMemo(() => {
+    if (!lastPitch) return '';
+    const o = lastPitch.outcome ?? (lastPitch.is_strike ? 'strike' : 'ball');
+    const labels: Record<Outcome, string> = {
+      ball: 'Ball', strike: 'Strike', foul: 'Foul',
+      in_play_safe: 'In Play – Safe', in_play_out: 'In Play – Out', ab_end: 'AB End',
+    };
+    return labels[o];
+  }, [lastPitch]);
+
+  // Tally — both teams, click to switch active pitcher.
   const tally = useMemo(() => {
-    type Row = { key: string; name: string; isOpponent: boolean; pitches: number; strikes: number; bbs: number; ks: number };
+    type Row = { key: string; name: string; isOpponent: boolean; pitcherId: string | null; jersey: string | null; pitches: number; strikes: number; bbs: number; ks: number };
     const map = new Map<string, Row>();
     const grouped = new Map<string, PitchRow[]>();
     pitches.forEach(p => {
@@ -430,7 +519,12 @@ export default function GameModePage() {
       if (!grouped.has(key)) grouped.set(key, []);
       grouped.get(key)!.push(p);
       if (!map.has(key)) {
-        map.set(key, { key, name: p.pitcher_name, isOpponent: p.is_opponent, pitches: 0, strikes: 0, bbs: 0, ks: 0 });
+        map.set(key, {
+          key, name: p.pitcher_name, isOpponent: p.is_opponent,
+          pitcherId: p.is_opponent ? null : p.pitcher_id,
+          jersey: p.is_opponent ? p.opponent_jersey : null,
+          pitches: 0, strikes: 0, bbs: 0, ks: 0,
+        });
       }
     });
     grouped.forEach((rows, key) => {
@@ -447,8 +541,47 @@ export default function GameModePage() {
       .sort((a, b) => Number(a.isOpponent) - Number(b.isOpponent) || b.pitches - a.pitches);
   }, [pitches]);
 
+  // Has any of our pitchers crossed the high-warning threshold?
+  const overLimit = useMemo(() => tally.find(t => !t.isOpponent && t.pitches >= PITCH_WARN_RED), [tally]);
+
+  // Recent opponent jerseys for quick-select chips.
+  const recentJerseys = useMemo(() => {
+    const seen: string[] = [];
+    for (let i = pitches.length - 1; i >= 0; i--) {
+      const p = pitches[i];
+      if (p.is_opponent && p.opponent_jersey && !seen.includes(p.opponent_jersey)) {
+        seen.push(p.opponent_jersey);
+      }
+      if (seen.length >= 8) break;
+    }
+    return seen;
+  }, [pitches]);
+
   const canLog = side === 'us' ? !!activePitcherId : !!oppJersey.trim();
 
+  // Sort pitchers — healthy first, threw-today last.
+  const sortedPitchers = useMemo(() => {
+    return [...pitchers].sort((a, b) => {
+      const ra = restSortRank(restByPitcher[a.id]);
+      const rb = restSortRank(restByPitcher[b.id]);
+      if (ra !== rb) return ra - rb;
+      return a.name.localeCompare(b.name);
+    });
+  }, [pitchers, restByPitcher]);
+
+  const switchToTallyRow = (row: { isOpponent: boolean; pitcherId: string | null; jersey: string | null }) => {
+    if (row.isOpponent && row.jersey) {
+      setSide('opp');
+      setOppJersey(row.jersey);
+      setSelectorOpen(false);
+    } else if (row.pitcherId) {
+      setSide('us');
+      // Use risk-check path so red dots still prompt confirmation.
+      trySelectPitcher(row.pitcherId);
+    }
+  };
+
+  // ---- Setup screen ----
   if (!game) {
     return (
       <div className="h-[100dvh] w-full bg-background p-4 overflow-y-auto overflow-x-hidden">
@@ -462,9 +595,7 @@ export default function GameModePage() {
             </Button>
           </div>
           <Card>
-            <CardHeader>
-              <CardTitle>Start a Game</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>Start a Game</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="game-date">Date</Label>
@@ -484,8 +615,19 @@ export default function GameModePage() {
     );
   }
 
-  const dot = (filled: boolean, color: string) => (
-    <span className={`inline-block w-2.5 h-2.5 rounded-full ${filled ? color : 'bg-muted'}`} />
+  // BSO display — bigger, B/S/O column-style with text labels for color-blind use.
+  const BsoDots = ({ filled, max, color, letter }: { filled: number; max: number; color: string; letter: string }) => (
+    <div className="flex items-center gap-1.5">
+      <span className="text-xs font-bold text-muted-foreground w-3 tabular-nums" aria-hidden>{letter}</span>
+      <div className="flex items-center gap-1">
+        {Array.from({ length: max }).map((_, i) => (
+          <span
+            key={i}
+            className={`inline-block w-3.5 h-3.5 rounded-full border-2 ${i < filled ? `${color} border-transparent` : 'bg-transparent border-muted-foreground/40'}`}
+          />
+        ))}
+      </div>
+    </div>
   );
 
   return (
@@ -500,119 +642,147 @@ export default function GameModePage() {
           <p className="text-[11px] text-muted-foreground leading-none">{game.date}</p>
           <p className="font-semibold text-sm truncate">{game.opponent_name || 'Game'}</p>
         </div>
-        <Button size="sm" onClick={finishGame} disabled={busy || pitches.length === 0} className="px-2 shrink-0">
+        <Button size="sm" variant="default" onClick={() => setFinishConfirmOpen(true)} disabled={busy || pitches.length === 0} className="px-2 shrink-0">
           <Check className="w-4 h-4 sm:mr-1" />
           <span className="hidden sm:inline">Finish</span>
         </Button>
       </div>
 
-      {/* Scrollable middle: selectors, BSO, tally */}
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
-        <div className="px-3 pt-3">
-          <div className="grid grid-cols-2 rounded-lg bg-secondary p-1 text-sm font-semibold">
-            <button type="button" onClick={() => setSide('us')}
-              className={`h-9 rounded-md transition-colors ${side === 'us' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'}`}
-              style={{ touchAction: 'manipulation' }}>
-              Our Pitcher
-            </button>
-            <button type="button" onClick={() => setSide('opp')}
-              className={`h-9 rounded-md transition-colors ${side === 'opp' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'}`}
-              style={{ touchAction: 'manipulation' }}>
-              Opponent
-            </button>
-          </div>
+      {/* Over-limit banner */}
+      {overLimit && (
+        <div className="px-3 py-2 bg-red-500/10 border-b border-red-500/30 flex items-center gap-2 shrink-0">
+          <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
+          <p className="text-xs font-semibold text-red-700 dark:text-red-300 truncate">
+            {overLimit.name} at {overLimit.pitches} pitches — past 4-day-rest limit
+          </p>
         </div>
+      )}
 
-        <div className="px-3 pt-3 pb-2 space-y-2 border-b border-border">
-          {side === 'us' ? (
-            <div className="min-w-0">
-              <Label className="text-xs">Pitcher</Label>
-              <Select value={activePitcherId} onValueChange={setActivePitcherId}>
-                <SelectTrigger className="h-11 w-full">
-                  <SelectValue placeholder="Select pitcher">
-                    {activePitcherId && (() => {
-                      const p = pitchers.find(p => p.id === activePitcherId);
-                      if (!p) return null;
-                      return (
-                        <span className="flex items-center gap-2 min-w-0">
-                          {restDot(restByPitcher[p.id])}
-                          <span className="truncate">{p.name}{restSuffix(restByPitcher[p.id])}</span>
-                        </span>
-                      );
-                    })()}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {pitchers.map(p => (
-                    <SelectItem key={p.id} value={p.id}>
-                      <span className="flex items-center gap-2">
-                        {restDot(restByPitcher[p.id])}
-                        <span>{p.name}{restSuffix(restByPitcher[p.id])}</span>
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      {/* Scrollable middle: pitcher selector + tally */}
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
+        {/* Collapsible active-pitcher selector */}
+        <div className="px-3 pt-3 pb-2 border-b border-border">
+          {!selectorOpen && activeSubjectLabel ? (
+            <button
+              type="button"
+              onClick={() => setSelectorOpen(true)}
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-secondary/60 active:bg-secondary"
+              style={{ touchAction: 'manipulation' }}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                {side === 'us' && restDot(restByPitcher[activePitcherId])}
+                <span className="font-semibold truncate">{activeSubjectLabel}</span>
+              </div>
+              <span className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+                Inn {currentInning} <ChevronDown className="w-4 h-4" />
+              </span>
+            </button>
           ) : (
-            <div className="min-w-0">
-              <Label className="text-xs">Opponent jersey #</Label>
-              <Input type="number" inputMode="numeric" pattern="[0-9]*" min={0}
-                value={oppJersey} onChange={e => setOppJersey(e.target.value.replace(/[^0-9]/g, ''))}
-                placeholder="e.g. 12" className="h-11 text-base w-full" />
+            <div className="space-y-2">
+              {/* Inline side toggle inside selector */}
+              <div className="grid grid-cols-2 rounded-lg bg-secondary p-1 text-sm font-semibold">
+                <button type="button" onClick={() => setSide('us')}
+                  className={`h-9 rounded-md transition-colors ${side === 'us' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'}`}
+                  style={{ touchAction: 'manipulation' }}>
+                  Our Pitcher
+                </button>
+                <button type="button" onClick={() => setSide('opp')}
+                  className={`h-9 rounded-md transition-colors ${side === 'opp' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'}`}
+                  style={{ touchAction: 'manipulation' }}>
+                  Opponent
+                </button>
+              </div>
+
+              {side === 'us' ? (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">Pitcher</Label>
+                    {activeSubjectLabel && (
+                      <button type="button" onClick={() => setSelectorOpen(false)} className="text-xs text-muted-foreground flex items-center gap-1">
+                        Collapse <ChevronUp className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {sortedPitchers.map(p => {
+                      const status = restByPitcher[p.id];
+                      const isActive = p.id === activePitcherId;
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => trySelectPitcher(p.id)}
+                          style={{ touchAction: 'manipulation' }}
+                          className={`px-2 py-2 rounded-lg border text-left text-sm font-medium min-w-0 ${
+                            isActive ? 'bg-primary/10 border-primary text-foreground' : 'bg-card border-border'
+                          }`}
+                        >
+                          <span className="flex items-center gap-1.5 min-w-0">
+                            {restDot(status)}
+                            <span className="truncate">{p.name}</span>
+                          </span>
+                          {restSuffix(status) && (
+                            <span className="block text-[10px] text-muted-foreground truncate">{restSuffix(status).replace(' · ', '')}</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">Opponent jersey #</Label>
+                    {activeSubjectLabel && (
+                      <button type="button" onClick={() => setSelectorOpen(false)} className="text-xs text-muted-foreground flex items-center gap-1">
+                        Collapse <ChevronUp className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                  {recentJerseys.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {recentJerseys.map(j => (
+                        <button
+                          key={j}
+                          type="button"
+                          onClick={() => { setOppJersey(j); setSelectorOpen(false); }}
+                          style={{ touchAction: 'manipulation' }}
+                          className={`px-3 py-1.5 rounded-full border text-sm font-bold min-w-[3rem] tabular-nums ${
+                            oppJersey === j ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border'
+                          }`}
+                        >
+                          #{j}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="outline" size="icon" className="h-11 w-11"
+                      onClick={() => setOppJersey(j => String(Math.max(0, (parseInt(j || '0', 10) || 0) - 1)))}>
+                      <ChevronDown className="w-4 h-4" />
+                    </Button>
+                    <Input type="number" inputMode="numeric" pattern="[0-9]*" min={0}
+                      value={oppJersey}
+                      onChange={e => setOppJersey(e.target.value.replace(/[^0-9]/g, ''))}
+                      placeholder="#"
+                      className="h-11 text-center text-lg font-bold tabular-nums" />
+                    <Button type="button" variant="outline" size="icon" className="h-11 w-11"
+                      onClick={() => setOppJersey(j => String((parseInt(j || '0', 10) || 0) + 1))}>
+                      <ChevronUp className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
-          <div className="flex items-center justify-between gap-2">
-            <Label className="text-xs">Inning</Label>
-            <div className="flex items-center gap-3">
-              <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentInning(i => Math.max(1, i - 1))}>
-                <ChevronDown className="w-4 h-4" />
-              </Button>
-              <span className="text-xl font-bold w-8 text-center">{currentInning}</span>
-              <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setCurrentInning(i => i + 1)}>
-                <ChevronUp className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
         </div>
-
-        {activeSubjectLabel && activeStats && (
-          <div className="px-3 py-2 border-b border-border bg-secondary/30 space-y-2">
-            <div className="flex items-center justify-center gap-5 text-sm font-semibold">
-              <div className="flex items-center gap-1.5">
-                <span className="text-muted-foreground">B</span>
-                {dot(activeStats.curBalls >= 1, 'bg-emerald-500')}
-                {dot(activeStats.curBalls >= 2, 'bg-emerald-500')}
-                {dot(activeStats.curBalls >= 3, 'bg-emerald-500')}
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-muted-foreground">S</span>
-                {dot(activeStats.curStrikes >= 1, 'bg-orange-500')}
-                {dot(activeStats.curStrikes >= 2, 'bg-orange-500')}
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-muted-foreground">O</span>
-                <span className="text-base font-bold tabular-nums">{activeStats.outs}</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-0.5 text-xs max-w-xs mx-auto">
-              <div className="flex justify-between"><span className="text-muted-foreground">Balls:</span><span className="font-bold">{activeStats.total - activeStats.strikes}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Strikes:</span><span className="font-bold">{activeStats.strikes}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">BBs:</span><span className="font-bold">{activeStats.bbs}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Ks:</span><span className="font-bold">{activeStats.ks}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">BB%:</span><span className="font-bold">{activeStats.bbPct}%</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">K%:</span><span className="font-bold">{activeStats.kPct}%</span></div>
-            </div>
-            <p className="text-center text-[10px] uppercase tracking-wide text-muted-foreground truncate">{activeSubjectLabel}</p>
-          </div>
-        )}
 
         {/* Tally */}
         <div className="px-3 py-3">
           <div className="rounded-lg border border-border bg-card">
             <div className="px-3 py-2 border-b border-border flex items-center justify-between">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">All Pitchers</p>
-              <p className="text-[11px] text-muted-foreground">{tally.length} tracked</p>
+              <p className="text-[11px] text-muted-foreground">Tap to switch · {tally.length} tracked</p>
             </div>
             {tally.length === 0 ? (
               <p className="px-3 py-4 text-sm text-muted-foreground text-center">No pitches logged yet.</p>
@@ -621,14 +791,21 @@ export default function GameModePage() {
                 {tally.map(row => {
                   const isActive = row.key === activeKey;
                   return (
-                    <li key={row.key} className={`px-3 py-2 flex items-center gap-2 text-sm ${isActive ? 'bg-secondary/40' : ''}`}>
-                      <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded shrink-0 ${
-                        row.isOpponent ? 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-400' : 'bg-primary/15 text-primary'
-                      }`}>{row.isOpponent ? 'Opp' : 'Us'}</span>
-                      <span className="font-semibold truncate flex-1 min-w-0">{row.name}</span>
-                      <span className="font-bold tabular-nums shrink-0">{row.pitches}</span>
-                      <span className="text-muted-foreground tabular-nums shrink-0 w-16 text-right">{row.ks}K/{row.bbs}BB</span>
-                      <span className="text-primary font-semibold tabular-nums shrink-0 w-12 text-right">{row.pct}%</span>
+                    <li key={row.key}>
+                      <button
+                        type="button"
+                        onClick={() => switchToTallyRow(row)}
+                        style={{ touchAction: 'manipulation' }}
+                        className={`w-full px-3 py-2 flex items-center gap-2 text-sm text-left active:bg-secondary/60 ${isActive ? 'bg-secondary/40' : ''}`}
+                      >
+                        <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded shrink-0 ${
+                          row.isOpponent ? 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-400' : 'bg-primary/15 text-primary'
+                        }`}>{row.isOpponent ? 'Opp' : 'Us'}</span>
+                        <span className="font-semibold truncate flex-1 min-w-0">{row.name}</span>
+                        <span className={`font-bold tabular-nums shrink-0 ${row.isOpponent ? '' : pitchCountClass(row.pitches)}`}>{row.pitches}</span>
+                        <span className="text-muted-foreground tabular-nums shrink-0 w-16 text-right">{row.ks}K/{row.bbs}BB</span>
+                        <span className="text-primary font-semibold tabular-nums shrink-0 w-12 text-right">{row.pct}%</span>
+                      </button>
                     </li>
                   );
                 })}
@@ -638,52 +815,170 @@ export default function GameModePage() {
         </div>
       </div>
 
-      {/* Pinned action buttons */}
-      <div className="shrink-0 border-t border-border bg-card/95 backdrop-blur p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] space-y-2">
-        <div className="grid grid-cols-3 gap-2">
-          <button type="button" onClick={() => logPitch('ball')} disabled={!canLog}
-            style={{ touchAction: 'manipulation' }}
-            className="h-14 rounded-2xl bg-secondary text-foreground text-base font-bold active:scale-95 transition-transform disabled:opacity-40 border border-border shadow">
-            Ball
-          </button>
-          <button type="button" onClick={() => logPitch('strike')} disabled={!canLog}
-            style={{ touchAction: 'manipulation' }}
-            className="h-14 rounded-2xl bg-primary text-primary-foreground text-base font-bold active:scale-95 transition-transform disabled:opacity-40 shadow-lg">
-            Strike
-          </button>
-          <button type="button" onClick={() => logPitch('foul')} disabled={!canLog}
-            style={{ touchAction: 'manipulation' }}
-            className="h-14 rounded-2xl bg-secondary text-foreground text-base font-bold active:scale-95 transition-transform disabled:opacity-40 border border-border shadow">
-            Foul
-          </button>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <button type="button" onClick={() => logPitch('in_play_safe')} disabled={!canLog}
-            style={{ touchAction: 'manipulation' }}
-            className="h-12 rounded-2xl bg-secondary text-foreground text-sm font-bold active:scale-95 transition-transform disabled:opacity-40 border border-border shadow">
-            In Play – Safe
-          </button>
-          <button type="button" onClick={() => logPitch('in_play_out')} disabled={!canLog}
-            style={{ touchAction: 'manipulation' }}
-            className="h-12 rounded-2xl bg-secondary text-foreground text-sm font-bold active:scale-95 transition-transform disabled:opacity-40 border border-border shadow">
-            In Play – Out
-          </button>
-        </div>
-        <button type="button" onClick={() => logPitch('ab_end')} disabled={!canLog}
-          style={{ touchAction: 'manipulation' }}
-          className="w-full h-11 rounded-2xl bg-accent text-accent-foreground text-sm font-bold active:scale-95 transition-transform disabled:opacity-40 border border-border shadow">
-          Next Batter →
-        </button>
-        <div className="flex items-center justify-between gap-2">
-          <Button variant="outline" size="sm" onClick={undoLast} disabled={pitches.length === 0}>
-            <Undo2 className="w-4 h-4 mr-1" /> Undo
-          </Button>
-          <div className="text-xs text-muted-foreground">
-            Total: <span className="font-bold text-foreground">{totals.total}</span>
+      {/* Pinned action panel */}
+      <div className="shrink-0 border-t border-border bg-card/95 backdrop-blur pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        {/* BSO + inning controls (sticky) */}
+        {activeSubjectLabel && activeStats && (
+          <div className="px-3 py-2 border-b border-border bg-secondary/30">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-4">
+                <BsoDots filled={activeStats.curBalls} max={3} color="bg-emerald-500" letter="B" />
+                <BsoDots filled={activeStats.curStrikes} max={2} color="bg-orange-500" letter="S" />
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-muted-foreground">O</span>
+                  <span className="text-base font-bold tabular-nums">{outsThisInning}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentInning(i => Math.max(1, i - 1))}>
+                  <ChevronDown className="w-4 h-4" />
+                </Button>
+                <span className="text-sm font-bold w-6 text-center tabular-nums">{currentInning}</span>
+                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => { inningPromptedRef.current = null; setCurrentInning(i => i + 1); }}>
+                  <ChevronUp className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+            {lastPitchLabel && (
+              <p className="text-[10px] text-muted-foreground mt-1 text-center">
+                Last: <span className="font-semibold text-foreground">{lastPitchLabel}</span>
+                {' · '}<span className={pitchCountClass(activeStats.total)}>{activeStats.total} pitches</span>
+                {' · '}{activeStats.pct}% K
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Action buttons */}
+        <div className="p-2 space-y-2">
+          {/* Row 1: PRIMARY — Ball / Strike (the 80% case) */}
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => logPitch('ball')} disabled={!canLog}
+              style={{ touchAction: 'manipulation' }}
+              className="h-20 rounded-2xl bg-slate-700 text-white text-2xl font-extrabold active:scale-95 transition-transform disabled:opacity-40 shadow-lg">
+              BALL
+            </button>
+            <button type="button" onClick={() => logPitch('strike')} disabled={!canLog}
+              style={{ touchAction: 'manipulation' }}
+              className="h-20 rounded-2xl bg-emerald-600 text-white text-2xl font-extrabold active:scale-95 transition-transform disabled:opacity-40 shadow-lg">
+              STRIKE
+            </button>
+          </div>
+
+          {/* Row 2: SECONDARY — Foul / In Play */}
+          <div className="grid grid-cols-3 gap-2">
+            <button type="button" onClick={() => logPitch('foul')} disabled={!canLog}
+              style={{ touchAction: 'manipulation' }}
+              className="h-12 rounded-xl bg-secondary text-foreground text-sm font-bold active:scale-95 transition-transform disabled:opacity-40 border border-border shadow">
+              Foul
+            </button>
+            <button type="button" onClick={() => logPitch('in_play_safe')} disabled={!canLog}
+              style={{ touchAction: 'manipulation' }}
+              className="h-12 rounded-xl bg-secondary text-foreground text-sm font-bold active:scale-95 transition-transform disabled:opacity-40 border border-border shadow">
+              In Play – Safe
+            </button>
+            <button type="button" onClick={() => logPitch('in_play_out')} disabled={!canLog}
+              style={{ touchAction: 'manipulation' }}
+              className="h-12 rounded-xl bg-secondary text-foreground text-sm font-bold active:scale-95 transition-transform disabled:opacity-40 border border-border shadow">
+              In Play – Out
+            </button>
+          </div>
+
+          {/* Row 3: UTILITY — End AB (only mid-AB) + Undo */}
+          <div className={`grid gap-2 ${activeStats && (activeStats.curBalls > 0 || activeStats.curStrikes > 0) ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            {activeStats && (activeStats.curBalls > 0 || activeStats.curStrikes > 0) && (
+              <button type="button" onClick={() => logPitch('ab_end')} disabled={!canLog}
+                style={{ touchAction: 'manipulation' }}
+                className="h-11 rounded-xl bg-accent text-accent-foreground text-sm font-bold active:scale-95 transition-transform disabled:opacity-40 border border-border shadow">
+                End AB (HBP / Walk-off)
+              </button>
+            )}
+            <button type="button" onClick={undoLast} disabled={pitches.length === 0}
+              style={{ touchAction: 'manipulation' }}
+              className="h-11 rounded-xl bg-background border border-border text-foreground text-sm font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-40 shadow">
+              <Undo2 className="w-4 h-4" /> Undo last pitch
+            </button>
+          </div>
+
+          <div className="text-[11px] text-muted-foreground text-center">
+            Game total: <span className="font-bold text-foreground tabular-nums">{totals.total}</span>
             {' · '}<span className="text-primary font-bold">{totals.pct}% K</span>
           </div>
         </div>
       </div>
+
+      {/* Rest-warning modal */}
+      <AlertDialog open={pendingPitcherId !== null} onOpenChange={(o) => !o && setPendingPitcherId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-yellow-600" />
+              Pitcher needs rest
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {(() => {
+                if (!pendingPitcherId) return '';
+                const p = pitchers.find(p => p.id === pendingPitcherId);
+                const s = restByPitcher[pendingPitcherId];
+                if (!p || !s) return '';
+                if (s.type === 'threw-today') return `${p.name} already threw today. Re-using the same arm in the same day can push them past safe limits.`;
+                if (s.type === 'resting') return `${p.name} is on day ${s.daysCurrent} of ${s.daysNeeded} required rest days. Continuing now risks overuse.`;
+                return '';
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Pick someone else</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRiskyPitcher} className="bg-yellow-600 hover:bg-yellow-700">
+              Use anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Finish-confirmation modal */}
+      <AlertDialog open={finishConfirmOpen} onOpenChange={setFinishConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Finish game?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>This will close the game and add outings to Arm Tracker for each of your pitchers.</p>
+                <div className="rounded-lg border border-border bg-secondary/40 p-3 space-y-1 text-sm">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Total pitches</span><span className="font-bold tabular-nums">{totals.total}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Strike %</span><span className="font-bold">{totals.pct}%</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Our pitchers</span><span className="font-bold tabular-nums">{tally.filter(t => !t.isOpponent).length}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Opp pitchers</span><span className="font-bold tabular-nums">{tally.filter(t => t.isOpponent).length}</span></div>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>
+              <X className="w-4 h-4 mr-1" /> Keep charting
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={performFinish} disabled={busy}>
+              <Check className="w-4 h-4 mr-1" /> {busy ? 'Saving…' : 'Finish & save'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Inning auto-advance prompt */}
+      <AlertDialog open={inningAdvanceOpen} onOpenChange={setInningAdvanceOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>End of inning {currentInning}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              3 outs recorded for the {side === 'us' ? 'top' : 'bottom'} of inning {currentInning}. Advance to inning {currentInning + 1}?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Stay on {currentInning}</AlertDialogCancel>
+            <AlertDialogAction onClick={advanceInning}>Advance to {currentInning + 1}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
