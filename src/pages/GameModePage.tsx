@@ -102,6 +102,7 @@ export default function GameModePage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { pitchers, isLoading: pitchersLoading } = usePitchers();
+  const { signOut } = useAuth();
 
   const [game, setGame] = useState<GameRow | null>(null);
   const [pitches, setPitches] = useState<PitchRow[]>([]);
