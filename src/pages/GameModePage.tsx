@@ -35,7 +35,9 @@ interface PitchRow {
   pitcher_id: string | null;
   pitcher_name: string;
   inning: number;
-  half: Half | null;
+  // In-memory only — not persisted to DB. UI uses it for the Top/Bot label and outs scoping
+  // during a session; on reload it defaults to 'top'.
+  half?: Half | null;
   is_strike: boolean;
   is_opponent: boolean;
   opponent_jersey: string | null;
@@ -335,7 +337,6 @@ export default function GameModePage() {
         pitcher_id: pitcher.id,
         pitcher_name: pitcher.name,
         inning: currentInning,
-        half: currentHalf,
         is_strike: isStrike,
         is_opponent: false,
         opponent_jersey: null,
@@ -365,7 +366,6 @@ export default function GameModePage() {
         pitcher_id: null,
         pitcher_name: name,
         inning: currentInning,
-        half: currentHalf,
         is_strike: isStrike,
         is_opponent: true,
         opponent_jersey: jersey,
@@ -377,34 +377,20 @@ export default function GameModePage() {
     }
 
     setPitches(prev => [...prev, optimistic]);
-    // Insert with `half`; if the column hasn't been migrated yet, retry without it
-    // so the app keeps working until `20260517200000_game_pitches_half.sql` is applied.
-    let { data, error } = await supabase
+    const { data, error } = await supabase
       .from('game_pitches')
       .insert(insertPayload)
       .select()
       .single();
-    if (error && /['"]?half['"]? column/i.test(error.message || '')) {
-      const { half: _omit, ...legacyPayload } = insertPayload;
-      void _omit;
-      const retry = await supabase
-        .from('game_pitches')
-        .insert(legacyPayload as TablesInsert<'game_pitches'>)
-        .select()
-        .single();
-      data = retry.data;
-      error = retry.error;
-    }
     if (error) {
       setPitches(prev => prev.filter(p => p.id !== optimistic.id));
       toast({ title: 'Pitch not saved', description: error.message, variant: 'destructive' });
       return;
     }
-    // Preserve the optimistic `half` if the DB row didn't carry it back (pre-migration).
+    // Carry the in-session `half` across the DB → state swap.
     setPitches(prev => prev.map(p => {
       if (p.id !== optimistic.id) return p;
-      const row = data as PitchRow;
-      return { ...row, half: row.half ?? optimistic.half };
+      return { ...(data as PitchRow), half: optimistic.half };
     }));
   }, [game, side, activePitcherId, oppJersey, pitchers, pitches.length, currentInning, currentHalf, toast]);
 
