@@ -377,17 +377,35 @@ export default function GameModePage() {
     }
 
     setPitches(prev => [...prev, optimistic]);
-    const { data, error } = await supabase
+    // Insert with `half`; if the column hasn't been migrated yet, retry without it
+    // so the app keeps working until `20260517200000_game_pitches_half.sql` is applied.
+    let { data, error } = await supabase
       .from('game_pitches')
       .insert(insertPayload)
       .select()
       .single();
+    if (error && /['"]?half['"]? column/i.test(error.message || '')) {
+      const { half: _omit, ...legacyPayload } = insertPayload;
+      void _omit;
+      const retry = await supabase
+        .from('game_pitches')
+        .insert(legacyPayload as TablesInsert<'game_pitches'>)
+        .select()
+        .single();
+      data = retry.data;
+      error = retry.error;
+    }
     if (error) {
       setPitches(prev => prev.filter(p => p.id !== optimistic.id));
       toast({ title: 'Pitch not saved', description: error.message, variant: 'destructive' });
       return;
     }
-    setPitches(prev => prev.map(p => (p.id === optimistic.id ? (data as PitchRow) : p)));
+    // Preserve the optimistic `half` if the DB row didn't carry it back (pre-migration).
+    setPitches(prev => prev.map(p => {
+      if (p.id !== optimistic.id) return p;
+      const row = data as PitchRow;
+      return { ...row, half: row.half ?? optimistic.half };
+    }));
   }, [game, side, activePitcherId, oppJersey, pitchers, pitches.length, currentInning, currentHalf, toast]);
 
   const undoLast = useCallback(async () => {
