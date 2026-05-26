@@ -4,13 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 import type { TablesInsert } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 import { usePitchers } from '@/hooks/use-pitchers';
+import { useAuth } from '@/hooks/use-auth';
 import { calculateRestStatus, parseLocalDateAtNoon, type RestStatus } from '@/types/pitcher';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Undo2, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Undo2, Check, ChevronDown, ChevronUp, LogOut } from 'lucide-react';
 import { usePageMeta } from '@/hooks/use-page-meta';
 
 type Outcome = 'ball' | 'strike' | 'foul' | 'in_play_safe' | 'in_play_out' | 'ab_end';
