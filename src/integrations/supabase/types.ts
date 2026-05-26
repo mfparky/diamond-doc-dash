@@ -51,6 +51,7 @@ export type Database = {
         Row: {
           created_at: string
           game_id: string
+          half: string | null
           id: string
           inning: number
           is_opponent: boolean
@@ -66,6 +67,7 @@ export type Database = {
         Insert: {
           created_at?: string
           game_id: string
+          half?: string | null
           id?: string
           inning?: number
           is_opponent?: boolean
@@ -81,6 +83,7 @@ export type Database = {
         Update: {
           created_at?: string
           game_id?: string
+          half?: string | null
           id?: string
           inning?: number
           is_opponent?: boolean

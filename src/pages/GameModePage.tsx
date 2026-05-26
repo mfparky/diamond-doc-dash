@@ -28,11 +28,14 @@ interface GameRow {
   user_id: string | null;
 }
 
+type Half = 'top' | 'bot';
+
 interface PitchRow {
   id: string;
   pitcher_id: string | null;
   pitcher_name: string;
   inning: number;
+  half: Half | null;
   is_strike: boolean;
   is_opponent: boolean;
   opponent_jersey: string | null;
@@ -41,6 +44,12 @@ interface PitchRow {
 }
 
 type Side = 'us' | 'opp';
+
+const halfLabel = (h: Half) => (h === 'top' ? 'Top' : 'Bot');
+const nextHalf = (inning: number, half: Half): { inning: number; half: Half } =>
+  half === 'top' ? { inning, half: 'bot' } : { inning: inning + 1, half: 'top' };
+const prevHalf = (inning: number, half: Half): { inning: number; half: Half } =>
+  half === 'bot' ? { inning, half: 'top' } : { inning: Math.max(1, inning - 1), half: 'bot' };
 
 const OPP_KEY_PREFIX = 'opp:';
 const opponentLabel = (jersey: string) => `Opp #${jersey}`;
@@ -145,6 +154,7 @@ export default function GameModePage() {
   const [activePitcherId, setActivePitcherId] = useState<string>('');
   const [oppJersey, setOppJersey] = useState<string>('');
   const [currentInning, setCurrentInning] = useState(1);
+  const [currentHalf, setCurrentHalf] = useState<Half>('top');
   const [busy, setBusy] = useState(false);
 
   // Setup form
@@ -156,7 +166,7 @@ export default function GameModePage() {
   const [pendingPitcherId, setPendingPitcherId] = useState<string | null>(null);
   const [finishConfirmOpen, setFinishConfirmOpen] = useState(false);
   const [inningAdvanceOpen, setInningAdvanceOpen] = useState(false);
-  const inningPromptedRef = useRef<number | null>(null);
+  const halfPromptedRef = useRef<string | null>(null);
 
   // Per-pitcher rest status, derived from each pitcher's most recent outing.
   const [restByPitcher, setRestByPitcher] = useState<Record<string, RestStatus>>({});
@@ -233,6 +243,7 @@ export default function GameModePage() {
       if (rows.length) {
         const last = rows[rows.length - 1];
         setCurrentInning(last.inning);
+        setCurrentHalf(last.half === 'bot' ? 'bot' : 'top');
         if (last.is_opponent && last.opponent_jersey) {
           setSide('opp');
           setOppJersey(last.opponent_jersey);
@@ -312,6 +323,7 @@ export default function GameModePage() {
         pitcher_id: pitcher.id,
         pitcher_name: pitcher.name,
         inning: currentInning,
+        half: currentHalf,
         is_strike: isStrike,
         is_opponent: false,
         opponent_jersey: null,
@@ -323,6 +335,7 @@ export default function GameModePage() {
         pitcher_id: pitcher.id,
         pitcher_name: pitcher.name,
         inning: currentInning,
+        half: currentHalf,
         is_strike: isStrike,
         is_opponent: false,
         opponent_jersey: null,
@@ -340,6 +353,7 @@ export default function GameModePage() {
         pitcher_id: null,
         pitcher_name: name,
         inning: currentInning,
+        half: currentHalf,
         is_strike: isStrike,
         is_opponent: true,
         opponent_jersey: jersey,
@@ -351,6 +365,7 @@ export default function GameModePage() {
         pitcher_id: null,
         pitcher_name: name,
         inning: currentInning,
+        half: currentHalf,
         is_strike: isStrike,
         is_opponent: true,
         opponent_jersey: jersey,
@@ -373,7 +388,7 @@ export default function GameModePage() {
       return;
     }
     setPitches(prev => prev.map(p => (p.id === optimistic.id ? (data as PitchRow) : p)));
-  }, [game, side, activePitcherId, oppJersey, pitchers, pitches.length, currentInning, toast]);
+  }, [game, side, activePitcherId, oppJersey, pitchers, pitches.length, currentInning, currentHalf, toast]);
 
   const undoLast = useCallback(async () => {
     if (!pitches.length) return;
@@ -476,24 +491,40 @@ export default function GameModePage() {
     };
   }, [activePitches, activeKey]);
 
-  // Outs in the current inning for the active side — drives auto-advance prompt.
-  const outsThisInning = useMemo(() => {
-    const inSide = pitches.filter(p => p.inning === currentInning && p.is_opponent === (side === 'opp'));
-    return computeAtBatStats(inSide).outs;
-  }, [pitches, currentInning, side]);
+  // Outs in the current half-inning — drives auto-advance prompt.
+  // Legacy rows without a half value are treated as 'top'.
+  const outsThisHalf = useMemo(() => {
+    const inHalf = pitches.filter(p => {
+      if (p.inning !== currentInning) return false;
+      const ph: Half = p.half === 'bot' ? 'bot' : 'top';
+      return ph === currentHalf;
+    });
+    return computeAtBatStats(inHalf).outs;
+  }, [pitches, currentInning, currentHalf]);
 
-  // Prompt to advance inning once outs reach 3 (per side, per inning).
+  // Prompt to advance once outs reach 3 (per inning, per half).
   useEffect(() => {
-    if (outsThisInning >= 3 && inningPromptedRef.current !== currentInning) {
-      inningPromptedRef.current = currentInning;
+    const key = `${currentInning}-${currentHalf}`;
+    if (outsThisHalf >= 3 && halfPromptedRef.current !== key) {
+      halfPromptedRef.current = key;
       setInningAdvanceOpen(true);
     }
-  }, [outsThisInning, currentInning]);
+  }, [outsThisHalf, currentInning, currentHalf]);
 
-  const advanceInning = useCallback(() => {
-    setCurrentInning(i => i + 1);
+  const advanceHalf = useCallback(() => {
+    const next = nextHalf(currentInning, currentHalf);
+    setCurrentInning(next.inning);
+    setCurrentHalf(next.half);
     setInningAdvanceOpen(false);
-  }, []);
+  }, [currentInning, currentHalf]);
+
+  const stepInning = useCallback((dir: 1 | -1) => {
+    const next = dir === 1 ? nextHalf(currentInning, currentHalf) : prevHalf(currentInning, currentHalf);
+    // Reset prompt tracking so the next half-end will re-prompt.
+    halfPromptedRef.current = null;
+    setCurrentInning(next.inning);
+    setCurrentHalf(next.half);
+  }, [currentInning, currentHalf]);
 
   // Last-pitch chip
   const lastPitch = pitches.length ? pitches[pitches.length - 1] : null;
@@ -674,7 +705,7 @@ export default function GameModePage() {
                 <span className="font-semibold truncate">{activeSubjectLabel}</span>
               </div>
               <span className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
-                Inn {currentInning} <ChevronDown className="w-4 h-4" />
+                {halfLabel(currentHalf)} {currentInning} <ChevronDown className="w-4 h-4" />
               </span>
             </button>
           ) : (
@@ -826,15 +857,17 @@ export default function GameModePage() {
                 <BsoDots filled={activeStats.curStrikes} max={2} color="bg-orange-500" letter="S" />
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-bold text-muted-foreground">O</span>
-                  <span className="text-base font-bold tabular-nums">{outsThisInning}</span>
+                  <span className="text-base font-bold tabular-nums">{outsThisHalf}</span>
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setCurrentInning(i => Math.max(1, i - 1))}>
+                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => stepInning(-1)}>
                   <ChevronDown className="w-4 h-4" />
                 </Button>
-                <span className="text-sm font-bold w-6 text-center tabular-nums">{currentInning}</span>
-                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => { inningPromptedRef.current = null; setCurrentInning(i => i + 1); }}>
+                <span className="text-sm font-bold w-14 text-center tabular-nums">
+                  {halfLabel(currentHalf)} {currentInning}
+                </span>
+                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => stepInning(1)}>
                   <ChevronUp className="w-4 h-4" />
                 </Button>
               </div>
@@ -964,18 +997,26 @@ export default function GameModePage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Inning auto-advance prompt */}
+      {/* Half-inning auto-advance prompt */}
       <AlertDialog open={inningAdvanceOpen} onOpenChange={setInningAdvanceOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>End of inning {currentInning}?</AlertDialogTitle>
+            <AlertDialogTitle>End of {halfLabel(currentHalf).toLowerCase()} of {currentInning}?</AlertDialogTitle>
             <AlertDialogDescription>
-              3 outs recorded for the {side === 'us' ? 'top' : 'bottom'} of inning {currentInning}. Advance to inning {currentInning + 1}?
+              {(() => {
+                const next = nextHalf(currentInning, currentHalf);
+                return `3 outs recorded. Advance to ${halfLabel(next.half).toLowerCase()} of ${next.inning}?`;
+              })()}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Stay on {currentInning}</AlertDialogCancel>
-            <AlertDialogAction onClick={advanceInning}>Advance to {currentInning + 1}</AlertDialogAction>
+            <AlertDialogCancel>Stay on {halfLabel(currentHalf).toLowerCase()} {currentInning}</AlertDialogCancel>
+            <AlertDialogAction onClick={advanceHalf}>
+              {(() => {
+                const next = nextHalf(currentInning, currentHalf);
+                return `Advance to ${halfLabel(next.half).toLowerCase()} ${next.inning}`;
+              })()}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
