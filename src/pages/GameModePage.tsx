@@ -438,8 +438,16 @@ export default function GameModePage() {
           notes: noteParts.join(' · '),
           team_id: game.team_id,
           user_id: user?.id ?? game.user_id,
+          game_id: game.id,
         };
       });
+
+      // Make finish idempotent: any existing outings linked to this game get rebuilt
+      // from the current game_pitches state. The outing rows then become the
+      // canonical source of truth that drives the post-game review.
+      const { error: delErr } = await supabase.from('outings').delete().eq('game_id', game.id);
+      if (delErr) throw delErr;
+
       if (outingRows.length) {
         const { error: oErr } = await supabase.from('outings').insert(outingRows);
         if (oErr) throw oErr;
@@ -980,13 +988,14 @@ export default function GameModePage() {
             <AlertDialogTitle>Finish game?</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3">
-                <p>This will close the game and add outings to Arm Tracker for each of your pitchers.</p>
+                <p>This will close the game and rebuild outings for each of your pitchers — those outings become the source of truth for this game and feed Arm Tracker.</p>
                 <div className="rounded-lg border border-border bg-secondary/40 p-3 space-y-1 text-sm">
                   <div className="flex justify-between"><span className="text-muted-foreground">Total pitches</span><span className="font-bold tabular-nums">{totals.total}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Strike %</span><span className="font-bold">{totals.pct}%</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Our pitchers</span><span className="font-bold tabular-nums">{tally.filter(t => !t.isOpponent).length}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Opp pitchers</span><span className="font-bold tabular-nums">{tally.filter(t => t.isOpponent).length}</span></div>
                 </div>
+                <p className="text-xs text-muted-foreground">Tapping Finish again on a completed game safely re-syncs outings from the current pitch log.</p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
