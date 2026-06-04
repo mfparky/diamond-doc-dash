@@ -40,15 +40,33 @@ export function calculatePitcherStats(pitcher: Pitcher, allOutings: Outing[]): P
   const recentOutings = pitcherOutings.filter(o => new Date(o.date) >= sevenDaysAgo);
   const sevenDayPulse = recentOutings.reduce((sum, o) => sum + o.pitchCount, 0);
 
+  // Calculate previous 7-day window for trend comparison
+  const fourteenDaysAgo = new Date();
+  fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+  const previousOutings = pitcherOutings.filter(o => {
+    const d = new Date(o.date);
+    return d >= fourteenDaysAgo && d < sevenDaysAgo;
+  });
+  const previousPulse = previousOutings.reduce((sum, o) => sum + o.pitchCount, 0);
+
   // Calculate 7-day strike percentage (only from last 7 days, only where strikes tracked)
   const recentWithStrikes = recentOutings.filter(o => o.strikes !== null);
   const recentPitchesWithStrikes = recentWithStrikes.reduce((sum, o) => sum + o.pitchCount, 0);
   const recentStrikes = recentWithStrikes.reduce((sum, o) => sum + (o.strikes ?? 0), 0);
   const strikePercentage = recentPitchesWithStrikes > 0 ? (recentStrikes / recentPitchesWithStrikes) * 100 : 0;
 
+  // Previous 7-day strike percentage
+  const prevWithStrikes = previousOutings.filter(o => o.strikes !== null);
+  const prevPitchesWithStrikes = prevWithStrikes.reduce((sum, o) => sum + o.pitchCount, 0);
+  const prevStrikes = prevWithStrikes.reduce((sum, o) => sum + (o.strikes ?? 0), 0);
+  const previousStrikePercentage = prevPitchesWithStrikes > 0 ? (prevStrikes / prevPitchesWithStrikes) * 100 : 0;
+
   // Get max velo from 7-day window (fall back to all-time if no recent data)
   const recentMaxVelo = recentOutings.length > 0 ? Math.max(...recentOutings.map(o => o.maxVelo || 0)) : 0;
   const maxVelo = recentMaxVelo > 0 ? recentMaxVelo : Math.max(...pitcherOutings.map(o => o.maxVelo || 0));
+
+  // Previous 7-day max velo
+  const previousMaxVelo = previousOutings.length > 0 ? Math.max(...previousOutings.map(o => o.maxVelo || 0)) : 0;
 
   // Get most recent outing
   const sortedOutings = [...pitcherOutings].sort((a, b) => {
@@ -74,6 +92,15 @@ export function calculatePitcherStats(pitcher: Pitcher, allOutings: Outing[]): P
   // Calculate rest status based on arm care rules
   const restStatus = calculateRestStatus(lastOuting, lastPitchCount);
 
+  // Helper for trend direction
+  const getTrend = (current: number, previous: number) => {
+    if (previous === 0 && current === 0) return { direction: 'stable' as const, diff: 0 };
+    if (previous === 0) return { direction: 'up' as const, diff: current };
+    const diff = current - previous;
+    if (Math.abs(diff) < 0.01) return { direction: 'stable' as const, diff: 0 };
+    return { direction: diff > 0 ? 'up' as const : 'down' as const, diff: Math.abs(diff) };
+  };
+
   return {
     ...pitcher,
     sevenDayPulse,
@@ -86,5 +113,10 @@ export function calculatePitcherStats(pitcher: Pitcher, allOutings: Outing[]): P
     outings: pitcherOutings,
     focus: mostRecentFocus,
     coachNotes: mostRecentCoachNotes,
+    trends: {
+      pulse: getTrend(sevenDayPulse, previousPulse),
+      strike: getTrend(strikePercentage, previousStrikePercentage),
+      velo: getTrend(maxVelo, previousMaxVelo),
+    },
   };
 }
