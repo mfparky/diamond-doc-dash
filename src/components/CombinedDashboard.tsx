@@ -430,6 +430,17 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
       return 'neutral';
     };
 
+    const currentGameOutings = filteredOutings.filter((o) => o.eventType === 'Game');
+    const prevGameOutings = previousOutings.filter((o) => o.eventType === 'Game');
+    const calcGameStrikePct = (list: Outing[]): number | null => {
+      const withStrikes = list.filter((o) => o.strikes !== null && o.strikes !== undefined);
+      const pitches = withStrikes.reduce((s, o) => s + o.pitchCount, 0);
+      const strikes = withStrikes.reduce((s, o) => s + (o.strikes ?? 0), 0);
+      return pitches > 0 ? Math.round((strikes / pitches) * 100) : null;
+    };
+    const currentGameStrikePct = calcGameStrikePct(currentGameOutings);
+    const previousGameStrikePct = calcGameStrikePct(prevGameOutings);
+
     return {
       pitches: getTrend(stats.totalPitches, previousStats.totalPitches),
       pitchesDiff: stats.totalPitches - previousStats.totalPitches,
@@ -437,8 +448,13 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
       strikePercentageDiff: (stats.strikePercentage ?? 0) - (previousStats.strikePercentage ?? 0),
       outings: getTrend(stats.totalOutings, previousStats.totalOutings),
       outingsDiff: stats.totalOutings - previousStats.totalOutings,
+      gameStrikePercentage: getTrend(currentGameStrikePct, previousGameStrikePct),
+      gameStrikePercentageDiff: (currentGameStrikePct ?? 0) - (previousGameStrikePct ?? 0),
+      currentGameStrikePct,
+      previousGameStrikePct,
     };
-  }, [stats, previousStats]);
+  }, [stats, previousStats, filteredOutings, previousOutings]);
+
 
   const gamesStats = useMemo(() => {
     const start = parseLocalDateAtNoon(dateRange.start);
@@ -711,11 +727,17 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
                 <Crosshair className="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] sm:text-xs text-muted-foreground">Game Strike %</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Game Strike %</p>
+                  {gamesStats.strikePercentage !== null && (
+                    <TrendIndicator trend={trends.gameStrikePercentage} diff={trends.gameStrikePercentageDiff} suffix="%" />
+                  )}
+                </div>
                 <p className="text-lg sm:text-2xl font-bold text-foreground">
                   {gamesStats.strikePercentage !== null ? `${gamesStats.strikePercentage}%` : '—'}
                 </p>
               </div>
+
             </div>
           </CardContent>
         </Card>
@@ -790,7 +812,12 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
             </Card>
             <Card className="glass-card">
               <CardContent className="p-3 sm:p-4">
-                <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Game Strike %</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Game Strike %</p>
+                  {gamesStats.strikePercentage !== null && (
+                    <TrendIndicator trend={trends.gameStrikePercentage} diff={trends.gameStrikePercentageDiff} suffix="%" />
+                  )}
+                </div>
                 <p className="text-xl sm:text-2xl font-bold text-foreground">{gamesStats.strikePercentage !== null ? `${gamesStats.strikePercentage}%` : '—'}</p>
               </CardContent>
             </Card>
