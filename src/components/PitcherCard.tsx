@@ -2,10 +2,22 @@ import { Pitcher } from '@/types/pitcher';
 import { StatusBadge } from './StatusBadge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, Target, Gauge, Calendar, Share2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Target, Gauge, Calendar, Share2 } from 'lucide-react';
 import { getDaysRestNeeded } from '@/types/pitcher';
 import { getPulseLevel, getPulseColorClasses, DEFAULT_MAX_WEEKLY_PITCHES } from '@/lib/pulse-status';
 import { useToast } from '@/hooks/use-toast';
+
+function TrendIndicator({ trend }: { trend?: { direction: 'up' | 'down' | 'stable'; diff: number } }) {
+  if (!trend || trend.direction === 'stable' || trend.diff === 0) return null;
+  const color = trend.direction === 'up' ? 'text-[hsl(142,70%,45%)]' : 'text-[hsl(0,72%,55%)]';
+  const Icon = trend.direction === 'up' ? TrendingUp : TrendingDown;
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium ${color}`}>
+      <Icon className="w-3 h-3" />
+      {trend.diff >= 1 && Math.round(trend.diff)}
+    </span>
+  );
+}
 
 interface PitcherCardProps {
   pitcher: Pitcher;
