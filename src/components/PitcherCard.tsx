@@ -2,10 +2,22 @@ import { Pitcher } from '@/types/pitcher';
 import { StatusBadge } from './StatusBadge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, Target, Gauge, Calendar, Share2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Target, Gauge, Calendar, Share2 } from 'lucide-react';
 import { getDaysRestNeeded } from '@/types/pitcher';
 import { getPulseLevel, getPulseColorClasses, DEFAULT_MAX_WEEKLY_PITCHES } from '@/lib/pulse-status';
 import { useToast } from '@/hooks/use-toast';
+
+function TrendIndicator({ trend }: { trend?: { direction: 'up' | 'down' | 'stable'; diff: number } }) {
+  if (!trend || trend.direction === 'stable' || trend.diff === 0) return null;
+  const color = trend.direction === 'up' ? 'text-[hsl(142,70%,45%)]' : 'text-[hsl(0,72%,55%)]';
+  const Icon = trend.direction === 'up' ? TrendingUp : TrendingDown;
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium ${color}`}>
+      <Icon className="w-3 h-3" />
+      {trend.diff >= 1 && Math.round(trend.diff)}
+    </span>
+  );
+}
 
 interface PitcherCardProps {
   pitcher: Pitcher;
@@ -67,9 +79,12 @@ export function PitcherCard({ pitcher, onClick, maxWeeklyPitches = DEFAULT_MAX_W
             </div>
             <div>
               <p className="text-xs text-muted-foreground">{seasonStats ? 'Total Pitches' : '7-Day Pulse'}</p>
-              <p className={`font-semibold ${seasonStats ? 'text-foreground' : pulseColors.text}`}>
-                {seasonStats ? seasonStats.totalPitches : pitcher.sevenDayPulse}
-              </p>
+              <div className="flex items-center gap-1">
+                <p className={`font-semibold ${seasonStats ? 'text-foreground' : pulseColors.text}`}>
+                  {seasonStats ? seasonStats.totalPitches : pitcher.sevenDayPulse}
+                </p>
+                {!seasonStats && <TrendIndicator trend={pitcher.trends?.pulse} />}
+              </div>
             </div>
           </div>
 
@@ -79,9 +94,12 @@ export function PitcherCard({ pitcher, onClick, maxWeeklyPitches = DEFAULT_MAX_W
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Strike %</p>
-              <p className="font-semibold text-foreground">
-                {seasonStats ? `${seasonStats.strikePercentage}%` : `${pitcher.strikePercentage.toFixed(1)}%`}
-              </p>
+              <div className="flex items-center gap-1">
+                <p className="font-semibold text-foreground">
+                  {seasonStats ? `${seasonStats.strikePercentage}%` : `${pitcher.strikePercentage.toFixed(1)}%`}
+                </p>
+                {!seasonStats && <TrendIndicator trend={pitcher.trends?.strike} />}
+              </div>
             </div>
           </div>
 
@@ -91,9 +109,12 @@ export function PitcherCard({ pitcher, onClick, maxWeeklyPitches = DEFAULT_MAX_W
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Max Velo</p>
-              <p className="font-semibold text-foreground">
-                {seasonStats ? (seasonStats.maxVelocity > 0 ? seasonStats.maxVelocity : '-') : (pitcher.maxVelo || '-')}
-              </p>
+              <div className="flex items-center gap-1">
+                <p className="font-semibold text-foreground">
+                  {seasonStats ? (seasonStats.maxVelocity > 0 ? seasonStats.maxVelocity : '-') : (pitcher.maxVelo || '-')}
+                </p>
+                {!seasonStats && pitcher.maxVelo > 0 && <TrendIndicator trend={pitcher.trends?.velo} />}
+              </div>
             </div>
           </div>
 
