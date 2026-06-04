@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Pencil, Trash2, Plus, Check, X, Sun, Moon, ChevronRight, ArrowLeft, Users, Palette, ClipboardCheck, Trophy, CalendarIcon, Copy, Camera } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { useShowWorkoutLeaderboard } from '@/hooks/use-team-dashboard-prefs';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
@@ -57,6 +59,7 @@ export function RosterManagementDialog({
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const { mode, toggleMode } = useDesignSystem();
   const isDark = mode === 'dark';
+  const [showWorkoutLeaderboard, setShowWorkoutLeaderboard] = useShowWorkoutLeaderboard();
   const [workoutAssignments, setWorkoutAssignments] = useState<Record<string, WorkoutAssignment[]>>({});
   const [achievementStartDate, setAchievementStartDate] = useState<Date | undefined>();
   const [achievementEndDate, setAchievementEndDate] = useState<Date | undefined>();
@@ -633,6 +636,29 @@ export function RosterManagementDialog({
                   </div>
                   <ChevronRight className="w-5 h-5 text-muted-foreground" />
                 </button>
+
+                {/* Show Workout Leaderboard on Team Page (toggle) */}
+                <label
+                  htmlFor="show-workout-leaderboard"
+                  className="w-full flex items-center justify-between p-4 rounded-lg bg-secondary/50 border border-border/50 cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Trophy className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">Workout leaderboard</p>
+                      <p className="text-sm text-muted-foreground">
+                        Show on the team dashboard
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="show-workout-leaderboard"
+                    checked={showWorkoutLeaderboard}
+                    onCheckedChange={setShowWorkoutLeaderboard}
+                  />
+                </label>
 
                 {/* Achievement Window (per-player badges) */}
                 <div className="w-full p-4 rounded-lg bg-secondary/50 border border-border/50 space-y-3">
