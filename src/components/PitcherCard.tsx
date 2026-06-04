@@ -2,7 +2,7 @@ import { Pitcher } from '@/types/pitcher';
 import { StatusBadge } from './StatusBadge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, Minus, Target, Gauge, Calendar, Share2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Target, Gauge, Calendar, Share2 } from 'lucide-react';
 import { getDaysRestNeeded } from '@/types/pitcher';
 import { getPulseLevel, getPulseColorClasses, DEFAULT_MAX_WEEKLY_PITCHES } from '@/lib/pulse-status';
 import { useToast } from '@/hooks/use-toast';
