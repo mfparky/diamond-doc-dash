@@ -14,7 +14,7 @@ import { WorkoutLeaderboard } from '@/components/WorkoutLeaderboard';
 import { PitcherRecord } from '@/hooks/use-pitchers';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Activity, Target, Calendar, Flame, TrendingUp, TrendingDown, Minus, Dumbbell, Trophy, ListChecks } from 'lucide-react';
+import { Activity, Target, Crosshair, Calendar, Flame, TrendingUp, TrendingDown, Minus, Dumbbell, Trophy, ListChecks } from 'lucide-react';
 
 interface CombinedDashboardProps {
   outings: Outing[];
@@ -682,7 +682,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
       </div>
 
       {/* Main Stats Grid */}
-      <div className="grid grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {/* Total Pitches */}
         <Card className="glass-card">
           <CardContent className="p-3 sm:p-4">
@@ -701,7 +701,24 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
           </CardContent>
         </Card>
 
-        {/* Strike % */}
+        {/* Game Strike % — from Game outings only */}
+        <Card className="glass-card">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-warning/10 shrink-0">
+                <Crosshair className="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Game Strike %</p>
+                <p className="text-lg sm:text-2xl font-bold text-foreground">
+                  {gamesStats.strikePercentage !== null ? `${gamesStats.strikePercentage}%` : '—'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Total Strike % — across all sessions */}
         <Card className="glass-card">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 sm:gap-3">
@@ -710,7 +727,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Strike %</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Total Strike %</p>
                   {stats.strikePercentage !== null && (
                     <TrendIndicator trend={trends.strikePercentage} diff={trends.strikePercentageDiff} suffix="%" />
                   )}
