@@ -535,7 +535,8 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
 
   // Trend arrow component
   const TrendIndicator = ({ trend, diff, suffix = '' }: { trend: 'up' | 'down' | 'neutral'; diff: number; suffix?: string }) => {
-    if (viewMode !== '7-day') return null;
+    if (trend === 'neutral') return null;
+
     
     const Icon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus;
     const colorClass = trend === 'up' ? 'text-success' : trend === 'down' ? 'text-destructive' : 'text-muted-foreground';
