@@ -79,9 +79,12 @@ export function PitcherCard({ pitcher, onClick, maxWeeklyPitches = DEFAULT_MAX_W
             </div>
             <div>
               <p className="text-xs text-muted-foreground">{seasonStats ? 'Total Pitches' : '7-Day Pulse'}</p>
-              <p className={`font-semibold ${seasonStats ? 'text-foreground' : pulseColors.text}`}>
-                {seasonStats ? seasonStats.totalPitches : pitcher.sevenDayPulse}
-              </p>
+              <div className="flex items-center gap-1">
+                <p className={`font-semibold ${seasonStats ? 'text-foreground' : pulseColors.text}`}>
+                  {seasonStats ? seasonStats.totalPitches : pitcher.sevenDayPulse}
+                </p>
+                {!seasonStats && <TrendIndicator trend={pitcher.trends?.pulse} />}
+              </div>
             </div>
           </div>
 
@@ -91,9 +94,12 @@ export function PitcherCard({ pitcher, onClick, maxWeeklyPitches = DEFAULT_MAX_W
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Strike %</p>
-              <p className="font-semibold text-foreground">
-                {seasonStats ? `${seasonStats.strikePercentage}%` : `${pitcher.strikePercentage.toFixed(1)}%`}
-              </p>
+              <div className="flex items-center gap-1">
+                <p className="font-semibold text-foreground">
+                  {seasonStats ? `${seasonStats.strikePercentage}%` : `${pitcher.strikePercentage.toFixed(1)}%`}
+                </p>
+                {!seasonStats && <TrendIndicator trend={pitcher.trends?.strike} />}
+              </div>
             </div>
           </div>
 
@@ -103,9 +109,12 @@ export function PitcherCard({ pitcher, onClick, maxWeeklyPitches = DEFAULT_MAX_W
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Max Velo</p>
-              <p className="font-semibold text-foreground">
-                {seasonStats ? (seasonStats.maxVelocity > 0 ? seasonStats.maxVelocity : '-') : (pitcher.maxVelo || '-')}
-              </p>
+              <div className="flex items-center gap-1">
+                <p className="font-semibold text-foreground">
+                  {seasonStats ? (seasonStats.maxVelocity > 0 ? seasonStats.maxVelocity : '-') : (pitcher.maxVelo || '-')}
+                </p>
+                {!seasonStats && pitcher.maxVelo > 0 && <TrendIndicator trend={pitcher.trends?.velo} />}
+              </div>
             </div>
           </div>
 
