@@ -33,6 +33,11 @@ export interface Pitcher {
   outings: Outing[];
   focus?: string;
   coachNotes?: string;
+  trends?: {
+    pulse: { direction: 'up' | 'down' | 'stable'; diff: number };
+    strike: { direction: 'up' | 'down' | 'stable'; diff: number };
+    velo: { direction: 'up' | 'down' | 'stable'; diff: number };
+  };
 }
 
 export type RestStatus = 
