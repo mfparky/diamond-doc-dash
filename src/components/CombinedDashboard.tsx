@@ -11,6 +11,7 @@ import { FlipCounter } from '@/components/FlipCounter';
 import { VelocityScale } from '@/components/VelocityScale';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import { WorkoutLeaderboard } from '@/components/WorkoutLeaderboard';
+import { useShowWorkoutLeaderboard } from '@/hooks/use-team-dashboard-prefs';
 import { PitcherRecord } from '@/hooks/use-pitchers';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -57,6 +58,7 @@ type ViewMode = '7-day' | 'season';
 type ResultFilter = 'all' | 'strikes' | 'balls';
 
 export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = false, teamId, pitchers }: CombinedDashboardProps) {
+  const [showWorkoutLeaderboard] = useShowWorkoutLeaderboard();
   const [pitchLocations, setPitchLocations] = useState<PitchLocation[]>([]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('season');
@@ -964,8 +966,8 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
             </Card>
           ) : <div />}
 
-          {/* Col 3: Compact Leaderboard */}
-          {pitchers && pitchers.length > 0 ? (
+          {/* Col 3: Compact Leaderboard (toggleable via Settings) */}
+          {showWorkoutLeaderboard && pitchers && pitchers.length > 0 ? (
             <Card className="glass-card">
               <CardContent className="p-2 sm:p-3">
                 <div className="flex items-center gap-2 mb-2">
