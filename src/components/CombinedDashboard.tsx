@@ -430,6 +430,17 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
       return 'neutral';
     };
 
+    const currentGameOutings = filteredOutings.filter((o) => o.eventType === 'Game');
+    const prevGameOutings = previousOutings.filter((o) => o.eventType === 'Game');
+    const calcGameStrikePct = (list: Outing[]): number | null => {
+      const withStrikes = list.filter((o) => o.strikes !== null && o.strikes !== undefined);
+      const pitches = withStrikes.reduce((s, o) => s + o.pitchCount, 0);
+      const strikes = withStrikes.reduce((s, o) => s + (o.strikes ?? 0), 0);
+      return pitches > 0 ? Math.round((strikes / pitches) * 100) : null;
+    };
+    const currentGameStrikePct = calcGameStrikePct(currentGameOutings);
+    const previousGameStrikePct = calcGameStrikePct(prevGameOutings);
+
     return {
       pitches: getTrend(stats.totalPitches, previousStats.totalPitches),
       pitchesDiff: stats.totalPitches - previousStats.totalPitches,
@@ -437,8 +448,13 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
       strikePercentageDiff: (stats.strikePercentage ?? 0) - (previousStats.strikePercentage ?? 0),
       outings: getTrend(stats.totalOutings, previousStats.totalOutings),
       outingsDiff: stats.totalOutings - previousStats.totalOutings,
+      gameStrikePercentage: getTrend(currentGameStrikePct, previousGameStrikePct),
+      gameStrikePercentageDiff: (currentGameStrikePct ?? 0) - (previousGameStrikePct ?? 0),
+      currentGameStrikePct,
+      previousGameStrikePct,
     };
-  }, [stats, previousStats]);
+  }, [stats, previousStats, filteredOutings, previousOutings]);
+
 
   const gamesStats = useMemo(() => {
     const start = parseLocalDateAtNoon(dateRange.start);
