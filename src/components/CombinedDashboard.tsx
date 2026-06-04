@@ -812,7 +812,12 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
             </Card>
             <Card className="glass-card">
               <CardContent className="p-3 sm:p-4">
-                <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Game Strike %</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Game Strike %</p>
+                  {gamesStats.strikePercentage !== null && (
+                    <TrendIndicator trend={trends.gameStrikePercentage} diff={trends.gameStrikePercentageDiff} suffix="%" />
+                  )}
+                </div>
                 <p className="text-xl sm:text-2xl font-bold text-foreground">{gamesStats.strikePercentage !== null ? `${gamesStats.strikePercentage}%` : '—'}</p>
               </CardContent>
             </Card>
