@@ -1130,7 +1130,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
 
           {/* Right Column: Workout Counter, Leaderboard, Pitch Mix */}
           <div className="space-y-4 sm:space-y-6">
-            {totalWorkoutsCompleted > 0 && (
+            {showWorkoutLeaderboard && totalWorkoutsCompleted > 0 && (
               <Card className="glass-card border-accent/30 bg-accent/5">
                 <CardContent className="p-4 sm:p-6 flex items-center gap-4">
                   <div className="p-2.5 rounded-lg bg-accent/10">
@@ -1143,6 +1143,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
                 </CardContent>
               </Card>
             )}
+
             {teamPitchers.length > 0 && (
               <Card className="glass-card">
                 <CardContent className="p-4 sm:p-6">
