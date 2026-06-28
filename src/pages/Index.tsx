@@ -15,7 +15,7 @@ import { StatUploadDialog } from '@/components/StatUploadDialog';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { MoreSheet, type MoreSheetItem } from '@/components/MoreSheet';
-import { Settings, Camera, Printer, ClipboardList, MoreHorizontal, ShieldCheck, ScanLine, Gamepad2, ListChecks, Users } from 'lucide-react';
+import { Settings, Camera, Printer, ClipboardList, MoreHorizontal, ShieldCheck, ScanLine, Gamepad2, ListChecks, Users, FileSpreadsheet } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { getDaysRestNeeded } from '@/types/pitcher';
@@ -56,6 +56,13 @@ const Index = () => {
       description: 'Live pitch-by-pitch counter',
       icon: <Gamepad2 className="w-5 h-5" />,
       onSelect: () => navigate('/game'),
+    },
+    {
+      id: 'upload-stats',
+      label: 'Upload season stats',
+      description: 'Import a GameChanger CSV to power health reports',
+      icon: <FileSpreadsheet className="w-5 h-5" />,
+      onSelect: () => setShowStatUpload(true),
     },
     {
       id: 'games',
