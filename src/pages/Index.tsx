@@ -15,7 +15,9 @@ import { StatUploadDialog } from '@/components/StatUploadDialog';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { MoreSheet, type MoreSheetItem } from '@/components/MoreSheet';
-import { Settings, Camera, Printer, ClipboardList, MoreHorizontal, ShieldCheck, ScanLine, Gamepad2, ListChecks, Users, FileSpreadsheet } from 'lucide-react';
+import { SettingsDialog } from '@/components/SettingsDialog';
+import { useDashboardSettings } from '@/hooks/use-dashboard-settings';
+import { Settings, Camera, Printer, ClipboardList, MoreHorizontal, ShieldCheck, ScanLine, Gamepad2, ListChecks, Users, FileSpreadsheet, SlidersHorizontal } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { getDaysRestNeeded } from '@/types/pitcher';
@@ -46,6 +48,8 @@ const Index = () => {
   const [showScorekeepers, setShowScorekeepers] = useState(false);
   const [showMoreSheet, setShowMoreSheet] = useState(false);
   const [showStatUpload, setShowStatUpload] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const { settings: dashboardSettings } = useDashboardSettings();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -106,19 +110,30 @@ const Index = () => {
       icon: <ClipboardList className="w-5 h-5" />,
       onSelect: () => navigate('/print-live-abs'),
     },
-    {
-      id: 'accountability',
-      label: 'Workout accountability',
-      description: 'Track workout completions',
-      icon: <ShieldCheck className="w-5 h-5" />,
-      onSelect: () => navigate('/accountability'),
-    },
+    ...(dashboardSettings.workoutsEnabled
+      ? [
+          {
+            id: 'accountability',
+            label: 'Workout accountability',
+            description: 'Track workout completions',
+            icon: <ShieldCheck className="w-5 h-5" />,
+            onSelect: () => navigate('/accountability'),
+          } satisfies MoreSheetItem,
+        ]
+      : []),
     {
       id: 'calibrate',
       label: 'Calibrate strike zone',
       description: 'Tune the scanner alignment',
       icon: <ScanLine className="w-5 h-5" />,
       onSelect: () => navigate('/calibrate'),
+    },
+    {
+      id: 'settings',
+      label: 'Settings',
+      description: 'App preferences (workouts toggle, etc.)',
+      icon: <SlidersHorizontal className="w-5 h-5" />,
+      onSelect: () => setShowSettings(true),
     },
   ];
 
@@ -407,6 +422,9 @@ const Index = () => {
         onOpenChange={setShowStatUpload}
         pitchers={rosterPitchers}
       />
+
+      {/* App settings */}
+      <SettingsDialog open={showSettings} onOpenChange={setShowSettings} />
 
       {/* What's New Release Notes */}
       <WhatsNewDialog />

@@ -24,6 +24,7 @@ export type Database = {
           leaderboard_to: string | null
           updated_at: string
           user_id: string
+          workouts_enabled: boolean
         }
         Insert: {
           achievement_from?: string | null
@@ -34,6 +35,7 @@ export type Database = {
           leaderboard_to?: string | null
           updated_at?: string
           user_id: string
+          workouts_enabled?: boolean
         }
         Update: {
           achievement_from?: string | null
@@ -44,6 +46,7 @@ export type Database = {
           leaderboard_to?: string | null
           updated_at?: string
           user_id?: string
+          workouts_enabled?: boolean
         }
         Relationships: []
       }
