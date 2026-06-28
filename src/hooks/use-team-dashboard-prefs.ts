@@ -1,36 +1,24 @@
-import { useCallback, useEffect, useState } from 'react';
-
-const STORAGE_KEY = 'team_dashboard.show_workout_leaderboard';
-const EVENT_NAME = 'team-dashboard-prefs-changed';
-
-function readShow(): boolean {
-  if (typeof window === 'undefined') return true;
-  const raw = window.localStorage.getItem(STORAGE_KEY);
-  return raw === null ? true : raw === 'true';
-}
+import { useCallback } from 'react';
+import { useDashboardSettings } from '@/hooks/use-dashboard-settings';
 
 /**
- * Coach-only UI preference for whether the workout leaderboard appears on the
- * team dashboard. Stored in localStorage (per-device) — no schema change.
+ * Coach-only UI preference for whether workout-related widgets appear on the
+ * team dashboard. Historically lived in localStorage; now backed by the
+ * `dashboard_settings.workouts_enabled` column so it syncs across devices and
+ * shares state with the Settings dialog. Keeps the original [value, setter]
+ * signature so existing callers don't need to change.
  */
 export function useShowWorkoutLeaderboard(): [boolean, (next: boolean) => void] {
-  const [show, setShow] = useState<boolean>(readShow);
+  const { settings, setWorkoutsEnabled } = useDashboardSettings();
 
-  useEffect(() => {
-    const sync = () => setShow(readShow());
-    window.addEventListener('storage', sync);
-    window.addEventListener(EVENT_NAME, sync);
-    return () => {
-      window.removeEventListener('storage', sync);
-      window.removeEventListener(EVENT_NAME, sync);
-    };
-  }, []);
+  const update = useCallback(
+    (next: boolean) => {
+      // Fire-and-forget: original callers expected a sync setter. Errors
+      // surface via the hook's toast.
+      void setWorkoutsEnabled(next);
+    },
+    [setWorkoutsEnabled],
+  );
 
-  const update = useCallback((next: boolean) => {
-    window.localStorage.setItem(STORAGE_KEY, String(next));
-    setShow(next);
-    window.dispatchEvent(new Event(EVENT_NAME));
-  }, []);
-
-  return [show, update];
+  return [settings.workoutsEnabled, update];
 }
