@@ -225,6 +225,41 @@ export type Database = {
           },
         ]
       }
+      pitcher_stat_snapshots: {
+        Row: {
+          id: string
+          pitcher_id: string
+          user_id: string
+          uploaded_at: string
+          source_filename: string | null
+          stats: Json
+        }
+        Insert: {
+          id?: string
+          pitcher_id: string
+          user_id: string
+          uploaded_at?: string
+          source_filename?: string | null
+          stats?: Json
+        }
+        Update: {
+          id?: string
+          pitcher_id?: string
+          user_id?: string
+          uploaded_at?: string
+          source_filename?: string | null
+          stats?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pitcher_stat_snapshots_pitcher_id_fkey"
+            columns: ["pitcher_id"]
+            isOneToOne: false
+            referencedRelation: "pitchers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_members: {
         Row: {
           created_at: string
