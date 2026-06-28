@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Outing, parseLocalDateAtNoon } from '@/types/pitcher';
 import { PitchLocation, PitchTypeConfig, DEFAULT_PITCH_TYPES, PITCH_TYPE_COLORS } from '@/types/pitch-location';
 import { SmoothHeatmap } from '@/components/SmoothHeatmap';
@@ -703,15 +704,6 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
         )}
       </div>
 
-      {/* Season-stat-driven team report (coach-only) */}
-      {!parentMode && pitchers && pitchers.length > 0 && (
-        <TeamHealthPanel
-          pitchers={pitchers}
-          outings={outings}
-          onRequestUpload={onRequestStatUpload}
-        />
-      )}
-
       {/* Main Stats Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {/* Total Pitches */}
@@ -932,6 +924,15 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
 
       {/* Two Column Layout — Coach: 3 cols | Parent: 2 cols */}
 
+      {/* Coach view splits the dense analytics + insights into tabs so the
+          team tab opens with one focus area at a time. */}
+      {!parentMode && (
+        <Tabs defaultValue="trends" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="trends">Trends</TabsTrigger>
+            <TabsTrigger value="health-report">Health Report</TabsTrigger>
+          </TabsList>
+          <TabsContent value="trends" className="mt-4">
       {/* Coach grid: Heatmap spans 2 rows | Workout Count + Leaderboard top-right | Pitch Mix bottom-right */}
       {!parentMode && (
         <div className="grid grid-cols-1 lg:grid-cols-3 lg:grid-rows-2 gap-4 sm:gap-6">
@@ -1080,6 +1081,18 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
             )}
           </div>
         </div>
+      )}
+          </TabsContent>
+          <TabsContent value="health-report" className="mt-4">
+            {pitchers && pitchers.length > 0 && (
+              <TeamHealthPanel
+                pitchers={pitchers}
+                outings={outings}
+                onRequestUpload={onRequestStatUpload}
+              />
+            )}
+          </TabsContent>
+        </Tabs>
       )}
 
       {/* Parent 2-col: Heatmap | Workout Counter + Leaderboard + Pitch Mix */}
