@@ -15,6 +15,7 @@ import { useShowWorkoutLeaderboard } from '@/hooks/use-team-dashboard-prefs';
 import { PitcherRecord } from '@/hooks/use-pitchers';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { TeamHealthPanel } from '@/components/TeamHealthPanel';
 import { Activity, Target, Crosshair, Calendar, Flame, TrendingUp, TrendingDown, Minus, Dumbbell, Trophy, ListChecks } from 'lucide-react';
 
 interface CombinedDashboardProps {
@@ -23,6 +24,8 @@ interface CombinedDashboardProps {
   parentMode?: boolean;
   teamId?: string;
   pitchers?: PitcherRecord[];
+  /** Coach-only: opens the season-stat CSV upload dialog. */
+  onRequestStatUpload?: () => void;
 }
 
 interface GameDashboardRow {
@@ -57,7 +60,7 @@ type ViewMode = '7-day' | 'season';
 
 type ResultFilter = 'all' | 'strikes' | 'balls';
 
-export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = false, teamId, pitchers }: CombinedDashboardProps) {
+export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = false, teamId, pitchers, onRequestStatUpload }: CombinedDashboardProps) {
   const [showWorkoutLeaderboard] = useShowWorkoutLeaderboard();
   const [pitchLocations, setPitchLocations] = useState<PitchLocation[]>([]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(true);
@@ -699,6 +702,15 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
           </div>
         )}
       </div>
+
+      {/* Season-stat-driven team report (coach-only) */}
+      {!parentMode && pitchers && pitchers.length > 0 && (
+        <TeamHealthPanel
+          pitchers={pitchers}
+          outings={outings}
+          onRequestUpload={onRequestStatUpload}
+        />
+      )}
 
       {/* Main Stats Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
