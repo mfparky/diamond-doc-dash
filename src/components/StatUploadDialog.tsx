@@ -85,7 +85,7 @@ export function StatUploadDialog({ open, onOpenChange, pitchers, onSuccess }: St
   );
 
   const onDrop = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
+    (e: React.DragEvent<HTMLLabelElement>) => {
       e.preventDefault();
       setIsDragging(false);
       const file = e.dataTransfer.files?.[0];
