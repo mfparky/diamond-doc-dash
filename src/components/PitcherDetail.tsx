@@ -466,6 +466,17 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
           </div>
         );
       })()}
+      {/* Primary content tabs — keeps the dugout view focused; power-user
+          surfaces live one tap deeper. */}
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="health-report">Health Report</TabsTrigger>
+          <TabsTrigger value="history">History</TabsTrigger>
+          <TabsTrigger value="charts">Charts</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6 mt-4">
       {/* Arm Care Status + Share Buttons */}
       <Card className="glass-card border-primary/30 bg-primary/5">
           <CardContent className="p-4">
@@ -751,6 +762,9 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
         );
       })()}
 
+        </TabsContent>
+
+        <TabsContent value="charts" className="space-y-6 mt-4">
       {/* Video Comparison & Season Dashboard Buttons */}
       <div className="flex justify-center gap-3">
         <Button
@@ -804,6 +818,9 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
         pitchTypes={pitchTypes}
       />
 
+        </TabsContent>
+
+        <TabsContent value="health-report" className="mt-4">
       {/* Season stat health report */}
       <HealthReportCard
         pitcherId={pitcher.id}
@@ -812,6 +829,9 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
         onRequestUpload={onRequestStatUpload}
       />
 
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-4">
       {/* Outing History */}
       <Card className="glass-card">
         <CardHeader className="pb-2">
@@ -944,6 +964,8 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
           </Tabs>
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Edit Dialog */}
       <EditOutingDialog
