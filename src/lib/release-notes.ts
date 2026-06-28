@@ -12,33 +12,33 @@ export interface ReleaseNotes {
 }
 
 export const CURRENT_RELEASE: ReleaseNotes = {
-  version: "2026-04-28c",
+  version: "2026-05-06",
   enabled: false,
   title: "What's New 🎉",
   features: [
     {
-      heading: "🎯 Catch-Up Workouts",
+      heading: "📊 Consistency Score",
       description:
-        "Coaches can now assign catch-up workouts that only players outside the top 5 on the leaderboard can complete — a fair way to help everyone close the gap.",
+        "Coaches now see a blended Consistency grade for each pitcher — combining strike % stability (60%) with workout regularity (40%), shown as ±pp · days/wk.",
     },
     {
-      heading: "2️⃣ Double-Point Workouts",
-      description:
-        "Catch-up workouts can be marked as worth 2x, so each completion counts twice on the leaderboard. Climb faster by putting in the work!",
+      heading: "📋 Roster on Mobile Nav",
+      description: "The mobile bottom nav now has quick access to Roster management instead of Workouts.",
     },
     {
-      heading: "📸 Photo-Required Enforcement",
+      heading: "📝 Long Workout Descriptions",
       description:
-        "Workouts that require a photo now show a clear notice when opened and can't be saved without uploading proof.",
+        "Long workout text now truncates cleanly with a 'Read more' modal, so dashboards stay tidy on every screen size.",
     },
     {
-      heading: "🕒 Last Updated Indicator",
+      heading: "⚡ Faster App Load",
       description:
-        "Each player dashboard now shows when it was last updated, so parents always know how fresh the stats are.",
+        "Secondary routes are now lazy-loaded for a snappier coach experience, plus better error toasts when something fails to load.",
     },
     {
-      heading: "🛠️ Bug Fixes",
-      description: "General stability improvements and small fixes across the app.",
+      heading: "🛠️ Bug Fixes & Polish",
+      description:
+        "Outing form rejects empty submissions, larger touch targets for dugout use, Today/Yesterday quick-pick on dates, and stability improvements across the app.",
     },
   ],
   signoff: "-Coach Matt",

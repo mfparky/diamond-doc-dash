@@ -50,8 +50,16 @@ export function usePageMeta(options: PageMetaOptions) {
       setMetaTag('og:description', ogDescription || description || '');
     }
     
-    if (ogImage) {
-      setMetaTag('og:image', ogImage);
+    const absoluteOgImage = ogImage
+      ? (ogImage.startsWith('http') ? ogImage : `${window.location.origin}${ogImage.startsWith('/') ? '' : '/'}${ogImage}`)
+      : undefined;
+
+    if (absoluteOgImage) {
+      setMetaTag('og:image', absoluteOgImage);
+      setMetaTag('og:image:secure_url', absoluteOgImage);
+      setMetaTag('og:image:width', '1024');
+      setMetaTag('og:image:height', '1024');
+      setMetaTag('og:image:type', 'image/jpeg');
     }
 
     // Set Twitter card tags
@@ -62,8 +70,8 @@ export function usePageMeta(options: PageMetaOptions) {
       setMetaTag('twitter:description', ogDescription || description || '', false);
     }
     
-    if (ogImage) {
-      setMetaTag('twitter:image', ogImage, false);
+    if (absoluteOgImage) {
+      setMetaTag('twitter:image', absoluteOgImage, false);
     }
 
     // Cleanup on unmount

@@ -10,11 +10,11 @@ import { OutingForm } from '@/components/OutingForm';
 import { AllTimeStats } from '@/components/AllTimeStats';
 import { RosterManagementDialog } from '@/components/RosterManagementDialog';
 import { PaperFormScanner } from '@/components/PaperFormScanner';
+import { ManageScorekeepersDialog } from '@/components/ManageScorekeepersDialog';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { MoreSheet, type MoreSheetItem } from '@/components/MoreSheet';
-import { StatUploadDialog } from '@/components/StatUploadDialog';
-import { Settings, Camera, Printer, ClipboardList, MoreHorizontal, ShieldCheck, ScanLine, FileSpreadsheet } from 'lucide-react';
+import { Settings, Camera, Printer, ClipboardList, MoreHorizontal, ShieldCheck, ScanLine, Gamepad2, ListChecks, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { getDaysRestNeeded } from '@/types/pitcher';
@@ -42,6 +42,7 @@ const Index = () => {
   const [showOutingForm, setShowOutingForm] = useState(false);
   const [showRosterManagement, setShowRosterManagement] = useState(false);
   const [showFormScanner, setShowFormScanner] = useState(false);
+  const [showScorekeepers, setShowScorekeepers] = useState(false);
   const [showMoreSheet, setShowMoreSheet] = useState(false);
   const [showStatUpload, setShowStatUpload] = useState(false);
   const navigate = useNavigate();
@@ -49,11 +50,18 @@ const Index = () => {
 
   const moreSheetItems: MoreSheetItem[] = [
     {
-      id: 'upload-stats',
-      label: 'Upload season stats',
-      description: 'Import a GameChanger CSV to power health reports',
-      icon: <FileSpreadsheet className="w-5 h-5" />,
-      onSelect: () => setShowStatUpload(true),
+      id: 'game-mode',
+      label: 'Game mode',
+      description: 'Live pitch-by-pitch counter',
+      icon: <Gamepad2 className="w-5 h-5" />,
+      onSelect: () => navigate('/game'),
+    },
+    {
+      id: 'games',
+      label: 'Games',
+      description: 'Review past games & strike %',
+      icon: <ListChecks className="w-5 h-5" />,
+      onSelect: () => navigate('/games'),
     },
     {
       id: 'roster',
@@ -61,6 +69,13 @@ const Index = () => {
       description: 'Add or edit pitchers',
       icon: <Settings className="w-5 h-5" />,
       onSelect: () => setShowRosterManagement(true),
+    },
+    {
+      id: 'scorekeepers',
+      label: 'Manage scorekeepers',
+      description: 'Grant pitch-counter-only access',
+      icon: <Users className="w-5 h-5" />,
+      onSelect: () => setShowScorekeepers(true),
     },
     {
       id: 'scan',
@@ -332,7 +347,7 @@ const Index = () => {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onAddOuting={() => setShowOutingForm(true)}
-        onOpenWorkouts={() => navigate('/accountability')}
+        onOpenRoster={() => setShowRosterManagement(true)}
         onOpenMore={() => setShowMoreSheet(true)}
         isOnPlayerDetail={currentView === 'detail'}
         onBackToPlayers={handleBackToDashboard}
@@ -386,6 +401,8 @@ const Index = () => {
 
       {/* What's New Release Notes */}
       <WhatsNewDialog />
+
+      <ManageScorekeepersDialog open={showScorekeepers} onOpenChange={setShowScorekeepers} />
     </div>
   );
 };

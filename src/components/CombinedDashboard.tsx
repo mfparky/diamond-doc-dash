@@ -1,7 +1,8 @@
 import { useMemo, useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Outing } from '@/types/pitcher';
+import { Outing, parseLocalDateAtNoon } from '@/types/pitcher';
 import { PitchLocation, PitchTypeConfig, DEFAULT_PITCH_TYPES, PITCH_TYPE_COLORS } from '@/types/pitch-location';
 import { SmoothHeatmap } from '@/components/SmoothHeatmap';
 import { StrikePercentBar } from '@/components/StrikePercentBar';
@@ -10,10 +11,11 @@ import { FlipCounter } from '@/components/FlipCounter';
 import { VelocityScale } from '@/components/VelocityScale';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import { WorkoutLeaderboard } from '@/components/WorkoutLeaderboard';
+import { useShowWorkoutLeaderboard } from '@/hooks/use-team-dashboard-prefs';
 import { PitcherRecord } from '@/hooks/use-pitchers';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Activity, Target, Calendar, Flame, TrendingUp, TrendingDown, Minus, Dumbbell, Trophy } from 'lucide-react';
+import { Activity, Target, Crosshair, Calendar, Flame, TrendingUp, TrendingDown, Minus, Dumbbell, Trophy, ListChecks } from 'lucide-react';
 
 interface CombinedDashboardProps {
   outings: Outing[];
@@ -21,6 +23,27 @@ interface CombinedDashboardProps {
   parentMode?: boolean;
   teamId?: string;
   pitchers?: PitcherRecord[];
+}
+
+interface GameDashboardRow {
+  id: string;
+  date: string;
+  opponent_name: string | null;
+  status: string;
+  team_id: string | null;
+  user_id: string | null;
+}
+
+interface PitchLocationRow {
+  id: string;
+  outing_id: string;
+  pitcher_id: string;
+  pitch_number: number;
+  pitch_type: number;
+  x_location: number | string;
+  y_location: number | string;
+  is_strike: boolean;
+  created_at: string;
 }
 
 const EVENT_COLORS: Record<string, string> = {
@@ -35,6 +58,7 @@ type ViewMode = '7-day' | 'season';
 type ResultFilter = 'all' | 'strikes' | 'balls';
 
 export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = false, teamId, pitchers }: CombinedDashboardProps) {
+  const [showWorkoutLeaderboard] = useShowWorkoutLeaderboard();
   const [pitchLocations, setPitchLocations] = useState<PitchLocation[]>([]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('season');
@@ -50,7 +74,9 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
   const [leaderboardDates, setLeaderboardDates] = useState<{ from?: Date; to?: Date }>({});
   const [coachWorkoutCount, setCoachWorkoutCount] = useState(0);
   const [coachLeaderboardDates, setCoachLeaderboardDates] = useState<{ from?: Date; to?: Date }>({});
+  const [games, setGames] = useState<GameDashboardRow[]>([]);
   const { toast } = useToast();
+  const coachTeamId = useMemo(() => teamId ?? pitchers?.find((p) => p.teamId)?.teamId ?? null, [teamId, pitchers]);
 
   // Fetch total workout completions for the season (parent mode)
   useEffect(() => {
@@ -209,6 +235,30 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
     fetchCoachWorkoutData();
   }, [parentMode, pitchers, toast]);
 
+  useEffect(() => {
+    if (parentMode || !coachTeamId) return;
+    let cancelled = false;
+
+    async function fetchCoachGames() {
+      const { data, error } = await supabase
+        .from('games')
+        .select('id, date, opponent_name, status, team_id, user_id')
+        .eq('team_id', coachTeamId)
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (cancelled) return;
+      if (error) {
+        console.error('Error fetching games:', error);
+        return;
+      }
+      setGames((data || []) as GameDashboardRow[]);
+    }
+
+    fetchCoachGames();
+    return () => { cancelled = true; };
+  }, [parentMode, coachTeamId]);
+
   // Calculate date range based on view mode
   const dateRange = useMemo(() => {
     if (viewMode === '7-day') {
@@ -270,7 +320,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
       setIsLoadingLocations(true);
       try {
         // Paginate to avoid Supabase's 1000-row default limit
-        const allRows: any[] = [];
+        const allRows: PitchLocationRow[] = [];
         const PAGE_SIZE = 1000;
         let from = 0;
         let hasMore = true;
@@ -380,6 +430,17 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
       return 'neutral';
     };
 
+    const currentGameOutings = filteredOutings.filter((o) => o.eventType === 'Game');
+    const prevGameOutings = previousOutings.filter((o) => o.eventType === 'Game');
+    const calcGameStrikePct = (list: Outing[]): number | null => {
+      const withStrikes = list.filter((o) => o.strikes !== null && o.strikes !== undefined);
+      const pitches = withStrikes.reduce((s, o) => s + o.pitchCount, 0);
+      const strikes = withStrikes.reduce((s, o) => s + (o.strikes ?? 0), 0);
+      return pitches > 0 ? Math.round((strikes / pitches) * 100) : null;
+    };
+    const currentGameStrikePct = calcGameStrikePct(currentGameOutings);
+    const previousGameStrikePct = calcGameStrikePct(prevGameOutings);
+
     return {
       pitches: getTrend(stats.totalPitches, previousStats.totalPitches),
       pitchesDiff: stats.totalPitches - previousStats.totalPitches,
@@ -387,12 +448,95 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
       strikePercentageDiff: (stats.strikePercentage ?? 0) - (previousStats.strikePercentage ?? 0),
       outings: getTrend(stats.totalOutings, previousStats.totalOutings),
       outingsDiff: stats.totalOutings - previousStats.totalOutings,
+      gameStrikePercentage: getTrend(currentGameStrikePct, previousGameStrikePct),
+      gameStrikePercentageDiff: (currentGameStrikePct ?? 0) - (previousGameStrikePct ?? 0),
+      currentGameStrikePct,
+      previousGameStrikePct,
     };
-  }, [stats, previousStats]);
+  }, [stats, previousStats, filteredOutings, previousOutings]);
+
+
+  const gamesStats = useMemo(() => {
+    const start = parseLocalDateAtNoon(dateRange.start);
+    const end = parseLocalDateAtNoon(dateRange.end);
+    const inRange = (date: string) => {
+      const d = parseLocalDateAtNoon(date);
+      return d >= start && d <= end;
+    };
+
+    const gamesInRange = games.filter((game) => inRange(game.date));
+    const knownGameDates = new Set(gamesInRange.map((game) => game.date));
+    const gameOutings = filteredOutings.filter((outing) => outing.eventType === 'Game');
+    const outingOnlyGames: GameDashboardRow[] = [...new Set(gameOutings.map((outing) => outing.date))]
+      .filter((date) => !knownGameDates.has(date))
+      .map((date) => ({ id: `outing-${date}`, date, opponent_name: null, status: 'completed', team_id: coachTeamId, user_id: null }));
+
+    const displayGames = [...gamesInRange, ...outingOnlyGames]
+      .sort((a, b) => parseLocalDateAtNoon(b.date).getTime() - parseLocalDateAtNoon(a.date).getTime());
+
+    const totalGamePitches = gameOutings.reduce((sum, outing) => sum + outing.pitchCount, 0);
+    const gameOutingsWithStrikes = gameOutings.filter((outing) => outing.strikes !== null);
+    const pitchesWithStrikes = gameOutingsWithStrikes.reduce((sum, outing) => sum + outing.pitchCount, 0);
+    const strikes = gameOutingsWithStrikes.reduce((sum, outing) => sum + (outing.strikes ?? 0), 0);
+
+    const byPitcher = new Map<string, number>();
+    gameOutings.forEach((outing) => {
+      byPitcher.set(outing.pitcherName, (byPitcher.get(outing.pitcherName) ?? 0) + outing.pitchCount);
+    });
+
+    const pitcherNames = (pitchers?.map((pitcher) => pitcher.name) ?? [...new Set(filteredOutings.map((outing) => outing.pitcherName))])
+      .sort((a, b) => a.localeCompare(b));
+    const recentGames = displayGames.slice(0, 5);
+
+    const gameSummaries = displayGames.map((game) => {
+      const outingsForGame = gameOutings.filter((o) => o.date === game.date);
+      const pitches = outingsForGame.reduce((sum, o) => sum + o.pitchCount, 0);
+      const withStrikes = outingsForGame.filter((o) => o.strikes !== null);
+      const sPitches = withStrikes.reduce((sum, o) => sum + o.pitchCount, 0);
+      const sStrikes = withStrikes.reduce((sum, o) => sum + (o.strikes ?? 0), 0);
+      const topVelo = outingsForGame.reduce((max, o) => Math.max(max, o.maxVelo ?? 0), 0);
+      const pitcherCount = new Set(outingsForGame.map((o) => o.pitcherName)).size;
+      return {
+        id: game.id,
+        date: game.date,
+        opponent: game.opponent_name,
+        pitches,
+        strikePct: sPitches > 0 ? Math.round((sStrikes / sPitches) * 100) : null,
+        pitcherCount,
+        topVelo,
+      };
+    });
+
+    const matrix = pitcherNames.map((name) => ({
+      name,
+      total: recentGames.reduce((sum, game) => sum + gameOutings
+        .filter((outing) => outing.date === game.date && outing.pitcherName === name)
+        .reduce((pitchSum, outing) => pitchSum + outing.pitchCount, 0), 0),
+      cells: recentGames.map((game) => ({
+        gameId: game.id,
+        date: game.date,
+        pitches: gameOutings
+          .filter((outing) => outing.date === game.date && outing.pitcherName === name)
+          .reduce((sum, outing) => sum + outing.pitchCount, 0),
+      })),
+    })).filter((row) => row.total > 0);
+
+    return {
+      games: displayGames,
+      recentGames,
+      gameSummaries,
+      totalGamePitches,
+      avgPitches: displayGames.length > 0 ? Math.round(totalGamePitches / displayGames.length) : 0,
+      strikePercentage: pitchesWithStrikes > 0 ? Math.round((strikes / pitchesWithStrikes) * 100) : null,
+      topArms: Array.from(byPitcher.entries()).sort((a, b) => b[1] - a[1]).slice(0, 3),
+      matrix,
+    };
+  }, [coachTeamId, dateRange, filteredOutings, games, pitchers]);
 
   // Trend arrow component
   const TrendIndicator = ({ trend, diff, suffix = '' }: { trend: 'up' | 'down' | 'neutral'; diff: number; suffix?: string }) => {
-    if (viewMode !== '7-day') return null;
+    if (trend === 'neutral') return null;
+
     
     const Icon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus;
     const colorClass = trend === 'up' ? 'text-success' : trend === 'down' ? 'text-destructive' : 'text-muted-foreground';
@@ -468,6 +612,15 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
       balls: baseLocations.length - strikes,
     };
   }, [pitchLocations, filterPitchType]);
+
+  const formatGameDate = (date: string) => parseLocalDateAtNoon(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const getPitchLoadClass = (pitches: number) => {
+    if (pitches >= 76) return 'bg-status-danger/25 text-status-danger border-status-danger/30';
+    if (pitches >= 61) return 'bg-status-warning/25 text-status-warning border-status-warning/30';
+    if (pitches >= 46) return 'bg-status-caution/25 text-status-caution border-status-caution/30';
+    if (pitches >= 31) return 'bg-muted text-foreground border-border';
+    return 'bg-secondary/70 text-muted-foreground border-border/60';
+  };
 
   // Time toggle pills component - matches Players view design
   const TimeTogglePills = () => (
@@ -548,7 +701,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
       </div>
 
       {/* Main Stats Grid */}
-      <div className="grid grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {/* Total Pitches */}
         <Card className="glass-card">
           <CardContent className="p-3 sm:p-4">
@@ -567,7 +720,30 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
           </CardContent>
         </Card>
 
-        {/* Strike % */}
+        {/* Game Strike % — from Game outings only */}
+        <Card className="glass-card">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-warning/10 shrink-0">
+                <Crosshair className="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Game Strike %</p>
+                  {gamesStats.strikePercentage !== null && (
+                    <TrendIndicator trend={trends.gameStrikePercentage} diff={trends.gameStrikePercentageDiff} suffix="%" />
+                  )}
+                </div>
+                <p className="text-lg sm:text-2xl font-bold text-foreground">
+                  {gamesStats.strikePercentage !== null ? `${gamesStats.strikePercentage}%` : '—'}
+                </p>
+              </div>
+
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Total Strike % — across all sessions */}
         <Card className="glass-card">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 sm:gap-3">
@@ -576,7 +752,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Strike %</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Total Strike %</p>
                   {stats.strikePercentage !== null && (
                     <TrendIndicator trend={trends.strikePercentage} diff={trends.strikePercentageDiff} suffix="%" />
                   )}
@@ -607,6 +783,131 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
           </CardContent>
         </Card>
       </div>
+
+      {!parentMode && gamesStats.games.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="font-display text-xl font-bold text-foreground">Games</h3>
+              <p className="text-xs text-muted-foreground">Game outings in the selected range</p>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/games" className="gap-2">
+                <ListChecks className="w-4 h-4" /> Review
+              </Link>
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <Card className="glass-card">
+              <CardContent className="p-3 sm:p-4">
+                <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Games</p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground">{gamesStats.games.length}</p>
+              </CardContent>
+            </Card>
+            <Card className="glass-card">
+              <CardContent className="p-3 sm:p-4">
+                <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Avg Pitches</p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground">{gamesStats.avgPitches}</p>
+              </CardContent>
+            </Card>
+            <Card className="glass-card">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Game Strike %</p>
+                  {gamesStats.strikePercentage !== null && (
+                    <TrendIndicator trend={trends.gameStrikePercentage} diff={trends.gameStrikePercentageDiff} suffix="%" />
+                  )}
+                </div>
+                <p className="text-xl sm:text-2xl font-bold text-foreground">{gamesStats.strikePercentage !== null ? `${gamesStats.strikePercentage}%` : '—'}</p>
+              </CardContent>
+            </Card>
+            <Card className="glass-card">
+              <CardContent className="p-3 sm:p-4">
+                <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider">Most Used</p>
+                <p className="text-sm sm:text-base font-semibold text-foreground truncate">{gamesStats.topArms[0]?.[0] ?? '—'}</p>
+                {gamesStats.topArms[0] && <p className="text-xs text-muted-foreground">{gamesStats.topArms[0][1]} pitches</p>}
+              </CardContent>
+            </Card>
+          </div>
+
+          {gamesStats.gameSummaries.length > 0 && (
+            <Card className="glass-card">
+              <CardHeader className="pb-2 px-3 sm:px-6">
+                <CardTitle className="font-display text-base sm:text-lg">Game-by-Game</CardTitle>
+              </CardHeader>
+              <CardContent className="px-3 sm:px-6">
+                <div className="overflow-x-auto">
+                  <div className="min-w-[520px] space-y-1">
+                    <div className="grid grid-cols-[minmax(80px,0.9fr)_minmax(120px,1.4fr)_repeat(4,minmax(64px,0.7fr))] gap-2 text-[10px] uppercase tracking-wider text-muted-foreground px-2 pb-1 border-b border-border/50">
+                      <span>Date</span>
+                      <span>Opponent</span>
+                      <span className="text-right">Pitches</span>
+                      <span className="text-right">Strike %</span>
+                      <span className="text-right">Top Velo</span>
+                      <span className="text-right">Arms</span>
+                    </div>
+                    {gamesStats.gameSummaries.map((g) => (
+                      <Link
+                        key={g.id}
+                        to={g.id.startsWith('outing-') ? '/games' : `/games/${g.id}`}
+                        className="grid grid-cols-[minmax(80px,0.9fr)_minmax(120px,1.4fr)_repeat(4,minmax(64px,0.7fr))] gap-2 items-center px-2 py-2 rounded-md hover:bg-muted/40 transition-colors"
+                      >
+                        <span className="text-sm font-medium text-foreground">{formatGameDate(g.date)}</span>
+                        <span className="text-sm text-foreground truncate">{g.opponent || <span className="text-muted-foreground italic">—</span>}</span>
+                        <span className="text-right text-sm font-semibold text-foreground tabular-nums">{g.pitches || '—'}</span>
+                        <span className="text-right text-sm font-semibold tabular-nums">
+                          {g.strikePct !== null ? (
+                            <span className={g.strikePct >= 60 ? 'text-success' : g.strikePct >= 50 ? 'text-foreground' : 'text-destructive'}>
+                              {g.strikePct}%
+                            </span>
+                          ) : <span className="text-muted-foreground">—</span>}
+                        </span>
+                        <span className="text-right text-sm text-foreground tabular-nums">{g.topVelo > 0 ? g.topVelo : <span className="text-muted-foreground">—</span>}</span>
+                        <span className="text-right text-sm text-muted-foreground tabular-nums">{g.pitcherCount || '—'}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {gamesStats.matrix.length > 0 && (
+            <Card className="glass-card">
+              <CardHeader className="pb-2 px-3 sm:px-6">
+                <CardTitle className="font-display text-base sm:text-lg">Pitcher × Last 5 Games</CardTitle>
+              </CardHeader>
+              <CardContent className="px-3 sm:px-6">
+                <div className="overflow-x-auto">
+                  <div className="min-w-[560px] space-y-2">
+                    <div className="grid grid-cols-[minmax(130px,1.2fr)_repeat(5,minmax(68px,0.7fr))_64px] gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+                      <span>Pitcher</span>
+                      {gamesStats.recentGames.map((game) => (
+                        <span key={game.id} className="text-center truncate">{formatGameDate(game.date)}</span>
+                      ))}
+                      {Array.from({ length: Math.max(0, 5 - gamesStats.recentGames.length) }).map((_, idx) => <span key={`blank-head-${idx}`} />)}
+                      <span className="text-right">Total</span>
+                    </div>
+                    {gamesStats.matrix.map((row) => (
+                      <div key={row.name} className="grid grid-cols-[minmax(130px,1.2fr)_repeat(5,minmax(68px,0.7fr))_64px] gap-2 items-center">
+                        <span className="text-sm font-medium text-foreground truncate">{row.name}</span>
+                        {row.cells.map((cell) => (
+                          <span key={`${row.name}-${cell.gameId}`} className={`h-8 rounded-md border flex items-center justify-center text-xs font-semibold ${getPitchLoadClass(cell.pitches)}`}>
+                            {cell.pitches || '—'}
+                          </span>
+                        ))}
+                        {Array.from({ length: Math.max(0, 5 - row.cells.length) }).map((_, idx) => <span key={`${row.name}-blank-${idx}`} className="h-8" />)}
+                        <span className="text-right text-sm font-semibold text-foreground">{row.total}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </section>
+      )}
 
       {/* Velocity & Strike % Side by Side */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
@@ -678,7 +979,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
           </Card>
 
           {/* Col 2: Workout Count */}
-          {pitchers && pitchers.length > 0 ? (
+          {showWorkoutLeaderboard && pitchers && pitchers.length > 0 ? (
             <Card className="glass-card border-accent/30 bg-accent/5">
               <CardContent className="p-4 sm:p-6 flex flex-col items-center justify-center h-full gap-2 text-center">
                 <div className="flex flex-col items-center gap-1.5">
@@ -693,8 +994,9 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
             </Card>
           ) : <div />}
 
-          {/* Col 3: Compact Leaderboard */}
-          {pitchers && pitchers.length > 0 ? (
+
+          {/* Col 3: Compact Leaderboard (toggleable via Settings) */}
+          {showWorkoutLeaderboard && pitchers && pitchers.length > 0 ? (
             <Card className="glass-card">
               <CardContent className="p-2 sm:p-3">
                 <div className="flex items-center gap-2 mb-2">
@@ -828,7 +1130,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
 
           {/* Right Column: Workout Counter, Leaderboard, Pitch Mix */}
           <div className="space-y-4 sm:space-y-6">
-            {totalWorkoutsCompleted > 0 && (
+            {showWorkoutLeaderboard && totalWorkoutsCompleted > 0 && (
               <Card className="glass-card border-accent/30 bg-accent/5">
                 <CardContent className="p-4 sm:p-6 flex items-center gap-4">
                   <div className="p-2.5 rounded-lg bg-accent/10">
@@ -841,6 +1143,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
                 </CardContent>
               </Card>
             )}
+
             {teamPitchers.length > 0 && (
               <Card className="glass-card">
                 <CardContent className="p-4 sm:p-6">

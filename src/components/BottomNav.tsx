@@ -1,11 +1,11 @@
-import { Users, BarChart3, Plus, Dumbbell, MoreHorizontal } from 'lucide-react';
+import { Users, BarChart3, Plus, ClipboardList, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface BottomNavProps {
   activeTab: 'players' | 'team';
   onTabChange: (tab: 'players' | 'team') => void;
   onAddOuting: () => void;
-  onOpenWorkouts: () => void;
+  onOpenRoster: () => void;
   onOpenMore: () => void;
   isOnPlayerDetail?: boolean;
   onBackToPlayers?: () => void;
@@ -15,7 +15,7 @@ export function BottomNav({
   activeTab,
   onTabChange,
   onAddOuting,
-  onOpenWorkouts,
+  onOpenRoster,
   onOpenMore,
   isOnPlayerDetail,
   onBackToPlayers,
@@ -80,15 +80,15 @@ export function BottomNav({
           <span className="text-xs font-medium text-muted-foreground">Log</span>
         </button>
 
-        {/* Workouts */}
+        {/* Roster */}
         <button
           type="button"
-          onClick={onOpenWorkouts}
+          onClick={onOpenRoster}
           className={slotClasses(false)}
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
-          <Dumbbell className="w-6 h-6" />
-          <span className="text-xs font-medium">Workouts</span>
+          <ClipboardList className="w-6 h-6" />
+          <span className="text-xs font-medium">Roster</span>
         </button>
 
         {/* More */}

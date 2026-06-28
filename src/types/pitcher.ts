@@ -33,6 +33,11 @@ export interface Pitcher {
   outings: Outing[];
   focus?: string;
   coachNotes?: string;
+  trends?: {
+    pulse: { direction: 'up' | 'down' | 'stable'; diff: number };
+    strike: { direction: 'up' | 'down' | 'stable'; diff: number };
+    velo: { direction: 'up' | 'down' | 'stable'; diff: number };
+  };
 }
 
 export type RestStatus = 
@@ -52,16 +57,21 @@ export function getDaysRestNeeded(pitchCount: number): number {
   return 0;
 }
 
+export function parseLocalDateAtNoon(dateStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  if (!year || !month || !day) return new Date(dateStr);
+  return new Date(year, month - 1, day, 12, 0, 0, 0);
+}
+
 export function calculateRestStatus(lastOutingDate: string | null, lastPitchCount: number): RestStatus {
   if (!lastOutingDate || lastOutingDate === '') {
     return { type: 'no-data' };
   }
 
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  today.setHours(12, 0, 0, 0);
   
-  const lastDate = new Date(lastOutingDate);
-  lastDate.setHours(0, 0, 0, 0);
+  const lastDate = parseLocalDateAtNoon(lastOutingDate);
   
   const daysSinceLast = Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
   const daysRestNeeded = getDaysRestNeeded(lastPitchCount);
@@ -70,8 +80,9 @@ export function calculateRestStatus(lastOutingDate: string | null, lastPitchCoun
     return { type: 'threw-today' };
   }
 
-  // If no rest needed (< 31 pitches) or rest period is complete, pitcher is active
-  if (daysRestNeeded === 0 || daysSinceLast >= daysRestNeeded) {
+  // Rest days are FULL days off after the outing.
+  // e.g. 52 pitches → 2 days rest: threw day 0, rest day 1, rest day 2, active day 3.
+  if (daysRestNeeded === 0 || daysSinceLast > daysRestNeeded) {
     return { type: 'active' };
   }
 
