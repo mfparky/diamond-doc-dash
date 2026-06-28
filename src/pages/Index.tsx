@@ -11,6 +11,7 @@ import { AllTimeStats } from '@/components/AllTimeStats';
 import { RosterManagementDialog } from '@/components/RosterManagementDialog';
 import { PaperFormScanner } from '@/components/PaperFormScanner';
 import { ManageScorekeepersDialog } from '@/components/ManageScorekeepersDialog';
+import { StatUploadDialog } from '@/components/StatUploadDialog';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { MoreSheet, type MoreSheetItem } from '@/components/MoreSheet';
