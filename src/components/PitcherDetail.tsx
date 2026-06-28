@@ -35,6 +35,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ProgressReportCard } from '@/components/ProgressReportCard';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { HealthReportCard } from '@/components/HealthReportCard';
 
 
 interface PitcherDetailProps {
@@ -49,9 +50,10 @@ interface PitcherDetailProps {
     yLocation: number;
     isStrike: boolean;
   }>) => Promise<Outing | null>;
+  onRequestStatUpload?: () => void;
 }
 
-export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting, onAddOuting }: PitcherDetailProps) {
+export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting, onAddOuting, onRequestStatUpload }: PitcherDetailProps) {
   const [editingOuting, setEditingOuting] = useState<Outing | null>(null);
   const [deletingOuting, setDeletingOuting] = useState<Outing | null>(null);
   const [pitchMapOuting, setPitchMapOuting] = useState<Outing | null>(null);
@@ -796,10 +798,18 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
       )}
 
       {/* Strike Location Viewer */}
-      <StrikeLocationViewer 
-        pitcherId={pitcher.id} 
+      <StrikeLocationViewer
+        pitcherId={pitcher.id}
         outings={pitcher.outings}
         pitchTypes={pitchTypes}
+      />
+
+      {/* Season stat health report */}
+      <HealthReportCard
+        pitcherId={pitcher.id}
+        pitcherName={pitcher.name}
+        outings={pitcher.outings}
+        onRequestUpload={onRequestStatUpload}
       />
 
       {/* Outing History */}

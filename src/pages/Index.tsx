@@ -13,7 +13,8 @@ import { PaperFormScanner } from '@/components/PaperFormScanner';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { MoreSheet, type MoreSheetItem } from '@/components/MoreSheet';
-import { Settings, Camera, Printer, ClipboardList, MoreHorizontal, ShieldCheck, ScanLine } from 'lucide-react';
+import { StatUploadDialog } from '@/components/StatUploadDialog';
+import { Settings, Camera, Printer, ClipboardList, MoreHorizontal, ShieldCheck, ScanLine, FileSpreadsheet } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { getDaysRestNeeded } from '@/types/pitcher';
@@ -42,10 +43,18 @@ const Index = () => {
   const [showRosterManagement, setShowRosterManagement] = useState(false);
   const [showFormScanner, setShowFormScanner] = useState(false);
   const [showMoreSheet, setShowMoreSheet] = useState(false);
+  const [showStatUpload, setShowStatUpload] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const moreSheetItems: MoreSheetItem[] = [
+    {
+      id: 'upload-stats',
+      label: 'Upload season stats',
+      description: 'Import a GameChanger CSV to power health reports',
+      icon: <FileSpreadsheet className="w-5 h-5" />,
+      onSelect: () => setShowStatUpload(true),
+    },
     {
       id: 'roster',
       label: 'Manage roster',
@@ -307,12 +316,13 @@ const Index = () => {
         )}
 
         {currentView === 'detail' && selectedPitcher && (
-          <PitcherDetail 
-            pitcher={selectedPitcher} 
+          <PitcherDetail
+            pitcher={selectedPitcher}
             onBack={handleBackToDashboard}
             onUpdateOuting={updateOuting}
             onDeleteOuting={deleteOuting}
             onAddOuting={handleAddOuting}
+            onRequestStatUpload={() => setShowStatUpload(true)}
           />
         )}
       </main>
@@ -365,6 +375,13 @@ const Index = () => {
         open={showMoreSheet}
         onOpenChange={setShowMoreSheet}
         items={moreSheetItems}
+      />
+
+      {/* Season stat CSV upload */}
+      <StatUploadDialog
+        open={showStatUpload}
+        onOpenChange={setShowStatUpload}
+        pitchers={rosterPitchers}
       />
 
       {/* What's New Release Notes */}
