@@ -44,6 +44,7 @@ const Index = () => {
   const [showFormScanner, setShowFormScanner] = useState(false);
   const [showScorekeepers, setShowScorekeepers] = useState(false);
   const [showMoreSheet, setShowMoreSheet] = useState(false);
+  const [showStatUpload, setShowStatUpload] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -330,12 +331,13 @@ const Index = () => {
         )}
 
         {currentView === 'detail' && selectedPitcher && (
-          <PitcherDetail 
-            pitcher={selectedPitcher} 
+          <PitcherDetail
+            pitcher={selectedPitcher}
             onBack={handleBackToDashboard}
             onUpdateOuting={updateOuting}
             onDeleteOuting={deleteOuting}
             onAddOuting={handleAddOuting}
+            onRequestStatUpload={() => setShowStatUpload(true)}
           />
         )}
       </main>
@@ -388,6 +390,13 @@ const Index = () => {
         open={showMoreSheet}
         onOpenChange={setShowMoreSheet}
         items={moreSheetItems}
+      />
+
+      {/* Season stat CSV upload */}
+      <StatUploadDialog
+        open={showStatUpload}
+        onOpenChange={setShowStatUpload}
+        pitchers={rosterPitchers}
       />
 
       {/* What's New Release Notes */}
