@@ -49,17 +49,21 @@ export function calculatePitcherStats(pitcher: Pitcher, allOutings: Outing[]): P
   });
   const previousPulse = previousOutings.reduce((sum, o) => sum + o.pitchCount, 0);
 
-  // Calculate 7-day strike percentage (only from last 7 days, only where strikes tracked)
-  const recentWithStrikes = recentOutings.filter(o => o.strikes !== null);
-  const recentPitchesWithStrikes = recentWithStrikes.reduce((sum, o) => sum + o.pitchCount, 0);
-  const recentStrikes = recentWithStrikes.reduce((sum, o) => sum + (o.strikes ?? 0), 0);
-  const strikePercentage = recentPitchesWithStrikes > 0 ? (recentStrikes / recentPitchesWithStrikes) * 100 : 0;
+  // Strike percentage now spans every outing where strikes were tracked,
+  // not just the last 7 days. Coaches kept asking for the season-long
+  // number on the player card and in the share/PDF surfaces that pull
+  // from this same field.
+  const allWithStrikes = pitcherOutings.filter(o => o.strikes !== null);
+  const allPitchesWithStrikes = allWithStrikes.reduce((sum, o) => sum + o.pitchCount, 0);
+  const allStrikes = allWithStrikes.reduce((sum, o) => sum + (o.strikes ?? 0), 0);
+  const strikePercentage = allPitchesWithStrikes > 0 ? (allStrikes / allPitchesWithStrikes) * 100 : 0;
 
-  // Previous 7-day strike percentage
-  const prevWithStrikes = previousOutings.filter(o => o.strikes !== null);
-  const prevPitchesWithStrikes = prevWithStrikes.reduce((sum, o) => sum + o.pitchCount, 0);
-  const prevStrikes = prevWithStrikes.reduce((sum, o) => sum + (o.strikes ?? 0), 0);
-  const previousStrikePercentage = prevPitchesWithStrikes > 0 ? (prevStrikes / prevPitchesWithStrikes) * 100 : 0;
+  // Previous = season-up-to-7-days-ago, so the trend arrow tells coaches
+  // whether the last week's outings nudged the all-time number up or down.
+  const beforeRecentWithStrikes = pitcherOutings.filter(o => o.strikes !== null && new Date(o.date) < sevenDaysAgo);
+  const beforeRecentPitches = beforeRecentWithStrikes.reduce((sum, o) => sum + o.pitchCount, 0);
+  const beforeRecentStrikes = beforeRecentWithStrikes.reduce((sum, o) => sum + (o.strikes ?? 0), 0);
+  const previousStrikePercentage = beforeRecentPitches > 0 ? (beforeRecentStrikes / beforeRecentPitches) * 100 : 0;
 
   // Get max velo from 7-day window (fall back to all-time if no recent data)
   const recentMaxVelo = recentOutings.length > 0 ? Math.max(...recentOutings.map(o => o.maxVelo || 0)) : 0;
