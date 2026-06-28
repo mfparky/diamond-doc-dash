@@ -933,11 +933,13 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
             <TabsTrigger value="health-report">Health Report</TabsTrigger>
           </TabsList>
           <TabsContent value="trends" className="mt-4">
-      {/* Coach grid: Heatmap spans 2 rows | Workout Count + Leaderboard top-right | Pitch Mix bottom-right */}
+      {/* Coach grid: Heatmap | Pitch Mix + Session Breakdown stacked. Workouts
+          render in their own row below so they don't leave a placeholder gap
+          when the workouts toggle is off. */}
       {!parentMode && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 lg:grid-rows-2 gap-4 sm:gap-6">
-          {/* Col 1: Heatmap — spans both rows */}
-          <Card className="glass-card lg:row-span-2">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          {/* Col 1: Heatmap */}
+          <Card className="glass-card">
             <CardHeader className="pb-2 px-3 sm:px-6">
               <CardTitle className="font-display text-base sm:text-lg flex items-center gap-2">
                 <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
@@ -991,45 +993,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
             </CardContent>
           </Card>
 
-          {/* Col 2: Workout Count */}
-          {showWorkoutLeaderboard && pitchers && pitchers.length > 0 ? (
-            <Card className="glass-card border-accent/30 bg-accent/5">
-              <CardContent className="p-4 sm:p-6 flex flex-col items-center justify-center h-full gap-2 text-center">
-                <div className="flex flex-col items-center gap-1.5">
-                  <div className="p-2.5 rounded-lg bg-accent/10">
-                    <Dumbbell className="w-6 h-6 text-accent" />
-                  </div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Season Workouts</p>
-                </div>
-                <p className="text-4xl font-bold text-foreground">{coachWorkoutCount}</p>
-                <p className="text-xs text-muted-foreground">completions across all players</p>
-              </CardContent>
-            </Card>
-          ) : <div />}
-
-
-          {/* Col 3: Compact Leaderboard (toggleable via Settings) */}
-          {showWorkoutLeaderboard && pitchers && pitchers.length > 0 ? (
-            <Card className="glass-card">
-              <CardContent className="p-2 sm:p-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <Trophy className="w-4 h-4 text-yellow-500" />
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Workout Leaderboard</p>
-                </div>
-                <WorkoutLeaderboard
-                  pitchers={pitchers}
-                  initialFrom={coachLeaderboardDates.from}
-                  initialTo={coachLeaderboardDates.to}
-                  maxEntries={5}
-                  hideDatePicker
-                  lockedToCoachDates
-                  compact
-                />
-              </CardContent>
-            </Card>
-          ) : <div />}
-
-          {/* Row 2 cols 2-3: Pitch Mix + Session Breakdown stacked */}
+          {/* Cols 2-3: Pitch Mix + Session Breakdown stacked */}
           <div className="lg:col-span-2 flex flex-col gap-4 sm:gap-6">
             {pitchTypeBreakdown.length > 0 && (
               <Card className="glass-card">
@@ -1080,6 +1044,42 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
               </Card>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Workouts row — rendered below the analytics grid so an off toggle
+          doesn't leave a placeholder cell with white space. */}
+      {!parentMode && showWorkoutLeaderboard && pitchers && pitchers.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <Card className="glass-card border-accent/30 bg-accent/5">
+            <CardContent className="p-4 sm:p-6 flex flex-col items-center justify-center h-full gap-2 text-center">
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="p-2.5 rounded-lg bg-accent/10">
+                  <Dumbbell className="w-6 h-6 text-accent" />
+                </div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Season Workouts</p>
+              </div>
+              <p className="text-4xl font-bold text-foreground">{coachWorkoutCount}</p>
+              <p className="text-xs text-muted-foreground">completions across all players</p>
+            </CardContent>
+          </Card>
+          <Card className="glass-card">
+            <CardContent className="p-2 sm:p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Trophy className="w-4 h-4 text-yellow-500" />
+                <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Workout Leaderboard</p>
+              </div>
+              <WorkoutLeaderboard
+                pitchers={pitchers}
+                initialFrom={coachLeaderboardDates.from}
+                initialTo={coachLeaderboardDates.to}
+                maxEntries={5}
+                hideDatePicker
+                lockedToCoachDates
+                compact
+              />
+            </CardContent>
+          </Card>
         </div>
       )}
           </TabsContent>
