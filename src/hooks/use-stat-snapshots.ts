@@ -83,6 +83,74 @@ export function useStatSnapshots(pitcherId: string | undefined): UseStatSnapshot
   };
 }
 
+interface UseAllStatSnapshotsResult {
+  /** Map of pitcherId → snapshots for that pitcher, newest first. */
+  byPitcher: Map<string, StatSnapshot[]>;
+  /** The single most recent snapshot timestamp across all pitchers. */
+  mostRecentUploadedAt: string | null;
+  isLoading: boolean;
+  refetch: () => Promise<void>;
+}
+
+/**
+ * Bulk fetch for the team view — one round-trip covers every pitcher whose
+ * id appears in `pitcherIds`. Empty input -> no query.
+ */
+export function useAllStatSnapshots(pitcherIds: string[]): UseAllStatSnapshotsResult {
+  const [byPitcher, setByPitcher] = useState<Map<string, StatSnapshot[]>>(new Map());
+  const [mostRecent, setMostRecent] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  // Stable key so the effect doesn't churn on every render of a new array
+  // reference holding the same ids.
+  const key = pitcherIds.slice().sort().join(',');
+
+  const fetchSnapshots = useCallback(async () => {
+    if (pitcherIds.length === 0) {
+      setByPitcher(new Map());
+      setMostRecent(null);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('pitcher_stat_snapshots')
+        .select('id, pitcher_id, uploaded_at, source_filename, stats')
+        .in('pitcher_id', pitcherIds)
+        .order('uploaded_at', { ascending: false });
+      if (error) throw error;
+      const grouped = new Map<string, StatSnapshot[]>();
+      let recent: string | null = null;
+      for (const row of data ?? []) {
+        const snap = mapRow(row);
+        const arr = grouped.get(snap.pitcherId) ?? [];
+        arr.push(snap);
+        grouped.set(snap.pitcherId, arr);
+        if (!recent || snap.uploadedAt > recent) recent = snap.uploadedAt;
+      }
+      setByPitcher(grouped);
+      setMostRecent(recent);
+    } catch (e) {
+      console.error('Error loading team stat snapshots:', e);
+      toast({
+        title: 'Could not load team snapshots',
+        description: 'Refresh or re-upload the CSV.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, toast]);
+
+  useEffect(() => {
+    fetchSnapshots();
+  }, [fetchSnapshots]);
+
+  return { byPitcher, mostRecentUploadedAt: mostRecent, isLoading, refetch: fetchSnapshots };
+}
+
 export interface PendingSnapshotInsert {
   pitcherId: string;
   stats: Record<string, StatValue>;

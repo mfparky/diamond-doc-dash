@@ -335,6 +335,7 @@ const Index = () => {
             outings={outings}
             pitcherPitchTypes={pitcherPitchTypesMap}
             pitchers={rosterPitchers}
+            onRequestStatUpload={() => setShowStatUpload(true)}
           />
         )}
 
