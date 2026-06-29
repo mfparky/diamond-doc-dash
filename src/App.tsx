@@ -44,6 +44,7 @@ const WorkoutAccountabilityPage = lazyWithReload(() => import("./pages/WorkoutAc
 const PodiumPage = lazyWithReload(() => import("./pages/PodiumPage"));
 const GameModePage = lazyWithReload(() => import("./pages/GameModePage"));
 const GamesPage = lazyWithReload(() => import("./pages/GamesPage"));
+const RankingsPage = lazyWithReload(() => import("./pages/RankingsPage"));
 
 
 const queryClient = new QueryClient();
@@ -88,6 +89,7 @@ function AppRoutes() {
           <Route path="/print-form" element={gate(<PrintFormPage />)} />
           <Route path="/print-live-abs" element={gate(<PrintLiveAbsPage />)} />
           <Route path="/accountability" element={gate(<WorkoutAccountabilityPage />)} />
+          <Route path="/rankings" element={gate(<RankingsPage />)} />
           {/* Game mode is allowed for scorekeepers */}
           <Route path="/game" element={user ? <GameModePage /> : <Auth />} />
           <Route path="/game/:gameId" element={user ? <GameModePage /> : <Auth />} />
