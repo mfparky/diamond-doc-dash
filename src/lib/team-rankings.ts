@@ -9,7 +9,7 @@ export interface RankingInput {
   latest: Record<string, StatValue> | null;
 }
 
-export type ReefMode = '10' | '25' | '50';
+export type ReefMode = '15' | '25' | '50';
 
 export interface RankingOptions {
   /**
@@ -53,28 +53,39 @@ export interface RankingResult {
 interface MetricConfig {
   key: string;
   label: string;
+  /** Long-form name shown in the legend below the table. */
+  description: string;
   /** Whether a higher raw value is better (e.g. OPS) or worse (e.g. ERA). */
   higherIsBetter: boolean;
   /** Bucket the metric contributes to. */
   bucket: 'offense' | 'defense';
+  /**
+   * Relative weight within its bucket. Defaults to 1 for "standard" metrics.
+   * Raise for headline metrics (OPS, R, RBI, ERA, WHIP); lower for noisy
+   * ones that depend heavily on opportunity (FPCT — some kids barely see
+   * the ball).
+   */
+  weight: number;
 }
 
 const METRICS: MetricConfig[] = [
   // Offense
-  { key: 'bat_ops', label: 'OPS', higherIsBetter: true, bucket: 'offense' },
-  { key: 'bat_qab_pct', label: 'QAB%', higherIsBetter: true, bucket: 'offense' },
-  { key: 'bat_bb_pct_k', label: 'BB/K', higherIsBetter: true, bucket: 'offense' },
-  { key: 'bat_ba_pct_risp', label: 'BA/RISP', higherIsBetter: true, bucket: 'offense' },
-  { key: 'bat_sb_pct', label: 'SB%', higherIsBetter: true, bucket: 'offense' },
+  { key: 'bat_ops', label: 'OPS', description: 'On-base + slugging', higherIsBetter: true, bucket: 'offense', weight: 2 },
+  { key: 'bat_r', label: 'R', description: 'Runs scored', higherIsBetter: true, bucket: 'offense', weight: 2 },
+  { key: 'bat_rbi', label: 'RBI', description: 'Runs batted in', higherIsBetter: true, bucket: 'offense', weight: 2 },
+  { key: 'bat_qab_pct', label: 'QAB%', description: 'Quality at-bats per plate appearance', higherIsBetter: true, bucket: 'offense', weight: 1 },
+  { key: 'bat_bb_pct_k', label: 'BB/K', description: 'Walks per strikeout', higherIsBetter: true, bucket: 'offense', weight: 1 },
+  { key: 'bat_ba_pct_risp', label: 'BA/RISP', description: 'Batting average with runners in scoring position', higherIsBetter: true, bucket: 'offense', weight: 1 },
+  { key: 'bat_sb_pct', label: 'SB%', description: 'Stolen-base success rate', higherIsBetter: true, bucket: 'offense', weight: 1 },
 
   // Defense (pitching rates)
-  { key: 'pit_era', label: 'ERA', higherIsBetter: false, bucket: 'defense' },
-  { key: 'pit_whip', label: 'WHIP', higherIsBetter: false, bucket: 'defense' },
-  { key: 'pit_fps_pct', label: 'FPS%', higherIsBetter: true, bucket: 'defense' },
-  { key: 'pit_k_pct_bf', label: 'K/BF', higherIsBetter: true, bucket: 'defense' },
-  // Defense (fielding)
-  { key: 'field_fpct', label: 'FPCT', higherIsBetter: true, bucket: 'defense' },
-  { key: 'field_dp', label: 'DP', higherIsBetter: true, bucket: 'defense' },
+  { key: 'pit_era', label: 'ERA', description: 'Earned run average', higherIsBetter: false, bucket: 'defense', weight: 2 },
+  { key: 'pit_whip', label: 'WHIP', description: 'Walks + hits per inning pitched', higherIsBetter: false, bucket: 'defense', weight: 2 },
+  { key: 'pit_fps_pct', label: 'FPS%', description: 'First-pitch strike percentage', higherIsBetter: true, bucket: 'defense', weight: 1 },
+  { key: 'pit_k_pct_bf', label: 'K/BF', description: 'Strikeouts per batter faced', higherIsBetter: true, bucket: 'defense', weight: 1 },
+  // Defense (fielding) — minimal weight because the metric depends heavily on
+  // how often the ball reaches the player at all.
+  { key: 'field_fpct', label: 'FPCT', description: 'Fielding percentage', higherIsBetter: true, bucket: 'defense', weight: 0.25 },
 ];
 
 const PITCHING_VOLUME_METRIC = { key: 'pit_ip', label: 'IP' };
@@ -116,6 +127,19 @@ function meanIgnoringNaN(arr: number[]): number | null {
 }
 
 /**
+ * Weighted mean that skips NaN values and re-normalizes weights to the
+ * surviving items. So a player missing one metric is scored fairly on what's
+ * present (weights for the missing metric drop out of the denominator).
+ */
+function weightedMeanIgnoringNaN(items: Array<{ value: number; weight: number }>): number | null {
+  const valid = items.filter((it) => Number.isFinite(it.value));
+  if (valid.length === 0) return null;
+  const totalWeight = valid.reduce((sum, it) => sum + it.weight, 0);
+  if (totalWeight === 0) return null;
+  return valid.reduce((sum, it) => sum + it.value * it.weight, 0) / totalWeight;
+}
+
+/**
  * Returns the value at the given percentile of a sorted-ascending array.
  * Floor-index rule keeps the math intuitive: at 25th of 13 players the cutoff
  * is the 4th-lowest score (index 3) so 3 players sit strictly below.
@@ -141,8 +165,8 @@ export function buildRankings(
   const rawIp = inputs.map((i) => readNum(i.latest, PITCHING_VOLUME_METRIC.key));
   const ipNormalized = minMaxNormalize(rawIp, true);
 
-  const offenseMetricKeys = METRICS.filter((m) => m.bucket === 'offense').map((m) => m.key);
-  const defenseMetricKeys = METRICS.filter((m) => m.bucket === 'defense').map((m) => m.key);
+  const offenseMetrics = METRICS.filter((m) => m.bucket === 'offense');
+  const defenseMetrics = METRICS.filter((m) => m.bucket === 'defense');
 
   // 2) Compose per-player scores.
   const playerRankings: PlayerRanking[] = inputs.map((input, idx) => {
@@ -151,8 +175,12 @@ export function buildRankings(
       const v = normalizedByKey.get(m.key)?.[idx] ?? NaN;
       breakdown[m.key] = Number.isFinite(v) ? v : null;
     }
-    const offenseScore = meanIgnoringNaN(offenseMetricKeys.map((k) => normalizedByKey.get(k)?.[idx] ?? NaN));
-    const defenseScore = meanIgnoringNaN(defenseMetricKeys.map((k) => normalizedByKey.get(k)?.[idx] ?? NaN));
+    const offenseScore = weightedMeanIgnoringNaN(
+      offenseMetrics.map((m) => ({ value: normalizedByKey.get(m.key)?.[idx] ?? NaN, weight: m.weight })),
+    );
+    const defenseScore = weightedMeanIgnoringNaN(
+      defenseMetrics.map((m) => ({ value: normalizedByKey.get(m.key)?.[idx] ?? NaN, weight: m.weight })),
+    );
     const pitchingVolumeScore = Number.isFinite(ipNormalized[idx]) ? ipNormalized[idx] : null;
 
     // Composite. Weights re-normalize if a player is missing one or more components,
@@ -200,7 +228,7 @@ export function buildRankings(
   playerRankings.sort((a, b) => b.playerValue - a.playerValue);
 
   // 4) Reef line at the chosen percentile.
-  const reefPercentile = options.reefMode === '10' ? 10 : options.reefMode === '25' ? 25 : 50;
+  const reefPercentile = options.reefMode === '15' ? 15 : options.reefMode === '25' ? 25 : 50;
   const sortedAsc = playerRankings.map((p) => p.playerValue).sort((a, b) => a - b);
   const reefThreshold = percentileThreshold(sortedAsc, reefPercentile);
   for (const p of playerRankings) {
@@ -210,6 +238,15 @@ export function buildRankings(
   return { rankings: playerRankings, reefThreshold, reefPercentile };
 }
 
-/** Public helper so the UI can label the metric breakdown columns. */
-export const METRIC_LABELS: Array<{ key: string; label: string; bucket: 'offense' | 'defense' }> =
-  METRICS.map((m) => ({ key: m.key, label: m.label, bucket: m.bucket }));
+/** Public helper so the UI can label the metric breakdown columns + legend. */
+export const METRIC_LABELS: Array<{
+  key: string;
+  label: string;
+  description: string;
+  bucket: 'offense' | 'defense';
+}> = METRICS.map((m) => ({
+  key: m.key,
+  label: m.label,
+  description: m.description,
+  bucket: m.bucket,
+}));
