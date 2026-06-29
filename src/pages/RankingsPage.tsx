@@ -14,8 +14,6 @@ import {
 import { ArrowLeft, Trophy, Upload, Info, Minus, Equal, Plus, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Popover,
@@ -47,6 +45,7 @@ import {
 import { cn } from '@/lib/utils';
 
 const MIN_PA = 10; // hard sample-size floor; documented in the UI
+const MIN_IP_FLOOR = 5; // pitching-participation floor; matches DEFAULT_PITCHING_PARTICIPATION_FLOOR
 
 type RatingDimension = 'effort' | 'coachability' | 'baseball_iq';
 type ChartView = 'bar' | 'quadrant' | 'tier' | 'radar';
@@ -56,7 +55,6 @@ export default function RankingsPage() {
   const pitcherIds = useMemo(() => pitchers.map((p) => p.id), [pitchers]);
   const { byPitcher, isLoading: snapshotsLoading, mostRecentUploadedAt } = useAllStatSnapshots(pitcherIds);
 
-  const [includePitchingVolume, setIncludePitchingVolume] = useState(false);
   const [reefMode, setReefMode] = useState<ReefMode>('25');
   const [filter, setFilter] = useState<RankingFilter>('all');
   const [chartView, setChartView] = useState<ChartView>('bar');
@@ -75,12 +73,11 @@ export default function RankingsPage() {
   const { rankings, excluded, reefThreshold, reefPercentile } = useMemo(
     () =>
       buildRankings(inputs, {
-        includePitchingVolume,
         reefMode,
         minPlateAppearances: MIN_PA,
         filter,
       }),
-    [inputs, includePitchingVolume, reefMode, filter],
+    [inputs, reefMode, filter],
   );
 
   const chartData = useMemo(() => {
@@ -178,21 +175,13 @@ export default function RankingsPage() {
                   </Tabs>
                 </div>
 
-                <div className="flex items-start justify-between gap-4 pt-2 border-t border-border/40">
-                  <div className="flex-1">
-                    <Label htmlFor="pitching-volume" className="text-sm font-medium">
-                      Weight pitching volume
-                    </Label>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Adds a 15% bonus for innings-eaters. Turn off for a pure skills view
-                      (12U dominance doesn't always translate forward).
-                    </p>
-                  </div>
-                  <Switch
-                    id="pitching-volume"
-                    checked={includePitchingVolume}
-                    onCheckedChange={setIncludePitchingVolume}
-                  />
+                <div className="pt-2 border-t border-border/40">
+                  <p className="text-sm font-medium text-foreground">Pitching participation</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Defense score is scaled by IP up to {MIN_IP_FLOOR} innings. Semi-regular
+                    pitchers ({MIN_IP_FLOOR}+ IP) get full credit; kids who barely or never pitch
+                    are damped so they can't lean on FPCT alone.
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -352,7 +341,7 @@ export default function RankingsPage() {
             </Card>
 
             {/* Weighting reference — auditable view of what drives PV */}
-            <WeightingChart includePitchingVolume={includePitchingVolume} />
+            <WeightingChart />
           </>
         )}
       </div>
@@ -408,6 +397,14 @@ function RankingRow({
       <TableCell className="sticky left-0 bg-background z-10 font-medium">
         {ranking.pitcherName}
         {ranking.belowReef && <span className="ml-2 text-[10px] text-destructive">below reef</span>}
+        {ranking.belowParticipationFloor && (
+          <span
+            className="ml-2 text-[10px] text-amber-600 dark:text-amber-400"
+            title={`${ranking.inningsPitched.toFixed(1)} IP — defense damped to ${(ranking.participationFactor * 100).toFixed(0)}%`}
+          >
+            limited pitching
+          </span>
+        )}
       </TableCell>
       <TableCell className="text-center">
         <WhyPopover ranking={ranking} />

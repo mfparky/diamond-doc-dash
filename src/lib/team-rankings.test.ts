@@ -14,8 +14,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const SAMPLE_CSV = readFileSync(join(__dirname, '__fixtures__/sample-stats.csv'), 'utf8');
 
 const baseOptions: RankingOptions = {
-  includePitchingVolume: false,
   reefMode: '25',
+  // Tests opt in to the participation floor when they want to exercise it.
+  pitchingParticipationFloor: 0,
 };
 
 function fixtureInputs(): RankingInput[] {
@@ -78,23 +79,52 @@ describe('buildRankings — composition', () => {
     expect(pitcher.playerValue).toBeGreaterThan(0);
   });
 
-  it('changes the ranking when includePitchingVolume is on for a high-IP pitcher', () => {
+  it('participation floor damps defense for kids who barely pitch', () => {
+    // Three identical pitching lines, very different IP loads. Floor at 5 IP.
     const inputs: RankingInput[] = [
-      // Identical stats but very different IP loads
       { pitcherId: 'starter', pitcherName: 'Starter', latest: {
-        bat_ops: 0.700, pit_era: 3.0, pit_whip: 1.20, pit_ip: 40,
+        bat_ops: 0.700, pit_era: 3.0, pit_whip: 1.20, pit_ip: 20,
       } },
-      { pitcherId: 'reliever', pitcherName: 'Reliever', latest: {
-        bat_ops: 0.700, pit_era: 3.0, pit_whip: 1.20, pit_ip: 2,
+      { pitcherId: 'semi', pitcherName: 'SemiRegular', latest: {
+        bat_ops: 0.700, pit_era: 3.0, pit_whip: 1.20, pit_ip: 5,
+      } },
+      { pitcherId: 'rare', pitcherName: 'Rare', latest: {
+        bat_ops: 0.700, pit_era: 3.0, pit_whip: 1.20, pit_ip: 1,
       } },
     ];
-    const without = buildRankings(inputs, { ...baseOptions, includePitchingVolume: false });
-    const withVol = buildRankings(inputs, { ...baseOptions, includePitchingVolume: true });
-    // Same stats with volume off → essentially tied
-    expect(Math.abs(without.rankings[0].playerValue - without.rankings[1].playerValue)).toBeLessThan(0.001);
-    // With volume on, Starter outranks Reliever
-    expect(withVol.rankings[0].pitcherName).toBe('Starter');
-    expect(withVol.rankings[0].playerValue).toBeGreaterThan(withVol.rankings[1].playerValue);
+    const { rankings } = buildRankings(inputs, { ...baseOptions, pitchingParticipationFloor: 5 });
+    const starter = rankings.find((r) => r.pitcherName === 'Starter')!;
+    const semi = rankings.find((r) => r.pitcherName === 'SemiRegular')!;
+    const rare = rankings.find((r) => r.pitcherName === 'Rare')!;
+
+    // Starter (20 IP) and SemiRegular (5 IP) both above floor — same factor 1.
+    expect(starter.participationFactor).toBe(1);
+    expect(semi.participationFactor).toBe(1);
+    expect(starter.belowParticipationFloor).toBe(false);
+    expect(semi.belowParticipationFloor).toBe(false);
+
+    // Rare (1 IP) is at 20% participation — defense damped by that factor.
+    expect(rare.participationFactor).toBeCloseTo(0.2, 6);
+    expect(rare.belowParticipationFloor).toBe(true);
+    expect(rare.defenseScore).toBeLessThan(rare.defenseScoreRaw!);
+    expect(rare.playerValue).toBeLessThan(semi.playerValue);
+  });
+
+  it('does not penalize non-pitchers beyond their already-NaN pitching metrics + damping', () => {
+    // Pure hitter, no pitching at all → participationFactor 0 → defense fully damped to 0.
+    const inputs: RankingInput[] = [
+      { pitcherId: 'bat', pitcherName: 'BatOnly', latest: { bat_ops: 1.000, field_fpct: 1.0 } },
+      { pitcherId: 'arm', pitcherName: 'ArmOnly', latest: { bat_ops: 0.400, pit_era: 2.0, pit_whip: 1.0, pit_ip: 10 } },
+    ];
+    const { rankings } = buildRankings(inputs, { ...baseOptions, pitchingParticipationFloor: 5 });
+    const bat = rankings.find((r) => r.pitcherName === 'BatOnly')!;
+    const arm = rankings.find((r) => r.pitcherName === 'ArmOnly')!;
+    expect(bat.participationFactor).toBe(0);
+    expect(bat.defenseScore).toBe(0);
+    expect(arm.participationFactor).toBe(1);
+    // Both should still have a sensible PV, neither at 0.
+    expect(bat.playerValue).toBeGreaterThan(0);
+    expect(arm.playerValue).toBeGreaterThan(0);
   });
 
   it('returns a 0 PV for players with no stats at all', () => {
@@ -340,24 +370,21 @@ describe('buildRankings — topDrivers', () => {
 });
 
 describe('buildWeightingBreakdown', () => {
-  it('sums to 100% across all metrics when pitching volume is off', () => {
-    const { rows, bucketShares } = buildWeightingBreakdown(false);
+  it('sums to 100% across all metrics', () => {
+    const { rows } = buildWeightingBreakdown();
     const total = rows.reduce((sum, r) => sum + r.shareOfPv, 0);
     expect(total).toBeCloseTo(1, 6);
-    expect(bucketShares.pitchingVolume).toBe(0);
   });
 
-  it('reserves ~13% of PV for pitching volume when toggled on', () => {
-    const { rows, bucketShares } = buildWeightingBreakdown(true);
-    const total = rows.reduce((sum, r) => sum + r.shareOfPv, 0);
-    // metrics sum to (1 - pitchingVolume share)
-    expect(total + bucketShares.pitchingVolume).toBeCloseTo(1, 6);
-    expect(bucketShares.pitchingVolume).toBeGreaterThan(0.10);
-    expect(bucketShares.pitchingVolume).toBeLessThan(0.16);
+  it('bucket shares are 45/45/10 (Off/Def/Intangibles)', () => {
+    const { bucketShares } = buildWeightingBreakdown();
+    expect(bucketShares.offense).toBeCloseTo(0.4545, 3);
+    expect(bucketShares.defense).toBeCloseTo(0.4545, 3);
+    expect(bucketShares.intangibles).toBeCloseTo(0.0909, 3);
   });
 
   it('OPS share of bucket is greater than R or RBI', () => {
-    const { rows } = buildWeightingBreakdown(false);
+    const { rows } = buildWeightingBreakdown();
     const ops = rows.find((r) => r.key === 'bat_ops')!;
     const r = rows.find((r) => r.key === 'bat_r')!;
     const rbi = rows.find((r) => r.key === 'bat_rbi')!;
@@ -367,7 +394,7 @@ describe('buildWeightingBreakdown', () => {
   });
 
   it('FPCT share of PV is tiny (weight 0.25 inside a small bucket)', () => {
-    const { rows } = buildWeightingBreakdown(false);
+    const { rows } = buildWeightingBreakdown();
     const fpct = rows.find((r) => r.key === 'field_fpct')!;
     expect(fpct.shareOfPv).toBeLessThan(0.03); // under 3% of total PV
   });

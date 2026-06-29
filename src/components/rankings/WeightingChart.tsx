@@ -3,37 +3,26 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { buildWeightingBreakdown, type MetricBucket } from '@/lib/team-rankings';
 import { cn } from '@/lib/utils';
 
-interface WeightingChartProps {
-  /** Mirror the runtime toggle so the chart matches what's actually scoring. */
-  includePitchingVolume: boolean;
-}
-
-const BUCKET_LABEL: Record<MetricBucket | 'pitchingVolume', string> = {
+const BUCKET_LABEL: Record<MetricBucket, string> = {
   offense: 'Offense',
   defense: 'Defense',
   intangibles: 'Intangibles',
-  pitchingVolume: 'IP Volume',
 };
 
-const BUCKET_COLOR: Record<MetricBucket | 'pitchingVolume', string> = {
+const BUCKET_COLOR: Record<MetricBucket, string> = {
   offense: 'bg-primary',
   defense: 'bg-sky-500',
   intangibles: 'bg-amber-500',
-  pitchingVolume: 'bg-emerald-500',
 };
 
-const BUCKET_TINT: Record<MetricBucket | 'pitchingVolume', string> = {
+const BUCKET_TINT: Record<MetricBucket, string> = {
   offense: 'bg-primary/15 text-primary',
   defense: 'bg-sky-500/15 text-sky-600 dark:text-sky-300',
   intangibles: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
-  pitchingVolume: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
 };
 
-export function WeightingChart({ includePitchingVolume }: WeightingChartProps) {
-  const { rows, bucketShares } = useMemo(
-    () => buildWeightingBreakdown(includePitchingVolume),
-    [includePitchingVolume],
-  );
+export function WeightingChart() {
+  const { rows, bucketShares } = useMemo(() => buildWeightingBreakdown(), []);
 
   // Sort by descending PV share so the heaviest metrics surface first.
   const sortedRows = useMemo(
@@ -41,9 +30,7 @@ export function WeightingChart({ includePitchingVolume }: WeightingChartProps) {
     [rows],
   );
 
-  const bucketOrder: Array<MetricBucket | 'pitchingVolume'> = includePitchingVolume
-    ? ['offense', 'defense', 'intangibles', 'pitchingVolume']
-    : ['offense', 'defense', 'intangibles'];
+  const bucketOrder: MetricBucket[] = ['offense', 'defense', 'intangibles'];
 
   const maxShareOfPv = Math.max(...rows.map((r) => r.shareOfPv));
 
@@ -52,10 +39,9 @@ export function WeightingChart({ includePitchingVolume }: WeightingChartProps) {
       <CardHeader className="pb-2">
         <CardTitle className="font-display text-lg">Weighting</CardTitle>
         <p className="text-xs text-muted-foreground">
-          How each metric contributes to a player's composite Player Value.
-          {includePitchingVolume
-            ? ' Pitching volume is currently on — its 15% bucket is included.'
-            : ' Pitching volume is off — flip the switch above to include it.'}
+          How each metric contributes to a player's composite Player Value. A separate
+          participation factor (not shown here) damps the defense score for kids who
+          barely pitch — see the "Pitching participation" note in the controls above.
         </p>
       </CardHeader>
       <CardContent className="space-y-5">
