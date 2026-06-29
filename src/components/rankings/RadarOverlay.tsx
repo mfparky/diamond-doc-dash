@@ -90,7 +90,7 @@ export function RadarOverlay({ rankings }: RadarOverlayProps) {
           Pick at least one player above to render the radar.
         </p>
       ) : (
-        <div className="w-full" style={{ height: 420 }}>
+        <div className="w-full h-[380px] sm:h-[420px]">
           <ResponsiveContainer width="100%" height="100%">
             <RadarChart data={data} outerRadius="75%">
               <PolarGrid stroke="hsl(var(--border))" />
