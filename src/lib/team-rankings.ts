@@ -119,9 +119,13 @@ function readNumRaw(stats: Record<string, StatValue> | null, key: string): numbe
 
 const METRICS: MetricConfig[] = [
   // Offense
+  // OPS stays the headline rate metric. R + RBI were originally weight 2
+  // but they're heavily team-context-dependent (you score more if you bat
+  // behind a kid who walks a lot), so dropping them to 1 each puts more
+  // weight on individual rate stats than situational counting stats.
   { key: 'bat_ops', label: 'OPS', description: 'On-base + slugging', higherIsBetter: true, bucket: 'offense', weight: 2 },
-  { key: 'bat_r', label: 'R', description: 'Runs scored', higherIsBetter: true, bucket: 'offense', weight: 2 },
-  { key: 'bat_rbi', label: 'RBI', description: 'Runs batted in', higherIsBetter: true, bucket: 'offense', weight: 2 },
+  { key: 'bat_r', label: 'R', description: 'Runs scored', higherIsBetter: true, bucket: 'offense', weight: 1 },
+  { key: 'bat_rbi', label: 'RBI', description: 'Runs batted in', higherIsBetter: true, bucket: 'offense', weight: 1 },
   { key: 'bat_qab_pct', label: 'QAB%', description: 'Quality at-bats per plate appearance', higherIsBetter: true, bucket: 'offense', weight: 1 },
   { key: 'bat_bb_pct_k', label: 'BB/K', description: 'Walks per strikeout', higherIsBetter: true, bucket: 'offense', weight: 1 },
   { key: 'bat_ba_pct_risp', label: 'BA/RISP', description: 'Batting average with runners in scoring position', higherIsBetter: true, bucket: 'offense', weight: 1 },
