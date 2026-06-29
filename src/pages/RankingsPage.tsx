@@ -99,7 +99,7 @@ export default function RankingsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6 max-w-5xl space-y-6">
+      <div className="container mx-auto px-3 sm:px-4 py-6 max-w-5xl space-y-6">
         {/* Header */}
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" asChild>
@@ -206,18 +206,27 @@ export default function RankingsPage() {
                   </Tabs>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-2 sm:px-6">
                 {chartView === 'bar' && (
-                  <div className="w-full" style={{ height: Math.max(320, rankings.length * 32 + 80) }}>
+                  <div
+                    className="w-full"
+                    style={{ height: Math.max(380, rankings.length * 44 + 80) }}
+                  >
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
                         data={chartData}
                         layout="vertical"
-                        margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
+                        margin={{ top: 8, right: 24, left: 0, bottom: 8 }}
                       >
                         <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-border/40" />
-                        <XAxis type="number" domain={[0, 100]} className="text-xs" />
-                        <YAxis dataKey="name" type="category" width={120} className="text-xs" />
+                        <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 12 }} />
+                        <YAxis
+                          dataKey="name"
+                          type="category"
+                          width={96}
+                          tick={{ fontSize: 12 }}
+                          interval={0}
+                        />
                         <Tooltip
                           formatter={(value: number, name: string) => [`${value.toFixed(1)}`, name]}
                           labelFormatter={(label) => label}
@@ -232,7 +241,6 @@ export default function RankingsPage() {
                           x={reefThreshold}
                           stroke="hsl(var(--destructive))"
                           strokeDasharray="6 3"
-                          label={{ value: 'Reef', position: 'top', fill: 'hsl(var(--destructive))', fontSize: 11 }}
                         />
                         <Bar dataKey="pv" name="Player Value" radius={[0, 4, 4, 0]}>
                           {chartData.map((entry, index) => (

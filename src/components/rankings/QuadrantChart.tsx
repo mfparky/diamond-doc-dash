@@ -52,9 +52,9 @@ export function QuadrantChart({ rankings }: QuadrantChartProps) {
         </div>
       </div>
 
-      <div className="w-full" style={{ height: 480 }}>
+      <div className="w-full h-[420px] sm:h-[480px]">
         <ResponsiveContainer width="100%" height="100%">
-          <ScatterChart margin={{ top: 20, right: 24, left: 12, bottom: 28 }}>
+          <ScatterChart margin={{ top: 20, right: 20, left: 4, bottom: 28 }}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" />
             <XAxis
               type="number"
@@ -62,7 +62,7 @@ export function QuadrantChart({ rankings }: QuadrantChartProps) {
               name="Offense"
               domain={[0, 100]}
               label={{ value: 'Offense', position: 'insideBottom', offset: -10, fontSize: 11 }}
-              className="text-xs"
+              tick={{ fontSize: 11 }}
             />
             <YAxis
               type="number"
@@ -70,7 +70,7 @@ export function QuadrantChart({ rankings }: QuadrantChartProps) {
               name="Defense"
               domain={[0, 100]}
               label={{ value: 'Defense', angle: -90, position: 'insideLeft', fontSize: 11 }}
-              className="text-xs"
+              tick={{ fontSize: 11 }}
             />
             <ZAxis type="number" dataKey="z" range={[80, 480]} />
             <Tooltip
