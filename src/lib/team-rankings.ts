@@ -148,7 +148,10 @@ const METRICS: MetricConfig[] = [
   { key: 'bat_ops', label: 'OPS', description: 'On-base + slugging', narration: 'producing at the plate (on-base + power)', higherIsBetter: true, bucket: 'offense', weight: 2 },
   { key: 'bat_r', label: 'R', description: 'Runs scored', narration: 'scoring runs', higherIsBetter: true, bucket: 'offense', weight: 1 },
   { key: 'bat_rbi', label: 'RBI', description: 'Runs batted in', narration: 'driving in runs', higherIsBetter: true, bucket: 'offense', weight: 1 },
-  { key: 'bat_qab_pct', label: 'QAB%', description: 'Quality at-bats per plate appearance', narration: 'grinding out quality at-bats', higherIsBetter: true, bucket: 'offense', weight: 1 },
+  // QAB% counts walks + sac bunts + sac flies as quality at-bats, which
+  // double-credits patient hitters who already get BB/K. Halved to 0.5 so
+  // a kid who walks a lot but never swings doesn't get a second bump.
+  { key: 'bat_qab_pct', label: 'QAB%', description: 'Quality at-bats per plate appearance', narration: 'grinding out quality at-bats', higherIsBetter: true, bucket: 'offense', weight: 0.5 },
   { key: 'bat_bb_pct_k', label: 'BB/K', description: 'Walks per strikeout', narration: 'controlling the strike zone (more walks than strikeouts)', higherIsBetter: true, bucket: 'offense', weight: 1 },
   { key: 'bat_ba_pct_risp', label: 'BA/RISP', description: 'Batting average with runners in scoring position', narration: 'delivering with runners in scoring position', higherIsBetter: true, bucket: 'offense', weight: 1 },
   // K% derived from SO / PA. Lower is better — at 12U, putting the ball in
