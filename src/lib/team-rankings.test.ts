@@ -30,19 +30,19 @@ describe('buildRankings — composition', () => {
   it('ranks the best player at the top and the worst at the bottom', () => {
     const inputs: RankingInput[] = [
       { pitcherId: 'a', pitcherName: 'Ace', latest: {
-        bat_ops: 1.200, bat_qab_pct: 50, bat_bb_pct_k: 2.0, bat_ba_pct_risp: 0.500, bat_sb_pct: 100,
+        bat_ops: 1.200, bat_r: 25, bat_rbi: 20, bat_qab_pct: 50, bat_bb_pct_k: 2.0, bat_ba_pct_risp: 0.500, bat_sb_pct: 100,
         pit_era: 1.5, pit_whip: 0.90, pit_fps_pct: 70, pit_k_pct_bf: 0.40,
-        field_fpct: 1.0, field_dp: 3,
+        field_fpct: 1.0,
       } },
       { pitcherId: 'b', pitcherName: 'Middle', latest: {
-        bat_ops: 0.700, bat_qab_pct: 30, bat_bb_pct_k: 0.7, bat_ba_pct_risp: 0.250, bat_sb_pct: 70,
+        bat_ops: 0.700, bat_r: 12, bat_rbi: 9, bat_qab_pct: 30, bat_bb_pct_k: 0.7, bat_ba_pct_risp: 0.250, bat_sb_pct: 70,
         pit_era: 4.0, pit_whip: 1.40, pit_fps_pct: 55, pit_k_pct_bf: 0.20,
-        field_fpct: 0.90, field_dp: 1,
+        field_fpct: 0.90,
       } },
       { pitcherId: 'c', pitcherName: 'Struggle', latest: {
-        bat_ops: 0.300, bat_qab_pct: 10, bat_bb_pct_k: 0.2, bat_ba_pct_risp: 0.100, bat_sb_pct: 40,
+        bat_ops: 0.300, bat_r: 4, bat_rbi: 2, bat_qab_pct: 10, bat_bb_pct_k: 0.2, bat_ba_pct_risp: 0.100, bat_sb_pct: 40,
         pit_era: 9.0, pit_whip: 2.20, pit_fps_pct: 35, pit_k_pct_bf: 0.05,
-        field_fpct: 0.70, field_dp: 0,
+        field_fpct: 0.70,
       } },
     ];
     const { rankings } = buildRankings(inputs, baseOptions);
@@ -109,6 +109,47 @@ describe('buildRankings — composition', () => {
   });
 });
 
+describe('buildRankings — weighting', () => {
+  it('promotes a player who leads in R+RBI even with average peripheral stats', () => {
+    // Three identical players, except one leads in R and RBI.
+    const base = {
+      bat_ops: 0.700, bat_qab_pct: 30, bat_bb_pct_k: 0.7,
+      bat_ba_pct_risp: 0.250, bat_sb_pct: 70,
+    };
+    const inputs: RankingInput[] = [
+      { pitcherId: 'a', pitcherName: 'RunsLeader', latest: { ...base, bat_r: 30, bat_rbi: 25 } },
+      { pitcherId: 'b', pitcherName: 'Average', latest: { ...base, bat_r: 12, bat_rbi: 10 } },
+      { pitcherId: 'c', pitcherName: 'Quiet', latest: { ...base, bat_r: 2, bat_rbi: 1 } },
+    ];
+    const { rankings } = buildRankings(inputs, baseOptions);
+    // RunsLeader should outrank the others purely on R+RBI weight.
+    expect(rankings[0].pitcherName).toBe('RunsLeader');
+    expect(rankings[2].pitcherName).toBe('Quiet');
+  });
+
+  it('treats Double Plays as not part of the defense bucket', () => {
+    // field_dp should be ignored entirely — large differences shouldn't move the ranking.
+    const inputs: RankingInput[] = [
+      { pitcherId: 'a', pitcherName: 'NoDP', latest: { pit_era: 3.0, pit_whip: 1.2, field_dp: 0 } },
+      { pitcherId: 'b', pitcherName: 'MoreDP', latest: { pit_era: 3.0, pit_whip: 1.2, field_dp: 10 } },
+    ];
+    const { rankings } = buildRankings(inputs, baseOptions);
+    // PV should be identical (or nearly so) because DP is no longer counted.
+    expect(Math.abs(rankings[0].playerValue - rankings[1].playerValue)).toBeLessThan(0.001);
+  });
+
+  it('lets ERA/WHIP outweigh FPCT — fielding pct is barely-weighted', () => {
+    const inputs: RankingInput[] = [
+      // Strong arm, no glove
+      { pitcherId: 'a', pitcherName: 'StrongArm', latest: { pit_era: 1.5, pit_whip: 0.9, field_fpct: 0.6 } },
+      // Weak arm, perfect glove
+      { pitcherId: 'b', pitcherName: 'GoldenGlove', latest: { pit_era: 8.0, pit_whip: 2.0, field_fpct: 1.0 } },
+    ];
+    const { rankings } = buildRankings(inputs, baseOptions);
+    expect(rankings[0].pitcherName).toBe('StrongArm');
+  });
+});
+
 describe('buildRankings — reef line', () => {
   it('flags exactly the bottom percentile of players', () => {
     // 10 players with PV proportional to bat_ops 0.1..1.0
@@ -137,6 +178,20 @@ describe('buildRankings — reef line', () => {
     expect(r50.rankings.filter((r) => r.belowReef).length).toBeGreaterThan(
       r25.rankings.filter((r) => r.belowReef).length,
     );
+  });
+
+  it("accepts '15' as a reef mode and reports 15 as the percentile", () => {
+    const inputs: RankingInput[] = Array.from({ length: 20 }, (_, i) => ({
+      pitcherId: `p-${i}`,
+      pitcherName: `P${i}`,
+      latest: { bat_ops: (i + 1) / 20 },
+    }));
+    const result = buildRankings(inputs, { ...baseOptions, reefMode: '15' });
+    expect(result.reefPercentile).toBe(15);
+    // 15% of 20 = 3 -> at most 3 below reef
+    const below = result.rankings.filter((r) => r.belowReef).length;
+    expect(below).toBeGreaterThanOrEqual(2);
+    expect(below).toBeLessThanOrEqual(3);
   });
 });
 

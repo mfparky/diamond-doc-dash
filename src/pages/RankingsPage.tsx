@@ -132,7 +132,7 @@ export default function RankingsPage() {
                     onValueChange={(value) => setReefMode(value as ReefChoice)}
                   >
                     <TabsList>
-                      <TabsTrigger value="10">Bottom 10%</TabsTrigger>
+                      <TabsTrigger value="15">Bottom 15%</TabsTrigger>
                       <TabsTrigger value="25">Bottom 25%</TabsTrigger>
                       <TabsTrigger value="50">Median</TabsTrigger>
                     </TabsList>
@@ -249,9 +249,66 @@ export default function RankingsPage() {
                 </Table>
               </CardContent>
             </Card>
+
+            {/* Legend */}
+            <Card className="glass-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="font-display text-base">Legend</CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  What each column represents.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4 text-sm">
+                <LegendBlock title="Composite scores" rows={[
+                  { label: 'PV', description: "Player Value — weighted composite of Off + Def (0–100)" },
+                  { label: 'Off', description: 'Offense score (0–100), team-relative' },
+                  { label: 'Def', description: 'Defense score (0–100), team-relative' },
+                ]} />
+                <LegendBlock
+                  title="Offense"
+                  rows={METRIC_LABELS.filter((m) => m.bucket === 'offense').map((m) => ({
+                    label: m.label,
+                    description: m.description,
+                  }))}
+                />
+                <LegendBlock
+                  title="Defense"
+                  rows={METRIC_LABELS.filter((m) => m.bucket === 'defense').map((m) => ({
+                    label: m.label,
+                    description: m.description,
+                  }))}
+                />
+              </CardContent>
+            </Card>
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+function LegendBlock({
+  title,
+  rows,
+}: {
+  title: string;
+  rows: Array<{ label: string; description: string }>;
+}) {
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+        {title}
+      </p>
+      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
+        {rows.map((row) => (
+          <div key={row.label} className="flex items-baseline gap-2">
+            <dt className="font-mono text-xs font-semibold text-foreground shrink-0 w-12">
+              {row.label}
+            </dt>
+            <dd className="text-xs text-muted-foreground">{row.description}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
   );
 }
