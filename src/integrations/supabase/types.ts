@@ -319,6 +319,9 @@ export type Database = {
           team_id: string | null
           updated_at: string
           user_id: string | null
+          effort_rating: string | null
+          coachability_rating: string | null
+          baseball_iq_rating: string | null
         }
         Insert: {
           created_at?: string
@@ -329,6 +332,9 @@ export type Database = {
           team_id?: string | null
           updated_at?: string
           user_id?: string | null
+          effort_rating?: string | null
+          coachability_rating?: string | null
+          baseball_iq_rating?: string | null
         }
         Update: {
           created_at?: string
@@ -339,6 +345,9 @@ export type Database = {
           team_id?: string | null
           updated_at?: string
           user_id?: string | null
+          effort_rating?: string | null
+          coachability_rating?: string | null
+          baseball_iq_rating?: string | null
         }
         Relationships: [
           {
