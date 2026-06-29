@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { MoreSheet, type MoreSheetItem } from '@/components/MoreSheet';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { useDashboardSettings } from '@/hooks/use-dashboard-settings';
-import { Settings, Camera, Printer, ClipboardList, MoreHorizontal, ShieldCheck, ScanLine, Gamepad2, ListChecks, Users, FileSpreadsheet, SlidersHorizontal } from 'lucide-react';
+import { Settings, Camera, Printer, ClipboardList, MoreHorizontal, ShieldCheck, ScanLine, Gamepad2, ListChecks, Users, FileSpreadsheet, SlidersHorizontal, Trophy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { getDaysRestNeeded } from '@/types/pitcher';
@@ -67,6 +67,13 @@ const Index = () => {
       description: 'Import a GameChanger CSV to power health reports',
       icon: <FileSpreadsheet className="w-5 h-5" />,
       onSelect: () => setShowStatUpload(true),
+    },
+    {
+      id: 'rankings',
+      label: 'Player rankings',
+      description: 'Composite Player Value + Reef line from uploaded stats',
+      icon: <Trophy className="w-5 h-5" />,
+      onSelect: () => navigate('/rankings'),
     },
     {
       id: 'games',
