@@ -32,6 +32,10 @@ import {
 } from '@/components/ui/table';
 import { usePitchers, type CoachRating, type PitcherRecord } from '@/hooks/use-pitchers';
 import { useAllStatSnapshots } from '@/hooks/use-stat-snapshots';
+import { QuadrantChart } from '@/components/rankings/QuadrantChart';
+import { TierList } from '@/components/rankings/TierList';
+import { RadarOverlay } from '@/components/rankings/RadarOverlay';
+import { WeightingChart } from '@/components/rankings/WeightingChart';
 import {
   buildRankings,
   METRIC_LABELS,
@@ -45,6 +49,7 @@ import { cn } from '@/lib/utils';
 const MIN_PA = 10; // hard sample-size floor; documented in the UI
 
 type RatingDimension = 'effort' | 'coachability' | 'baseball_iq';
+type ChartView = 'bar' | 'quadrant' | 'tier' | 'radar';
 
 export default function RankingsPage() {
   const { pitchers, isLoading: pitchersLoading, setCoachRating } = usePitchers();
@@ -54,6 +59,7 @@ export default function RankingsPage() {
   const [includePitchingVolume, setIncludePitchingVolume] = useState(false);
   const [reefMode, setReefMode] = useState<ReefMode>('25');
   const [filter, setFilter] = useState<RankingFilter>('all');
+  const [chartView, setChartView] = useState<ChartView>('bar');
 
   const inputs = useMemo<RankingInput[]>(() => {
     return pitchers.map((p) => ({
@@ -191,55 +197,70 @@ export default function RankingsPage() {
               </CardContent>
             </Card>
 
-            {/* Chart */}
+            {/* Chart — switchable across four views */}
             <Card className="glass-card">
               <CardHeader className="pb-2">
-                <CardTitle className="font-display text-lg flex items-center gap-2">
-                  Player Value
-                  <span className="text-xs text-muted-foreground font-normal">
-                    Reef at {reefThreshold.toFixed(1)} ({reefPercentile}th percentile)
-                  </span>
-                </CardTitle>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <CardTitle className="font-display text-lg flex items-center gap-2">
+                    Player Value
+                    <span className="text-xs text-muted-foreground font-normal">
+                      Reef at {reefThreshold.toFixed(1)} ({reefPercentile}th percentile)
+                    </span>
+                  </CardTitle>
+                  <Tabs value={chartView} onValueChange={(v) => setChartView(v as ChartView)}>
+                    <TabsList>
+                      <TabsTrigger value="bar">Bar</TabsTrigger>
+                      <TabsTrigger value="quadrant">Quadrant</TabsTrigger>
+                      <TabsTrigger value="tier">Tier</TabsTrigger>
+                      <TabsTrigger value="radar">Radar</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="w-full" style={{ height: Math.max(320, rankings.length * 32 + 80) }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={chartData}
-                      layout="vertical"
-                      margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-border/40" />
-                      <XAxis type="number" domain={[0, 100]} className="text-xs" />
-                      <YAxis dataKey="name" type="category" width={120} className="text-xs" />
-                      <Tooltip
-                        formatter={(value: number, name: string) => [`${value.toFixed(1)}`, name]}
-                        labelFormatter={(label) => label}
-                        contentStyle={{
-                          backgroundColor: 'hsl(var(--card))',
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: 6,
-                          fontSize: 12,
-                        }}
-                      />
-                      <ReferenceLine
-                        x={reefThreshold}
-                        stroke="hsl(var(--destructive))"
-                        strokeDasharray="6 3"
-                        label={{ value: 'Reef', position: 'top', fill: 'hsl(var(--destructive))', fontSize: 11 }}
-                      />
-                      <Bar dataKey="pv" name="Player Value" radius={[0, 4, 4, 0]}>
-                        {chartData.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={entry.belowReef ? 'hsl(var(--muted-foreground))' : 'hsl(var(--primary))'}
-                            fillOpacity={entry.belowReef ? 0.45 : 1}
-                          />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                {chartView === 'bar' && (
+                  <div className="w-full" style={{ height: Math.max(320, rankings.length * 32 + 80) }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={chartData}
+                        layout="vertical"
+                        margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-border/40" />
+                        <XAxis type="number" domain={[0, 100]} className="text-xs" />
+                        <YAxis dataKey="name" type="category" width={120} className="text-xs" />
+                        <Tooltip
+                          formatter={(value: number, name: string) => [`${value.toFixed(1)}`, name]}
+                          labelFormatter={(label) => label}
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--card))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: 6,
+                            fontSize: 12,
+                          }}
+                        />
+                        <ReferenceLine
+                          x={reefThreshold}
+                          stroke="hsl(var(--destructive))"
+                          strokeDasharray="6 3"
+                          label={{ value: 'Reef', position: 'top', fill: 'hsl(var(--destructive))', fontSize: 11 }}
+                        />
+                        <Bar dataKey="pv" name="Player Value" radius={[0, 4, 4, 0]}>
+                          {chartData.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={entry.belowReef ? 'hsl(var(--muted-foreground))' : 'hsl(var(--primary))'}
+                              fillOpacity={entry.belowReef ? 0.45 : 1}
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+                {chartView === 'quadrant' && <QuadrantChart rankings={rankings} />}
+                {chartView === 'tier' && <TierList rankings={rankings} />}
+                {chartView === 'radar' && <RadarOverlay rankings={rankings} />}
               </CardContent>
             </Card>
 
@@ -329,6 +350,9 @@ export default function RankingsPage() {
                 ]} />
               </CardContent>
             </Card>
+
+            {/* Weighting reference — auditable view of what drives PV */}
+            <WeightingChart includePitchingVolume={includePitchingVolume} />
           </>
         )}
       </div>
