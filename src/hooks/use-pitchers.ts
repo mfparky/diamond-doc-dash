@@ -4,6 +4,8 @@ import { useToast } from '@/hooks/use-toast';
 import { validatePitcher } from '@/lib/validation';
 import { PitchTypeConfig } from '@/types/pitch-location';
 
+export type CoachRating = 'minus' | 'even' | 'plus' | null;
+
 export interface PitcherRecord {
   id: string;
   name: string;
@@ -13,6 +15,14 @@ export interface PitcherRecord {
   userId?: string | null;
   createdAt: string;
   updatedAt: string;
+  effortRating: CoachRating;
+  coachabilityRating: CoachRating;
+  baseballIqRating: CoachRating;
+}
+
+function toCoachRating(value: string | null | undefined): CoachRating {
+  if (value === 'minus' || value === 'even' || value === 'plus') return value;
+  return null;
 }
 
 export function usePitchers() {
@@ -39,6 +49,9 @@ export function usePitchers() {
         userId: row.user_id ?? null,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
+        effortRating: toCoachRating(row.effort_rating),
+        coachabilityRating: toCoachRating(row.coachability_rating),
+        baseballIqRating: toCoachRating(row.baseball_iq_rating),
       }));
 
       setPitchers(mappedPitchers);
@@ -101,6 +114,9 @@ export function usePitchers() {
         userId: data.user_id ?? null,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
+        effortRating: toCoachRating(data.effort_rating),
+        coachabilityRating: toCoachRating(data.coachability_rating),
+        baseballIqRating: toCoachRating(data.baseball_iq_rating),
       };
 
       setPitchers((prev) => [...prev, newPitcher].sort((a, b) => a.name.localeCompare(b.name)));
@@ -186,6 +202,47 @@ export function usePitchers() {
     }
   }, [toast]);
 
+  // Set a single coach-rating dimension on a pitcher. Optimistic update with
+  // rollback on error so the rankings UI feels instant.
+  const setCoachRating = useCallback(
+    async (
+      id: string,
+      dimension: 'effort' | 'coachability' | 'baseball_iq',
+      rating: CoachRating,
+    ): Promise<boolean> => {
+      const column =
+        dimension === 'effort' ? 'effort_rating' :
+        dimension === 'coachability' ? 'coachability_rating' :
+        'baseball_iq_rating';
+      const localKey =
+        dimension === 'effort' ? 'effortRating' as const :
+        dimension === 'coachability' ? 'coachabilityRating' as const :
+        'baseballIqRating' as const;
+
+      const previousRating = pitchers.find((p) => p.id === id)?.[localKey] ?? null;
+      setPitchers((prev) => prev.map((p) => (p.id === id ? { ...p, [localKey]: rating } : p)));
+
+      try {
+        const { error } = await supabase
+          .from('pitchers')
+          .update({ [column]: rating })
+          .eq('id', id);
+        if (error) throw error;
+        return true;
+      } catch (error) {
+        console.error('Error setting coach rating:', error);
+        setPitchers((prev) => prev.map((p) => (p.id === id ? { ...p, [localKey]: previousRating } : p)));
+        toast({
+          title: 'Could not save rating',
+          description: 'Try again.',
+          variant: 'destructive',
+        });
+        return false;
+      }
+    },
+    [pitchers, toast],
+  );
+
   // Load pitchers on mount
   useEffect(() => {
     fetchPitchers();
@@ -197,6 +254,7 @@ export function usePitchers() {
     addPitcher,
     updatePitcher,
     deletePitcher,
+    setCoachRating,
     refetch: fetchPitchers,
   };
 }
