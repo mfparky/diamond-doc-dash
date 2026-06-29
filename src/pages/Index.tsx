@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { MoreSheet, type MoreSheetItem } from '@/components/MoreSheet';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { useDashboardSettings } from '@/hooks/use-dashboard-settings';
+import { useIsRankingsAdmin } from '@/hooks/use-rankings-admin';
 import { Settings, Camera, Printer, ClipboardList, MoreHorizontal, ShieldCheck, ScanLine, Gamepad2, ListChecks, Users, FileSpreadsheet, SlidersHorizontal, Trophy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
@@ -50,6 +51,7 @@ const Index = () => {
   const [showStatUpload, setShowStatUpload] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const { settings: dashboardSettings } = useDashboardSettings();
+  const { isAdmin: isRankingsAdmin } = useIsRankingsAdmin();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -68,13 +70,17 @@ const Index = () => {
       icon: <FileSpreadsheet className="w-5 h-5" />,
       onSelect: () => setShowStatUpload(true),
     },
-    {
-      id: 'rankings',
-      label: 'Player rankings',
-      description: 'Composite Player Value + Reef line from uploaded stats',
-      icon: <Trophy className="w-5 h-5" />,
-      onSelect: () => navigate('/rankings'),
-    },
+    ...(isRankingsAdmin
+      ? [
+          {
+            id: 'rankings',
+            label: 'Player rankings',
+            description: 'Composite Player Value + Reef line from uploaded stats',
+            icon: <Trophy className="w-5 h-5" />,
+            onSelect: () => navigate('/rankings'),
+          } satisfies MoreSheetItem,
+        ]
+      : []),
     {
       id: 'games',
       label: 'Games',

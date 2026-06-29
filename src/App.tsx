@@ -7,6 +7,7 @@ import { Suspense, lazy, type ComponentType } from "react";
 import { DesignSystemProvider } from "@/contexts/DesignSystemContext";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserRole } from "@/hooks/use-user-role";
+import { isRankingsAdminEmail } from "@/lib/admin-access";
 import { Auth } from "@/components/Auth";
 import { HomeButton } from "@/components/HomeButton";
 import { Navigate } from "react-router-dom";
@@ -69,6 +70,14 @@ function AppRoutes() {
   const gate = (el: JSX.Element) =>
     !user ? <Auth /> : isScorekeeper ? <Navigate to="/game" replace /> : el;
 
+  // Player Rankings is restricted to a small allow-list of coach emails.
+  const rankingsGate = (el: JSX.Element) => {
+    if (!user) return <Auth />;
+    if (isScorekeeper) return <Navigate to="/game" replace />;
+    if (!isRankingsAdminEmail(user.email)) return <Navigate to="/" replace />;
+    return el;
+  };
+
   return (
     <BrowserRouter>
       <HomeButton />
@@ -89,7 +98,7 @@ function AppRoutes() {
           <Route path="/print-form" element={gate(<PrintFormPage />)} />
           <Route path="/print-live-abs" element={gate(<PrintLiveAbsPage />)} />
           <Route path="/accountability" element={gate(<WorkoutAccountabilityPage />)} />
-          <Route path="/rankings" element={gate(<RankingsPage />)} />
+          <Route path="/rankings" element={rankingsGate(<RankingsPage />)} />
           {/* Game mode is allowed for scorekeepers */}
           <Route path="/game" element={user ? <GameModePage /> : <Auth />} />
           <Route path="/game/:gameId" element={user ? <GameModePage /> : <Auth />} />
