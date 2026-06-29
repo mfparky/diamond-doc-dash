@@ -215,3 +215,125 @@ describe('buildRankings — real fixture smoke', () => {
     expect(top.hasOffense || top.hasDefense).toBe(true);
   });
 });
+
+describe('buildRankings — derived metrics + new defense', () => {
+  it('penalizes high strikeout rate (K%) at the plate', () => {
+    const inputs: RankingInput[] = [
+      { pitcherId: 'a', pitcherName: 'PutsItInPlay', latest: {
+        bat_ops: 0.700, bat_r: 10, bat_rbi: 8, bat_qab_pct: 30, bat_bb_pct_k: 1.0,
+        bat_ba_pct_risp: 0.250, bat_so: 5, bat_pa: 100,
+      } },
+      { pitcherId: 'b', pitcherName: 'WhiffMachine', latest: {
+        bat_ops: 0.700, bat_r: 10, bat_rbi: 8, bat_qab_pct: 30, bat_bb_pct_k: 1.0,
+        bat_ba_pct_risp: 0.250, bat_so: 40, bat_pa: 100,
+      } },
+    ];
+    const { rankings } = buildRankings(inputs, baseOptions);
+    expect(rankings[0].pitcherName).toBe('PutsItInPlay');
+  });
+
+  it('rewards higher pitcher Strike % (S%)', () => {
+    const inputs: RankingInput[] = [
+      { pitcherId: 'a', pitcherName: 'StrikeThrower', latest: { pit_era: 3.0, pit_whip: 1.2, pit_s_pct: 68 } },
+      { pitcherId: 'b', pitcherName: 'NibbleKing', latest: { pit_era: 3.0, pit_whip: 1.2, pit_s_pct: 45 } },
+    ];
+    const { rankings } = buildRankings(inputs, baseOptions);
+    expect(rankings[0].pitcherName).toBe('StrikeThrower');
+  });
+});
+
+describe('buildRankings — intangibles', () => {
+  it('promotes a player with plus ratings when stats are equal', () => {
+    const sharedStats = { bat_ops: 0.700, bat_r: 10, bat_rbi: 8, bat_pa: 50 };
+    const inputs: RankingInput[] = [
+      { pitcherId: 'a', pitcherName: 'PlusEffort', latest: sharedStats, effortRating: 'plus', coachabilityRating: 'plus', baseballIqRating: 'plus' },
+      { pitcherId: 'b', pitcherName: 'EvenAll', latest: sharedStats, effortRating: 'even', coachabilityRating: 'even', baseballIqRating: 'even' },
+      { pitcherId: 'c', pitcherName: 'MinusAll', latest: sharedStats, effortRating: 'minus', coachabilityRating: 'minus', baseballIqRating: 'minus' },
+    ];
+    const { rankings } = buildRankings(inputs, baseOptions);
+    expect(rankings[0].pitcherName).toBe('PlusEffort');
+    expect(rankings[2].pitcherName).toBe('MinusAll');
+  });
+
+  it('does not penalize unrated players (null intangibles drop out of weighting)', () => {
+    const sharedStats = { bat_ops: 0.700, bat_r: 10, bat_rbi: 8, bat_pa: 50 };
+    const inputs: RankingInput[] = [
+      { pitcherId: 'a', pitcherName: 'Rated', latest: sharedStats, effortRating: 'even', coachabilityRating: 'even', baseballIqRating: 'even' },
+      { pitcherId: 'b', pitcherName: 'Unrated', latest: sharedStats }, // no rating fields
+    ];
+    const { rankings } = buildRankings(inputs, baseOptions);
+    // Even ratings = 50, equivalent to neutral. Unrated player has the
+    // intangibles bucket excluded entirely. PVs should be effectively equal.
+    expect(Math.abs(rankings[0].playerValue - rankings[1].playerValue)).toBeLessThan(0.001);
+    const rated = rankings.find((r) => r.pitcherName === 'Rated')!;
+    const unrated = rankings.find((r) => r.pitcherName === 'Unrated')!;
+    expect(rated.hasIntangibles).toBe(true);
+    expect(unrated.hasIntangibles).toBe(false);
+  });
+});
+
+describe('buildRankings — sample-size floor', () => {
+  it('excludes players below minPlateAppearances from the main rankings', () => {
+    const inputs: RankingInput[] = [
+      { pitcherId: 'a', pitcherName: 'Regular', latest: { bat_ops: 0.600, bat_pa: 80 } },
+      { pitcherId: 'b', pitcherName: 'Tiny', latest: { bat_ops: 1.500, bat_pa: 4 } },
+      { pitcherId: 'c', pitcherName: 'Solid', latest: { bat_ops: 0.800, bat_pa: 60 } },
+    ];
+    const { rankings, excluded } = buildRankings(inputs, { ...baseOptions, minPlateAppearances: 10 });
+    expect(rankings.map((r) => r.pitcherName)).toEqual(['Solid', 'Regular']);
+    expect(excluded.map((r) => r.pitcherName)).toEqual(['Tiny']);
+    expect(excluded[0].belowMinPa).toBe(true);
+  });
+
+  it('skips the floor when minPlateAppearances is 0 or unset', () => {
+    const inputs: RankingInput[] = [
+      { pitcherId: 'a', pitcherName: 'Regular', latest: { bat_ops: 0.600, bat_pa: 80 } },
+      { pitcherId: 'b', pitcherName: 'Tiny', latest: { bat_ops: 1.500, bat_pa: 4 } },
+    ];
+    const { rankings, excluded } = buildRankings(inputs, baseOptions);
+    expect(rankings.length).toBe(2);
+    expect(excluded.length).toBe(0);
+  });
+});
+
+describe('buildRankings — hitter/pitcher filter', () => {
+  it("when filter='hitters', defense metrics don't affect the ranking", () => {
+    const inputs: RankingInput[] = [
+      { pitcherId: 'a', pitcherName: 'BatNoArm', latest: { bat_ops: 1.000, bat_r: 20, bat_rbi: 15, pit_era: 99 } },
+      { pitcherId: 'b', pitcherName: 'ArmNoBat', latest: { bat_ops: 0.300, bat_r: 2, bat_rbi: 1, pit_era: 1.0 } },
+    ];
+    const { rankings } = buildRankings(inputs, { ...baseOptions, filter: 'hitters' });
+    expect(rankings[0].pitcherName).toBe('BatNoArm');
+  });
+
+  it("when filter='pitchers', offense metrics don't affect the ranking", () => {
+    const inputs: RankingInput[] = [
+      { pitcherId: 'a', pitcherName: 'BatNoArm', latest: { bat_ops: 1.000, pit_era: 99, pit_whip: 5 } },
+      { pitcherId: 'b', pitcherName: 'ArmNoBat', latest: { bat_ops: 0.300, pit_era: 1.0, pit_whip: 0.8 } },
+    ];
+    const { rankings } = buildRankings(inputs, { ...baseOptions, filter: 'pitchers' });
+    expect(rankings[0].pitcherName).toBe('ArmNoBat');
+  });
+});
+
+describe('buildRankings — topDrivers', () => {
+  it('surfaces the highest-weighted contributing metrics per player', () => {
+    const inputs: RankingInput[] = [
+      { pitcherId: 'a', pitcherName: 'A', latest: {
+        bat_ops: 1.200, bat_r: 30, bat_rbi: 25, bat_qab_pct: 50,
+        bat_bb_pct_k: 2.0, bat_ba_pct_risp: 0.500, bat_so: 5, bat_pa: 80,
+      } },
+      { pitcherId: 'b', pitcherName: 'B', latest: {
+        bat_ops: 0.700, bat_r: 12, bat_rbi: 10, bat_qab_pct: 25,
+        bat_bb_pct_k: 0.5, bat_ba_pct_risp: 0.200, bat_so: 25, bat_pa: 80,
+      } },
+    ];
+    const { rankings } = buildRankings(inputs, baseOptions);
+    const top = rankings[0];
+    expect(top.topDrivers.length).toBeGreaterThan(0);
+    expect(top.topDrivers.length).toBeLessThanOrEqual(3);
+    // The top driver for player A should be one of the weight-2 metrics.
+    const headlineKeys = ['bat_ops', 'bat_r', 'bat_rbi'];
+    expect(headlineKeys).toContain(top.topDrivers[0].key);
+  });
+});
