@@ -404,3 +404,64 @@ export const METRIC_LABELS: Array<{
   bucket: m.bucket,
   weight: m.weight,
 }));
+
+/** Auditable bucket-level weights that drive the composite Player Value. */
+export const BUCKET_WEIGHTS = {
+  offense: 0.5,
+  defense: 0.5,
+  intangibles: 0.1,
+  pitchingVolume: 0.15,
+} as const;
+
+export interface MetricContributionBreakdown {
+  key: string;
+  label: string;
+  bucket: MetricBucket;
+  /** Raw weight as authored in METRICS. */
+  rawWeight: number;
+  /** Share of its bucket (raw weight / sum of bucket raw weights). */
+  shareOfBucket: number;
+  /** Share of total PV when all buckets are present (bucket weight * share). */
+  shareOfPv: number;
+}
+
+/**
+ * Build a per-metric contribution table that shows how each metric flows into
+ * the final composite. Both shares are returned so the UI can audit either
+ * "what drives this bucket" or "what drives the whole PV."
+ *
+ * `withPitchingVolume` mirrors the runtime option — when true the bucket
+ * weights are renormalized to share with the IP volume bucket.
+ */
+export function buildWeightingBreakdown(
+  withPitchingVolume: boolean,
+): { rows: MetricContributionBreakdown[]; bucketShares: Record<MetricBucket | 'pitchingVolume', number> } {
+  const bucketRawSum: Record<MetricBucket, number> = { offense: 0, defense: 0, intangibles: 0 };
+  for (const m of METRICS) bucketRawSum[m.bucket] += m.weight;
+
+  const ipWeight = withPitchingVolume ? BUCKET_WEIGHTS.pitchingVolume : 0;
+  const sumBuckets =
+    BUCKET_WEIGHTS.offense + BUCKET_WEIGHTS.defense + BUCKET_WEIGHTS.intangibles + ipWeight;
+
+  const bucketShares: Record<MetricBucket | 'pitchingVolume', number> = {
+    offense: BUCKET_WEIGHTS.offense / sumBuckets,
+    defense: BUCKET_WEIGHTS.defense / sumBuckets,
+    intangibles: BUCKET_WEIGHTS.intangibles / sumBuckets,
+    pitchingVolume: ipWeight / sumBuckets,
+  };
+
+  const rows: MetricContributionBreakdown[] = METRICS.map((m) => {
+    const shareOfBucket = bucketRawSum[m.bucket] === 0 ? 0 : m.weight / bucketRawSum[m.bucket];
+    const shareOfPv = bucketShares[m.bucket] * shareOfBucket;
+    return {
+      key: m.key,
+      label: m.label,
+      bucket: m.bucket,
+      rawWeight: m.weight,
+      shareOfBucket,
+      shareOfPv,
+    };
+  });
+
+  return { rows, bucketShares };
+}

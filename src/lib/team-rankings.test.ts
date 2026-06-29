@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 import { parseStatsCsv } from './stat-csv';
 import {
   buildRankings,
+  buildWeightingBreakdown,
   type RankingInput,
   type RankingOptions,
 } from './team-rankings';
@@ -335,5 +336,39 @@ describe('buildRankings — topDrivers', () => {
     // The top driver for player A should be one of the weight-2 metrics.
     const headlineKeys = ['bat_ops', 'bat_r', 'bat_rbi'];
     expect(headlineKeys).toContain(top.topDrivers[0].key);
+  });
+});
+
+describe('buildWeightingBreakdown', () => {
+  it('sums to 100% across all metrics when pitching volume is off', () => {
+    const { rows, bucketShares } = buildWeightingBreakdown(false);
+    const total = rows.reduce((sum, r) => sum + r.shareOfPv, 0);
+    expect(total).toBeCloseTo(1, 6);
+    expect(bucketShares.pitchingVolume).toBe(0);
+  });
+
+  it('reserves ~13% of PV for pitching volume when toggled on', () => {
+    const { rows, bucketShares } = buildWeightingBreakdown(true);
+    const total = rows.reduce((sum, r) => sum + r.shareOfPv, 0);
+    // metrics sum to (1 - pitchingVolume share)
+    expect(total + bucketShares.pitchingVolume).toBeCloseTo(1, 6);
+    expect(bucketShares.pitchingVolume).toBeGreaterThan(0.10);
+    expect(bucketShares.pitchingVolume).toBeLessThan(0.16);
+  });
+
+  it('OPS share of bucket is greater than R or RBI', () => {
+    const { rows } = buildWeightingBreakdown(false);
+    const ops = rows.find((r) => r.key === 'bat_ops')!;
+    const r = rows.find((r) => r.key === 'bat_r')!;
+    const rbi = rows.find((r) => r.key === 'bat_rbi')!;
+    expect(ops.shareOfBucket).toBeGreaterThan(r.shareOfBucket);
+    expect(ops.shareOfBucket).toBeGreaterThan(rbi.shareOfBucket);
+    expect(r.shareOfBucket).toBeCloseTo(rbi.shareOfBucket, 6);
+  });
+
+  it('FPCT share of PV is tiny (weight 0.25 inside a small bucket)', () => {
+    const { rows } = buildWeightingBreakdown(false);
+    const fpct = rows.find((r) => r.key === 'field_fpct')!;
+    expect(fpct.shareOfPv).toBeLessThan(0.03); // under 3% of total PV
   });
 });

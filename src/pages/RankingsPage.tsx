@@ -35,6 +35,7 @@ import { useAllStatSnapshots } from '@/hooks/use-stat-snapshots';
 import { QuadrantChart } from '@/components/rankings/QuadrantChart';
 import { TierList } from '@/components/rankings/TierList';
 import { RadarOverlay } from '@/components/rankings/RadarOverlay';
+import { WeightingChart } from '@/components/rankings/WeightingChart';
 import {
   buildRankings,
   METRIC_LABELS,
@@ -349,6 +350,9 @@ export default function RankingsPage() {
                 ]} />
               </CardContent>
             </Card>
+
+            {/* Weighting reference — auditable view of what drives PV */}
+            <WeightingChart includePitchingVolume={includePitchingVolume} />
           </>
         )}
       </div>
