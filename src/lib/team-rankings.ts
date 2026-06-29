@@ -20,12 +20,6 @@ export type RankingFilter = 'all' | 'hitters' | 'pitchers';
 export type ReefMode = '15' | '25' | '50';
 
 export interface RankingOptions {
-  /**
-   * When true, adds a 3rd component (pitching IP volume) to Player Value so
-   * innings-eaters get credit beyond their pitching rate stats. Toggleable
-   * because dominant 12U fastballs don't always translate forward.
-   */
-  includePitchingVolume: boolean;
   /** Reef cut-off as a team percentile (15th / 25th / 50th). */
   reefMode: ReefMode;
   /**
@@ -34,9 +28,19 @@ export interface RankingOptions {
    * can't out-rank an 80-PA regular. 0 disables.
    */
   minPlateAppearances?: number;
+  /**
+   * Pitching participation floor in innings. A player's defense score is
+   * scaled by min(1, IP / floor) — semi-regular pitchers (5+ IP) are
+   * unaffected, but kids who barely or never pitch can't lean on FPCT alone
+   * to inflate their defense bucket. Set to 0 to disable.
+   */
+  pitchingParticipationFloor?: number;
   /** Limit ranking to one side of the ball. Defaults to 'all'. */
   filter?: RankingFilter;
 }
+
+/** Default participation threshold — coaches can override per-call later. */
+export const DEFAULT_PITCHING_PARTICIPATION_FLOOR = 5;
 
 // --- Output shapes ---
 
@@ -55,9 +59,19 @@ export interface PlayerRanking {
   pitcherName: string;
   /** 0-100 within the team — null when no metric data in this bucket exists. */
   offenseScore: number | null;
+  /** Defense after participation factor applied (so non-pitchers can't lean on FPCT). */
   defenseScore: number | null;
+  /** Pre-factor defense — useful for tooltips so coaches can see the raw read. */
+  defenseScoreRaw: number | null;
   intangiblesScore: number | null;
+  /** Min-max-normalized IP across the team — informational, drives the Radar axis. */
   pitchingVolumeScore: number | null;
+  /** 0-1 multiplier applied to the defense score (1 = no penalty). */
+  participationFactor: number;
+  /** True when participationFactor < 1 — surface as a "Limited pitching" badge. */
+  belowParticipationFloor: boolean;
+  /** Raw IP from the latest snapshot (or 0 when no data). */
+  inningsPitched: number;
   /** Composite, 0-100. Always defined (defaults to 0 with no data). */
   playerValue: number;
   belowReef: boolean;
@@ -264,6 +278,7 @@ export function buildRankings(
 ): RankingResult {
   const filter: RankingFilter = options.filter ?? 'all';
   const minPa = options.minPlateAppearances ?? 0;
+  const participationFloor = options.pitchingParticipationFloor ?? DEFAULT_PITCHING_PARTICIPATION_FLOOR;
 
   // 1) Split inputs by sample-size floor. Excluded players still get scored
   //    but are surfaced separately so the chart isn't polluted by small samples.
@@ -313,7 +328,7 @@ export function buildRankings(
     const offenseScore = weightedMeanIgnoringNaN(
       offenseMetrics.map((m) => ({ value: normalizedByKey.get(m.key)?.[idx] ?? NaN, weight: m.weight })),
     );
-    const defenseScore = weightedMeanIgnoringNaN(
+    const defenseScoreRaw = weightedMeanIgnoringNaN(
       defenseMetrics.map((m) => ({ value: normalizedByKey.get(m.key)?.[idx] ?? NaN, weight: m.weight })),
     );
     const intangiblesScore = weightedMeanIgnoringNaN(
@@ -321,19 +336,27 @@ export function buildRankings(
     );
     const pitchingVolumeScore = Number.isFinite(ipNormalized[idx]) ? ipNormalized[idx] : null;
 
-    // Bucket weights. Offense + Defense split 50/50 base. Intangibles get 0.1
-    // (small but real). IP volume gets 0.15 when toggled on.
+    // Pitching participation. Scales the defense score down for kids who
+    // barely or never pitch (so they can't ride a great FPCT to a high
+    // defense bucket). Semi-regular pitchers (>= floor IP) are unaffected.
+    const ipRaw = Number.isFinite(rawIp[idx]) ? rawIp[idx] : 0;
+    const participationFactor = participationFloor <= 0
+      ? 1
+      : Math.min(1, ipRaw / participationFloor);
+    const defenseScore = defenseScoreRaw === null ? null : defenseScoreRaw * participationFactor;
+
+    // Bucket weights. Offense + Defense split 50/50; Intangibles 0.1 when
+    // any rating exists. No separate IP-volume bucket — participation is
+    // baked into the defense score above.
     const wOff = 0.5;
     const wDef = 0.5;
     const wIntangibles = intangiblesScore !== null ? 0.10 : 0;
-    const wIp = options.includePitchingVolume ? 0.15 : 0;
-    // Scale so the active weights sum to <= 1; missing components re-normalize
-    // automatically because we only count what's present.
+    // Active weights re-normalize automatically because we only count
+    // components that are present.
     const wPairs: Array<[number | null, number]> = [
       [offenseScore, wOff],
       [defenseScore, wDef],
       [intangiblesScore, wIntangibles],
-      [options.includePitchingVolume ? pitchingVolumeScore : null, wIp],
     ];
     let pv = 0;
     let totalWeight = 0;
@@ -357,8 +380,12 @@ export function buildRankings(
       pitcherName: input.pitcherName,
       offenseScore,
       defenseScore,
+      defenseScoreRaw,
       intangiblesScore,
       pitchingVolumeScore,
+      participationFactor,
+      belowParticipationFloor: participationFactor < 1,
+      inningsPitched: ipRaw,
       playerValue,
       belowReef: false,
       belowMinPa: !eligibleMask[idx],
@@ -410,7 +437,6 @@ export const BUCKET_WEIGHTS = {
   offense: 0.5,
   defense: 0.5,
   intangibles: 0.1,
-  pitchingVolume: 0.15,
 } as const;
 
 export interface MetricContributionBreakdown {
@@ -429,25 +455,20 @@ export interface MetricContributionBreakdown {
  * Build a per-metric contribution table that shows how each metric flows into
  * the final composite. Both shares are returned so the UI can audit either
  * "what drives this bucket" or "what drives the whole PV."
- *
- * `withPitchingVolume` mirrors the runtime option — when true the bucket
- * weights are renormalized to share with the IP volume bucket.
  */
-export function buildWeightingBreakdown(
-  withPitchingVolume: boolean,
-): { rows: MetricContributionBreakdown[]; bucketShares: Record<MetricBucket | 'pitchingVolume', number> } {
+export function buildWeightingBreakdown(): {
+  rows: MetricContributionBreakdown[];
+  bucketShares: Record<MetricBucket, number>;
+} {
   const bucketRawSum: Record<MetricBucket, number> = { offense: 0, defense: 0, intangibles: 0 };
   for (const m of METRICS) bucketRawSum[m.bucket] += m.weight;
 
-  const ipWeight = withPitchingVolume ? BUCKET_WEIGHTS.pitchingVolume : 0;
-  const sumBuckets =
-    BUCKET_WEIGHTS.offense + BUCKET_WEIGHTS.defense + BUCKET_WEIGHTS.intangibles + ipWeight;
+  const sumBuckets = BUCKET_WEIGHTS.offense + BUCKET_WEIGHTS.defense + BUCKET_WEIGHTS.intangibles;
 
-  const bucketShares: Record<MetricBucket | 'pitchingVolume', number> = {
+  const bucketShares: Record<MetricBucket, number> = {
     offense: BUCKET_WEIGHTS.offense / sumBuckets,
     defense: BUCKET_WEIGHTS.defense / sumBuckets,
     intangibles: BUCKET_WEIGHTS.intangibles / sumBuckets,
-    pitchingVolume: ipWeight / sumBuckets,
   };
 
   const rows: MetricContributionBreakdown[] = METRICS.map((m) => {
