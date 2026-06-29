@@ -11,12 +11,17 @@ import {
   ReferenceLine,
   Cell,
 } from 'recharts';
-import { ArrowLeft, Trophy, Upload, Info } from 'lucide-react';
+import { ArrowLeft, Trophy, Upload, Info, Minus, Equal, Plus, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   Table,
   TableBody,
@@ -25,52 +30,69 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { usePitchers } from '@/hooks/use-pitchers';
+import { usePitchers, type CoachRating, type PitcherRecord } from '@/hooks/use-pitchers';
 import { useAllStatSnapshots } from '@/hooks/use-stat-snapshots';
 import {
   buildRankings,
   METRIC_LABELS,
   type PlayerRanking,
   type ReefMode,
+  type RankingFilter,
   type RankingInput,
 } from '@/lib/team-rankings';
 import { cn } from '@/lib/utils';
 
-type ReefChoice = ReefMode;
+const MIN_PA = 10; // hard sample-size floor; documented in the UI
+
+type RatingDimension = 'effort' | 'coachability' | 'baseball_iq';
 
 export default function RankingsPage() {
-  const { pitchers, isLoading: pitchersLoading } = usePitchers();
+  const { pitchers, isLoading: pitchersLoading, setCoachRating } = usePitchers();
   const pitcherIds = useMemo(() => pitchers.map((p) => p.id), [pitchers]);
   const { byPitcher, isLoading: snapshotsLoading, mostRecentUploadedAt } = useAllStatSnapshots(pitcherIds);
 
   const [includePitchingVolume, setIncludePitchingVolume] = useState(false);
-  const [reefMode, setReefMode] = useState<ReefChoice>('25');
+  const [reefMode, setReefMode] = useState<ReefMode>('25');
+  const [filter, setFilter] = useState<RankingFilter>('all');
 
   const inputs = useMemo<RankingInput[]>(() => {
     return pitchers.map((p) => ({
       pitcherId: p.id,
       pitcherName: p.name,
       latest: byPitcher.get(p.id)?.[0]?.stats ?? null,
+      effortRating: p.effortRating,
+      coachabilityRating: p.coachabilityRating,
+      baseballIqRating: p.baseballIqRating,
     }));
   }, [pitchers, byPitcher]);
 
-  const { rankings, reefThreshold, reefPercentile } = useMemo(
-    () => buildRankings(inputs, { includePitchingVolume, reefMode }),
-    [inputs, includePitchingVolume, reefMode],
+  const { rankings, excluded, reefThreshold, reefPercentile } = useMemo(
+    () =>
+      buildRankings(inputs, {
+        includePitchingVolume,
+        reefMode,
+        minPlateAppearances: MIN_PA,
+        filter,
+      }),
+    [inputs, includePitchingVolume, reefMode, filter],
   );
 
   const chartData = useMemo(() => {
     return rankings.map((r) => ({
       name: r.pitcherName,
-      offense: r.offenseScore !== null ? Number(r.offenseScore.toFixed(1)) : 0,
-      defense: r.defenseScore !== null ? Number(r.defenseScore.toFixed(1)) : 0,
       pv: Number(r.playerValue.toFixed(1)),
       belowReef: r.belowReef,
     }));
   }, [rankings]);
 
   const isLoading = pitchersLoading || snapshotsLoading;
-  const hasAnyData = rankings.some((r) => r.hasOffense || r.hasDefense);
+  const hasAnyData = rankings.length > 0 || excluded.length > 0;
+
+  const pitcherById = useMemo(() => {
+    const m = new Map<string, PitcherRecord>();
+    for (const p of pitchers) m.set(p.id, p);
+    return m;
+  }, [pitchers]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -119,18 +141,29 @@ export default function RankingsPage() {
 
         {!isLoading && hasAnyData && (
           <>
-            {/* Controls */}
+            {/* Filter pills */}
             <Card className="glass-card">
               <CardContent className="p-4 space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div>
+                    <p className="text-sm font-medium text-foreground">View</p>
+                    <p className="text-xs text-muted-foreground">Restrict the ranking to one side of the ball.</p>
+                  </div>
+                  <Tabs value={filter} onValueChange={(v) => setFilter(v as RankingFilter)}>
+                    <TabsList>
+                      <TabsTrigger value="all">All</TabsTrigger>
+                      <TabsTrigger value="hitters">Hitters</TabsTrigger>
+                      <TabsTrigger value="pitchers">Pitchers</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 border-t border-border/40">
+                  <div>
                     <p className="text-sm font-medium text-foreground">Reef line (replacement threshold)</p>
                     <p className="text-xs text-muted-foreground">Players below the line are candidates to develop or sub.</p>
                   </div>
-                  <Tabs
-                    value={reefMode}
-                    onValueChange={(value) => setReefMode(value as ReefChoice)}
-                  >
+                  <Tabs value={reefMode} onValueChange={(value) => setReefMode(value as ReefMode)}>
                     <TabsList>
                       <TabsTrigger value="15">Bottom 15%</TabsTrigger>
                       <TabsTrigger value="25">Bottom 25%</TabsTrigger>
@@ -138,6 +171,7 @@ export default function RankingsPage() {
                     </TabsList>
                   </Tabs>
                 </div>
+
                 <div className="flex items-start justify-between gap-4 pt-2 border-t border-border/40">
                   <div className="flex-1">
                     <Label htmlFor="pitching-volume" className="text-sm font-medium">
@@ -177,12 +211,7 @@ export default function RankingsPage() {
                     >
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-border/40" />
                       <XAxis type="number" domain={[0, 100]} className="text-xs" />
-                      <YAxis
-                        dataKey="name"
-                        type="category"
-                        width={120}
-                        className="text-xs"
-                      />
+                      <YAxis dataKey="name" type="category" width={120} className="text-xs" />
                       <Tooltip
                         formatter={(value: number, name: string) => [`${value.toFixed(1)}`, name]}
                         labelFormatter={(label) => label}
@@ -223,7 +252,7 @@ export default function RankingsPage() {
                 </CardTitle>
                 <p className="text-xs text-muted-foreground">
                   Each column is the player's 0–100 rank within the team for that metric.
-                  Empty cells mean no data for that metric.
+                  Click <Eye className="inline w-3 h-3" /> to see the top drivers for a player.
                 </p>
               </CardHeader>
               <CardContent className="overflow-x-auto px-0">
@@ -231,10 +260,14 @@ export default function RankingsPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="sticky left-0 bg-background z-10">Player</TableHead>
+                      <TableHead className="text-center w-10">Why</TableHead>
                       <TableHead className="text-right">PV</TableHead>
                       <TableHead className="text-right">Off</TableHead>
                       <TableHead className="text-right">Def</TableHead>
-                      {METRIC_LABELS.map((m) => (
+                      <TableHead className="text-right">Eff</TableHead>
+                      <TableHead className="text-right">Coach</TableHead>
+                      <TableHead className="text-right">BB IQ</TableHead>
+                      {METRIC_LABELS.filter((m) => m.bucket !== 'intangibles').map((m) => (
                         <TableHead key={m.key} className="text-right text-[10px] uppercase tracking-wider">
                           {m.label}
                         </TableHead>
@@ -243,10 +276,34 @@ export default function RankingsPage() {
                   </TableHeader>
                   <TableBody>
                     {rankings.map((r) => (
-                      <RankingRow key={r.pitcherId} ranking={r} />
+                      <RankingRow
+                        key={r.pitcherId}
+                        ranking={r}
+                        pitcher={pitcherById.get(r.pitcherId)}
+                        onSetRating={setCoachRating}
+                      />
                     ))}
                   </TableBody>
                 </Table>
+
+                {excluded.length > 0 && (
+                  <div className="px-4 pt-6 pb-2">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                      Below sample-size floor ({MIN_PA} PA)
+                    </p>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      These players don't have enough plate appearances to be ranked fairly. They appear
+                      separately so a small sample doesn't out-rank a regular.
+                    </p>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      {excluded.map((r) => (
+                        <li key={r.pitcherId}>
+                          {r.pitcherName}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -254,30 +311,22 @@ export default function RankingsPage() {
             <Card className="glass-card">
               <CardHeader className="pb-2">
                 <CardTitle className="font-display text-base">Legend</CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  What each column represents.
-                </p>
+                <p className="text-xs text-muted-foreground">What each column represents.</p>
               </CardHeader>
               <CardContent className="space-y-4 text-sm">
                 <LegendBlock title="Composite scores" rows={[
-                  { label: 'PV', description: "Player Value — weighted composite of Off + Def (0–100)" },
+                  { label: 'PV', description: "Player Value — weighted composite (0–100)" },
                   { label: 'Off', description: 'Offense score (0–100), team-relative' },
                   { label: 'Def', description: 'Defense score (0–100), team-relative' },
+                  { label: 'Why', description: 'Top 3 metric drivers for this player' },
                 ]} />
-                <LegendBlock
-                  title="Offense"
-                  rows={METRIC_LABELS.filter((m) => m.bucket === 'offense').map((m) => ({
-                    label: m.label,
-                    description: m.description,
-                  }))}
-                />
-                <LegendBlock
-                  title="Defense"
-                  rows={METRIC_LABELS.filter((m) => m.bucket === 'defense').map((m) => ({
-                    label: m.label,
-                    description: m.description,
-                  }))}
-                />
+                <LegendBlock title="Offense" rows={legendRows('offense')} />
+                <LegendBlock title="Defense" rows={legendRows('defense')} />
+                <LegendBlock title="Intangibles (coach ratings)" rows={[
+                  { label: 'Eff', description: 'Effort — minus / even / plus' },
+                  { label: 'Coach', description: 'Coachability — takes instruction, applies feedback' },
+                  { label: 'BB IQ', description: 'Baseball IQ — situational awareness, decisions' },
+                ]} />
               </CardContent>
             </Card>
           </>
@@ -285,6 +334,13 @@ export default function RankingsPage() {
       </div>
     </div>
   );
+}
+
+function legendRows(bucket: 'offense' | 'defense') {
+  return METRIC_LABELS.filter((m) => m.bucket === bucket).map((m) => ({
+    label: m.label,
+    description: m.description,
+  }));
 }
 
 function LegendBlock({
@@ -313,17 +369,50 @@ function LegendBlock({
   );
 }
 
-function RankingRow({ ranking }: { ranking: PlayerRanking }) {
+function RankingRow({
+  ranking,
+  pitcher,
+  onSetRating,
+}: {
+  ranking: PlayerRanking;
+  pitcher: PitcherRecord | undefined;
+  onSetRating: (id: string, dim: RatingDimension, rating: CoachRating) => Promise<boolean>;
+}) {
+  const visibleMetrics = METRIC_LABELS.filter((m) => m.bucket !== 'intangibles');
   return (
     <TableRow className={cn(ranking.belowReef && 'opacity-60')}>
       <TableCell className="sticky left-0 bg-background z-10 font-medium">
         {ranking.pitcherName}
         {ranking.belowReef && <span className="ml-2 text-[10px] text-destructive">below reef</span>}
       </TableCell>
+      <TableCell className="text-center">
+        <WhyPopover ranking={ranking} />
+      </TableCell>
       <TableCell className="text-right font-semibold">{ranking.playerValue.toFixed(1)}</TableCell>
       <TableCell className="text-right">{ranking.offenseScore?.toFixed(1) ?? '—'}</TableCell>
       <TableCell className="text-right">{ranking.defenseScore?.toFixed(1) ?? '—'}</TableCell>
-      {METRIC_LABELS.map((m) => {
+      <TableCell className="text-right">
+        <RatingControl
+          rating={pitcher?.effortRating ?? null}
+          onChange={(r) => pitcher && onSetRating(pitcher.id, 'effort', r)}
+          disabled={!pitcher}
+        />
+      </TableCell>
+      <TableCell className="text-right">
+        <RatingControl
+          rating={pitcher?.coachabilityRating ?? null}
+          onChange={(r) => pitcher && onSetRating(pitcher.id, 'coachability', r)}
+          disabled={!pitcher}
+        />
+      </TableCell>
+      <TableCell className="text-right">
+        <RatingControl
+          rating={pitcher?.baseballIqRating ?? null}
+          onChange={(r) => pitcher && onSetRating(pitcher.id, 'baseball_iq', r)}
+          disabled={!pitcher}
+        />
+      </TableCell>
+      {visibleMetrics.map((m) => {
         const value = ranking.metricBreakdown[m.key];
         return (
           <TableCell key={m.key} className="text-right text-xs text-muted-foreground">
@@ -332,5 +421,110 @@ function RankingRow({ ranking }: { ranking: PlayerRanking }) {
         );
       })}
     </TableRow>
+  );
+}
+
+function WhyPopover({ ranking }: { ranking: PlayerRanking }) {
+  if (ranking.topDrivers.length === 0) return <span className="text-muted-foreground text-xs">—</span>;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Why ranked here?">
+          <Eye className="w-3.5 h-3.5" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64" align="start">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+          Top drivers
+        </p>
+        <ul className="space-y-1.5">
+          {ranking.topDrivers.map((d) => (
+            <li key={d.key} className="flex items-baseline justify-between gap-2">
+              <span className="text-sm font-medium text-foreground">{d.label}</span>
+              <span className="text-xs text-muted-foreground">
+                rank {d.score.toFixed(0)} · weight {d.weight.toFixed(2)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function RatingControl({
+  rating,
+  onChange,
+  disabled,
+}: {
+  rating: CoachRating;
+  onChange: (next: CoachRating) => void;
+  disabled?: boolean;
+}) {
+  const display =
+    rating === 'plus' ? <Plus className="w-3.5 h-3.5" /> :
+    rating === 'minus' ? <Minus className="w-3.5 h-3.5" /> :
+    rating === 'even' ? <Equal className="w-3.5 h-3.5" /> :
+    <span className="text-muted-foreground text-xs">—</span>;
+
+  const color =
+    rating === 'plus' ? 'text-emerald-600 dark:text-emerald-400' :
+    rating === 'minus' ? 'text-red-600 dark:text-red-400' :
+    'text-foreground';
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn('h-7 w-7', color)}
+          disabled={disabled}
+          aria-label="Set rating"
+        >
+          {display}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-2" align="end">
+        <div className="flex gap-1">
+          <Button
+            variant={rating === 'minus' ? 'destructive' : 'ghost'}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => onChange('minus')}
+            aria-label="Minus"
+          >
+            <Minus className="w-4 h-4" />
+          </Button>
+          <Button
+            variant={rating === 'even' ? 'secondary' : 'ghost'}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => onChange('even')}
+            aria-label="Even"
+          >
+            <Equal className="w-4 h-4" />
+          </Button>
+          <Button
+            variant={rating === 'plus' ? 'default' : 'ghost'}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => onChange('plus')}
+            aria-label="Plus"
+          >
+            <Plus className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 px-2 text-xs"
+            onClick={() => onChange(null)}
+            aria-label="Clear rating"
+          >
+            Clear
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
