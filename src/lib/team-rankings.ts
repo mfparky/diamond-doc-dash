@@ -47,6 +47,8 @@ export const DEFAULT_PITCHING_PARTICIPATION_FLOOR = 5;
 export interface MetricContribution {
   key: string;
   label: string;
+  /** Verb phrase like "limiting earned runs" — UI prepends "Owen excels at". */
+  narration: string;
   bucket: MetricBucket;
   /** 0-100 normalized score for this metric. */
   score: number;
@@ -105,6 +107,12 @@ interface MetricConfig {
   label: string;
   /** Long-form name shown in the legend below the table. */
   description: string;
+  /**
+   * Verb-phrase used in the "Why ranked here?" popover. Reads as
+   *   "Owen excels at <narration>."
+   * Should be short, action-oriented, no leading article.
+   */
+  narration: string;
   /** Whether a higher raw value is better (e.g. OPS) or worse (e.g. ERA). */
   higherIsBetter: boolean;
   /** Bucket the metric contributes to. */
@@ -137,18 +145,19 @@ const METRICS: MetricConfig[] = [
   // but they're heavily team-context-dependent (you score more if you bat
   // behind a kid who walks a lot), so dropping them to 1 each puts more
   // weight on individual rate stats than situational counting stats.
-  { key: 'bat_ops', label: 'OPS', description: 'On-base + slugging', higherIsBetter: true, bucket: 'offense', weight: 2 },
-  { key: 'bat_r', label: 'R', description: 'Runs scored', higherIsBetter: true, bucket: 'offense', weight: 1 },
-  { key: 'bat_rbi', label: 'RBI', description: 'Runs batted in', higherIsBetter: true, bucket: 'offense', weight: 1 },
-  { key: 'bat_qab_pct', label: 'QAB%', description: 'Quality at-bats per plate appearance', higherIsBetter: true, bucket: 'offense', weight: 1 },
-  { key: 'bat_bb_pct_k', label: 'BB/K', description: 'Walks per strikeout', higherIsBetter: true, bucket: 'offense', weight: 1 },
-  { key: 'bat_ba_pct_risp', label: 'BA/RISP', description: 'Batting average with runners in scoring position', higherIsBetter: true, bucket: 'offense', weight: 1 },
+  { key: 'bat_ops', label: 'OPS', description: 'On-base + slugging', narration: 'producing at the plate (on-base + power)', higherIsBetter: true, bucket: 'offense', weight: 2 },
+  { key: 'bat_r', label: 'R', description: 'Runs scored', narration: 'scoring runs', higherIsBetter: true, bucket: 'offense', weight: 1 },
+  { key: 'bat_rbi', label: 'RBI', description: 'Runs batted in', narration: 'driving in runs', higherIsBetter: true, bucket: 'offense', weight: 1 },
+  { key: 'bat_qab_pct', label: 'QAB%', description: 'Quality at-bats per plate appearance', narration: 'grinding out quality at-bats', higherIsBetter: true, bucket: 'offense', weight: 1 },
+  { key: 'bat_bb_pct_k', label: 'BB/K', description: 'Walks per strikeout', narration: 'controlling the strike zone (more walks than strikeouts)', higherIsBetter: true, bucket: 'offense', weight: 1 },
+  { key: 'bat_ba_pct_risp', label: 'BA/RISP', description: 'Batting average with runners in scoring position', narration: 'delivering with runners in scoring position', higherIsBetter: true, bucket: 'offense', weight: 1 },
   // K% derived from SO / PA. Lower is better — at 12U, putting the ball in
   // play matters more than at any other level because defenses make errors.
   {
     key: 'bat_k_pct_derived',
     label: 'K%',
     description: 'Strikeout rate (SO / PA) — lower is better',
+    narration: 'putting the ball in play (rarely strikes out)',
     higherIsBetter: false,
     bucket: 'offense',
     weight: 1,
@@ -161,20 +170,20 @@ const METRICS: MetricConfig[] = [
   },
 
   // Defense (pitching rates)
-  { key: 'pit_era', label: 'ERA', description: 'Earned run average', higherIsBetter: false, bucket: 'defense', weight: 2 },
-  { key: 'pit_whip', label: 'WHIP', description: 'Walks + hits per inning pitched', higherIsBetter: false, bucket: 'defense', weight: 2 },
-  { key: 'pit_fps_pct', label: 'FPS%', description: 'First-pitch strike percentage', higherIsBetter: true, bucket: 'defense', weight: 1 },
-  { key: 'pit_k_pct_bf', label: 'K/BF', description: 'Strikeouts per batter faced', higherIsBetter: true, bucket: 'defense', weight: 1 },
-  { key: 'pit_s_pct', label: 'Strike %', description: 'Pitches thrown for strikes', higherIsBetter: true, bucket: 'defense', weight: 1 },
+  { key: 'pit_era', label: 'ERA', description: 'Earned run average', narration: 'limiting earned runs', higherIsBetter: false, bucket: 'defense', weight: 2 },
+  { key: 'pit_whip', label: 'WHIP', description: 'Walks + hits per inning pitched', narration: 'limiting baserunners', higherIsBetter: false, bucket: 'defense', weight: 2 },
+  { key: 'pit_fps_pct', label: 'FPS%', description: 'First-pitch strike percentage', narration: 'getting ahead in the count', higherIsBetter: true, bucket: 'defense', weight: 1 },
+  { key: 'pit_k_pct_bf', label: 'K/BF', description: 'Strikeouts per batter faced', narration: 'punching out hitters', higherIsBetter: true, bucket: 'defense', weight: 1 },
+  { key: 'pit_s_pct', label: 'Strike %', description: 'Pitches thrown for strikes', narration: 'pounding the strike zone', higherIsBetter: true, bucket: 'defense', weight: 1 },
   // Defense (fielding) — minimal weight because the metric depends heavily on
   // how often the ball reaches the player at all.
-  { key: 'field_fpct', label: 'FPCT', description: 'Fielding percentage', higherIsBetter: true, bucket: 'defense', weight: 0.25 },
+  { key: 'field_fpct', label: 'FPCT', description: 'Fielding percentage', narration: 'fielding cleanly when the ball comes', higherIsBetter: true, bucket: 'defense', weight: 0.25 },
 
   // Intangibles — coach-assigned subjective ratings. Each one becomes
   // 0 / 50 / 100 (minus / even / plus). Null when not rated.
-  { key: 'intangibles_effort', label: 'Effort', description: 'Coach rating: hustle and intensity', higherIsBetter: true, bucket: 'intangibles', weight: 1 },
-  { key: 'intangibles_coachability', label: 'Coach', description: 'Coach rating: takes instruction, applies feedback', higherIsBetter: true, bucket: 'intangibles', weight: 1 },
-  { key: 'intangibles_baseball_iq', label: 'BB IQ', description: 'Coach rating: situational awareness, baseball decisions', higherIsBetter: true, bucket: 'intangibles', weight: 1 },
+  { key: 'intangibles_effort', label: 'Effort', description: 'Coach rating: hustle and intensity', narration: 'bringing effort and intensity', higherIsBetter: true, bucket: 'intangibles', weight: 1 },
+  { key: 'intangibles_coachability', label: 'Coach', description: 'Coach rating: takes instruction, applies feedback', narration: 'applying coaching feedback', higherIsBetter: true, bucket: 'intangibles', weight: 1 },
+  { key: 'intangibles_baseball_iq', label: 'BB IQ', description: 'Coach rating: situational awareness, baseball decisions', narration: 'reading the game and making smart decisions', higherIsBetter: true, bucket: 'intangibles', weight: 1 },
 ];
 
 const COACH_RATING_TO_SCORE: Record<Exclude<CoachRating, null>, number> = {
@@ -322,7 +331,14 @@ export function buildRankings(
       const v = normalizedByKey.get(m.key)?.[idx] ?? NaN;
       breakdown[m.key] = Number.isFinite(v) ? v : null;
       if (Number.isFinite(v)) {
-        contributions.push({ key: m.key, label: m.label, bucket: m.bucket, score: v, weight: m.weight });
+        contributions.push({
+          key: m.key,
+          label: m.label,
+          narration: m.narration,
+          bucket: m.bucket,
+          score: v,
+          weight: m.weight,
+        });
       }
     }
     const offenseScore = weightedMeanIgnoringNaN(
@@ -422,12 +438,14 @@ export const METRIC_LABELS: Array<{
   key: string;
   label: string;
   description: string;
+  narration: string;
   bucket: MetricBucket;
   weight: number;
 }> = METRICS.map((m) => ({
   key: m.key,
   label: m.label,
   description: m.description,
+  narration: m.narration,
   bucket: m.bucket,
   weight: m.weight,
 }));

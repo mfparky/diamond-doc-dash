@@ -447,6 +447,8 @@ function RankingRow({
 
 function WhyPopover({ ranking }: { ranking: PlayerRanking }) {
   if (ranking.topDrivers.length === 0) return <span className="text-muted-foreground text-xs">—</span>;
+  // Friendly framing — use first name if there is one, otherwise the full name.
+  const firstName = ranking.pitcherName.split(' ')[0] ?? ranking.pitcherName;
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -454,19 +456,32 @@ function WhyPopover({ ranking }: { ranking: PlayerRanking }) {
           <Eye className="w-3.5 h-3.5" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-64" align="start">
+      <PopoverContent className="w-80" align="start">
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-          Top drivers
+          What's driving {firstName}'s rank
         </p>
-        <ul className="space-y-1.5">
-          {ranking.topDrivers.map((d) => (
-            <li key={d.key} className="flex items-baseline justify-between gap-2">
-              <span className="text-sm font-medium text-foreground">{d.label}</span>
-              <span className="text-xs text-muted-foreground">
-                rank {d.score.toFixed(0)} · weight {d.weight.toFixed(2)}
-              </span>
-            </li>
-          ))}
+        <ul className="space-y-3">
+          {ranking.topDrivers.map((d) => {
+            // Tier the framing by how high the player ranks on this metric
+            // within the team — "excels" only when they're clearly above average.
+            const verb =
+              d.score >= 75 ? 'excels at' :
+              d.score >= 55 ? 'is solid at' :
+              'leans on';
+            return (
+              <li key={d.key} className="space-y-0.5">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-sm font-semibold text-foreground">{d.label}</span>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                    rank {d.score.toFixed(0)} · w{d.weight.toFixed(2)}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-snug">
+                  {firstName} {verb} {d.narration}.
+                </p>
+              </li>
+            );
+          })}
         </ul>
       </PopoverContent>
     </Popover>
