@@ -144,44 +144,48 @@ export default function RankingsPage() {
 
         {!isLoading && hasAnyData && (
           <>
-            {/* Filter pills */}
+            {/* Toolbar — compact single-row controls */}
             <Card className="glass-card">
-              <CardContent className="p-4 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">View</p>
-                    <p className="text-xs text-muted-foreground">Restrict the ranking to one side of the ball.</p>
-                  </div>
+              <CardContent className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">View</span>
                   <Tabs value={filter} onValueChange={(v) => setFilter(v as RankingFilter)}>
-                    <TabsList>
-                      <TabsTrigger value="all">All</TabsTrigger>
-                      <TabsTrigger value="hitters">Hitters</TabsTrigger>
-                      <TabsTrigger value="pitchers">Pitchers</TabsTrigger>
+                    <TabsList className="h-8">
+                      <TabsTrigger value="all" className="text-xs px-2.5">All</TabsTrigger>
+                      <TabsTrigger value="hitters" className="text-xs px-2.5">Hitters</TabsTrigger>
+                      <TabsTrigger value="pitchers" className="text-xs px-2.5">Pitchers</TabsTrigger>
                     </TabsList>
                   </Tabs>
                 </div>
 
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 border-t border-border/40">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Reef line (replacement threshold)</p>
-                    <p className="text-xs text-muted-foreground">Players below the line are candidates to develop or sub.</p>
-                  </div>
+                <div className="hidden sm:block h-6 w-px bg-border/60" />
+
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">Reef</span>
                   <Tabs value={reefMode} onValueChange={(value) => setReefMode(value as ReefMode)}>
-                    <TabsList>
-                      <TabsTrigger value="15">Bottom 15%</TabsTrigger>
-                      <TabsTrigger value="25">Bottom 25%</TabsTrigger>
-                      <TabsTrigger value="50">Median</TabsTrigger>
+                    <TabsList className="h-8">
+                      <TabsTrigger value="15" className="text-xs px-2.5">B15%</TabsTrigger>
+                      <TabsTrigger value="25" className="text-xs px-2.5">B25%</TabsTrigger>
+                      <TabsTrigger value="50" className="text-xs px-2.5">Median</TabsTrigger>
                     </TabsList>
                   </Tabs>
-                </div>
-
-                <div className="pt-2 border-t border-border/40">
-                  <p className="text-sm font-medium text-foreground">Pitching participation</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Defense score is scaled by IP up to {MIN_IP_FLOOR} innings. Semi-regular
-                    pitchers ({MIN_IP_FLOOR}+ IP) get full credit; kids who barely or never pitch
-                    are damped so they can't lean on FPCT alone.
-                  </p>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="About these controls">
+                        <Info className="w-3.5 h-3.5 text-muted-foreground" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-72 text-xs space-y-2" align="start">
+                      <div>
+                        <p className="font-semibold text-foreground mb-1">Reef line</p>
+                        <p className="text-muted-foreground">Replacement threshold. Players below the line are candidates to develop or sub.</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-foreground mb-1">Pitching participation</p>
+                        <p className="text-muted-foreground">Defense score is scaled by IP up to {MIN_IP_FLOOR} innings. Kids who barely pitch are damped so they can't lean on FPCT alone.</p>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </CardContent>
             </Card>
@@ -193,15 +197,15 @@ export default function RankingsPage() {
                   <CardTitle className="font-display text-lg flex items-center gap-2">
                     Player Value
                     <span className="text-xs text-muted-foreground font-normal">
-                      Reef at {reefThreshold.toFixed(1)} ({reefPercentile}th percentile)
+                      Reef {reefThreshold.toFixed(1)} · p{reefPercentile}
                     </span>
                   </CardTitle>
                   <Tabs value={chartView} onValueChange={(v) => setChartView(v as ChartView)}>
-                    <TabsList>
-                      <TabsTrigger value="bar">Bar</TabsTrigger>
-                      <TabsTrigger value="quadrant">Quadrant</TabsTrigger>
-                      <TabsTrigger value="tier">Tier</TabsTrigger>
-                      <TabsTrigger value="radar">Radar</TabsTrigger>
+                    <TabsList className="h-8">
+                      <TabsTrigger value="bar" className="text-xs px-2.5">Bar</TabsTrigger>
+                      <TabsTrigger value="quadrant" className="text-xs px-2.5">Quadrant</TabsTrigger>
+                      <TabsTrigger value="tier" className="text-xs px-2.5">Tier</TabsTrigger>
+                      <TabsTrigger value="radar" className="text-xs px-2.5">Radar</TabsTrigger>
                     </TabsList>
                   </Tabs>
                 </div>
