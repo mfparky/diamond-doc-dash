@@ -311,7 +311,10 @@ export type Database = {
       }
       pitchers: {
         Row: {
+          baseball_iq_rating: string | null
+          coachability_rating: string | null
           created_at: string
+          effort_rating: string | null
           id: string
           max_weekly_pitches: number
           name: string
@@ -319,12 +322,12 @@ export type Database = {
           team_id: string | null
           updated_at: string
           user_id: string | null
-          effort_rating: string | null
-          coachability_rating: string | null
-          baseball_iq_rating: string | null
         }
         Insert: {
+          baseball_iq_rating?: string | null
+          coachability_rating?: string | null
           created_at?: string
+          effort_rating?: string | null
           id?: string
           max_weekly_pitches?: number
           name: string
@@ -332,12 +335,12 @@ export type Database = {
           team_id?: string | null
           updated_at?: string
           user_id?: string | null
-          effort_rating?: string | null
-          coachability_rating?: string | null
-          baseball_iq_rating?: string | null
         }
         Update: {
+          baseball_iq_rating?: string | null
+          coachability_rating?: string | null
           created_at?: string
+          effort_rating?: string | null
           id?: string
           max_weekly_pitches?: number
           name?: string
@@ -345,9 +348,6 @@ export type Database = {
           team_id?: string | null
           updated_at?: string
           user_id?: string | null
-          effort_rating?: string | null
-          coachability_rating?: string | null
-          baseball_iq_rating?: string | null
         }
         Relationships: [
           {
