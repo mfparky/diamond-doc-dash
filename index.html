@@ -25,6 +25,28 @@
 
   <body>
     <div id="root"></div>
+    <script>
+      window.addEventListener(
+        'error',
+        function (event) {
+          var target = event && event.target;
+          var isModuleAsset =
+            target &&
+            target.tagName === 'SCRIPT' &&
+            typeof target.src === 'string' &&
+            target.src.indexOf('/assets/index-') !== -1;
+
+          if (!isModuleAsset) return;
+
+          var key = 'arm-stats:entry-asset-reload';
+          if (!sessionStorage.getItem(key)) {
+            sessionStorage.setItem(key, '1');
+            window.location.reload();
+          }
+        },
+        true,
+      );
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

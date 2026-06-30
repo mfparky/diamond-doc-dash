@@ -142,6 +142,9 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
             userId: p.user_id,
             createdAt: p.created_at,
             updatedAt: p.updated_at,
+            effortRating: p.effort_rating === 'minus' || p.effort_rating === 'even' || p.effort_rating === 'plus' ? p.effort_rating : null,
+            coachabilityRating: p.coachability_rating === 'minus' || p.coachability_rating === 'even' || p.coachability_rating === 'plus' ? p.coachability_rating : null,
+            baseballIqRating: p.baseball_iq_rating === 'minus' || p.baseball_iq_rating === 'even' || p.baseball_iq_rating === 'plus' ? p.baseball_iq_rating : null,
           })));
         } else {
           // Fallback: pitchers predate team_id — look them up by name from outings
@@ -162,6 +165,9 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
                 userId: p.user_id,
                 createdAt: p.created_at,
                 updatedAt: p.updated_at,
+                  effortRating: p.effort_rating === 'minus' || p.effort_rating === 'even' || p.effort_rating === 'plus' ? p.effort_rating : null,
+                  coachabilityRating: p.coachability_rating === 'minus' || p.coachability_rating === 'even' || p.coachability_rating === 'plus' ? p.coachability_rating : null,
+                  baseballIqRating: p.baseball_iq_rating === 'minus' || p.baseball_iq_rating === 'even' || p.baseball_iq_rating === 'plus' ? p.baseball_iq_rating : null,
               })));
             }
           }
