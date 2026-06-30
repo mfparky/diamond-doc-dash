@@ -280,15 +280,15 @@ export default function RankingsPage() {
               <CardContent className="overflow-x-auto px-0">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead className="sticky left-0 bg-background z-10">Player</TableHead>
-                      <TableHead className="text-center w-10">Why</TableHead>
-                      <TableHead className="text-right">PV</TableHead>
-                      <TableHead className="text-right">Off</TableHead>
-                      <TableHead className="text-right">Def</TableHead>
-                      <TableHead className="text-right">Eff</TableHead>
-                      <TableHead className="text-right">Coach</TableHead>
-                      <TableHead className="text-right">BB IQ</TableHead>
+                    <TableRow className="border-border/40 hover:bg-transparent">
+                      <TableHead className="sticky left-0 bg-background z-10 text-[10px] uppercase tracking-wider">Player</TableHead>
+                      <TableHead className="text-center w-10 text-[10px] uppercase tracking-wider">Why</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase tracking-wider text-foreground">PV</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase tracking-wider">Off</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase tracking-wider">Def</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase tracking-wider">Eff</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase tracking-wider">Coach</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase tracking-wider">BB IQ</TableHead>
                       {METRIC_LABELS.filter((m) => m.bucket !== 'intangibles').map((m) => (
                         <TableHead key={m.key} className="text-right text-[10px] uppercase tracking-wider">
                           {m.label}
