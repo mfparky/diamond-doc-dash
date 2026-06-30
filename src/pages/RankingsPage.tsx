@@ -11,7 +11,7 @@ import {
   ReferenceLine,
   Cell,
 } from 'recharts';
-import { ArrowLeft, Trophy, Upload, Info, Minus, Equal, Plus, Eye } from 'lucide-react';
+import { ArrowLeft, Trophy, Upload, Info, Minus, Equal, Plus, Eye, ChevronDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
