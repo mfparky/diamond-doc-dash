@@ -411,7 +411,7 @@ function RankingRow({
 }) {
   const visibleMetrics = METRIC_LABELS.filter((m) => m.bucket !== 'intangibles');
   return (
-    <TableRow className={cn(ranking.belowReef && 'opacity-60')}>
+    <TableRow className={cn('border-border/30 hover:bg-primary/5 transition-colors', ranking.belowReef && 'opacity-60')}>
       <TableCell className="sticky left-0 bg-background z-10 font-medium">
         {ranking.pitcherName}
         {ranking.belowReef && <span className="ml-2 text-[10px] text-destructive">below reef</span>}
@@ -427,7 +427,7 @@ function RankingRow({
       <TableCell className="text-center">
         <WhyPopover ranking={ranking} />
       </TableCell>
-      <TableCell className="text-right font-semibold">{ranking.playerValue.toFixed(1)}</TableCell>
+      <TableCell className="text-right font-semibold text-foreground tabular-nums">{ranking.playerValue.toFixed(1)}</TableCell>
       <TableCell className="text-right">{ranking.offenseScore?.toFixed(1) ?? '—'}</TableCell>
       <TableCell className="text-right">{ranking.defenseScore?.toFixed(1) ?? '—'}</TableCell>
       <TableCell className="text-right">
