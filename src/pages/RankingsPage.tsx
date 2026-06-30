@@ -428,8 +428,8 @@ function RankingRow({
         <WhyPopover ranking={ranking} />
       </TableCell>
       <TableCell className="text-right font-semibold text-foreground tabular-nums">{ranking.playerValue.toFixed(1)}</TableCell>
-      <TableCell className="text-right">{ranking.offenseScore?.toFixed(1) ?? '—'}</TableCell>
-      <TableCell className="text-right">{ranking.defenseScore?.toFixed(1) ?? '—'}</TableCell>
+      <TableCell className="text-right tabular-nums">{ranking.offenseScore?.toFixed(1) ?? '—'}</TableCell>
+      <TableCell className="text-right tabular-nums">{ranking.defenseScore?.toFixed(1) ?? '—'}</TableCell>
       <TableCell className="text-right">
         <RatingControl
           rating={pitcher?.effortRating ?? null}
