@@ -329,27 +329,33 @@ export default function RankingsPage() {
               </CardContent>
             </Card>
 
-            {/* Legend */}
+            {/* Legend — collapsible to keep the page lean */}
             <Card className="glass-card">
-              <CardHeader className="pb-2">
-                <CardTitle className="font-display text-base">Legend</CardTitle>
-                <p className="text-xs text-muted-foreground">What each column represents.</p>
-              </CardHeader>
-              <CardContent className="space-y-4 text-sm">
-                <LegendBlock title="Composite scores" rows={[
-                  { label: 'PV', description: "Player Value — weighted composite (0–100)" },
-                  { label: 'Off', description: 'Offense score (0–100), team-relative' },
-                  { label: 'Def', description: 'Defense score (0–100), team-relative' },
-                  { label: 'Why', description: 'Top 3 metric drivers for this player' },
-                ]} />
-                <LegendBlock title="Offense" rows={legendRows('offense')} />
-                <LegendBlock title="Defense" rows={legendRows('defense')} />
-                <LegendBlock title="Intangibles (coach ratings)" rows={[
-                  { label: 'Eff', description: 'Effort — minus / even / plus' },
-                  { label: 'Coach', description: 'Coachability — takes instruction, applies feedback' },
-                  { label: 'BB IQ', description: 'Baseball IQ — situational awareness, decisions' },
-                ]} />
-              </CardContent>
+              <details className="group">
+                <summary className="flex items-center justify-between cursor-pointer list-none p-4 hover:bg-secondary/20 transition-colors rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Info className="w-4 h-4 text-muted-foreground" />
+                    <span className="font-display text-base text-foreground">Legend</span>
+                    <span className="text-xs text-muted-foreground">— what each column means</span>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="px-4 pb-4 space-y-4 text-sm">
+                  <LegendBlock title="Composite scores" rows={[
+                    { label: 'PV', description: "Player Value — weighted composite (0–100)" },
+                    { label: 'Off', description: 'Offense score (0–100), team-relative' },
+                    { label: 'Def', description: 'Defense score (0–100), team-relative' },
+                    { label: 'Why', description: 'Top 3 metric drivers for this player' },
+                  ]} />
+                  <LegendBlock title="Offense" rows={legendRows('offense')} />
+                  <LegendBlock title="Defense" rows={legendRows('defense')} />
+                  <LegendBlock title="Intangibles (coach ratings)" rows={[
+                    { label: 'Eff', description: 'Effort — minus / even / plus' },
+                    { label: 'Coach', description: 'Coachability — takes instruction, applies feedback' },
+                    { label: 'BB IQ', description: 'Baseball IQ — situational awareness, decisions' },
+                  ]} />
+                </div>
+              </details>
             </Card>
 
             {/* Weighting reference — auditable view of what drives PV */}
