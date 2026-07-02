@@ -28,6 +28,10 @@ interface LiveChartingSessionTabletProps {
     notes?: string;
   }) => void;
   onCancel: () => void;
+  /** Preselect the session type. Defaults to 'Bullpen' when omitted. */
+  initialSessionType?: 'Bullpen' | 'Game' | 'Live ABs';
+  /** When true, hides the session-type pill so the route hard-selects the type. */
+  lockSessionType?: boolean;
 }
 
 function getTodayDateString(): string {
@@ -44,13 +48,15 @@ export function LiveChartingSessionTablet({
   onPitchTypesUpdated,
   onComplete,
   onCancel,
+  initialSessionType = 'Bullpen',
+  lockSessionType = false,
 }: LiveChartingSessionTabletProps) {
   const [plottedPitches, setPlottedPitches] = useState<LivePitch[]>([]);
   const [selectedPitchType, setSelectedPitchType] = useState<number>(1);
   const [velocityInput, setVelocityInput] = useState('');
   const [showVideoDialog, setShowVideoDialog] = useState(false);
   const [showPitchTypeConfig, setShowPitchTypeConfig] = useState(false);
-  const [sessionType, setSessionType] = useState<'Bullpen' | 'Game' | 'Live ABs'>('Bullpen');
+  const [sessionType, setSessionType] = useState<'Bullpen' | 'Game' | 'Live ABs'>(initialSessionType);
   const [liveAbData, setLiveAbData] = useState<LiveAbData>({ pitches: [], atBats: [] });
   const velocityInputRef = useRef<HTMLInputElement>(null);
 
@@ -174,21 +180,23 @@ export function LiveChartingSessionTablet({
       <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-card gap-4">
         <div className="flex items-center gap-4">
           <h2 className="font-display text-2xl font-bold text-foreground">{pitcher.name}</h2>
-          {/* Session type picker */}
-          <div className="flex bg-secondary rounded-lg p-1 gap-1">
-            {(['Bullpen', 'Game', 'Live ABs'] as const).map(type => (
-              <button
-                key={type}
-                type="button"
-                className={`min-h-[44px] text-base font-medium px-4 py-2 rounded-md transition-colors ${
-                  sessionType === type ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground'
-                }`}
-                onClick={() => setSessionType(type)}
-              >
-                {type}
-              </button>
-            ))}
-          </div>
+          {/* Session type picker — hidden when route locks the type */}
+          {!lockSessionType && (
+            <div className="flex bg-secondary rounded-lg p-1 gap-1">
+              {(['Bullpen', 'Game', 'Live ABs'] as const).map(type => (
+                <button
+                  key={type}
+                  type="button"
+                  className={`min-h-[44px] text-base font-medium px-4 py-2 rounded-md transition-colors ${
+                    sessionType === type ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground'
+                  }`}
+                  onClick={() => setSessionType(type)}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-3">
           {sessionType !== 'Live ABs' && (

@@ -18,7 +18,13 @@ import { SeasonStatsDashboard } from './SeasonStatsDashboard';
 import { StrikeLocationViewer } from './StrikeLocationViewer';
 import { PitchTypeConfigDialog } from './PitchTypeConfigDialog';
 import { HomeButton } from './HomeButton';
-import { LiveChartingSession, LivePitch } from './LiveChartingSession';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Link } from 'react-router-dom';
 import { usePitchLocations } from '@/hooks/use-pitch-locations';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES, PitchLocation } from '@/types/pitch-location';
 import { useToast } from '@/hooks/use-toast';
@@ -59,7 +65,6 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
   const [pitchMapOuting, setPitchMapOuting] = useState<Outing | null>(null);
   const [videoOuting, setVideoOuting] = useState<Outing | null>(null);
   const [showPitchTypeConfig, setShowPitchTypeConfig] = useState(false);
-  const [showLiveCharting, setShowLiveCharting] = useState(false);
   const [showLogOuting, setShowLogOuting] = useState(false);
   const [showVideoComparison, setShowVideoComparison] = useState(false);
   const [showSeasonDashboard, setShowSeasonDashboard] = useState(false);
@@ -214,74 +219,8 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
 
   const daysRestNeeded = pitcher.lastPitchCount > 0 ? getDaysRestNeeded(pitcher.lastPitchCount) : 0;
 
-  // Handle live charting session completion
-  const handleLiveSessionComplete = useCallback(async (sessionData: {
-    pitches: LivePitch[];
-    maxVelo: number;
-    pitchCount: number;
-    strikes: number;
-    eventType: Outing['eventType'];
-    date: string;
-    notes?: string;
-  }) => {
-    if (!onAddOuting) {
-      toast({
-        title: 'Error',
-        description: 'Unable to save session. Please try again.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    // Create the outing first
-    const newOuting = await onAddOuting({
-      pitcherName: pitcher.name,
-      date: sessionData.date,
-      eventType: sessionData.eventType,
-      pitchCount: sessionData.pitchCount,
-      strikes: sessionData.strikes,
-      maxVelo: sessionData.maxVelo,
-      notes: sessionData.notes ?? `Live charted session - ${sessionData.pitches.length} pitches`,
-    });
-
-    if (newOuting) {
-      // Convert LivePitch to pitch location format
-      const pitchLocations = sessionData.pitches.map(p => ({
-        pitchNumber: p.pitchNumber,
-        pitchType: p.pitchType,
-        xLocation: p.xLocation,
-        yLocation: p.yLocation,
-        isStrike: p.isStrike,
-      }));
-
-      // Add pitch locations
-      const success = await addPitchLocations(newOuting.id, pitcher.id, pitchLocations);
-      
-      if (success) {
-        toast({
-          title: 'Session saved!',
-          description: `${sessionData.pitchCount} pitches recorded${sessionData.maxVelo ? ` • Max velo: ${sessionData.maxVelo}` : ''}.`,
-        });
-        setRefreshKey(k => k + 1);
-      }
-    }
-
-    setShowLiveCharting(false);
-  }, [onAddOuting, pitcher.name, pitcher.id, addPitchLocations, toast]);
-
-
-  // Show live charting session if active
-  if (showLiveCharting) {
-    return (
-      <LiveChartingSession
-        pitcher={pitcher}
-        pitchTypes={pitchTypes}
-        onPitchTypesUpdated={() => fetchPitchTypes(pitcher.id).then(setPitchTypes)}
-        onComplete={handleLiveSessionComplete}
-        onCancel={() => setShowLiveCharting(false)}
-      />
-    );
-  }
+  // Live charting now lives on dedicated routes (/chart/bullpen, /chart/game,
+  // /chart/live-abs). See useChartingRoute for the shared save + navigation.
 
   return (
     <div className="space-y-6 animate-slide-up overflow-x-hidden">
@@ -344,13 +283,25 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
       {/* Action Buttons - Live Session & Log Outing */}
       {onAddOuting && (
         <div className="flex gap-3">
-          <Button 
-            onClick={() => setShowLiveCharting(true)}
-            className="flex-1 h-14 text-lg font-bold bg-primary hover:bg-primary/90"
-          >
-            <Activity className="w-5 h-5 mr-2" />
-            Live Session
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="flex-1 h-14 text-lg font-bold bg-primary hover:bg-primary/90">
+                <Activity className="w-5 h-5 mr-2" />
+                Live Session
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuItem asChild>
+                <Link to={`/chart/bullpen?pitcherId=${pitcher.id}`}>Bullpen</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to={`/chart/game?pitcherId=${pitcher.id}`}>Game</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to={`/chart/live-abs?pitcherId=${pitcher.id}`}>Live ABs</Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button 
             onClick={() => setShowLogOuting(true)}
             variant="outline"
