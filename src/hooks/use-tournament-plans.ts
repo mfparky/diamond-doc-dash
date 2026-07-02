@@ -76,17 +76,25 @@ export function useTournamentPlans(): UseTournamentPlansResult {
 
       // Seed Cooperstown on first run so the picker isn't empty.
       if (rows.length === 0) {
-        const { error: insertErr } = await db
-          .from('tournament_pitch_plans')
-          .insert({
-            user_id: user.id,
-            tournament_slug: COOPERSTOWN_TOURNAMENT_SLUG,
-            tournament_name: COOPERSTOWN_TOURNAMENT_NAME,
-            schedule: COOPERSTOWN_2025,
-            entries: {},
-            roster: [],
-            notes: '',
-          });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const fullSeed: Record<string, any> = {
+          user_id: user.id,
+          tournament_slug: COOPERSTOWN_TOURNAMENT_SLUG,
+          tournament_name: COOPERSTOWN_TOURNAMENT_NAME,
+          schedule: COOPERSTOWN_2025,
+          entries: {},
+          roster: [],
+          notes: '',
+        };
+        let insertErr = (await db.from('tournament_pitch_plans').insert(fullSeed)).error;
+        // Retry without newer optional columns if their migrations haven't run.
+        for (const optional of ['catchers', 'roster']) {
+          if (!insertErr) break;
+          const msg = String(insertErr.message ?? '').toLowerCase();
+          if (!msg.includes(optional) || !(msg.includes('does not exist') || msg.includes('could not find'))) break;
+          delete fullSeed[optional];
+          insertErr = (await db.from('tournament_pitch_plans').insert(fullSeed)).error;
+        }
         if (insertErr) {
           // A duplicate-key race is fine; refetch below either way.
           if (!/duplicate|unique/i.test(insertErr.message ?? '')) throw insertErr;
