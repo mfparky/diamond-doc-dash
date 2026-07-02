@@ -49,11 +49,13 @@ describe('isEligibleForGame — rest requirements', () => {
 
   it('throwing 30 (no-rest tier) allows same or next day', () => {
     const entries = [P(0, 0, 30)];
-    // Day 0 second game — same-day cap 30 minus 30 already thrown = 0, but still eligible=true.
+    // Day 0 second game — entry gate is met (game 1 = 30 ≤ 30). Remaining
+    // for game 2 is bound only by the daily 85 cap and 2-day combined 85 cap.
+    // remaining = 85 - 30 = 55.
     const same = isEligibleForGame({ entries, targetDay: 0, targetGameIndex: 1 });
     expect(same.eligible).toBe(true);
-    expect(same.remaining).toBe(0);
-    // Day 1 fully eligible.
+    expect(same.remaining).toBe(55);
+    // Day 1 fully eligible (2-day combined cap trims to 55 here too).
     const next = isEligibleForGame({ entries, targetDay: 1, targetGameIndex: 0 });
     expect(next.eligible).toBe(true);
   });
@@ -92,8 +94,20 @@ describe('isEligibleForGame — same-day second game', () => {
     const entries = [P(0, 0, 25)];
     const r = isEligibleForGame({ entries, targetDay: 0, targetGameIndex: 1 });
     expect(r.eligible).toBe(true);
-    // Cap is same-day 30 minus 25 already = 5.
-    expect(r.remaining).toBe(5);
+    // Second game is NOT capped at 30 — combined day total dictates the
+    // next-day rest tier. Only the daily 85 max limits game 2, so
+    // remaining = 85 - 25 = 60.
+    expect(r.remaining).toBe(60);
+  });
+
+  it('allows the second-game total to push past 30 (triggering higher rest tier next day)', () => {
+    // Coach entered 25 in game 1 (0-rest eligible). Now planning 40 in game 2.
+    // Combined 65 puts the DAY total in the 61-75 tier (3 days rest after).
+    // That's legal — the rest tier calc uses the combined total, not per-appearance.
+    const entries = [P(0, 0, 25)];
+    const r = isEligibleForGame({ entries, targetDay: 0, targetGameIndex: 1 });
+    expect(r.eligible).toBe(true);
+    expect(r.remaining).toBeGreaterThanOrEqual(40);
   });
 
   it('blocks a second game when first was > 30', () => {

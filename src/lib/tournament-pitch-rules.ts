@@ -170,15 +170,11 @@ export function isEligibleForGame(ctx: EligibilityContext): EligibilityCheck {
     }
   }
 
-  // Same-day second appearance: entire game must stay ≤ NO_REST_MAX so far
-  // to avoid dragging the earlier appearance out of the 0-rest tier.
-  if (gamesTargetDayAlready > 0) {
-    const sameDayRemaining = NO_REST_MAX - targetDayPitchesSoFar;
-    if (sameDayRemaining < remaining) {
-      remaining = sameDayRemaining;
-      cappedBy = `same-day cap ${NO_REST_MAX} (already threw earlier today)`;
-    }
-  }
+  // Note: for a same-day second game, the entry gate (first game ≤ 30) is
+  // enforced above. The second game itself is only bound by the daily 85
+  // cap, the 2-day combined 85 cap, and the 3-day streak cap — the same
+  // rolling limits any single-game appearance faces. Combined day total
+  // dictates the rest tier for the following day; it is not capped at 30.
 
   remaining = Math.max(0, remaining);
 
