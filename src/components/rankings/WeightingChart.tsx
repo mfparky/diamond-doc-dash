@@ -57,7 +57,7 @@ export function WeightingChart() {
               return (
                 <div
                   key={b}
-                  className={cn('flex items-center justify-center text-[10px] font-semibold text-white/90', BUCKET_COLOR[b])}
+                  className={cn('flex items-center justify-center text-[10px] font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.45)]', BUCKET_COLOR[b])}
                   style={{ width: `${share * 100}%` }}
                   title={`${BUCKET_LABEL[b]} — ${Math.round(share * 100)}%`}
                 >
