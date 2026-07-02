@@ -564,17 +564,17 @@ function ImprovementCard({
         {isStable ? (
           <Minus className="w-3.5 h-3.5 text-muted-foreground" />
         ) : isImproved ? (
-          <TrendingUp className="w-3.5 h-3.5 text-[hsl(142,70%,45%)]" />
+          <TrendingUp className="w-3.5 h-3.5 text-[hsl(var(--status-active))]" />
         ) : (
-          <TrendingDown className="w-3.5 h-3.5 text-[hsl(0,72%,55%)]" />
+          <TrendingDown className="w-3.5 h-3.5 text-[hsl(var(--status-danger))]" />
         )}
         <span
           className={`text-sm font-bold ${
             isStable
               ? 'text-muted-foreground'
               : isImproved
-              ? 'text-[hsl(142,70%,45%)]'
-              : 'text-[hsl(0,72%,55%)]'
+              ? 'text-[hsl(var(--status-active))]'
+              : 'text-[hsl(var(--status-danger))]'
           }`}
         >
           {formatter(second)}
