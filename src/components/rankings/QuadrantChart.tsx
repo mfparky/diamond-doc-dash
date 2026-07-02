@@ -62,7 +62,10 @@ function QuadrantPointLabel(props: Record<string, unknown>) {
   const y = Number(props.y ?? 0);
   const payload = props.payload as QuadrantPoint | undefined;
   const name = String(props.value ?? payload?.name ?? '');
-  if (!name || !payload) return null;
+  if (!name) return null;
+
+  const labelDy = payload?.labelDy ?? -22;
+  const labelAnchor = payload?.labelAnchor ?? 'middle';
 
   const words = name.split(' ');
   const lines = words.length > 1 ? [words[0], words.slice(1).join(' ')] : [name];
@@ -74,11 +77,11 @@ function QuadrantPointLabel(props: Record<string, unknown>) {
       : payload.labelAnchor === 'start'
         ? x
         : x - textWidth / 2;
-  const boxY = y + payload.labelDy - boxHeight / 2;
+  const boxY = y + labelDy - boxHeight / 2;
   const textX =
-    payload.labelAnchor === 'end'
+    labelAnchor === 'end'
       ? x - 5
-      : payload.labelAnchor === 'start'
+      : labelAnchor === 'start'
         ? x + 5
         : x;
 
@@ -98,7 +101,7 @@ function QuadrantPointLabel(props: Record<string, unknown>) {
       <text
         x={textX}
         y={boxY + 13}
-        textAnchor={payload.labelAnchor}
+        textAnchor={labelAnchor}
         fill="hsl(var(--foreground))"
         fontSize={10}
         fontWeight={700}
