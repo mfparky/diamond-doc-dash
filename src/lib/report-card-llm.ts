@@ -19,6 +19,16 @@ export interface ReportCardInput {
     baseballIq: CoachRating;
   };
   topDrivers?: PlayerRanking['topDrivers'];
+  /**
+   * Pre-computed core metric bands the coach sees on the report card. Passing
+   * these lets the narrative stay consistent with the visual gradient bars
+   * (and honor coach ±nudges).
+   */
+  coreMetrics?: Array<{
+    label: string;
+    band: string;
+    coachAdjusted: boolean;
+  }>;
   coachContext: string; // freeform coach input — anecdotes, observations, goals
 }
 
@@ -57,6 +67,11 @@ export function buildReportCardPromptPayload(input: ReportCardInput): {
     bucket: d.bucket,
   }));
 
+  const bands = (input.coreMetrics ?? []).map((m) => {
+    const suffix = m.coachAdjusted ? ' (coach-adjusted)' : '';
+    return `- ${m.label}: ${m.band}${suffix}`;
+  });
+
   const system = `You are a supportive youth-baseball coach writing a mid-season report card for a 10-12 year old player and their parents. Rules:
 - Be specific, warm, and age-appropriate. Never harsh.
 - Ground every stat claim in the data provided — do not invent numbers.
@@ -84,6 +99,9 @@ ${stats.length > 0 ? stats.map((s) => `- ${s}`).join('\n') : '- No stat snapshot
 
 TOP CONTRIBUTORS TO PLAYER VALUE:
 ${drivers.length > 0 ? drivers.map((d) => `- ${d.label} (${d.bucket}, rank ${d.rank}/100)`).join('\n') : '- No ranking data available.'}
+
+CORE METRIC BANDS (what the coach sees on the report-card gradient bars — align your narrative with these; if a band is marked coach-adjusted, trust the coach over the raw number):
+${bands.length > 0 ? bands.join('\n') : '- No metric bands computed for this player.'}
 
 COACH RATINGS:
 - Effort: ${ratings.effort}

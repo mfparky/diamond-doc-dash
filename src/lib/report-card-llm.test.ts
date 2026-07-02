@@ -84,4 +84,21 @@ describe('buildReportCardPromptPayload', () => {
     expect(system).toContain('"areas"');
     expect(system).toContain('do not invent numbers');
   });
+
+  it('includes core-metric bands and flags coach-adjusted ones', () => {
+    const { user } = buildReportCardPromptPayload({
+      ...baseInput,
+      coreMetrics: [
+        { label: 'OPS', band: 'Excelling', coachAdjusted: false },
+        { label: 'Strike %', band: 'Developing', coachAdjusted: true },
+      ],
+    });
+    expect(user).toContain('OPS: Excelling');
+    expect(user).toContain('Strike %: Developing (coach-adjusted)');
+  });
+
+  it('says no bands available when coreMetrics is empty', () => {
+    const { user } = buildReportCardPromptPayload({ ...baseInput, coreMetrics: [] });
+    expect(user).toContain('No metric bands computed for this player.');
+  });
 });
