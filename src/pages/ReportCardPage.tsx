@@ -16,6 +16,13 @@ import {
 } from '@/lib/report-card-llm';
 import { useToast } from '@/hooks/use-toast';
 import { getStoredApiKey } from '@/lib/scan-form';
+import { CoreMetricsPanel } from '@/components/CoreMetricsPanel';
+import {
+  bandLabel,
+  clampAdjustment,
+  computeCoreMetrics,
+  type CoreMetricInput,
+} from '@/lib/report-card-metrics';
 
 function todayIso(): string {
   const d = new Date();
@@ -59,6 +66,7 @@ export default function ReportCardPage() {
   const [summary, setSummary] = useState('');
   const [strengths, setStrengths] = useState('');
   const [areas, setAreas] = useState('');
+  const [adjustments, setAdjustments] = useState<Record<string, number>>({});
   const [generating, setGenerating] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
 
@@ -69,7 +77,43 @@ export default function ReportCardPage() {
     setSummary(card.summary);
     setStrengths(card.strengths);
     setAreas(card.areas);
+    setAdjustments(card.metricAdjustments);
   }, [card]);
+
+  // Reset adjustments when the player changes and there's no saved card yet.
+  useEffect(() => {
+    if (!card) setAdjustments({});
+  }, [playerId, card]);
+
+  // Team-wide inputs feed the percentile pool. Latest snapshot per pitcher.
+  const teamMetricInputs = useMemo<CoreMetricInput[]>(() => {
+    return pitchers.map((p) => ({
+      pitcherId: p.id,
+      stats: byPitcher.get(p.id)?.[0]?.stats ?? null,
+      effortRating: p.effortRating,
+      coachabilityRating: p.coachabilityRating,
+      baseballIqRating: p.baseballIqRating,
+    }));
+  }, [pitchers, byPitcher]);
+
+  const coreMetrics = useMemo(() => {
+    if (!playerId) return [];
+    return computeCoreMetrics({
+      targetPitcherId: playerId,
+      teamInputs: teamMetricInputs,
+      adjustments,
+    });
+  }, [playerId, teamMetricInputs, adjustments]);
+
+  const handleAdjustMetric = (key: string, next: number) => {
+    setAdjustments((prev) => {
+      const clamped = clampAdjustment(next);
+      const out = { ...prev };
+      if (clamped === 0) delete out[key];
+      else out[key] = clamped;
+      return out;
+    });
+  };
 
   const hasApiKey = getStoredApiKey().length > 0;
 
@@ -98,6 +142,13 @@ export default function ReportCardPage() {
           coachability: player.coachabilityRating,
           baseballIq: player.baseballIqRating,
         },
+        coreMetrics: coreMetrics
+          .filter((m) => m.band !== null)
+          .map((m) => ({
+            label: m.def.label,
+            band: bandLabel(m.band),
+            coachAdjusted: m.adjustment !== 0,
+          })),
         coachContext: context,
       };
       const draft = await generateReportCardDraft(input);
@@ -121,6 +172,7 @@ export default function ReportCardPage() {
       strengths,
       areas,
       snapshotId: latestSnapshot?.id ?? null,
+      metricAdjustments: adjustments,
     });
     if (ok) {
       setSavedFlash(true);
@@ -243,6 +295,11 @@ export default function ReportCardPage() {
                   Report Card · {friendlyDate(start)} — {friendlyDate(end)}
                 </p>
               </div>
+
+              <CoreMetricsPanel
+                metrics={coreMetrics}
+                onAdjust={handleAdjustMetric}
+              />
 
               <ReportSection
                 title="Summary"

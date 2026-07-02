@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { clampAdjustment } from '@/lib/report-card-metrics';
 
 // `report_cards` isn't in the generated Supabase types yet — cast to bypass.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -16,6 +17,8 @@ export interface ReportCardRecord {
   strengths: string;
   areas: string;
   snapshotId: string | null;
+  /** Coach ±nudges keyed by metric key. Missing keys mean no override. */
+  metricAdjustments: Record<string, number>;
   updatedAt: string;
 }
 
@@ -23,8 +26,23 @@ interface UseReportCardResult {
   card: ReportCardRecord | null;
   isLoading: boolean;
   save: (patch: Partial<Pick<ReportCardRecord,
-    'coachContext' | 'summary' | 'strengths' | 'areas' | 'snapshotId'>>) => Promise<boolean>;
+    'coachContext' | 'summary' | 'strengths' | 'areas' | 'snapshotId' | 'metricAdjustments'>>) => Promise<boolean>;
   refetch: () => Promise<void>;
+}
+
+/**
+ * Parse whatever came out of the JSONB column into a clean adjustments map.
+ * Everything is defensively clamped so a hand-edited row can't blow up the UI.
+ */
+function normalizeAdjustments(raw: unknown): Record<string, number> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const out: Record<string, number> = {};
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof v !== 'number') continue;
+    const clamped = clampAdjustment(v);
+    if (clamped !== 0) out[k] = clamped;
+  }
+  return out;
 }
 
 /**
@@ -47,7 +65,7 @@ export function useReportCard(pitcherId: string | undefined, periodStart: string
       }
       const { data, error } = await db
         .from('report_cards')
-        .select('id, pitcher_id, period_start, period_end, coach_context, narrative_summary, narrative_strengths, narrative_areas, snapshot_id, updated_at')
+        .select('id, pitcher_id, period_start, period_end, coach_context, narrative_summary, narrative_strengths, narrative_areas, snapshot_id, metric_adjustments, updated_at')
         .eq('user_id', user.id)
         .eq('pitcher_id', pitcherId)
         .eq('period_start', periodStart)
@@ -64,6 +82,7 @@ export function useReportCard(pitcherId: string | undefined, periodStart: string
           strengths: data.narrative_strengths ?? '',
           areas: data.narrative_areas ?? '',
           snapshotId: data.snapshot_id,
+          metricAdjustments: normalizeAdjustments(data.metric_adjustments),
           updatedAt: data.updated_at,
         });
       } else {
@@ -82,7 +101,7 @@ export function useReportCard(pitcherId: string | undefined, periodStart: string
   }, [pitcherId, periodStart, periodEnd, toast]);
 
   const save = useCallback(
-    async (patch: Partial<Pick<ReportCardRecord, 'coachContext' | 'summary' | 'strengths' | 'areas' | 'snapshotId'>>) => {
+    async (patch: Partial<Pick<ReportCardRecord, 'coachContext' | 'summary' | 'strengths' | 'areas' | 'snapshotId' | 'metricAdjustments'>>) => {
       if (!pitcherId) return false;
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -90,6 +109,9 @@ export function useReportCard(pitcherId: string | undefined, periodStart: string
           toast({ title: 'Sign in required', variant: 'destructive' });
           return false;
         }
+        const nextAdjustments = normalizeAdjustments(
+          patch.metricAdjustments ?? card?.metricAdjustments ?? {},
+        );
         const { error } = await db
           .from('report_cards')
           .upsert(
@@ -103,6 +125,7 @@ export function useReportCard(pitcherId: string | undefined, periodStart: string
               narrative_strengths: patch.strengths ?? card?.strengths ?? '',
               narrative_areas: patch.areas ?? card?.areas ?? '',
               snapshot_id: patch.snapshotId ?? card?.snapshotId ?? null,
+              metric_adjustments: nextAdjustments,
             },
             { onConflict: 'user_id,pitcher_id,period_start' },
           );
