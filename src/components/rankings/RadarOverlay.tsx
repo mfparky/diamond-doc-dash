@@ -19,8 +19,8 @@ interface RadarOverlayProps {
 
 const PALETTE = [
   'hsl(var(--primary))',
-  'hsl(25, 90%, 55%)', // accent orange
-  'hsl(142, 70%, 45%)', // green
+  'hsl(var(--accent))',
+  'hsl(var(--chart-4))',
 ];
 
 const AXES: Array<{ key: 'offenseScore' | 'defenseScore' | 'intangiblesScore' | 'pitchingVolumeScore'; label: string }> = [
