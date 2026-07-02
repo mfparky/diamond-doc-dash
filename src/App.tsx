@@ -46,6 +46,7 @@ const PodiumPage = lazyWithReload(() => import("./pages/PodiumPage"));
 const GameModePage = lazyWithReload(() => import("./pages/GameModePage"));
 const GamesPage = lazyWithReload(() => import("./pages/GamesPage"));
 const RankingsPage = lazyWithReload(() => import("./pages/RankingsPage"));
+const LineupPage = lazyWithReload(() => import("./pages/LineupPage"));
 const BullpenChartPage = lazyWithReload(() => import("./pages/BullpenChartPage"));
 const GameChartPage = lazyWithReload(() => import("./pages/GameChartPage"));
 const LiveAbsChartPage = lazyWithReload(() => import("./pages/LiveAbsChartPage"));
@@ -102,6 +103,7 @@ function AppRoutes() {
           <Route path="/print-live-abs" element={gate(<PrintLiveAbsPage />)} />
           <Route path="/accountability" element={gate(<WorkoutAccountabilityPage />)} />
           <Route path="/rankings" element={rankingsGate(<RankingsPage />)} />
+          <Route path="/lineup" element={gate(<LineupPage />)} />
           <Route path="/chart/bullpen" element={gate(<BullpenChartPage />)} />
           <Route path="/chart/game" element={gate(<GameChartPage />)} />
           <Route path="/chart/live-abs" element={gate(<LiveAbsChartPage />)} />
