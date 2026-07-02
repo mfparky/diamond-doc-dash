@@ -19,7 +19,7 @@ import { MoreSheet, type MoreSheetItem } from '@/components/MoreSheet';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { useDashboardSettings } from '@/hooks/use-dashboard-settings';
 import { useIsRankingsAdmin } from '@/hooks/use-rankings-admin';
-import { Settings, Camera, Printer, ClipboardList, MoreHorizontal, ShieldCheck, ScanLine, Gamepad2, ListChecks, Users, FileSpreadsheet, SlidersHorizontal, Trophy, ListOrdered, FileText } from 'lucide-react';
+import { Settings, Camera, Printer, ClipboardList, MoreHorizontal, ShieldCheck, ScanLine, Gamepad2, ListChecks, Users, FileSpreadsheet, SlidersHorizontal, Trophy, ListOrdered, FileText, CalendarClock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { getDaysRestNeeded } from '@/types/pitcher';
@@ -95,6 +95,13 @@ const Index = () => {
       description: 'AI-drafted mid-season reviews, coach-edited',
       icon: <FileText className="w-5 h-5" />,
       onSelect: () => navigate('/report-card'),
+    },
+    {
+      id: 'tournament',
+      label: 'Cooperstown planner',
+      description: 'Pitcher rotation with OBA rest rules enforced',
+      icon: <CalendarClock className="w-5 h-5" />,
+      onSelect: () => navigate('/tournament'),
     },
     {
       id: 'games',

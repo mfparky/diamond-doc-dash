@@ -48,6 +48,7 @@ const GamesPage = lazyWithReload(() => import("./pages/GamesPage"));
 const RankingsPage = lazyWithReload(() => import("./pages/RankingsPage"));
 const LineupPage = lazyWithReload(() => import("./pages/LineupPage"));
 const ReportCardPage = lazyWithReload(() => import("./pages/ReportCardPage"));
+const TournamentPlanPage = lazyWithReload(() => import("./pages/TournamentPlanPage"));
 const BullpenChartPage = lazyWithReload(() => import("./pages/BullpenChartPage"));
 const GameChartPage = lazyWithReload(() => import("./pages/GameChartPage"));
 const LiveAbsChartPage = lazyWithReload(() => import("./pages/LiveAbsChartPage"));
@@ -106,6 +107,7 @@ function AppRoutes() {
           <Route path="/rankings" element={rankingsGate(<RankingsPage />)} />
           <Route path="/lineup" element={gate(<LineupPage />)} />
           <Route path="/report-card" element={gate(<ReportCardPage />)} />
+          <Route path="/tournament" element={gate(<TournamentPlanPage />)} />
           <Route path="/chart/bullpen" element={gate(<BullpenChartPage />)} />
           <Route path="/chart/game" element={gate(<GameChartPage />)} />
           <Route path="/chart/live-abs" element={gate(<LiveAbsChartPage />)} />
