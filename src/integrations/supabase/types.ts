@@ -389,6 +389,66 @@ export type Database = {
           },
         ]
       }
+      report_cards: {
+        Row: {
+          coach_context: string | null
+          created_at: string
+          id: string
+          narrative_areas: string | null
+          narrative_strengths: string | null
+          narrative_summary: string | null
+          period_end: string
+          period_start: string
+          pitcher_id: string
+          snapshot_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          coach_context?: string | null
+          created_at?: string
+          id?: string
+          narrative_areas?: string | null
+          narrative_strengths?: string | null
+          narrative_summary?: string | null
+          period_end: string
+          period_start: string
+          pitcher_id: string
+          snapshot_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          coach_context?: string | null
+          created_at?: string
+          id?: string
+          narrative_areas?: string | null
+          narrative_strengths?: string | null
+          narrative_summary?: string | null
+          period_end?: string
+          period_start?: string
+          pitcher_id?: string
+          snapshot_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_cards_pitcher_id_fkey"
+            columns: ["pitcher_id"]
+            isOneToOne: false
+            referencedRelation: "pitchers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_cards_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "pitcher_stat_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_members: {
         Row: {
           created_at: string
