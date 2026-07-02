@@ -299,29 +299,33 @@ export default function ReportCardPage() {
                 </div>
               </div>
 
-              <CoreMetricsPanel
-                metrics={coreMetrics}
-                onAdjust={handleAdjustMetric}
-              />
+              <div className="rc-metrics-slot">
+                <CoreMetricsPanel
+                  metrics={coreMetrics}
+                  onAdjust={handleAdjustMetric}
+                />
+              </div>
 
-              <ReportSection
-                title="Summary"
-                value={summary}
-                onChange={setSummary}
-                placeholder="A short paragraph capturing the whole player. Generate a draft or write from scratch."
-              />
-              <ReportSection
-                title="Strengths"
-                value={strengths}
-                onChange={setStrengths}
-                placeholder="Where the player is producing. Ground each claim in specific stats or coach observations."
-              />
-              <ReportSection
-                title="Areas to work on"
-                value={areas}
-                onChange={setAreas}
-                placeholder="Growth opportunities framed as next steps, not deficits."
-              />
+              <div className="rc-narratives-slot space-y-4 print:space-y-2">
+                <ReportSection
+                  title="Summary"
+                  value={summary}
+                  onChange={setSummary}
+                  placeholder="A short paragraph capturing the whole player. Generate a draft or write from scratch."
+                />
+                <ReportSection
+                  title="Strengths"
+                  value={strengths}
+                  onChange={setStrengths}
+                  placeholder="Where the player is producing. Ground each claim in specific stats or coach observations."
+                />
+                <ReportSection
+                  title="Areas to work on"
+                  value={areas}
+                  onChange={setAreas}
+                  placeholder="Growth opportunities framed as next steps, not deficits."
+                />
+              </div>
 
               {/* Branded footer — visible only in print */}
               <div className="rc-footer">
@@ -400,7 +404,8 @@ export default function ReportCardPage() {
         .rc-footer { display: none; }
 
         @media print {
-          @page { margin: 0.5in; size: letter; }
+          /* Landscape letter — the whole report card fits one page. */
+          @page { margin: 0.35in; size: letter landscape; }
           html, body {
             background: white !important;
             color: #111 !important;
@@ -417,34 +422,56 @@ export default function ReportCardPage() {
           /* Reset page container padding for edge-to-edge headers. */
           .container { padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
 
+          /* --- Two-column landscape layout ---
+             Grid areas: header spans both columns, metrics on the left,
+             narratives on the right, footer full-width at the bottom.
+             Tailwind space-y-* margins on the doc's direct children are
+             zeroed out below so grid gap controls spacing. */
+          .report-card-doc {
+            display: grid;
+            grid-template-columns: 42% 1fr;
+            grid-template-areas:
+              "header    header"
+              "metrics   narratives"
+              "footer    footer";
+            column-gap: 20pt;
+            row-gap: 8pt;
+            page-break-inside: avoid;
+          }
+          .report-card-doc > * { margin-top: 0 !important; margin-bottom: 0 !important; }
+          .rc-header { grid-area: header; }
+          .rc-metrics-slot { grid-area: metrics; }
+          .rc-narratives-slot { grid-area: narratives; }
+          .rc-footer { grid-area: footer; }
+
           /* --- Branded header --- */
           .rc-header {
             border: none !important;
             border-radius: 0 !important;
             background: white !important;
             page-break-after: avoid;
-            margin-bottom: 12pt;
           }
           .rc-header-band {
-            height: 5pt;
+            height: 4pt;
             border-radius: 0 !important;
           }
           .rc-header-inner {
-            padding: 12pt 0 8pt 0;
-            border-bottom: 1pt solid #222;
+            padding: 8pt 0 6pt 0;
+            border-bottom: 0.75pt solid #222;
+            gap: 14pt !important;
           }
-          .rc-logo { height: 56pt; }
+          .rc-logo { height: 42pt; }
           .rc-eyebrow {
             color: #6b7280 !important;
-            font-size: 8pt;
+            font-size: 7pt;
           }
           .rc-player-name {
             color: #111 !important;
-            font-size: 22pt;
+            font-size: 18pt;
           }
           .rc-period {
             color: #4b5563 !important;
-            font-size: 10.5pt;
+            font-size: 9.5pt;
           }
 
           /* --- Card container styling — clean, borderless in print --- */
@@ -456,15 +483,19 @@ export default function ReportCardPage() {
             padding: 0 !important;
             page-break-inside: avoid;
           }
+          /* Trim card header/content padding so more content fits. */
+          .glass-card [class*="CardHeader"], .rc-narratives-slot [class*="pb-2"] {
+            padding: 0 !important;
+          }
 
           /* --- Section headings --- */
           [class*="uppercase"][class*="tracking-wider"] {
             color: #111 !important;
-            font-size: 10pt !important;
+            font-size: 9pt !important;
             letter-spacing: 0.12em !important;
             border-bottom: 0.5pt solid #d1d5db !important;
-            padding-bottom: 4pt !important;
-            margin-bottom: 6pt !important;
+            padding-bottom: 2pt !important;
+            margin-bottom: 3pt !important;
           }
 
           /* --- Textareas flow as paragraphs --- */
@@ -474,8 +505,8 @@ export default function ReportCardPage() {
             background: transparent !important;
             color: #111 !important;
             font-family: 'Helvetica Neue', Arial, sans-serif !important;
-            font-size: 11pt !important;
-            line-height: 1.55 !important;
+            font-size: 9.5pt !important;
+            line-height: 1.4 !important;
             resize: none !important;
             overflow: visible !important;
             height: auto !important;
@@ -484,21 +515,23 @@ export default function ReportCardPage() {
             width: 100% !important;
           }
 
+          /* --- Metrics panel — tighter for landscape column --- */
+          .rc-metrics-slot .space-y-3 > * + * { margin-top: 5pt !important; }
+          .rc-metrics-slot .text-sm { font-size: 9pt !important; }
+          .rc-metrics-slot .text-xs { font-size: 8pt !important; }
+
           /* --- Print-only branded footer --- */
           .rc-footer {
             display: flex !important;
             justify-content: space-between;
             align-items: center;
             border-top: 0.5pt solid #d1d5db;
-            padding-top: 8pt;
-            margin-top: 18pt;
-            font-size: 8pt;
+            padding-top: 5pt;
+            margin-top: 8pt !important;
+            font-size: 7.5pt;
             color: #6b7280;
             page-break-inside: avoid;
           }
-
-          /* Metric row rendering — keep each row together and print colors */
-          .report-card-doc > div { page-break-inside: avoid; }
         }
       `}</style>
     </div>
