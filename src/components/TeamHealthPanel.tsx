@@ -1,12 +1,35 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Activity, Upload, Users, Trophy, AlertTriangle } from 'lucide-react';
+import { Activity, Upload, Users, Trophy, AlertTriangle, Target, TrendingUp, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAllStatSnapshots } from '@/hooks/use-stat-snapshots';
 import {
   buildTeamHealthReport,
   type PitcherSnapshotInput,
+  type TeamInsightKind,
 } from '@/lib/team-health';
+import { cn } from '@/lib/utils';
+
+const TEAM_INSIGHT_STYLES: Record<TeamInsightKind, { bg: string; ring: string; text: string; icon: JSX.Element }> = {
+  focus: {
+    bg: 'bg-amber-500/10',
+    ring: 'ring-amber-500/30',
+    text: 'text-amber-700 dark:text-amber-300',
+    icon: <AlertTriangle className="w-4 h-4" />,
+  },
+  momentum: {
+    bg: 'bg-sky-500/10',
+    ring: 'ring-sky-500/30',
+    text: 'text-sky-700 dark:text-sky-300',
+    icon: <TrendingUp className="w-4 h-4" />,
+  },
+  strength: {
+    bg: 'bg-emerald-500/10',
+    ring: 'ring-emerald-500/30',
+    text: 'text-emerald-700 dark:text-emerald-300',
+    icon: <CheckCircle2 className="w-4 h-4" />,
+  },
+};
 import type { PitcherRecord } from '@/hooks/use-pitchers';
 import type { Outing } from '@/types/pitcher';
 
@@ -92,7 +115,24 @@ export function TeamHealthPanel({ pitchers, outings, onRequestUpload }: TeamHeal
     });
   }, [pitchers, outings, byPitcher]);
 
-  const report = useMemo(() => buildTeamHealthReport(snapshotInputs), [snapshotInputs]);
+  // Build a "previous" snapshot set from each pitcher's prior upload so team
+  // insights can fire trend rules (WHIP down, OPS up, etc.).
+  const previousSnapshotInputs = useMemo<PitcherSnapshotInput[]>(() => {
+    return pitchers.map((p) => {
+      const snaps = byPitcher.get(p.id) ?? [];
+      return {
+        pitcherId: p.id,
+        pitcherName: p.name,
+        latest: snaps[1]?.stats ?? null, // "latest" for the previous window = index 1
+        previous: null,
+      };
+    });
+  }, [pitchers, byPitcher]);
+
+  const report = useMemo(
+    () => buildTeamHealthReport(snapshotInputs, previousSnapshotInputs),
+    [snapshotInputs, previousSnapshotInputs],
+  );
 
   if (isLoading) {
     return (
@@ -148,6 +188,35 @@ export function TeamHealthPanel({ pitchers, outings, onRequestUpload }: TeamHeal
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
+        {/* Section 0: Team focus — group-level insights derived from team rate stats */}
+        {report.teamInsights.length > 0 && (
+          <section className="space-y-3">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Target className="w-4 h-4 text-primary" />
+              What to work on as a group
+            </h3>
+            <ul className="space-y-2">
+              {report.teamInsights.map((insight, idx) => {
+                const style = TEAM_INSIGHT_STYLES[insight.kind];
+                return (
+                  <li
+                    key={idx}
+                    className={cn(
+                      'flex items-start gap-2 rounded-md ring-1 p-2 text-sm',
+                      style.bg,
+                      style.ring,
+                      style.text,
+                    )}
+                  >
+                    <span className="mt-0.5 shrink-0">{style.icon}</span>
+                    <span>{insight.message}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
         {/* Section 1: Opportunity cohorts */}
         {report.cohorts.length > 0 && (
           <section className="space-y-3">

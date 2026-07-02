@@ -8,7 +8,10 @@ import {
   computeLeaderboards,
   findCohorts,
   buildTeamHealthReport,
+  computeTeamRateStats,
+  generateTeamInsights,
   type PitcherSnapshotInput,
+  type TeamRateStats,
 } from './team-health';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -175,10 +178,102 @@ describe('findCohorts', () => {
 });
 
 describe('buildTeamHealthReport — fixture smoke', () => {
-  it('returns aggregates, leaderboards, and cohorts together without throwing', () => {
+  it('returns aggregates, leaderboards, cohorts, and team insights', () => {
     const report = buildTeamHealthReport(snapshotsFromFixture());
     expect(report.aggregates.pitchersWithStats).toBeGreaterThan(0);
     expect(report.leaderboards.length).toBeGreaterThan(0);
     expect(Array.isArray(report.cohorts)).toBe(true);
+    expect(Array.isArray(report.teamInsights)).toBe(true);
+    expect(report.teamRateStats).toBeDefined();
+  });
+});
+
+describe('computeTeamRateStats', () => {
+  it('sums pitching walks and innings for BB/INN', () => {
+    const inputs: PitcherSnapshotInput[] = [
+      { pitcherId: 'a', pitcherName: 'A', latest: { pit_ip: 10, pit_bb: 8, pit_bf: 50, pit_so: 10 }, previous: null },
+      { pitcherId: 'b', pitcherName: 'B', latest: { pit_ip: 5, pit_bb: 2, pit_bf: 20, pit_so: 4 }, previous: null },
+    ];
+    const stats = computeTeamRateStats(inputs);
+    // BB/INN = 10 / 15 = 0.667
+    expect(stats.pit_bb_pct_inn).toBeCloseTo(0.667, 2);
+    // K/BF = 14 / 70 = 0.2
+    expect(stats.pit_k_pct_bf).toBeCloseTo(0.2, 2);
+  });
+
+  it('weights FPS% by batters faced', () => {
+    const inputs: PitcherSnapshotInput[] = [
+      { pitcherId: 'a', pitcherName: 'A', latest: { pit_fps_pct: 70, pit_bf: 80 }, previous: null },
+      { pitcherId: 'b', pitcherName: 'B', latest: { pit_fps_pct: 40, pit_bf: 20 }, previous: null },
+    ];
+    const stats = computeTeamRateStats(inputs);
+    // (70*80 + 40*20) / (80+20) = 6400/100 = 64
+    expect(stats.pit_fps_pct).toBeCloseTo(64, 2);
+  });
+
+  it('computes team K% at plate from SO/PA sums', () => {
+    const inputs: PitcherSnapshotInput[] = [
+      { pitcherId: 'a', pitcherName: 'A', latest: { bat_so: 10, bat_pa: 50 }, previous: null },
+      { pitcherId: 'b', pitcherName: 'B', latest: { bat_so: 5, bat_pa: 30 }, previous: null },
+    ];
+    const stats = computeTeamRateStats(inputs);
+    // 15 / 80 = 18.75%
+    expect(stats.bat_k_pct).toBeCloseTo(18.75, 1);
+  });
+});
+
+describe('generateTeamInsights', () => {
+  const empty: TeamRateStats = {
+    pit_era: null, pit_whip: null, pit_fps_pct: null, pit_bb_pct_inn: null, pit_k_pct_bf: null,
+    bat_ops: null, bat_k_pct: null, bat_qab_pct: null, bat_ba_pct_risp: null,
+  };
+
+  it('flags low FPS% as a focus area', () => {
+    const insights = generateTeamInsights({ ...empty, pit_fps_pct: 42 }, null);
+    expect(insights.some((i) => i.kind === 'focus' && /first-pitch/i.test(i.message))).toBe(true);
+  });
+
+  it('flags high FPS% as a strength', () => {
+    const insights = generateTeamInsights({ ...empty, pit_fps_pct: 65 }, null);
+    expect(insights.some((i) => i.kind === 'strength' && /first-pitch/i.test(i.message))).toBe(true);
+  });
+
+  it('flags high team K% at the plate as a focus', () => {
+    const insights = generateTeamInsights({ ...empty, bat_k_pct: 28 }, null);
+    expect(insights.some((i) => i.kind === 'focus' && /striking out/i.test(i.message))).toBe(true);
+  });
+
+  it('flags low team BA/RISP as a focus', () => {
+    const insights = generateTeamInsights({ ...empty, bat_ba_pct_risp: 0.180 }, null);
+    expect(insights.some((i) => i.kind === 'focus' && /RISP/i.test(i.message))).toBe(true);
+  });
+
+  it('flags improving WHIP as momentum', () => {
+    const insights = generateTeamInsights(
+      { ...empty, pit_whip: 1.10 },
+      { ...empty, pit_whip: 1.45 },
+    );
+    expect(insights.some((i) => i.kind === 'momentum' && /WHIP/i.test(i.message))).toBe(true);
+  });
+
+  it('flags cooling OPS as a focus', () => {
+    const insights = generateTeamInsights(
+      { ...empty, bat_ops: 0.650 },
+      { ...empty, bat_ops: 0.720 },
+    );
+    expect(insights.some((i) => i.kind === 'focus' && /OPS/i.test(i.message))).toBe(true);
+  });
+
+  it('sorts insights focus first, strength last', () => {
+    const insights = generateTeamInsights(
+      { ...empty, pit_fps_pct: 42, pit_era: 3.0, pit_whip: 1.10 },
+      null,
+    );
+    const kinds = insights.map((i) => i.kind);
+    expect(kinds.indexOf('focus')).toBeLessThan(kinds.indexOf('strength'));
+  });
+
+  it('returns nothing for an empty rate-stat record', () => {
+    expect(generateTeamInsights(empty, null)).toEqual([]);
   });
 });
