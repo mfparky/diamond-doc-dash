@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Wand2, Save, Printer, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
+import { ArrowLeft, Wand2, Save, FileDown, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
+import hawksLogo from '@/assets/hawks-logo.png';
 import { usePitchers } from '@/hooks/use-pitchers';
 import { useAllStatSnapshots } from '@/hooks/use-stat-snapshots';
 import { useReportCard } from '@/hooks/use-report-card';
@@ -286,14 +287,18 @@ export default function ReportCardPage() {
             </Card>
 
             {/* The report card — visible on screen AND in print */}
-            <div className="space-y-4 print:space-y-3">
-              <div className="print:mb-4">
-                <h2 className="font-display text-2xl font-bold text-foreground">
-                  {player.name}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Report Card · {friendlyDate(start)} — {friendlyDate(end)}
-                </p>
+            <div className="report-card-doc space-y-4 print:space-y-3">
+              {/* Branded header — different on screen vs print */}
+              <div className="rc-header">
+                <div className="rc-header-band" />
+                <div className="rc-header-inner">
+                  <img src={hawksLogo} alt="Newmarket Hawks" className="rc-logo" />
+                  <div className="rc-header-text">
+                    <p className="rc-eyebrow">Newmarket Hawks · Player Report Card</p>
+                    <h2 className="rc-player-name">{player.name}</h2>
+                    <p className="rc-period">{friendlyDate(start)} — {friendlyDate(end)}</p>
+                  </div>
+                </div>
               </div>
 
               <CoreMetricsPanel
@@ -320,11 +325,17 @@ export default function ReportCardPage() {
                 placeholder="Growth opportunities framed as next steps, not deficits."
               />
 
+              {/* Branded footer — visible only in print */}
+              <div className="rc-footer">
+                <span>Newmarket Hawks · Player Report Card</span>
+                <span>Generated {friendlyDate(todayIso())}</span>
+              </div>
+
               {/* Footer actions — hidden in print */}
               <div className="flex flex-wrap gap-2 justify-end print:hidden">
                 <Button variant="outline" onClick={handlePrint} disabled={!summary && !strengths && !areas}>
-                  <Printer className="w-4 h-4 mr-2" />
-                  Print
+                  <FileDown className="w-4 h-4 mr-2" />
+                  Download PDF
                 </Button>
                 <Button onClick={handleSave} disabled={!summary && !strengths && !areas}>
                   {savedFlash ? <CheckCircle2 className="w-4 h-4 mr-2" /> : <Save className="w-4 h-4 mr-2" />}
@@ -336,23 +347,160 @@ export default function ReportCardPage() {
         )}
       </div>
 
-      {/* Print stylesheet: strip chrome + keep the report card readable. */}
+      {/* Screen + print stylesheet for the branded report card. */}
       <style>{`
+        /* On-screen branded header — visible above the metrics + narrative */
+        .rc-header {
+          position: relative;
+          border-radius: 12px;
+          overflow: hidden;
+          border: 1px solid hsl(var(--border) / 0.6);
+          background: linear-gradient(135deg,
+            hsl(var(--background)) 0%,
+            hsl(var(--muted) / 0.4) 100%);
+        }
+        .rc-header-band {
+          height: 6px;
+          background: linear-gradient(90deg,
+            #ef4444 0%,
+            #f59e0b 33%,
+            #84cc16 66%,
+            #10b981 100%);
+        }
+        .rc-header-inner {
+          display: flex;
+          align-items: center;
+          gap: 1.25rem;
+          padding: 1.25rem 1.5rem;
+        }
+        .rc-logo {
+          height: 64px;
+          width: auto;
+          flex-shrink: 0;
+        }
+        .rc-eyebrow {
+          font-size: 0.6875rem;
+          letter-spacing: 0.15em;
+          text-transform: uppercase;
+          color: hsl(var(--muted-foreground));
+          margin: 0 0 0.25rem 0;
+          font-weight: 600;
+        }
+        .rc-player-name {
+          font-family: var(--font-display, 'Helvetica Neue', Arial, sans-serif);
+          font-size: 1.875rem;
+          font-weight: 700;
+          margin: 0;
+          line-height: 1.1;
+          color: hsl(var(--foreground));
+        }
+        .rc-period {
+          font-size: 0.875rem;
+          color: hsl(var(--muted-foreground));
+          margin: 0.25rem 0 0 0;
+        }
+        .rc-footer { display: none; }
+
         @media print {
-          @page { margin: 0.5in; }
-          body { background: white !important; }
+          @page { margin: 0.5in; size: letter; }
+          html, body {
+            background: white !important;
+            color: #111 !important;
+            font-family: 'Helvetica Neue', Arial, sans-serif !important;
+          }
           nav, aside, .print\\:hidden { display: none !important; }
+
+          /* Keep gradient/color backgrounds when saving as PDF. */
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          /* Reset page container padding for edge-to-edge headers. */
+          .container { padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
+
+          /* --- Branded header --- */
+          .rc-header {
+            border: none !important;
+            border-radius: 0 !important;
+            background: white !important;
+            page-break-after: avoid;
+            margin-bottom: 12pt;
+          }
+          .rc-header-band {
+            height: 5pt;
+            border-radius: 0 !important;
+          }
+          .rc-header-inner {
+            padding: 12pt 0 8pt 0;
+            border-bottom: 1pt solid #222;
+          }
+          .rc-logo { height: 56pt; }
+          .rc-eyebrow {
+            color: #6b7280 !important;
+            font-size: 8pt;
+          }
+          .rc-player-name {
+            color: #111 !important;
+            font-size: 22pt;
+          }
+          .rc-period {
+            color: #4b5563 !important;
+            font-size: 10.5pt;
+          }
+
+          /* --- Card container styling — clean, borderless in print --- */
+          .glass-card {
+            background: transparent !important;
+            box-shadow: none !important;
+            border: none !important;
+            border-radius: 0 !important;
+            padding: 0 !important;
+            page-break-inside: avoid;
+          }
+
+          /* --- Section headings --- */
+          [class*="uppercase"][class*="tracking-wider"] {
+            color: #111 !important;
+            font-size: 10pt !important;
+            letter-spacing: 0.12em !important;
+            border-bottom: 0.5pt solid #d1d5db !important;
+            padding-bottom: 4pt !important;
+            margin-bottom: 6pt !important;
+          }
+
+          /* --- Textareas flow as paragraphs --- */
           textarea {
             border: none !important;
             padding: 0 !important;
             background: transparent !important;
+            color: #111 !important;
             font-family: 'Helvetica Neue', Arial, sans-serif !important;
             font-size: 11pt !important;
+            line-height: 1.55 !important;
             resize: none !important;
             overflow: visible !important;
             height: auto !important;
             min-height: 0 !important;
+            display: block !important;
+            width: 100% !important;
           }
+
+          /* --- Print-only branded footer --- */
+          .rc-footer {
+            display: flex !important;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 0.5pt solid #d1d5db;
+            padding-top: 8pt;
+            margin-top: 18pt;
+            font-size: 8pt;
+            color: #6b7280;
+            page-break-inside: avoid;
+          }
+
+          /* Metric row rendering — keep each row together and print colors */
+          .report-card-doc > div { page-break-inside: avoid; }
         }
       `}</style>
     </div>
