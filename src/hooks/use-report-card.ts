@@ -90,7 +90,7 @@ export function useReportCard(pitcherId: string | undefined, periodStart: string
           toast({ title: 'Sign in required', variant: 'destructive' });
           return false;
         }
-        const { error } = await supabase
+        const { error } = await db
           .from('report_cards')
           .upsert(
             {
