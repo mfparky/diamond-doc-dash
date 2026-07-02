@@ -19,7 +19,7 @@ import { MoreSheet, type MoreSheetItem } from '@/components/MoreSheet';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { useDashboardSettings } from '@/hooks/use-dashboard-settings';
 import { useIsRankingsAdmin } from '@/hooks/use-rankings-admin';
-import { Settings, Camera, Printer, ClipboardList, MoreHorizontal, ShieldCheck, ScanLine, Gamepad2, ListChecks, Users, FileSpreadsheet, SlidersHorizontal, Trophy } from 'lucide-react';
+import { Settings, Camera, Printer, ClipboardList, MoreHorizontal, ShieldCheck, ScanLine, Gamepad2, ListChecks, Users, FileSpreadsheet, SlidersHorizontal, Trophy, ListOrdered } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { getDaysRestNeeded } from '@/types/pitcher';
@@ -82,6 +82,13 @@ const Index = () => {
           } satisfies MoreSheetItem,
         ]
       : []),
+    {
+      id: 'lineup',
+      label: 'Lineup planner',
+      description: 'Auto-generate a batting order from each player’s stats',
+      icon: <ListOrdered className="w-5 h-5" />,
+      onSelect: () => navigate('/lineup'),
+    },
     {
       id: 'games',
       label: 'Games',
