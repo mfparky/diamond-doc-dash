@@ -11,10 +11,16 @@ const db = supabase as any;
  * One cell of the pitcher × game grid. `null` means "not yet set" (distinct
  * from 0, which means "0 pitches thrown"). Both `planned` and `actual` are
  * optional so a coach can log actuals for a game without pre-planning it.
+ *
+ * `dayOverride` handles suspended games that resume the next day (OBA rule:
+ * "pitches on resumption count toward the new calendar day"). When set, the
+ * eligibility math treats this appearance as happening on the override day
+ * instead of the game slot's own dayIndex. `null` or absent = no override.
  */
 export interface PitchCell {
   planned: number | null;
   actual: number | null;
+  dayOverride?: number | null;
 }
 
 /**
@@ -23,12 +29,25 @@ export interface PitchCell {
  */
 export type PitchEntries = Record<string, PitchCell>;
 
+/**
+ * Per-tournament roster entry. `id` is either a real `pitchers.id` (for main
+ * roster players) or a generated `pu_...` id (for pickup players who don't
+ * exist in the main pitchers table). `isPickup` tells the UI whether to show
+ * the source-pitcher lookup + edit name freely.
+ */
+export interface TournamentRosterEntry {
+  id: string;
+  name: string;
+  isPickup: boolean;
+}
+
 export interface TournamentPlanRecord {
   id: string;
   tournamentSlug: string;
   tournamentName: string;
   schedule: TournamentGameSlot[];
   entries: PitchEntries;
+  roster: TournamentRosterEntry[];
   notes: string;
   updatedAt: string;
 }
@@ -36,7 +55,7 @@ export interface TournamentPlanRecord {
 interface UseTournamentPlanResult {
   plan: TournamentPlanRecord | null;
   isLoading: boolean;
-  save: (patch: Partial<Pick<TournamentPlanRecord, 'schedule' | 'entries' | 'notes'>>) => Promise<boolean>;
+  save: (patch: Partial<Pick<TournamentPlanRecord, 'schedule' | 'entries' | 'roster' | 'notes'>>) => Promise<boolean>;
   refetch: () => Promise<void>;
 }
 
@@ -53,7 +72,30 @@ function normalizeEntries(raw: unknown): PitchEntries {
     const cell = v as { planned?: unknown; actual?: unknown };
     const planned = typeof cell.planned === 'number' && Number.isFinite(cell.planned) ? Math.max(0, Math.trunc(cell.planned)) : null;
     const actual = typeof cell.actual === 'number' && Number.isFinite(cell.actual) ? Math.max(0, Math.trunc(cell.actual)) : null;
-    if (planned !== null || actual !== null) out[k] = { planned, actual };
+    const rawOverride = (cell as { dayOverride?: unknown }).dayOverride;
+    const dayOverride = typeof rawOverride === 'number' && Number.isFinite(rawOverride) ? Math.max(0, Math.trunc(rawOverride)) : null;
+    if (planned !== null || actual !== null || dayOverride !== null) {
+      out[k] = { planned, actual, dayOverride };
+    }
+  }
+  return out;
+}
+
+function normalizeRoster(raw: unknown): TournamentRosterEntry[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const out: TournamentRosterEntry[] = [];
+  for (const r of raw) {
+    if (!r || typeof r !== 'object') continue;
+    const entry = r as Record<string, unknown>;
+    if (typeof entry.id !== 'string' || typeof entry.name !== 'string') continue;
+    if (seen.has(entry.id)) continue;
+    seen.add(entry.id);
+    out.push({
+      id: entry.id,
+      name: entry.name,
+      isPickup: entry.isPickup === true,
+    });
   }
   return out;
 }
@@ -89,7 +131,7 @@ export function useTournamentPlan(
       }
       const { data, error } = await db
         .from('tournament_pitch_plans')
-        .select('id, tournament_slug, tournament_name, schedule, entries, notes, updated_at')
+        .select('id, tournament_slug, tournament_name, schedule, entries, roster, notes, updated_at')
         .eq('user_id', user.id)
         .eq('tournament_slug', tournamentSlug)
         .maybeSingle();
@@ -102,6 +144,7 @@ export function useTournamentPlan(
           tournamentName: data.tournament_name,
           schedule: savedSchedule.length > 0 ? savedSchedule : defaultSchedule,
           entries: normalizeEntries(data.entries),
+          roster: normalizeRoster(data.roster),
           notes: data.notes ?? '',
           updatedAt: data.updated_at,
         });
@@ -130,6 +173,7 @@ export function useTournamentPlan(
         }
         const nextSchedule = patch.schedule ?? plan?.schedule ?? defaultSchedule;
         const nextEntries = normalizeEntries(patch.entries ?? plan?.entries ?? {});
+        const nextRoster = normalizeRoster(patch.roster ?? plan?.roster ?? []);
         const { error } = await db
           .from('tournament_pitch_plans')
           .upsert(
@@ -139,6 +183,7 @@ export function useTournamentPlan(
               tournament_name: tournamentName,
               schedule: nextSchedule,
               entries: nextEntries,
+              roster: nextRoster,
               notes: patch.notes ?? plan?.notes ?? '',
             },
             { onConflict: 'user_id,tournament_slug' },
