@@ -3,6 +3,7 @@ import { Plus, LayoutGrid, BarChart3, MoreHorizontal } from 'lucide-react';
 import hawksLogo from '@/assets/hawks-logo.png';
 import { useScrollDirection } from '@/hooks/use-scroll-direction';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface HeaderProps {
   onAddOuting: () => void;
@@ -25,12 +26,14 @@ export function Header({ onAddOuting, activeTab = 'players', onTabChange, onOpen
     >
       <div className="container mx-auto px-4 py-2 sm:py-3">
         {/* Mobile: Centered logo, shorter height */}
-        <div className="flex sm:hidden items-center justify-center">
+        <div className="flex sm:hidden items-center justify-between">
+          <div className="w-9" />
           <img 
             src={hawksLogo} 
             alt="Newmarket Hawks Logo" 
             className="h-8 w-auto object-contain" 
           />
+          <ThemeToggle />
         </div>
 
         {/* Desktop/Tablet: Full header with nav */}
@@ -82,6 +85,8 @@ export function Header({ onAddOuting, activeTab = 'players', onTabChange, onOpen
                 More
               </Button>
             )}
+
+            <ThemeToggle />
 
             <Button
               onClick={onAddOuting}
