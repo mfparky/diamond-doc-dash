@@ -2,6 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+// `report_cards` isn't in the generated Supabase types yet — cast to bypass.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
+
 export interface ReportCardRecord {
   id: string;
   pitcherId: string;
