@@ -70,6 +70,12 @@ interface EligibilityContext {
   targetDay: number;
   /** Game slot within that day. */
   targetGameIndex: number;
+  /**
+   * True when this player is catching on the target day. Catchers can't
+   * pitch on the same day they're behind the plate — the eligibility check
+   * short-circuits before any of the rest / cap rules apply.
+   */
+  isCatchingToday?: boolean;
 }
 
 /**
@@ -80,7 +86,17 @@ interface EligibilityContext {
  * because 40 > 30 for a three-day check, etc.
  */
 export function isEligibleForGame(ctx: EligibilityContext): EligibilityCheck {
-  const { entries, targetDay, targetGameIndex } = ctx;
+  const { entries, targetDay, targetGameIndex, isCatchingToday } = ctx;
+
+  // Catcher-conflict: catchers can't pitch on their catching day. Highest
+  // priority — check before rest/cap rules so the coach sees the real reason.
+  if (isCatchingToday) {
+    return {
+      eligible: false,
+      reason: 'Catching today — cannot also pitch',
+      remaining: null,
+    };
+  }
 
   // Everything except the slot we're planning for.
   const other = entries.filter(

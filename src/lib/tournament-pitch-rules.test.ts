@@ -171,6 +171,42 @@ describe('isEligibleForGame — self-exclusion', () => {
   });
 });
 
+describe('isEligibleForGame — catcher conflict', () => {
+  it('blocks a catcher from pitching the same day', () => {
+    const r = isEligibleForGame({
+      entries: [],
+      targetDay: 0,
+      targetGameIndex: 0,
+      isCatchingToday: true,
+    });
+    expect(r.eligible).toBe(false);
+    expect(r.reason).toMatch(/catching today/i);
+  });
+
+  it('catcher conflict beats a rest-eligible day', () => {
+    // Player is fully rested and has never pitched. Still ineligible if
+    // they're behind the plate.
+    const r = isEligibleForGame({
+      entries: [],
+      targetDay: 2,
+      targetGameIndex: 0,
+      isCatchingToday: true,
+    });
+    expect(r.eligible).toBe(false);
+    expect(r.reason).toMatch(/catching today/i);
+  });
+
+  it('catcher can still pitch on a day they are NOT catching', () => {
+    const r = isEligibleForGame({
+      entries: [],
+      targetDay: 1,
+      targetGameIndex: 0,
+      isCatchingToday: false,
+    });
+    expect(r.eligible).toBe(true);
+  });
+});
+
 describe('summarizeByDay', () => {
   it('rolls up pitches, games, and rest tier per day', () => {
     const entries = [P(0, 0, 20), P(0, 1, 10), P(2, 0, 60)];

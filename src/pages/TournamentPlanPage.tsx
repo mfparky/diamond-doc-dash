@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Save, CheckCircle2, AlertTriangle, Info, Plus, Trash2, Clock, UserPlus, Users, CalendarClock, BarChart3, StickyNote, Minus } from 'lucide-react';
+import { ArrowLeft, Save, CheckCircle2, AlertTriangle, Info, Plus, Trash2, Clock, UserPlus, Users, CalendarClock, BarChart3, StickyNote, Minus, Wand2, Shield } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -43,6 +43,7 @@ import {
   type PitchEntries,
   type TournamentRosterEntry,
   type RotationGroup,
+  type CatchersByDay,
 } from '@/hooks/use-tournament-plan';
 import { useTournamentPlans, slugify } from '@/hooks/use-tournament-plans';
 import {
@@ -117,6 +118,10 @@ export default function TournamentPlanPage() {
   const [entries, setEntries] = useState<PitchEntries>({});
   const [roster, setRoster] = useState<TournamentRosterEntry[]>([]);
   const [notes, setNotes] = useState('');
+  const [catchers, setCatchers] = useState<CatchersByDay>({});
+  const [autoDialogOpen, setAutoDialogOpen] = useState(false);
+  const [autoPitchesPerPitcher, setAutoPitchesPerPitcher] = useState(30);
+  const [autoPitchersPerGame, setAutoPitchersPerGame] = useState(3);
   const [savedFlash, setSavedFlash] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [newDialogOpen, setNewDialogOpen] = useState(false);
@@ -145,6 +150,7 @@ export default function TournamentPlanPage() {
     setEntries(plan.entries);
     setRoster(plan.roster);
     setNotes(plan.notes);
+    setCatchers(plan.catchers);
     setDirty(false);
     setRosterSeeded(plan.roster.length > 0);
   }, [plan]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -301,8 +307,100 @@ export default function TournamentPlanPage() {
     setDirty(true);
   };
 
+  const isCatchingOn = (pitcherId: string, dayIndex: number) => {
+    const key = String(dayIndex);
+    return (catchers[key] ?? []).includes(pitcherId);
+  };
+
+  const handleToggleCatcher = (dayIndex: number, pitcherId: string) => {
+    const key = String(dayIndex);
+    setCatchers((prev) => {
+      const list = prev[key] ?? [];
+      const next = list.includes(pitcherId) ? list.filter((x) => x !== pitcherId) : [...list, pitcherId];
+      const out = { ...prev };
+      if (next.length === 0) delete out[key];
+      else out[key] = next;
+      return out;
+    });
+    setDirty(true);
+  };
+
+  /**
+   * Auto-populate the plan.
+   *
+   * For each game slot in schedule order:
+   *   1. Determine the target group. Slots without one draw from the whole roster.
+   *   2. Pull eligible players from that pool — skipping catchers-of-day and anyone
+   *      the rules engine says is ineligible RIGHT NOW (already scheduled elsewhere,
+   *      rest-locked, cap-blocked, etc.).
+   *   3. Sort by tournament total ASC to spread work evenly across the roster.
+   *   4. Take the first N players, cap each pitcher's assignment at what the rules
+   *      allow for that slot (rules-driven remaining), and set `planned` accordingly.
+   *
+   * NEVER touches `actual`. Overwrites any existing `planned` — the confirm
+   * dialog warns about this before the coach runs it.
+   */
+  const runAutoPopulate = () => {
+    const perPitcher = Math.max(1, Math.min(DAILY_MAX, Math.trunc(autoPitchesPerPitcher)));
+    const perGame = Math.max(1, Math.min(roster.length || 1, Math.trunc(autoPitchersPerGame)));
+    const workingEntries: PitchEntries = { ...entries };
+
+    // Clear existing planned values so the algorithm starts from a clean
+    // slate; actuals stay intact.
+    for (const [k, cell] of Object.entries(workingEntries)) {
+      if (cell.actual === null) {
+        // Whole cell exists only for planned — drop it (dayOverride preserved).
+        if ((cell.dayOverride ?? null) === null) {
+          delete workingEntries[k];
+        } else {
+          workingEntries[k] = { ...cell, planned: null };
+        }
+      } else {
+        workingEntries[k] = { ...cell, planned: null };
+      }
+    }
+
+    // Tournament totals so we can pick the least-loaded players first.
+    const totalsSoFar = new Map<string, number>();
+    for (const p of roster) totalsSoFar.set(p.id, 0);
+
+    for (const slot of schedule) {
+      // Pool: target group if set, otherwise the whole roster.
+      const pool = roster.filter((p) => (slot.targetGroup ? p.group === slot.targetGroup : true));
+
+      // Only players still eligible for this specific slot.
+      const eligible = pool
+        .filter((p) => !isCatchingOn(p.id, slot.dayIndex))
+        .map((p) => {
+          const rowEntries = pitcherEntries(workingEntries, p.id, schedule);
+          const check = isEligibleForGame({
+            entries: rowEntries,
+            targetDay: slot.dayIndex,
+            targetGameIndex: slot.gameIndex,
+          });
+          return { p, check };
+        })
+        .filter(({ check }) => check.eligible && (check.remaining ?? 0) > 0)
+        .sort((a, b) => (totalsSoFar.get(a.p.id) ?? 0) - (totalsSoFar.get(b.p.id) ?? 0));
+
+      const picked = eligible.slice(0, perGame);
+      for (const { p, check } of picked) {
+        const cap = Math.min(perPitcher, check.remaining ?? perPitcher);
+        if (cap <= 0) continue;
+        const key = entryKey(p.id, slot.id);
+        const existing: PitchCell = workingEntries[key] ?? { planned: null, actual: null };
+        workingEntries[key] = { ...existing, planned: cap };
+        totalsSoFar.set(p.id, (totalsSoFar.get(p.id) ?? 0) + cap);
+      }
+    }
+
+    setEntries(workingEntries);
+    setDirty(true);
+    setAutoDialogOpen(false);
+  };
+
   const handleSave = async () => {
-    const ok = await save({ schedule, entries, roster, notes });
+    const ok = await save({ schedule, entries, roster, catchers, notes });
     if (ok) {
       setSavedFlash(true);
       setDirty(false);
@@ -401,6 +499,60 @@ export default function TournamentPlanPage() {
                 </AlertDialogContent>
               </AlertDialog>
             )}
+            <Dialog open={autoDialogOpen} onOpenChange={setAutoDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" title="Auto-populate plan">
+                  <Wand2 className="w-4 h-4" />
+                  <span className="hidden sm:inline ml-1">Auto-fill</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Auto-populate plan</DialogTitle>
+                  <DialogDescription>
+                    For each game with a target group, picks eligible players from that group
+                    (skipping catchers and anyone rest-locked), spreads work across the roster,
+                    and fills in <strong>planned</strong> pitches. Actuals are left alone.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="auto-per-pitcher">Pitches per pitcher</Label>
+                      <Input
+                        id="auto-per-pitcher"
+                        type="number"
+                        min={1}
+                        max={DAILY_MAX}
+                        value={autoPitchesPerPitcher}
+                        onChange={(e) => setAutoPitchesPerPitcher(Number(e.target.value) || 30)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="auto-per-game">Pitchers per game</Label>
+                      <Input
+                        id="auto-per-game"
+                        type="number"
+                        min={1}
+                        max={11}
+                        value={autoPitchersPerGame}
+                        onChange={(e) => setAutoPitchersPerGame(Number(e.target.value) || 3)}
+                      />
+                    </div>
+                  </div>
+                  <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 flex items-start gap-2 text-xs">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                    <p className="text-amber-800 dark:text-amber-200">
+                      This overwrites <strong>every planned value</strong> currently in the plan.
+                      Actual pitch counts already logged are preserved.
+                    </p>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button onClick={runAutoPopulate}>Auto-fill</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
             <Button onClick={handleSave} disabled={!dirty && !savedFlash}>
               {savedFlash ? <CheckCircle2 className="w-4 h-4 mr-2" /> : <Save className="w-4 h-4 mr-2" />}
               {savedFlash ? 'Saved' : 'Save plan'}
@@ -434,6 +586,7 @@ export default function TournamentPlanPage() {
               schedule={schedule}
               roster={roster}
               entries={entries}
+              catchers={catchers}
               onCellChange={handleCellChange}
               onDayOverrideChange={handleDayOverrideChange}
             />
@@ -606,6 +759,14 @@ export default function TournamentPlanPage() {
           </CardContent>
         </Card>
 
+        {/* Catchers per day — pitchers who are catching can't also pitch. */}
+        <CatchersEditorCard
+          schedule={schedule}
+          roster={roster}
+          catchers={catchers}
+          onToggle={handleToggleCatcher}
+        />
+
         {isLoading && (
           <Card className="glass-card">
             <CardContent className="p-6 text-sm text-muted-foreground">Loading…</CardContent>
@@ -689,6 +850,7 @@ export default function TournamentPlanPage() {
                             entries: rowEntries,
                             targetDay: effectiveDay,
                             targetGameIndex: rowEntries[slotIdx].gameIndex,
+                            isCatchingToday: isCatchingOn(p.id, effectiveDay),
                           });
                           const hasOverride = typeof cell?.dayOverride === 'number' && cell.dayOverride !== slot.dayIndex;
                           const hasPlanned = typeof cell?.planned === 'number' && cell.planned > 0;
@@ -825,6 +987,14 @@ export default function TournamentPlanPage() {
               onRemoveFromRoster={handleRemoveFromRoster}
               onRosterRename={handleRosterRename}
               onGroupChange={handleGroupChange}
+            />
+          </MobileSheetButton>
+          <MobileSheetButton icon={<Shield className="w-5 h-5" />} label="Catchers">
+            <CatchersEditorCard
+              schedule={schedule}
+              roster={roster}
+              catchers={catchers}
+              onToggle={handleToggleCatcher}
             />
           </MobileSheetButton>
           <MobileSheetButton icon={<BarChart3 className="w-5 h-5" />} label="Roll-up">
@@ -1282,6 +1452,7 @@ function MobileGameView({
   schedule,
   roster,
   entries,
+  catchers,
   onCellChange,
   onDayOverrideChange,
 }: {
@@ -1289,6 +1460,7 @@ function MobileGameView({
   schedule: TournamentGameSlot[];
   roster: TournamentRosterEntry[];
   entries: PitchEntries;
+  catchers: CatchersByDay;
   onCellChange: (pitcherId: string, slotId: string, field: 'planned' | 'actual', raw: string) => void;
   onDayOverrideChange: (pitcherId: string, slotId: string, newDay: number | null) => void;
 }) {
@@ -1305,17 +1477,23 @@ function MobileGameView({
       </CardHeader>
       <CardContent className="p-0">
         <div className="divide-y divide-border/40">
-          {roster.map((p) => (
-            <MobilePitcherCard
-              key={p.id}
-              pitcher={p}
-              slot={slot}
-              cell={entries[entryKey(p.id, slot.id)]}
-              rowEntries={pitcherEntries(entries, p.id, schedule)}
-              onCellChange={onCellChange}
-              onDayOverrideChange={onDayOverrideChange}
-            />
-          ))}
+          {roster.map((p) => {
+            const cell = entries[entryKey(p.id, slot.id)];
+            const effectiveDay = typeof cell?.dayOverride === 'number' ? cell.dayOverride : slot.dayIndex;
+            const isCatchingToday = (catchers[String(effectiveDay)] ?? []).includes(p.id);
+            return (
+              <MobilePitcherCard
+                key={p.id}
+                pitcher={p}
+                slot={slot}
+                cell={cell}
+                rowEntries={pitcherEntries(entries, p.id, schedule)}
+                isCatchingToday={isCatchingToday}
+                onCellChange={onCellChange}
+                onDayOverrideChange={onDayOverrideChange}
+              />
+            );
+          })}
         </div>
       </CardContent>
     </Card>
@@ -1334,6 +1512,7 @@ function MobilePitcherCard({
   slot: TournamentGameSlot;
   cell: PitchCell | undefined;
   rowEntries: PitchEntry[];
+  isCatchingToday: boolean;
   onCellChange: (pitcherId: string, slotId: string, field: 'planned' | 'actual', raw: string) => void;
   onDayOverrideChange: (pitcherId: string, slotId: string, newDay: number | null) => void;
 }) {
@@ -1342,6 +1521,7 @@ function MobilePitcherCard({
     entries: rowEntries,
     targetDay: effectiveDay,
     targetGameIndex: slot.gameIndex,
+    isCatchingToday,
   });
   const hasOverride = typeof cell?.dayOverride === 'number' && cell.dayOverride !== slot.dayIndex;
   const hasPlanned = typeof cell?.planned === 'number' && cell.planned > 0;
@@ -1357,6 +1537,11 @@ function MobilePitcherCard({
       <div className="flex items-center gap-2">
         <span className="font-semibold text-base flex-1 truncate">{pitcher.name}</span>
         {pitcher.group && <GroupLetterInline group={pitcher.group} />}
+        {isCatchingToday && (
+          <span className="text-[9px] uppercase tracking-wider bg-orange-500/15 text-orange-700 dark:text-orange-300 px-1 rounded flex items-center gap-0.5" title="Catching today">
+            <Shield className="w-2.5 h-2.5" />C
+          </span>
+        )}
         {pitcher.isPickup && (
           <span className="text-[9px] uppercase tracking-wider bg-blue-500/15 text-blue-700 dark:text-blue-300 px-1 rounded">PU</span>
         )}
@@ -1670,5 +1855,79 @@ function MobileRosterSheetContent({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Catchers-by-day editor. One row per day; chips for every rostered player
+ * with an active state showing who's catching that day. Tap to toggle.
+ */
+function CatchersEditorCard({
+  schedule,
+  roster,
+  catchers,
+  onToggle,
+}: {
+  schedule: TournamentGameSlot[];
+  roster: TournamentRosterEntry[];
+  catchers: CatchersByDay;
+  onToggle: (dayIndex: number, pitcherId: string) => void;
+}) {
+  const dayIndices = useMemo(
+    () => Array.from(new Set(schedule.map((s) => s.dayIndex))).sort((a, b) => a - b),
+    [schedule],
+  );
+
+  return (
+    <Card className="glass-card">
+      <CardHeader className="pb-2">
+        <CardTitle className="font-display text-base flex items-center gap-2">
+          <Shield className="w-4 h-4" />
+          Catchers by day
+        </CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Tap a player on a day they're catching. They'll be blocked from pitching that day —
+          the game grid picks it up automatically.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {dayIndices.length === 0 && (
+          <p className="text-sm text-muted-foreground italic">Add games to the schedule first.</p>
+        )}
+        {roster.length === 0 && (
+          <p className="text-sm text-muted-foreground italic">Add players to the roster first.</p>
+        )}
+        {dayIndices.map((d) => {
+          const catcherIds = new Set(catchers[String(d)] ?? []);
+          return (
+            <div key={d} className="border border-border/50 rounded-md p-2">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">
+                {dayLabel(d)}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {roster.map((p) => {
+                  const active = catcherIds.has(p.id);
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => onToggle(d, p.id)}
+                      className={`text-xs rounded px-2 py-1 border transition ${
+                        active
+                          ? 'bg-orange-500/15 border-orange-500/50 text-orange-800 dark:text-orange-200 font-semibold'
+                          : 'bg-background border-border/60 text-muted-foreground hover:border-orange-400/40 hover:text-foreground'
+                      }`}
+                    >
+                      {active && <Shield className="w-3 h-3 inline-block mr-1" />}
+                      {p.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
   );
 }

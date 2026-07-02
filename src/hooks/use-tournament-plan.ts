@@ -50,6 +50,14 @@ export interface TournamentRosterEntry {
   group?: RotationGroup;
 }
 
+/**
+ * Per-day catcher assignments. Key = day index (as string, since JSONB
+ * roundtrips objects), value = array of pitcher/roster ids catching that day.
+ * The eligibility engine reads this to block a player from pitching on a
+ * day they're catching.
+ */
+export type CatchersByDay = Record<string, string[]>;
+
 export interface TournamentPlanRecord {
   id: string;
   tournamentSlug: string;
@@ -57,6 +65,7 @@ export interface TournamentPlanRecord {
   schedule: TournamentGameSlot[];
   entries: PitchEntries;
   roster: TournamentRosterEntry[];
+  catchers: CatchersByDay;
   notes: string;
   updatedAt: string;
 }
@@ -64,7 +73,7 @@ export interface TournamentPlanRecord {
 interface UseTournamentPlanResult {
   plan: TournamentPlanRecord | null;
   isLoading: boolean;
-  save: (patch: Partial<Pick<TournamentPlanRecord, 'schedule' | 'entries' | 'roster' | 'notes'>>) => Promise<boolean>;
+  save: (patch: Partial<Pick<TournamentPlanRecord, 'schedule' | 'entries' | 'roster' | 'catchers' | 'notes'>>) => Promise<boolean>;
   refetch: () => Promise<void>;
 }
 
@@ -111,6 +120,19 @@ function normalizeRoster(raw: unknown): TournamentRosterEntry[] {
   return out;
 }
 
+function normalizeCatchers(raw: unknown): CatchersByDay {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const out: CatchersByDay = {};
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (!Array.isArray(v)) continue;
+    // Keys arrive as strings from JSONB; day-index as string is fine.
+    if (!/^\d+$/.test(k)) continue;
+    const ids = v.filter((x): x is string => typeof x === 'string');
+    if (ids.length > 0) out[k] = Array.from(new Set(ids));
+  }
+  return out;
+}
+
 function normalizeSchedule(raw: unknown): TournamentGameSlot[] {
   if (!Array.isArray(raw)) return [];
   const out: TournamentGameSlot[] = [];
@@ -153,7 +175,7 @@ export function useTournamentPlan(
       }
       const { data, error } = await db
         .from('tournament_pitch_plans')
-        .select('id, tournament_slug, tournament_name, schedule, entries, roster, notes, updated_at')
+        .select('id, tournament_slug, tournament_name, schedule, entries, roster, catchers, notes, updated_at')
         .eq('user_id', user.id)
         .eq('tournament_slug', tournamentSlug)
         .maybeSingle();
@@ -167,6 +189,7 @@ export function useTournamentPlan(
           schedule: savedSchedule.length > 0 ? savedSchedule : defaultSchedule,
           entries: normalizeEntries(data.entries),
           roster: normalizeRoster(data.roster),
+          catchers: normalizeCatchers(data.catchers),
           notes: data.notes ?? '',
           updatedAt: data.updated_at,
         });
@@ -196,6 +219,7 @@ export function useTournamentPlan(
         const nextSchedule = patch.schedule ?? plan?.schedule ?? defaultSchedule;
         const nextEntries = normalizeEntries(patch.entries ?? plan?.entries ?? {});
         const nextRoster = normalizeRoster(patch.roster ?? plan?.roster ?? []);
+        const nextCatchers = normalizeCatchers(patch.catchers ?? plan?.catchers ?? {});
         const { error } = await db
           .from('tournament_pitch_plans')
           .upsert(
@@ -206,6 +230,7 @@ export function useTournamentPlan(
               schedule: nextSchedule,
               entries: nextEntries,
               roster: nextRoster,
+              catchers: nextCatchers,
               notes: patch.notes ?? plan?.notes ?? '',
             },
             { onConflict: 'user_id,tournament_slug' },
