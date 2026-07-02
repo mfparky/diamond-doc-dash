@@ -226,6 +226,53 @@ describe('buildRankings — reef line', () => {
   });
 });
 
+describe('buildRankings — ceiling', () => {
+  it('flags the top ~15% of players by default', () => {
+    const inputs: RankingInput[] = Array.from({ length: 20 }, (_, i) => ({
+      pitcherId: `p-${i}`,
+      pitcherName: `P${i}`,
+      latest: { bat_ops: (i + 1) / 20 },
+    }));
+    const result = buildRankings(inputs, baseOptions);
+    expect(result.ceilingPercentile).toBe(15);
+    const above = result.rankings.filter((r) => r.aboveCeiling).length;
+    // 15% of 20 = 3 -> ~3 above ceiling
+    expect(above).toBeGreaterThanOrEqual(2);
+    expect(above).toBeLessThanOrEqual(4);
+    // Above-ceiling players are always the top of the rankings
+    const topPvs = result.rankings.slice(0, above);
+    expect(topPvs.every((r) => r.aboveCeiling)).toBe(true);
+  });
+
+  it('respects ceilingMode 10 vs 20', () => {
+    const inputs: RankingInput[] = Array.from({ length: 20 }, (_, i) => ({
+      pitcherId: `p-${i}`,
+      pitcherName: `P${i}`,
+      latest: { bat_ops: (i + 1) / 20 },
+    }));
+    const strict = buildRankings(inputs, { ...baseOptions, ceilingMode: '10' });
+    const loose = buildRankings(inputs, { ...baseOptions, ceilingMode: '20' });
+    expect(strict.ceilingPercentile).toBe(10);
+    expect(loose.ceilingPercentile).toBe(20);
+    expect(strict.rankings.filter((r) => r.aboveCeiling).length).toBeLessThanOrEqual(
+      loose.rankings.filter((r) => r.aboveCeiling).length,
+    );
+    expect(strict.ceilingThreshold!).toBeGreaterThan(loose.ceilingThreshold!);
+  });
+
+  it("ceilingMode 'off' clears the flag and null-fills threshold + percentile", () => {
+    const inputs: RankingInput[] = Array.from({ length: 20 }, (_, i) => ({
+      pitcherId: `p-${i}`,
+      pitcherName: `P${i}`,
+      latest: { bat_ops: (i + 1) / 20 },
+    }));
+    const result = buildRankings(inputs, { ...baseOptions, ceilingMode: 'off' });
+    expect(result.ceilingPercentile).toBeNull();
+    expect(result.ceilingThreshold).toBeNull();
+    expect(result.rankings.every((r) => !r.aboveCeiling)).toBe(true);
+  });
+});
+
 describe('buildRankings — real fixture smoke', () => {
   it('returns a full ranking with valid scores', () => {
     const { rankings, reefThreshold } = buildRankings(fixtureInputs(), baseOptions);

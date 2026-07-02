@@ -70,21 +70,64 @@ export default function RankingsPage() {
     }));
   }, [pitchers, byPitcher]);
 
-  const { rankings, excluded, reefThreshold, reefPercentile } = useMemo(
-    () =>
-      buildRankings(inputs, {
-        reefMode,
-        minPlateAppearances: MIN_PA,
-        filter,
-      }),
-    [inputs, reefMode, filter],
+  // Previous inputs: each pitcher's second-most-recent snapshot (index 1)
+  // as their "latest." Fires only when 2+ uploads exist.
+  const previousInputs = useMemo<RankingInput[]>(() => {
+    return pitchers.map((p) => ({
+      pitcherId: p.id,
+      pitcherName: p.name,
+      latest: byPitcher.get(p.id)?.[1]?.stats ?? null,
+      effortRating: p.effortRating,
+      coachabilityRating: p.coachabilityRating,
+      baseballIqRating: p.baseballIqRating,
+    }));
+  }, [pitchers, byPitcher]);
+
+  const rankingOpts = useMemo(
+    () => ({ reefMode, minPlateAppearances: MIN_PA, filter }),
+    [reefMode, filter],
   );
+
+  const {
+    rankings, excluded, reefThreshold, reefPercentile,
+    ceilingThreshold, ceilingPercentile,
+  } = useMemo(() => buildRankings(inputs, rankingOpts), [inputs, rankingOpts]);
+
+  // Compute previous ranks for trend deltas. Only meaningful when at least
+  // one pitcher has a second snapshot to fuel a previous ranking.
+  const hasPreviousSnapshots = useMemo(
+    () => previousInputs.some((p) => p.latest !== null),
+    [previousInputs],
+  );
+  const previousRankByPitcherId = useMemo(() => {
+    if (!hasPreviousSnapshots) return new Map<string, number>();
+    const prev = buildRankings(previousInputs, rankingOpts);
+    const m = new Map<string, number>();
+    prev.rankings.forEach((r, idx) => m.set(r.pitcherId, idx + 1));
+    return m;
+  }, [previousInputs, rankingOpts, hasPreviousSnapshots]);
+
+  /** Positive = moved UP the list (better), negative = down. Null if no baseline. */
+  const rankChangeByPitcherId = useMemo(() => {
+    const m = new Map<string, number | null>();
+    rankings.forEach((r, idx) => {
+      const currentRank = idx + 1;
+      const previousRank = previousRankByPitcherId.get(r.pitcherId);
+      if (previousRank === undefined) {
+        m.set(r.pitcherId, null);
+      } else {
+        m.set(r.pitcherId, previousRank - currentRank);
+      }
+    });
+    return m;
+  }, [rankings, previousRankByPitcherId]);
 
   const chartData = useMemo(() => {
     return rankings.map((r) => ({
       name: r.pitcherName,
       pv: Number(r.playerValue.toFixed(1)),
       belowReef: r.belowReef,
+      aboveCeiling: r.aboveCeiling,
     }));
   }, [rankings]);
 
@@ -115,6 +158,7 @@ export default function RankingsPage() {
             <p className="text-sm text-muted-foreground">
               Composite Player Value drawn from each player's most recent stat snapshot.
               {mostRecentUploadedAt && ` Last upload: ${new Date(mostRecentUploadedAt).toLocaleDateString()}.`}
+              {hasPreviousSnapshots && ' ↑↓ badges show rank changes since the previous snapshot.'}
             </p>
           </div>
         </div>
@@ -198,6 +242,9 @@ export default function RankingsPage() {
                     Player Value
                     <span className="text-xs text-muted-foreground font-normal">
                       Reef {reefThreshold.toFixed(1)} · p{reefPercentile}
+                      {ceilingThreshold !== null && ceilingPercentile !== null && (
+                        <> · Ceiling {ceilingThreshold.toFixed(1)} · top {ceilingPercentile}%</>
+                      )}
                     </span>
                   </CardTitle>
                   <Tabs value={chartView} onValueChange={(v) => setChartView(v as ChartView)}>
@@ -246,11 +293,22 @@ export default function RankingsPage() {
                           stroke="hsl(var(--destructive))"
                           strokeDasharray="6 3"
                         />
+                        {ceilingThreshold !== null && (
+                          <ReferenceLine
+                            x={ceilingThreshold}
+                            stroke="hsl(var(--status-active))"
+                            strokeDasharray="6 3"
+                          />
+                        )}
                         <Bar dataKey="pv" name="Player Value" radius={[0, 4, 4, 0]}>
                           {chartData.map((entry, index) => (
                             <Cell
                               key={`cell-${index}`}
-                              fill={entry.belowReef ? 'hsl(var(--muted-foreground))' : 'hsl(var(--primary))'}
+                              fill={
+                                entry.belowReef ? 'hsl(var(--muted-foreground))' :
+                                entry.aboveCeiling ? 'hsl(var(--status-active))' :
+                                'hsl(var(--primary))'
+                              }
                               fillOpacity={entry.belowReef ? 0.45 : 1}
                             />
                           ))}
@@ -303,6 +361,7 @@ export default function RankingsPage() {
                         ranking={r}
                         pitcher={pitcherById.get(r.pitcherId)}
                         onSetRating={setCoachRating}
+                        rankChange={rankChangeByPitcherId.get(r.pitcherId) ?? null}
                       />
                     ))}
                   </TableBody>
@@ -400,20 +459,60 @@ function LegendBlock({
   );
 }
 
+/** Small ↑N / ↓N pill next to a player name. Null = no baseline (single upload). */
+function RankChangeBadge({ change }: { change: number | null }) {
+  if (change === null) return null;
+  if (change === 0) {
+    return (
+      <span
+        title="Same rank as previous snapshot"
+        className="text-[10px] text-muted-foreground tabular-nums"
+      >
+        —
+      </span>
+    );
+  }
+  const positive = change > 0;
+  return (
+    <span
+      title={`Moved ${positive ? 'up' : 'down'} ${Math.abs(change)} rank${Math.abs(change) === 1 ? '' : 's'} since last snapshot`}
+      className={cn(
+        'inline-flex items-center gap-0.5 text-[10px] font-semibold tabular-nums px-1 rounded',
+        positive
+          ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-500/10'
+          : 'text-red-700 dark:text-red-300 bg-red-500/10',
+      )}
+    >
+      {positive ? '↑' : '↓'}
+      {Math.abs(change)}
+    </span>
+  );
+}
+
 function RankingRow({
   ranking,
   pitcher,
   onSetRating,
+  rankChange,
 }: {
   ranking: PlayerRanking;
   pitcher: PitcherRecord | undefined;
   onSetRating: (id: string, dim: RatingDimension, rating: CoachRating) => Promise<boolean>;
+  rankChange: number | null;
 }) {
   const visibleMetrics = METRIC_LABELS.filter((m) => m.bucket !== 'intangibles');
   return (
     <TableRow className={cn('border-border/30 hover:bg-primary/5 transition-colors', ranking.belowReef && 'opacity-60')}>
       <TableCell className="sticky left-0 bg-background z-10 font-medium">
-        {ranking.pitcherName}
+        <span className="inline-flex items-center gap-1.5">
+          {ranking.pitcherName}
+          <RankChangeBadge change={rankChange} />
+        </span>
+        {ranking.aboveCeiling && (
+          <span className="ml-2 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+            above ceiling
+          </span>
+        )}
         {ranking.belowReef && <span className="ml-2 text-[10px] text-destructive">below reef</span>}
         {ranking.belowParticipationFloor && (
           <span

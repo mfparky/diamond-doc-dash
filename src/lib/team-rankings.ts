@@ -18,10 +18,18 @@ export interface RankingInput {
 export type RankingFilter = 'all' | 'hitters' | 'pitchers';
 
 export type ReefMode = '15' | '25' | '50';
+export type CeilingMode = '10' | '15' | '20' | 'off';
 
 export interface RankingOptions {
   /** Reef cut-off as a team percentile (15th / 25th / 50th). */
   reefMode: ReefMode;
+  /**
+   * Ceiling cut-off as a team percentile from the top — 10 = top 10%,
+   * 15 = top 15% (default), 20 = top 20%. Set to 'off' to hide.
+   * Players above the ceiling render with a highlighted color and get an
+   * `aboveCeiling: true` flag on their PlayerRanking.
+   */
+  ceilingMode?: CeilingMode;
   /**
    * Hard sample-size floor on plate appearances. Players below this PA count
    * are excluded from the ranking and surfaced separately so a 5-PA outlier
@@ -77,6 +85,11 @@ export interface PlayerRanking {
   /** Composite, 0-100. Always defined (defaults to 0 with no data). */
   playerValue: number;
   belowReef: boolean;
+  /**
+   * True when the player's Player Value is at or above the ceiling — top
+   * N% of the team. Renders as a highlighted color / badge in the UI.
+   */
+  aboveCeiling: boolean;
   /** True when the player's PA count is below the configured minimum. */
   belowMinPa: boolean;
   hasOffense: boolean;
@@ -96,6 +109,10 @@ export interface RankingResult {
   excluded: PlayerRanking[];
   reefThreshold: number;
   reefPercentile: number;
+  /** PV at the ceiling cut-off — players at/above are `aboveCeiling`. */
+  ceilingThreshold: number | null;
+  /** Percentile from the top used for the ceiling (10 / 15 / 20), null when off. */
+  ceilingPercentile: number | null;
 }
 
 // --- Metric configuration ---
@@ -415,6 +432,7 @@ export function buildRankings(
       hasDefense: defenseScore !== null,
       hasIntangibles: intangiblesScore !== null,
       hasPitching: rawIp[idx] > 0,
+      aboveCeiling: false,
       metricBreakdown: breakdown,
       topDrivers,
     };
@@ -436,7 +454,29 @@ export function buildRankings(
     p.belowReef = p.playerValue < reefThreshold;
   }
 
-  return { rankings: eligible, excluded, reefThreshold, reefPercentile };
+  // 8) Ceiling — top N% of eligible players (inverse of the reef). PV at
+  //    OR above the threshold flags aboveCeiling. 'off' hides the flag.
+  const ceilingMode: CeilingMode = options.ceilingMode ?? '15';
+  let ceilingThreshold: number | null = null;
+  let ceilingPercentile: number | null = null;
+  if (ceilingMode !== 'off' && sortedAsc.length > 0) {
+    ceilingPercentile = ceilingMode === '10' ? 10 : ceilingMode === '15' ? 15 : 20;
+    // 100 − ceilingPercentile gives the ASC-side cut. E.g., top 15% -> the
+    // 85th-percentile PV; anyone at or above becomes aboveCeiling.
+    ceilingThreshold = percentileThreshold(sortedAsc, 100 - ceilingPercentile);
+    for (const p of eligible) {
+      p.aboveCeiling = p.playerValue >= ceilingThreshold;
+    }
+  }
+
+  return {
+    rankings: eligible,
+    excluded,
+    reefThreshold,
+    reefPercentile,
+    ceilingThreshold,
+    ceilingPercentile,
+  };
 }
 
 /** Public helper so the UI can label the metric breakdown columns + legend. */
