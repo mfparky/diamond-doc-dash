@@ -7,18 +7,19 @@ interface PitchCountChartProps {
   outings: Outing[];
 }
 
+// Event colors mapped to design-system tokens (accessible in dark & light mode)
 const EVENT_COLORS: Record<string, string> = {
-  'Bullpen': 'hsl(220, 70%, 45%)',      // dark blue
-  'Game': 'hsl(142, 70%, 45%)',          // green
-  'External': 'hsl(200, 80%, 60%)',      // light blue
-  'Live ABs': 'hsl(25, 90%, 55%)',       // orange
+  'Bullpen': 'hsl(var(--chart-3))',        // blue
+  'Game': 'hsl(var(--status-active))',     // green
+  'External': 'hsl(var(--chart-4))',       // purple
+  'Live ABs': 'hsl(var(--status-warning))', // orange
 };
 
 const EVENT_LEGEND_COLORS: Record<string, string> = {
-  'Bullpen': '220, 70%, 45%',            // dark blue
-  'Game': '142, 70%, 45%',               // green
-  'External': '200, 80%, 60%',           // light blue
-  'Live ABs': '25, 90%, 55%',            // orange
+  'Bullpen': 'var(--chart-3)',
+  'Game': 'var(--status-active)',
+  'External': 'var(--chart-4)',
+  'Live ABs': 'var(--status-warning)',
 };
 
 export function PitchCountChart({ outings }: PitchCountChartProps) {
