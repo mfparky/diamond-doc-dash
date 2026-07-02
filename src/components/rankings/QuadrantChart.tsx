@@ -61,16 +61,18 @@ export function QuadrantChart({ rankings }: QuadrantChartProps) {
               dataKey="x"
               name="Offense"
               domain={[0, 100]}
-              label={{ value: 'Offense', position: 'insideBottom', offset: -10, fontSize: 11 }}
-              tick={{ fontSize: 11 }}
+              label={{ value: 'Offense', position: 'insideBottom', offset: -10, fontSize: 11, fill: 'hsl(var(--foreground))' }}
+              tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+              stroke="hsl(var(--border))"
             />
             <YAxis
               type="number"
               dataKey="y"
               name="Defense"
               domain={[0, 100]}
-              label={{ value: 'Defense', angle: -90, position: 'insideLeft', fontSize: 11 }}
-              tick={{ fontSize: 11 }}
+              label={{ value: 'Defense', angle: -90, position: 'insideLeft', fontSize: 11, fill: 'hsl(var(--foreground))' }}
+              tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+              stroke="hsl(var(--border))"
             />
             <ZAxis type="number" dataKey="z" range={[80, 480]} />
             <Tooltip
