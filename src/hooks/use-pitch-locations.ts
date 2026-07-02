@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { PitchLocation, PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
@@ -30,7 +31,7 @@ export function usePitchLocations() {
         createdAt: row.created_at,
       }));
     } catch (error) {
-      console.error('Error fetching pitch locations:', error);
+      logger.error('Error fetching pitch locations:', error);
       toast({
         title: 'Error loading pitch locations',
         description: 'Could not load pitch locations for this outing.',
@@ -82,7 +83,7 @@ export function usePitchLocations() {
         createdAt: row.created_at,
       }));
     } catch (error) {
-      console.error('Error fetching pitch locations:', error);
+      logger.error('Error fetching pitch locations:', error);
       toast({
         title: 'Error loading pitch history',
         description: 'Could not load this pitcher’s pitch history.',
@@ -136,7 +137,7 @@ export function usePitchLocations() {
 
       return true;
     } catch (error: any) {
-      console.error('Error adding pitch locations:', error);
+      logger.error('Error adding pitch locations:', error);
       const message = error?.message?.includes('row-level security')
         ? 'You must be signed in to save pitch locations.'
         : 'Could not save the pitch location data.';
@@ -162,7 +163,7 @@ export function usePitchLocations() {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error deleting pitch locations:', error);
+      logger.error('Error deleting pitch locations:', error);
       return false;
     }
   }, []);
@@ -183,7 +184,7 @@ export function usePitchLocations() {
       }
       return DEFAULT_PITCH_TYPES;
     } catch (error) {
-      console.error('Error fetching pitch types:', error);
+      logger.error('Error fetching pitch types:', error);
       return DEFAULT_PITCH_TYPES;
     }
   }, []);
@@ -204,7 +205,7 @@ export function usePitchLocations() {
       });
       return true;
     } catch (error) {
-      console.error('Error updating pitch types:', error);
+      logger.error('Error updating pitch types:', error);
       toast({
         title: 'Error updating pitch types',
         description: 'Could not save pitch type labels.',

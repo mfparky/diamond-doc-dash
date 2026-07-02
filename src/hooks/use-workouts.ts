@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { startOfWeek, format, addDays } from 'date-fns';
@@ -95,7 +96,7 @@ export function useWorkouts(pitcherId?: string) {
       setAssignments(mapped);
       return mapped;
     } catch (error) {
-      console.error('Error fetching workout assignments:', error);
+      logger.error('Error fetching workout assignments:', error);
       return [];
     }
   }, []);
@@ -127,7 +128,7 @@ export function useWorkouts(pitcherId?: string) {
       setCompletions(mapped);
       return mapped;
     } catch (error) {
-      console.error('Error fetching workout completions:', error);
+      logger.error('Error fetching workout completions:', error);
       return [];
     }
   }, []);
@@ -187,7 +188,7 @@ export function useWorkouts(pitcherId?: string) {
       });
       return newAssignment;
     } catch (error) {
-      console.error('Error adding workout assignment:', error);
+      logger.error('Error adding workout assignment:', error);
       toast({
         title: 'Error assigning workout',
         description: 'Could not save the workout assignment.',
@@ -239,7 +240,7 @@ export function useWorkouts(pitcherId?: string) {
       });
       return true;
     } catch (error) {
-      console.error('Error updating workout assignment:', error);
+      logger.error('Error updating workout assignment:', error);
       toast({
         title: 'Error updating workout',
         description: 'Could not update the workout.',
@@ -266,7 +267,7 @@ export function useWorkouts(pitcherId?: string) {
       });
       return true;
     } catch (error) {
-      console.error('Error deleting workout assignment:', error);
+      logger.error('Error deleting workout assignment:', error);
       toast({
         title: 'Error removing workout',
         description: 'Could not remove the workout.',
@@ -332,7 +333,7 @@ export function useWorkouts(pitcherId?: string) {
       }
       return true;
     } catch (error) {
-      console.error('Error toggling workout completion:', error);
+      logger.error('Error toggling workout completion:', error);
       return false;
     }
   }, [completions, selectedWeekStart]);
@@ -355,7 +356,7 @@ export function useWorkouts(pitcherId?: string) {
       );
       return true;
     } catch (error) {
-      console.error('Error updating completion notes:', error);
+      logger.error('Error updating completion notes:', error);
       return false;
     }
   }, []);
@@ -429,7 +430,7 @@ export function useWorkouts(pitcherId?: string) {
 
       return urlData.publicUrl;
     } catch (error) {
-      console.error('Error uploading workout photo:', error);
+      logger.error('Error uploading workout photo:', error);
       toast({
         title: 'Upload failed',
         description: 'Could not upload the photo.',
@@ -457,7 +458,7 @@ export function useWorkouts(pitcherId?: string) {
       );
       return true;
     } catch (error) {
-      console.error('Error updating completion photo:', error);
+      logger.error('Error updating completion photo:', error);
       return false;
     }
   }, []);

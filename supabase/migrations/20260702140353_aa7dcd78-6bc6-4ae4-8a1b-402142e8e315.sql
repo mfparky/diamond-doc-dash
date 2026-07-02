@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Public can view dashboard settings by user" ON public.dashboard_settings;

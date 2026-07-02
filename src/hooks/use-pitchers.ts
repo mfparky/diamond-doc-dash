@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { validatePitcher } from '@/lib/validation';
@@ -56,7 +57,7 @@ export function usePitchers() {
 
       setPitchers(mappedPitchers);
     } catch (error) {
-      console.error('Error fetching pitchers:', error);
+      logger.error('Error fetching pitchers:', error);
       toast({
         title: 'Error loading roster',
         description: 'Could not load pitchers from the database.',
@@ -126,7 +127,7 @@ export function usePitchers() {
       });
       return newPitcher;
     } catch (error: any) {
-      console.error('Error adding pitcher:', error);
+      logger.error('Error adding pitcher:', error);
       const message = error?.message?.includes('duplicate') 
         ? 'A pitcher with this name already exists.'
         : error?.message?.includes('row-level security')
@@ -162,7 +163,7 @@ export function usePitchers() {
       });
       return true;
     } catch (error: any) {
-      console.error('Error updating pitcher:', error);
+      logger.error('Error updating pitcher:', error);
       const message = error?.message?.includes('duplicate') 
         ? 'A pitcher with this name already exists.'
         : 'Could not update the pitcher.';
@@ -192,7 +193,7 @@ export function usePitchers() {
       });
       return true;
     } catch (error) {
-      console.error('Error deleting pitcher:', error);
+      logger.error('Error deleting pitcher:', error);
       toast({
         title: 'Error removing pitcher',
         description: 'Could not remove the pitcher.',
@@ -230,7 +231,7 @@ export function usePitchers() {
         if (error) throw error;
         return true;
       } catch (error) {
-        console.error('Error setting coach rating:', error);
+        logger.error('Error setting coach rating:', error);
         setPitchers((prev) => prev.map((p) => (p.id === id ? { ...p, [localKey]: previousRating } : p)));
         toast({
           title: 'Could not save rating',
