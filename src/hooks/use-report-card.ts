@@ -55,7 +55,17 @@ export function useReportCard(pitcherId: string | undefined, periodStart: string
   const { toast } = useToast();
 
   const fetchCard = useCallback(async () => {
-    if (!pitcherId || !periodStart || !periodEnd) return;
+    if (!pitcherId || !periodStart || !periodEnd) {
+      // No player picked yet — clear any previous player's card so the UI
+      // doesn't hydrate stale text into the new player's form.
+      setCard(null);
+      return;
+    }
+    // Clear stale card the moment the coach switches players. Prevents the
+    // previous player's summary/strengths/areas from persisting into the new
+    // player's form during the fetch window (which is what caused edits to
+    // save under the wrong pitcher_id).
+    setCard(null);
     setIsLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();

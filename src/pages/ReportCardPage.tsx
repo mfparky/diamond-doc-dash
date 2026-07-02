@@ -71,20 +71,18 @@ export default function ReportCardPage() {
   const [generating, setGenerating] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
 
-  // Hydrate from the saved card when it loads.
+  // Hydrate the form from whichever card was just loaded. When the coach
+  // switches players and the new player has no saved card (card === null),
+  // this resets the form to blank instead of leaving the previous player's
+  // text sitting there — which would otherwise get saved under the new
+  // player's id on the next Save click.
   useEffect(() => {
-    if (!card) return;
-    setContext(card.coachContext);
-    setSummary(card.summary);
-    setStrengths(card.strengths);
-    setAreas(card.areas);
-    setAdjustments(card.metricAdjustments);
-  }, [card]);
-
-  // Reset adjustments when the player changes and there's no saved card yet.
-  useEffect(() => {
-    if (!card) setAdjustments({});
-  }, [playerId, card]);
+    setContext(card?.coachContext ?? '');
+    setSummary(card?.summary ?? '');
+    setStrengths(card?.strengths ?? '');
+    setAreas(card?.areas ?? '');
+    setAdjustments(card?.metricAdjustments ?? {});
+  }, [card, playerId]);
 
   // Team-wide inputs feed the percentile pool. Latest snapshot per pitcher.
   const teamMetricInputs = useMemo<CoreMetricInput[]>(() => {
