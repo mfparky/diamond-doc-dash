@@ -3,6 +3,7 @@ import { Pitcher, Outing } from '@/types/pitcher';
 import { calculatePitcherStats } from '@/lib/pitcher-data';
 import { Header } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
+import { LeftRail } from '@/components/LeftRail';
 import { PitcherCard } from '@/components/PitcherCard';
 import { CombinedDashboard } from '@/components/CombinedDashboard';
 import { PitcherDetail } from '@/components/PitcherDetail';
@@ -254,16 +255,29 @@ const Index = () => {
 
   return (
     <div
-      className="min-h-screen bg-background"
+      className="min-h-screen bg-background sm:pl-56"
       {...swipeHandlers}
       {...pullHandlers}
     >
-      <Header
-        onAddOuting={() => setShowOutingForm(true)}
+      <LeftRail
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        onAddOuting={() => setShowOutingForm(true)}
+        onOpenRoster={() => setShowRosterManagement(true)}
         onOpenMore={() => setShowMoreSheet(true)}
+        isOnPlayerDetail={currentView === 'detail'}
+        onBackToPlayers={handleBackToDashboard}
       />
+
+      {/* Mobile-only header — hidden on sm+ since the rail replaces it. */}
+      <div className="sm:hidden">
+        <Header
+          onAddOuting={() => setShowOutingForm(true)}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onOpenMore={() => setShowMoreSheet(true)}
+        />
+      </div>
 
       {/* Pull-to-refresh indicator */}
       {(pullDistance > 0 || isRefreshing) && (
