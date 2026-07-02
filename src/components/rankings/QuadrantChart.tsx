@@ -152,7 +152,7 @@ export function QuadrantChart({ rankings }: QuadrantChartProps) {
         </div>
       </div>
 
-      <div className="w-full h-[420px] sm:h-[480px]">
+      <div className="w-full h-[420px] sm:h-[480px] [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-label]:fill-foreground">
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 34, right: 30, left: 4, bottom: 28 }}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" />
