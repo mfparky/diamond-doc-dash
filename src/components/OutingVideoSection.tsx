@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { VideoCapture } from './VideoCapture';
 import { VideoPlayer } from './VideoPlayer';
 import { EnhancedVideoPlayer } from './EnhancedVideoPlayer';
@@ -97,7 +98,7 @@ export function OutingVideoSection({
 
       onVideosUpdated?.();
     } catch (error) {
-      console.error('Error saving video metadata:', error);
+      logger.error('Error saving video metadata:', error);
       toast({
         title: 'Error saving video',
         description: 'Could not save video metadata.',
@@ -131,7 +132,7 @@ export function OutingVideoSection({
 
       onVideosUpdated?.();
     } catch (error) {
-      console.error('Error removing video:', error);
+      logger.error('Error removing video:', error);
       toast({
         title: 'Error removing video',
         description: 'Could not remove the video from this outing.',

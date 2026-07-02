@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { Outing } from '@/types/pitcher';
 import { useToast } from '@/hooks/use-toast';
@@ -43,7 +44,7 @@ export function useOutings() {
 
       setOutings(mappedOutings);
     } catch (error) {
-      console.error('Error fetching outings:', error);
+      logger.error('Error fetching outings:', error);
       toast({
         title: 'Error loading outings',
         description: 'Could not load outings from the database.',
@@ -139,7 +140,7 @@ export function useOutings() {
       setOutings((prev) => [newOuting, ...prev]);
       return newOuting;
     } catch (error: any) {
-      console.error('Error adding outing:', error);
+      logger.error('Error adding outing:', error);
       const message = error?.message?.includes('row-level security')
         ? 'You must be signed in to log outings.'
         : 'Could not save the outing to the database.';
@@ -179,7 +180,7 @@ export function useOutings() {
       });
       return true;
     } catch (error) {
-      console.error('Error updating outing:', error);
+      logger.error('Error updating outing:', error);
       toast({
         title: 'Error updating outing',
         description: 'Could not update the outing.',
@@ -206,7 +207,7 @@ export function useOutings() {
       });
       return true;
     } catch (error) {
-      console.error('Error deleting outing:', error);
+      logger.error('Error deleting outing:', error);
       toast({
         title: 'Error deleting outing',
         description: 'Could not delete the outing.',
