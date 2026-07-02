@@ -130,10 +130,10 @@ export function SeasonTrendsChart({ outings }: SeasonTrendsChartProps) {
             <span
               className={`text-xs font-medium px-2 py-1 rounded-full ${
                 trend === 'up'
-                  ? 'bg-[hsl(142,70%,45%)]/15 text-[hsl(142,70%,45%)]'
+                  ? 'bg-[hsl(var(--status-active))]/15 text-[hsl(var(--status-active))]'
                   : trend === 'down'
-                  ? 'bg-[hsl(0,72%,55%)]/15 text-[hsl(0,72%,55%)]'
-                  : 'bg-[hsl(200,10%,45%)]/15 text-[hsl(200,10%,45%)]'
+                  ? 'bg-[hsl(var(--status-danger))]/15 text-[hsl(var(--status-danger))]'
+                  : 'bg-[hsl(var(--status-neutral))]/15 text-[hsl(var(--status-neutral))]'
               }`}
             >
               {trend === 'up' ? 'Trending Up' : trend === 'down' ? 'Trending Down' : 'Stable'}
