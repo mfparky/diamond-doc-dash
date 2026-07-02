@@ -26,12 +26,14 @@ export function Header({ onAddOuting, activeTab = 'players', onTabChange, onOpen
     >
       <div className="container mx-auto px-4 py-2 sm:py-3">
         {/* Mobile: Centered logo, shorter height */}
-        <div className="flex sm:hidden items-center justify-center">
+        <div className="flex sm:hidden items-center justify-between">
+          <div className="w-9" />
           <img 
             src={hawksLogo} 
             alt="Newmarket Hawks Logo" 
             className="h-8 w-auto object-contain" 
           />
+          <ThemeToggle />
         </div>
 
         {/* Desktop/Tablet: Full header with nav */}
