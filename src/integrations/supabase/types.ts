@@ -136,31 +136,31 @@ export type Database = {
       }
       lineups: {
         Row: {
-          id: string
-          user_id: string
-          date: string
           batting_order: Json
-          notes: string | null
           created_at: string
+          date: string
+          id: string
+          notes: string | null
           updated_at: string
+          user_id: string
         }
         Insert: {
-          id?: string
-          user_id: string
-          date: string
           batting_order?: Json
-          notes?: string | null
           created_at?: string
+          date: string
+          id?: string
+          notes?: string | null
           updated_at?: string
+          user_id: string
         }
         Update: {
-          id?: string
-          user_id?: string
-          date?: string
           batting_order?: Json
-          notes?: string | null
           created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
           updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -339,62 +339,6 @@ export type Database = {
           },
         ]
       }
-      report_cards: {
-        Row: {
-          id: string
-          user_id: string
-          pitcher_id: string
-          period_start: string
-          period_end: string
-          coach_context: string | null
-          narrative_summary: string | null
-          narrative_strengths: string | null
-          narrative_areas: string | null
-          snapshot_id: string | null
-          metric_adjustments: Json
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          pitcher_id: string
-          period_start: string
-          period_end: string
-          coach_context?: string | null
-          narrative_summary?: string | null
-          narrative_strengths?: string | null
-          narrative_areas?: string | null
-          snapshot_id?: string | null
-          metric_adjustments?: Json
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          pitcher_id?: string
-          period_start?: string
-          period_end?: string
-          coach_context?: string | null
-          narrative_summary?: string | null
-          narrative_strengths?: string | null
-          narrative_areas?: string | null
-          snapshot_id?: string | null
-          metric_adjustments?: Json
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "report_cards_pitcher_id_fkey"
-            columns: ["pitcher_id"]
-            isOneToOne: false
-            referencedRelation: "pitchers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       pitchers: {
         Row: {
           baseball_iq_rating: string | null
@@ -441,6 +385,69 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_cards: {
+        Row: {
+          coach_context: string | null
+          created_at: string
+          id: string
+          metric_adjustments: Json
+          narrative_areas: string | null
+          narrative_strengths: string | null
+          narrative_summary: string | null
+          period_end: string
+          period_start: string
+          pitcher_id: string
+          snapshot_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          coach_context?: string | null
+          created_at?: string
+          id?: string
+          metric_adjustments?: Json
+          narrative_areas?: string | null
+          narrative_strengths?: string | null
+          narrative_summary?: string | null
+          period_end: string
+          period_start: string
+          pitcher_id: string
+          snapshot_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          coach_context?: string | null
+          created_at?: string
+          id?: string
+          metric_adjustments?: Json
+          narrative_areas?: string | null
+          narrative_strengths?: string | null
+          narrative_summary?: string | null
+          period_end?: string
+          period_start?: string
+          pitcher_id?: string
+          snapshot_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_cards_pitcher_id_fkey"
+            columns: ["pitcher_id"]
+            isOneToOne: false
+            referencedRelation: "pitchers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_cards_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "pitcher_stat_snapshots"
             referencedColumns: ["id"]
           },
         ]
@@ -516,6 +523,45 @@ export type Database = {
           name?: string
           owner_id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      tournament_pitch_plans: {
+        Row: {
+          created_at: string
+          entries: Json
+          id: string
+          notes: string | null
+          roster: Json
+          schedule: Json
+          tournament_name: string
+          tournament_slug: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entries?: Json
+          id?: string
+          notes?: string | null
+          roster?: Json
+          schedule?: Json
+          tournament_name: string
+          tournament_slug: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entries?: Json
+          id?: string
+          notes?: string | null
+          roster?: Json
+          schedule?: Json
+          tournament_name?: string
+          tournament_slug?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
