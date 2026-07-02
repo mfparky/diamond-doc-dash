@@ -155,7 +155,7 @@ export async function generateReportCardDraft(input: ReportCardInput): Promise<R
     method: 'POST',
     headers,
     body: JSON.stringify({
-      model: 'claude-sonnet-4-5',
+      model: 'claude-sonnet-5',
       max_tokens: 1200,
       system,
       messages: [{ role: 'user', content: user }],
