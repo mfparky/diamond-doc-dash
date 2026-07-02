@@ -72,9 +72,9 @@ function QuadrantPointLabel(props: Record<string, unknown>) {
   const textWidth = Math.min(76, Math.max(...lines.map((line) => line.length)) * 5.7 + 10);
   const boxHeight = lines.length * 12 + 8;
   const boxX =
-    payload.labelAnchor === 'end'
+    labelAnchor === 'end'
       ? x - textWidth
-      : payload.labelAnchor === 'start'
+      : labelAnchor === 'start'
         ? x
         : x - textWidth / 2;
   const boxY = y + labelDy - boxHeight / 2;
