@@ -26,12 +26,15 @@ export interface TournamentGameSlot {
 }
 
 export const COOPERSTOWN_2026: TournamentGameSlot[] = [
-  { id: 'day1-g1', dayIndex: 0, gameIndex: 0, date: '2026-07-07', time: '5:30 PM', code: 'F8', opponent: 'TBD' },
-  { id: 'day2-g1', dayIndex: 1, gameIndex: 0, date: '2026-07-08', time: '11:30 AM', code: 'F19', opponent: 'TBD' },
-  { id: 'day2-g2', dayIndex: 1, gameIndex: 1, date: '2026-07-08', time: '7:00 PM', code: 'F17', opponent: 'TBD' },
-  { id: 'day3-g1', dayIndex: 2, gameIndex: 0, date: '2026-07-09', time: '9:00 AM', code: 'F6', opponent: 'TBD' },
-  { id: 'day3-g2', dayIndex: 2, gameIndex: 1, date: '2026-07-09', time: '4:30 PM', code: 'F16', opponent: 'TBD' },
-  { id: 'day4-bracket', dayIndex: 3, gameIndex: 0, date: '2026-07-10', time: 'TBD', code: 'Bracket', opponent: 'TBD' },
+  { id: 'day1-g1', dayIndex: 0, gameIndex: 0, date: '2026-07-06', time: '5:30 PM', code: 'F8', opponent: 'TBD' },
+  { id: 'day2-g1', dayIndex: 1, gameIndex: 0, date: '2026-07-07', time: '11:30 AM', code: 'F19', opponent: 'TBD' },
+  { id: 'day2-g2', dayIndex: 1, gameIndex: 1, date: '2026-07-07', time: '7:00 PM', code: 'F17', opponent: 'TBD' },
+  { id: 'day3-g1', dayIndex: 2, gameIndex: 0, date: '2026-07-08', time: '9:00 AM', code: 'F6', opponent: 'TBD' },
+  { id: 'day3-g2', dayIndex: 2, gameIndex: 1, date: '2026-07-08', time: '4:30 PM', code: 'F16', opponent: 'TBD' },
+  { id: 'day4-bracket', dayIndex: 3, gameIndex: 0, date: '2026-07-09', time: 'TBD', code: 'Bracket', opponent: 'TBD' },
+  { id: 'day5-bracket', dayIndex: 4, gameIndex: 0, date: '2026-07-10', time: 'TBD', code: 'Bracket', opponent: 'TBD' },
+  { id: 'day6-bracket', dayIndex: 5, gameIndex: 0, date: '2026-07-11', time: 'TBD', code: 'Bracket', opponent: 'TBD' },
+  { id: 'day7-bracket', dayIndex: 6, gameIndex: 0, date: '2026-07-12', time: 'TBD', code: 'Bracket', opponent: 'TBD' },
 ];
 
 /** Back-compat alias — prefer `COOPERSTOWN_2026`. */
