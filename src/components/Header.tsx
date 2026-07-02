@@ -86,6 +86,8 @@ export function Header({ onAddOuting, activeTab = 'players', onTabChange, onOpen
               </Button>
             )}
 
+            <ThemeToggle />
+
             <Button
               onClick={onAddOuting}
               size="sm"
