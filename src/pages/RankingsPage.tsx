@@ -11,7 +11,7 @@ import {
   ReferenceLine,
   Cell,
 } from 'recharts';
-import { ArrowLeft, Trophy, Upload, Info, Minus, Equal, Plus, Eye, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Trophy, Upload, Info, Minus, Equal, Plus, Eye, ChevronDown, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -34,6 +34,11 @@ import { QuadrantChart } from '@/components/rankings/QuadrantChart';
 import { TierList } from '@/components/rankings/TierList';
 import { RadarOverlay } from '@/components/rankings/RadarOverlay';
 import { WeightingChart } from '@/components/rankings/WeightingChart';
+import {
+  LeversPanel,
+  DEFAULT_LEVER_STATE,
+  type LeverState,
+} from '@/components/rankings/LeversPanel';
 import {
   buildRankings,
   METRIC_LABELS,
@@ -58,6 +63,8 @@ export default function RankingsPage() {
   const [reefMode, setReefMode] = useState<ReefMode>('25');
   const [filter, setFilter] = useState<RankingFilter>('all');
   const [chartView, setChartView] = useState<ChartView>('bar');
+  const [levers, setLevers] = useState<LeverState>(DEFAULT_LEVER_STATE);
+  const [showLevers, setShowLevers] = useState(false);
 
   const inputs = useMemo<RankingInput[]>(() => {
     return pitchers.map((p) => ({
@@ -84,8 +91,14 @@ export default function RankingsPage() {
   }, [pitchers, byPitcher]);
 
   const rankingOpts = useMemo(
-    () => ({ reefMode, minPlateAppearances: MIN_PA, filter }),
-    [reefMode, filter],
+    () => ({
+      reefMode,
+      minPlateAppearances: MIN_PA,
+      filter,
+      bucketWeights: levers.bucketWeights,
+      metricEnabled: levers.metricEnabled,
+    }),
+    [reefMode, filter, levers],
   );
 
   const {
@@ -230,6 +243,18 @@ export default function RankingsPage() {
                       </div>
                     </PopoverContent>
                   </Popover>
+                </div>
+
+                <div className="sm:ml-auto">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 text-xs"
+                    onClick={() => setShowLevers(true)}
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Levers
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -418,7 +443,17 @@ export default function RankingsPage() {
             </Card>
 
             {/* Weighting reference — auditable view of what drives PV */}
-            <WeightingChart />
+            <WeightingChart
+              bucketWeights={levers.bucketWeights}
+              metricEnabled={levers.metricEnabled}
+            />
+
+            <LeversPanel
+              open={showLevers}
+              onOpenChange={setShowLevers}
+              levers={levers}
+              onChange={setLevers}
+            />
           </>
         )}
       </div>

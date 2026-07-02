@@ -1,28 +1,42 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { buildWeightingBreakdown, type MetricBucket } from '@/lib/team-rankings';
+import { buildWeightingBreakdown, type MetricBucket, type WeightingBreakdownOptions } from '@/lib/team-rankings';
 import { cn } from '@/lib/utils';
 
-const BUCKET_LABEL: Record<MetricBucket, string> = {
+type BucketOrPv = MetricBucket | 'ipVolume';
+
+const BUCKET_LABEL: Record<BucketOrPv, string> = {
   offense: 'Offense',
   defense: 'Defense',
   intangibles: 'Intangibles',
+  ipVolume: 'IP volume',
 };
 
-const BUCKET_COLOR: Record<MetricBucket, string> = {
+const BUCKET_COLOR: Record<BucketOrPv, string> = {
   offense: 'bg-primary',
   defense: 'bg-sky-500',
   intangibles: 'bg-amber-500',
+  ipVolume: 'bg-emerald-500',
 };
 
-const BUCKET_TINT: Record<MetricBucket, string> = {
+const BUCKET_TINT: Record<BucketOrPv, string> = {
   offense: 'bg-primary/15 text-primary',
   defense: 'bg-sky-500/15 text-sky-600 dark:text-sky-300',
   intangibles: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
+  ipVolume: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
 };
 
-export function WeightingChart() {
-  const { rows, bucketShares } = useMemo(() => buildWeightingBreakdown(), []);
+interface WeightingChartProps {
+  bucketWeights?: WeightingBreakdownOptions['bucketWeights'];
+  metricWeights?: WeightingBreakdownOptions['metricWeights'];
+  metricEnabled?: WeightingBreakdownOptions['metricEnabled'];
+}
+
+export function WeightingChart({ bucketWeights, metricWeights, metricEnabled }: WeightingChartProps = {}) {
+  const { rows, bucketShares } = useMemo(
+    () => buildWeightingBreakdown({ bucketWeights, metricWeights, metricEnabled }),
+    [bucketWeights, metricWeights, metricEnabled],
+  );
 
   // Sort by descending PV share so the heaviest metrics surface first.
   const sortedRows = useMemo(
@@ -30,7 +44,7 @@ export function WeightingChart() {
     [rows],
   );
 
-  const bucketOrder: MetricBucket[] = ['offense', 'defense', 'intangibles'];
+  const bucketOrder: BucketOrPv[] = ['offense', 'defense', 'intangibles', 'ipVolume'];
 
   const maxShareOfPv = Math.max(...rows.map((r) => r.shareOfPv));
 
