@@ -136,31 +136,31 @@ export type Database = {
       }
       lineups: {
         Row: {
-          id: string
-          user_id: string
-          date: string
           batting_order: Json
-          notes: string | null
           created_at: string
+          date: string
+          id: string
+          notes: string | null
           updated_at: string
+          user_id: string
         }
         Insert: {
-          id?: string
-          user_id: string
-          date: string
           batting_order?: Json
-          notes?: string | null
           created_at?: string
+          date: string
+          id?: string
+          notes?: string | null
           updated_at?: string
+          user_id: string
         }
         Update: {
-          id?: string
-          user_id?: string
-          date?: string
           batting_order?: Json
-          notes?: string | null
           created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
           updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
