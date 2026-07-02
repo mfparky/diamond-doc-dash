@@ -95,7 +95,12 @@ export function RadarOverlay({ rankings }: RadarOverlayProps) {
             <RadarChart data={data} outerRadius="75%">
               <PolarGrid stroke="hsl(var(--border))" />
               <PolarAngleAxis dataKey="axis" tick={{ fontSize: 11, fill: 'hsl(var(--foreground))' }} />
-              <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10 }} />
+              <PolarRadiusAxis
+                angle={90}
+                domain={[0, 100]}
+                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                stroke="hsl(var(--border))"
+              />
               {selectedPlayers.map((p, idx) => (
                 <Radar
                   key={p.pitcherId}
@@ -112,9 +117,12 @@ export function RadarOverlay({ rankings }: RadarOverlayProps) {
                   border: '1px solid hsl(var(--border))',
                   borderRadius: 6,
                   fontSize: 12,
+                  color: 'hsl(var(--foreground))',
                 }}
+                labelStyle={{ color: 'hsl(var(--foreground))' }}
+                itemStyle={{ color: 'hsl(var(--foreground))' }}
               />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Legend wrapperStyle={{ fontSize: 12, color: 'hsl(var(--foreground))' }} />
             </RadarChart>
           </ResponsiveContainer>
         </div>
