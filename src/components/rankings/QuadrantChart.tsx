@@ -104,8 +104,12 @@ export function QuadrantChart({ rankings }: QuadrantChartProps) {
               <LabelList
                 dataKey="name"
                 position="top"
-                style={{ fontSize: 10, fill: 'hsl(var(--foreground))' }}
+                offset={10}
+                fill="hsl(var(--foreground))"
+                fontSize={10}
+                fontWeight={500}
               />
+
             </Scatter>
           </ScatterChart>
         </ResponsiveContainer>
