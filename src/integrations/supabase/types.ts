@@ -339,6 +339,59 @@ export type Database = {
           },
         ]
       }
+      report_cards: {
+        Row: {
+          id: string
+          user_id: string
+          pitcher_id: string
+          period_start: string
+          period_end: string
+          coach_context: string | null
+          narrative_summary: string | null
+          narrative_strengths: string | null
+          narrative_areas: string | null
+          snapshot_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          pitcher_id: string
+          period_start: string
+          period_end: string
+          coach_context?: string | null
+          narrative_summary?: string | null
+          narrative_strengths?: string | null
+          narrative_areas?: string | null
+          snapshot_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          pitcher_id?: string
+          period_start?: string
+          period_end?: string
+          coach_context?: string | null
+          narrative_summary?: string | null
+          narrative_strengths?: string | null
+          narrative_areas?: string | null
+          snapshot_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_cards_pitcher_id_fkey"
+            columns: ["pitcher_id"]
+            isOneToOne: false
+            referencedRelation: "pitchers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pitchers: {
         Row: {
           baseball_iq_rating: string | null
