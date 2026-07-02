@@ -416,9 +416,9 @@ export function SeasonStatsDashboard({
                     <div
                       className={`w-2 h-2 rounded-full shrink-0 ${
                         m.type === 'positive'
-                          ? 'bg-[hsl(142,70%,45%)]'
+                          ? 'bg-[hsl(var(--status-active))]'
                           : m.type === 'negative'
-                          ? 'bg-[hsl(0,72%,55%)]'
+                          ? 'bg-[hsl(var(--status-danger))]'
                           : 'bg-muted-foreground'
                       }`}
                     />
