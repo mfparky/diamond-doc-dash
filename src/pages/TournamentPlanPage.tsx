@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Save, CheckCircle2, AlertTriangle, Info, Plus, Trash2, Clock, UserPlus, Users } from 'lucide-react';
+import { ArrowLeft, Save, CheckCircle2, AlertTriangle, Info, Plus, Trash2, Clock, UserPlus, Users, CalendarClock, BarChart3, StickyNote, Minus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -27,6 +27,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { usePitchers } from '@/hooks/use-pitchers';
 import {
   useTournamentPlan,
@@ -114,6 +122,22 @@ export default function TournamentPlanPage() {
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [pickupName, setPickupName] = useState('');
   const [rosterSeeded, setRosterSeeded] = useState(false);
+  // Mobile game-focus view — which slot the coach is currently logging.
+  // Kept in sync with the schedule so it doesn't dangle after a slot is removed.
+  const [focusedSlotId, setFocusedSlotId] = useState<string | null>(null);
+  useEffect(() => {
+    if (schedule.length === 0) {
+      if (focusedSlotId !== null) setFocusedSlotId(null);
+      return;
+    }
+    if (!focusedSlotId || !schedule.some((s) => s.id === focusedSlotId)) {
+      setFocusedSlotId(schedule[0].id);
+    }
+  }, [schedule, focusedSlotId]);
+  const focusedSlot = useMemo(
+    () => schedule.find((s) => s.id === focusedSlotId) ?? schedule[0] ?? null,
+    [schedule, focusedSlotId],
+  );
 
   useEffect(() => {
     if (!plan) return;
@@ -319,7 +343,7 @@ export default function TournamentPlanPage() {
   const canDelete = summaries.length > 1;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-24 sm:pb-4">
       <div className="container mx-auto px-3 sm:px-4 py-6 max-w-[1600px] space-y-4">
         {/* Header: back + name + tournament picker + save */}
         <div className="flex flex-wrap items-center gap-2">
@@ -386,6 +410,38 @@ export default function TournamentPlanPage() {
 
         <RulesLegend />
 
+        {/* Mobile primary view — game-focused for dugout use.
+            Coach picks a game from the horizontal chip strip, then sees
+            per-pitcher cards with big touch-targets for logging pitches. */}
+        <div className="sm:hidden space-y-3">
+          <MobileGameStrip
+            schedule={schedule}
+            focusedSlotId={focusedSlot?.id ?? null}
+            onFocus={setFocusedSlotId}
+            roster={roster}
+            entries={entries}
+          />
+          {roster.length === 0 && (
+            <Card className="glass-card">
+              <CardContent className="p-4 text-sm text-muted-foreground italic">
+                No players on this roster yet. Tap Roster in the bar below to add pickups or main-roster players.
+              </CardContent>
+            </Card>
+          )}
+          {focusedSlot && roster.length > 0 && (
+            <MobileGameView
+              slot={focusedSlot}
+              schedule={schedule}
+              roster={roster}
+              entries={entries}
+              onCellChange={handleCellChange}
+              onDayOverrideChange={handleDayOverrideChange}
+            />
+          )}
+        </div>
+
+        {/* Desktop primary view — the wide grid + all editors inline. */}
+        <div className="hidden sm:block space-y-4">
         {/* Schedule editor — bracket time / opponent / date are all editable + add/remove */}
         <Card className="glass-card">
           <CardHeader className="pb-2 flex flex-row items-start justify-between gap-2">
@@ -742,6 +798,48 @@ export default function TournamentPlanPage() {
             />
           </CardContent>
         </Card>
+        </div>{/* /desktop wrapper */}
+      </div>
+
+      {/* Mobile bottom bar — Schedule / Roster / Roll-up / Notes as sheets.
+          Fixed at the bottom so it's one tap away in the dugout. */}
+      <div className="sm:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border/60 bg-background/95 backdrop-blur px-1 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
+        <div className="flex gap-1">
+          <MobileSheetButton icon={<CalendarClock className="w-5 h-5" />} label="Schedule">
+            <MobileScheduleSheetContent
+              schedule={schedule}
+              onSlotChange={handleSlotChange}
+              onTargetGroupChange={handleTargetGroupChange}
+              onAddGame={handleAddGame}
+              onRemoveGame={handleRemoveGame}
+            />
+          </MobileSheetButton>
+          <MobileSheetButton icon={<Users className="w-5 h-5" />} label="Roster">
+            <MobileRosterSheetContent
+              roster={roster}
+              availableMainPitchers={availableMainPitchers}
+              pickupName={pickupName}
+              onPickupNameChange={setPickupName}
+              onAddPickup={handleAddPickup}
+              onAddMainPitcher={handleAddMainPitcher}
+              onRemoveFromRoster={handleRemoveFromRoster}
+              onRosterRename={handleRosterRename}
+              onGroupChange={handleGroupChange}
+            />
+          </MobileSheetButton>
+          <MobileSheetButton icon={<BarChart3 className="w-5 h-5" />} label="Roll-up">
+            <PitcherDayRollup roster={roster} entries={entries} schedule={schedule} />
+          </MobileSheetButton>
+          <MobileSheetButton icon={<StickyNote className="w-5 h-5" />} label="Notes">
+            <Textarea
+              value={notes}
+              onChange={(e) => { setNotes(e.target.value); setDirty(true); }}
+              rows={12}
+              placeholder="Rotation strategy, injury notes, bullpen availability, anything worth remembering during the tournament."
+              className="text-sm"
+            />
+          </MobileSheetButton>
+        </div>
       </div>
     </div>
   );
@@ -1100,5 +1198,477 @@ function PitcherDayRollup({
         })}
       </tbody>
     </table>
+  );
+}
+
+// ============================================================================
+// Mobile-only components — coach-in-dugout use case.
+// ============================================================================
+
+/**
+ * Horizontal, snappable chip strip for picking which game to log. Each chip
+ * shows day, time, opponent short + a small "Plan A/B" hint. Selected chip
+ * is emphasized.
+ */
+function MobileGameStrip({
+  schedule,
+  focusedSlotId,
+  onFocus,
+  roster,
+  entries,
+}: {
+  schedule: TournamentGameSlot[];
+  focusedSlotId: string | null;
+  onFocus: (slotId: string) => void;
+  roster: TournamentRosterEntry[];
+  entries: PitchEntries;
+}) {
+  if (schedule.length === 0) {
+    return (
+      <Card className="glass-card">
+        <CardContent className="p-4 text-sm text-muted-foreground italic">
+          No games scheduled. Tap Schedule in the bar below to add one.
+        </CardContent>
+      </Card>
+    );
+  }
+  return (
+    <div className="-mx-3 px-3 overflow-x-auto snap-x snap-mandatory">
+      <div className="flex gap-2 pb-2 min-w-max">
+        {schedule.map((slot) => {
+          const active = slot.id === focusedSlotId;
+          // Total pitches recorded in this slot so far — quick "how loaded is
+          // this game" hint on the chip.
+          const gameTotal = roster.reduce((s, p) => s + effectivePitches(entries[entryKey(p.id, slot.id)]), 0);
+          return (
+            <button
+              key={slot.id}
+              type="button"
+              onClick={() => onFocus(slot.id)}
+              className={`snap-start shrink-0 min-w-[160px] max-w-[220px] text-left rounded-lg border p-2 transition ${
+                active
+                  ? 'bg-primary/10 border-primary shadow-sm'
+                  : 'bg-background border-border/60 hover:bg-muted/40'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+                <span>{dayLabel(slot.dayIndex)}</span>
+                {slot.targetGroup && <GroupLetterInline group={slot.targetGroup} label="Plan" />}
+              </div>
+              <div className="text-sm font-semibold truncate">
+                {slot.time || 'TBD'} · {slot.code || 'Game'}
+              </div>
+              <div className="text-xs text-muted-foreground truncate">
+                {slot.opponent || '—'}
+              </div>
+              <div className="mt-1 text-[10px] text-muted-foreground">
+                {gameTotal > 0 ? `${gameTotal} pitches logged` : 'No pitches yet'}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The focused game's pitcher list — one card per roster player. Each card
+ * has big touch-targets (± steppers) for logging planned + actual pitches,
+ * plus the eligibility badge and day-override control.
+ */
+function MobileGameView({
+  slot,
+  schedule,
+  roster,
+  entries,
+  onCellChange,
+  onDayOverrideChange,
+}: {
+  slot: TournamentGameSlot;
+  schedule: TournamentGameSlot[];
+  roster: TournamentRosterEntry[];
+  entries: PitchEntries;
+  onCellChange: (pitcherId: string, slotId: string, field: 'planned' | 'actual', raw: string) => void;
+  onDayOverrideChange: (pitcherId: string, slotId: string, newDay: number | null) => void;
+}) {
+  return (
+    <Card className="glass-card">
+      <CardHeader className="pb-2">
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <CardTitle className="font-display text-lg">{slot.code || 'Game'}</CardTitle>
+          {slot.targetGroup && <GroupLetterInline group={slot.targetGroup} label="Plan" />}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {dayLabel(slot.dayIndex)} · {slot.time || 'TBD'} · {slot.opponent || '—'}
+        </p>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="divide-y divide-border/40">
+          {roster.map((p) => (
+            <MobilePitcherCard
+              key={p.id}
+              pitcher={p}
+              slot={slot}
+              cell={entries[entryKey(p.id, slot.id)]}
+              rowEntries={pitcherEntries(entries, p.id, schedule)}
+              onCellChange={onCellChange}
+              onDayOverrideChange={onDayOverrideChange}
+            />
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function MobilePitcherCard({
+  pitcher,
+  slot,
+  cell,
+  rowEntries,
+  onCellChange,
+  onDayOverrideChange,
+}: {
+  pitcher: TournamentRosterEntry;
+  slot: TournamentGameSlot;
+  cell: PitchCell | undefined;
+  rowEntries: PitchEntry[];
+  onCellChange: (pitcherId: string, slotId: string, field: 'planned' | 'actual', raw: string) => void;
+  onDayOverrideChange: (pitcherId: string, slotId: string, newDay: number | null) => void;
+}) {
+  const effectiveDay = typeof cell?.dayOverride === 'number' ? cell.dayOverride : slot.dayIndex;
+  const check = isEligibleForGame({
+    entries: rowEntries,
+    targetDay: effectiveDay,
+    targetGameIndex: slot.gameIndex,
+  });
+  const hasOverride = typeof cell?.dayOverride === 'number' && cell.dayOverride !== slot.dayIndex;
+  const hasPlanned = typeof cell?.planned === 'number' && cell.planned > 0;
+  const hasActual = typeof cell?.actual === 'number' && cell.actual > 0;
+  const offPlan =
+    (hasPlanned || hasActual)
+    && !!slot.targetGroup
+    && !!pitcher.group
+    && pitcher.group !== slot.targetGroup;
+
+  return (
+    <div className="p-3 space-y-2.5">
+      <div className="flex items-center gap-2">
+        <span className="font-semibold text-base flex-1 truncate">{pitcher.name}</span>
+        {pitcher.group && <GroupLetterInline group={pitcher.group} />}
+        {pitcher.isPickup && (
+          <span className="text-[9px] uppercase tracking-wider bg-blue-500/15 text-blue-700 dark:text-blue-300 px-1 rounded">PU</span>
+        )}
+        <DayOverridePopover
+          slotDay={slot.dayIndex}
+          override={cell?.dayOverride ?? null}
+          hasOverride={hasOverride}
+          onChange={(d) => onDayOverrideChange(pitcher.id, slot.id, d)}
+        />
+      </div>
+      <EligibilityBadge
+        check={check}
+        offPlan={offPlan}
+        slotGroup={slot.targetGroup ?? null}
+        pitcherGroup={pitcher.group ?? null}
+      />
+      <MobileStepper
+        label="Planned"
+        value={cell?.planned ?? null}
+        onChange={(v) => onCellChange(pitcher.id, slot.id, 'planned', v)}
+      />
+      <MobileStepper
+        label="Actual"
+        emphasize
+        value={cell?.actual ?? null}
+        onChange={(v) => onCellChange(pitcher.id, slot.id, 'actual', v)}
+      />
+    </div>
+  );
+}
+
+/**
+ * Big-touch-target pitch count input. −5 / − / value / + / +5. Coach in
+ * bright sunlight and wearing a batting glove can hit these reliably.
+ */
+function MobileStepper({
+  label,
+  value,
+  onChange,
+  emphasize,
+}: {
+  label: string;
+  value: number | null;
+  onChange: (rawValue: string) => void;
+  emphasize?: boolean;
+}) {
+  const current = typeof value === 'number' ? value : 0;
+  const step = (delta: number) => {
+    const next = Math.max(0, Math.min(DAILY_MAX, current + delta));
+    onChange(String(next));
+  };
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground w-14 shrink-0">
+        {label}
+      </span>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        className="h-10 w-10 p-0 text-xs font-semibold shrink-0"
+        onClick={() => step(-5)}
+        disabled={current <= 0}
+      >
+        −5
+      </Button>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        className="h-10 w-9 p-0 shrink-0"
+        onClick={() => step(-1)}
+        disabled={current <= 0}
+      >
+        <Minus className="w-4 h-4" />
+      </Button>
+      <Input
+        type="number"
+        inputMode="numeric"
+        min={0}
+        max={DAILY_MAX}
+        value={value ?? ''}
+        onChange={(e) => onChange(e.target.value)}
+        className={`h-10 flex-1 text-center ${emphasize ? 'font-bold text-lg' : 'text-base'}`}
+        placeholder="—"
+      />
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        className="h-10 w-9 p-0 shrink-0"
+        onClick={() => step(1)}
+        disabled={current >= DAILY_MAX}
+      >
+        <Plus className="w-4 h-4" />
+      </Button>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        className="h-10 w-10 p-0 text-xs font-semibold shrink-0"
+        onClick={() => step(5)}
+        disabled={current >= DAILY_MAX}
+      >
+        +5
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * Bottom-bar button that opens a bottom sheet with the given section content.
+ */
+function MobileSheetButton({
+  icon,
+  label,
+  children,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <button
+          type="button"
+          className="flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50"
+        >
+          {icon}
+          <span className="text-[10px] font-medium">{label}</span>
+        </button>
+      </SheetTrigger>
+      <SheetContent side="bottom" className="h-[90vh] overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>{label}</SheetTitle>
+          <SheetDescription className="sr-only">Tournament {label} editor.</SheetDescription>
+        </SheetHeader>
+        <div className="mt-4">{children}</div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+/**
+ * Compact schedule editor for mobile — vertical list of games with the same
+ * fields as desktop but stacked. Same handlers.
+ */
+function MobileScheduleSheetContent({
+  schedule,
+  onSlotChange,
+  onTargetGroupChange,
+  onAddGame,
+  onRemoveGame,
+}: {
+  schedule: TournamentGameSlot[];
+  onSlotChange: (slotId: string, field: keyof TournamentGameSlot, value: string | number) => void;
+  onTargetGroupChange: (slotId: string, target: 'A' | 'B' | null) => void;
+  onAddGame: () => void;
+  onRemoveGame: (slotId: string) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <Button size="sm" variant="outline" onClick={onAddGame} className="w-full">
+        <Plus className="w-4 h-4 mr-1" />
+        Add game
+      </Button>
+      <div className="space-y-3">
+        {schedule.map((slot) => (
+          <div key={slot.id} className="rounded-md border border-border/60 p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs uppercase tracking-wider text-muted-foreground">Day</span>
+              <Input
+                type="number"
+                min={1}
+                value={slot.dayIndex + 1}
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  if (Number.isFinite(n) && n >= 1) onSlotChange(slot.id, 'dayIndex', n - 1);
+                }}
+                className="h-9 w-16 px-1 text-center"
+              />
+              <Input
+                type="date"
+                value={slot.date}
+                onChange={(e) => onSlotChange(slot.id, 'date', e.target.value)}
+                className="h-9 flex-1"
+              />
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-9 w-9 text-muted-foreground hover:text-red-600"
+                onClick={() => onRemoveGame(slot.id)}
+                aria-label="Remove game"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Time</Label>
+                <Input value={slot.time} onChange={(e) => onSlotChange(slot.id, 'time', e.target.value)} className="h-9" />
+              </div>
+              <div>
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Code</Label>
+                <Input value={slot.code} onChange={(e) => onSlotChange(slot.id, 'code', e.target.value)} className="h-9" />
+              </div>
+            </div>
+            <div>
+              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Opponent</Label>
+              <Input value={slot.opponent} onChange={(e) => onSlotChange(slot.id, 'opponent', e.target.value)} className="h-9" />
+            </div>
+            <div className="flex items-center justify-between border-t border-border/40 pt-2">
+              <span className="text-xs text-muted-foreground">Target group</span>
+              <TargetGroupPicker
+                target={slot.targetGroup ?? null}
+                onChange={(g) => onTargetGroupChange(slot.id, g)}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Compact roster editor for mobile — vertical list.
+ */
+function MobileRosterSheetContent({
+  roster,
+  availableMainPitchers,
+  pickupName,
+  onPickupNameChange,
+  onAddPickup,
+  onAddMainPitcher,
+  onRemoveFromRoster,
+  onRosterRename,
+  onGroupChange,
+}: {
+  roster: TournamentRosterEntry[];
+  availableMainPitchers: Array<{ id: string; name: string }>;
+  pickupName: string;
+  onPickupNameChange: (v: string) => void;
+  onAddPickup: () => void;
+  onAddMainPitcher: (id: string) => void;
+  onRemoveFromRoster: (id: string) => void;
+  onRosterRename: (id: string, name: string) => void;
+  onGroupChange: (id: string, group: RotationGroup) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      {roster.length === 0 ? (
+        <p className="text-sm text-muted-foreground italic">
+          Roster is empty. Add pickups below or add players from your main roster.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {roster.map((r) => (
+            <div key={r.id} className="flex items-center gap-2 rounded-md border border-border/60 p-2">
+              <Input
+                value={r.name}
+                onChange={(e) => onRosterRename(r.id, e.target.value)}
+                className="h-9 flex-1"
+              />
+              {r.isPickup && (
+                <span className="text-[9px] uppercase tracking-wider bg-blue-500/15 text-blue-700 dark:text-blue-300 px-1 rounded">PU</span>
+              )}
+              <GroupToggle group={r.group ?? null} onChange={(g) => onGroupChange(r.id, g)} />
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-9 w-9 text-muted-foreground hover:text-red-600"
+                onClick={() => onRemoveFromRoster(r.id)}
+                aria-label="Remove"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="flex items-center gap-2 pt-3 border-t border-border/40">
+        <UserPlus className="w-4 h-4 text-muted-foreground shrink-0" />
+        <Input
+          value={pickupName}
+          onChange={(e) => onPickupNameChange(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onAddPickup(); } }}
+          placeholder="Pickup player name…"
+          className="h-9 flex-1"
+        />
+        <Button size="sm" onClick={onAddPickup} disabled={!pickupName.trim()}>Add</Button>
+      </div>
+      {availableMainPitchers.length > 0 && (
+        <div className="pt-3 border-t border-border/40 space-y-2">
+          <span className="text-xs text-muted-foreground">Add from main roster:</span>
+          <div className="flex flex-wrap gap-2">
+            {availableMainPitchers.map((p) => (
+              <Button
+                key={p.id}
+                size="sm"
+                variant="outline"
+                onClick={() => onAddMainPitcher(p.id)}
+                className="h-8"
+              >
+                <Plus className="w-3.5 h-3.5 mr-1" />
+                {p.name}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
