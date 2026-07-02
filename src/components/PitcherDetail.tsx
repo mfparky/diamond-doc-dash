@@ -4,7 +4,7 @@ import { StatusBadge } from './StatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, Pencil, Trash2, Share2, Settings, MapPin, Play, Activity, ClipboardList, MessageSquare, Columns2, BarChart3, Download, Copy, Check, Star } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Target, Gauge, Calendar, Video, ExternalLink, Shield, Pencil, Trash2, Share2, Settings, MapPin, Play, Activity, ClipboardList, MessageSquare, Columns2, BarChart3, Download, Copy, Check, Star, FileText } from 'lucide-react';
 import { EditOutingDialog } from './EditOutingDialog';
 import { OutingForm } from './OutingForm';
 import { DeleteOutingDialog } from './DeleteOutingDialog';
@@ -272,6 +272,18 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
           >
             <Download className="w-4 h-4 sm:mr-1.5" />
             <span className="hidden sm:inline text-sm">Report</span>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 sm:w-auto sm:px-3"
+            title="Mid-season report card"
+          >
+            <Link to={`/report-card?playerId=${pitcher.id}`}>
+              <FileText className="w-4 h-4 sm:mr-1.5" />
+              <span className="hidden sm:inline text-sm">Card</span>
+            </Link>
           </Button>
           <Button variant="outline" size="icon" className="h-8 w-8 sm:w-auto sm:px-3" onClick={handleShare}>
             <Share2 className="w-4 h-4 sm:mr-1.5" />
