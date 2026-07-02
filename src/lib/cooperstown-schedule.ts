@@ -23,6 +23,13 @@ export interface TournamentGameSlot {
   code: string;
   /** Opponent name or 'TBD'. */
   opponent: string;
+  /**
+   * Preferred rotation group for this game. When a player from a different
+   * group is scheduled here the eligibility badge picks up an "off-plan"
+   * hint — the pitcher is still legal, just outside the intended rotation.
+   * null / undefined = no preference (either group).
+   */
+  targetGroup?: 'A' | 'B' | null;
 }
 
 export const COOPERSTOWN_2026: TournamentGameSlot[] = [
