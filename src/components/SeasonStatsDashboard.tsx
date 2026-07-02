@@ -376,7 +376,7 @@ export function SeasonStatsDashboard({
                     labelLine={{ stroke: 'hsl(var(--muted-foreground))' }}
                   >
                     {Object.entries(summary.eventCounts).map(([name], index) => {
-                      const colors = ['hsl(var(--primary))', 'hsl(38, 92%, 50%)', 'hsl(142, 50%, 40%)', 'hsl(280, 70%, 55%)'];
+                      const colors = ['hsl(var(--primary))', 'hsl(var(--accent))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
                       return <Cell key={name} fill={colors[index % colors.length]} />;
                     })}
                   </Pie>
