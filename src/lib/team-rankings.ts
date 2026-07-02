@@ -367,9 +367,12 @@ export function buildRankings(
     // Bucket weights. Offense + Defense split 50/50; Intangibles 0.1 when
     // any rating exists. No separate IP-volume bucket — participation is
     // baked into the defense score above.
-    const wOff = 0.5;
-    const wDef = 0.5;
-    const wIntangibles = intangiblesScore !== null ? 0.10 : 0;
+    // Bucket weights — kept in sync with BUCKET_WEIGHTS so the runtime
+    // math matches the auditable weighting chart. Intangibles drops to 0
+    // for unrated players so their PV is offense + defense alone.
+    const wOff = BUCKET_WEIGHTS.offense;
+    const wDef = BUCKET_WEIGHTS.defense;
+    const wIntangibles = intangiblesScore !== null ? BUCKET_WEIGHTS.intangibles : 0;
     // Active weights re-normalize automatically because we only count
     // components that are present.
     const wPairs: Array<[number | null, number]> = [
@@ -453,11 +456,15 @@ export const METRIC_LABELS: Array<{
   weight: m.weight,
 }));
 
-/** Auditable bucket-level weights that drive the composite Player Value. */
+/**
+ * Auditable bucket-level weights that drive the composite Player Value.
+ * Chosen to sum to exactly 1.0 so the Weighting chart displays clean whole
+ * numbers (45 + 45 + 10 = 100%) rather than renormalization artifacts.
+ */
 export const BUCKET_WEIGHTS = {
-  offense: 0.5,
-  defense: 0.5,
-  intangibles: 0.1,
+  offense: 0.45,
+  defense: 0.45,
+  intangibles: 0.10,
 } as const;
 
 export interface MetricContributionBreakdown {
