@@ -1,5 +1,5 @@
 /**
- * Cooperstown Tournament 2025 schedule for Newmarket Hawks 13U.
+ * Cooperstown Tournament 2026 schedule for Newmarket Hawks 13U.
  *
  * `dayIndex` is the 0-indexed tournament day used by the pitch-count rules.
  * Same-day games get sequential `gameIndex` (0, 1, ...) — the rules use both.
@@ -32,21 +32,23 @@ export interface TournamentGameSlot {
   targetGroup?: 'A' | 'B' | null;
 }
 
-// Target groups seeded from the pre-tournament plan:
-// - Day 1: Group A leads off (best arms, ≤45 → cleared by Day 2 off day).
-// - Day 2: Group B carries both games (≤30 to preserve Day 3 eligibility).
-// - Day 3+: mixed / no preference.
-export const COOPERSTOWN_2025: TournamentGameSlot[] = [
-  { id: 'day1-g1', dayIndex: 0, gameIndex: 0, date: '2025-07-07', time: '5:30 PM', code: 'F8', opponent: 'Oregon Park Swordfish (GA)', targetGroup: 'A' },
-  { id: 'day2-g1', dayIndex: 1, gameIndex: 0, date: '2025-07-08', time: '11:30 AM', code: 'F19', opponent: 'Ashville Avengers (OH)', targetGroup: 'B' },
-  { id: 'day2-g2', dayIndex: 1, gameIndex: 1, date: '2025-07-08', time: '7:00 PM', code: 'F17', opponent: 'Otters Baseball Club (KY)', targetGroup: 'B' },
-  { id: 'day3-g1', dayIndex: 2, gameIndex: 0, date: '2025-07-09', time: '9:00 AM', code: 'F6', opponent: 'South Texas Kings (TX)', targetGroup: null },
-  { id: 'day3-g2', dayIndex: 2, gameIndex: 1, date: '2025-07-09', time: '4:30 PM', code: 'F16', opponent: 'SRYA Seahawks (MD)', targetGroup: null },
-  { id: 'day4-bracket', dayIndex: 3, gameIndex: 0, date: '2025-07-10', time: 'TBD', code: 'Bracket', opponent: 'TBD', targetGroup: null },
+export const COOPERSTOWN_2026: TournamentGameSlot[] = [
+  { id: 'day1-g1', dayIndex: 0, gameIndex: 0, date: '2026-07-06', time: '5:30 PM', code: 'F8', opponent: 'TBD' },
+  { id: 'day2-g1', dayIndex: 1, gameIndex: 0, date: '2026-07-07', time: '11:30 AM', code: 'F19', opponent: 'TBD' },
+  { id: 'day2-g2', dayIndex: 1, gameIndex: 1, date: '2026-07-07', time: '7:00 PM', code: 'F17', opponent: 'TBD' },
+  { id: 'day3-g1', dayIndex: 2, gameIndex: 0, date: '2026-07-08', time: '9:00 AM', code: 'F6', opponent: 'TBD' },
+  { id: 'day3-g2', dayIndex: 2, gameIndex: 1, date: '2026-07-08', time: '4:30 PM', code: 'F16', opponent: 'TBD' },
+  { id: 'day4-bracket', dayIndex: 3, gameIndex: 0, date: '2026-07-09', time: 'TBD', code: 'Bracket', opponent: 'TBD' },
+  { id: 'day5-bracket', dayIndex: 4, gameIndex: 0, date: '2026-07-10', time: 'TBD', code: 'Bracket', opponent: 'TBD' },
+  { id: 'day6-bracket', dayIndex: 5, gameIndex: 0, date: '2026-07-11', time: 'TBD', code: 'Bracket', opponent: 'TBD' },
+  { id: 'day7-bracket', dayIndex: 6, gameIndex: 0, date: '2026-07-12', time: 'TBD', code: 'Bracket', opponent: 'TBD' },
 ];
 
-export const COOPERSTOWN_TOURNAMENT_SLUG = 'cooperstown-2025';
-export const COOPERSTOWN_TOURNAMENT_NAME = 'Cooperstown Tournament 2025';
+/** Back-compat alias — prefer `COOPERSTOWN_2026`. */
+export const COOPERSTOWN_2025 = COOPERSTOWN_2026;
+
+export const COOPERSTOWN_TOURNAMENT_SLUG = 'cooperstown-2026';
+export const COOPERSTOWN_TOURNAMENT_NAME = 'Cooperstown Tournament 2026';
 
 export function dayLabel(dayIndex: number): string {
   return `Day ${dayIndex + 1}`;
