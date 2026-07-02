@@ -3,6 +3,7 @@ import { Plus, LayoutGrid, BarChart3, MoreHorizontal } from 'lucide-react';
 import hawksLogo from '@/assets/hawks-logo.png';
 import { useScrollDirection } from '@/hooks/use-scroll-direction';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface HeaderProps {
   onAddOuting: () => void;
