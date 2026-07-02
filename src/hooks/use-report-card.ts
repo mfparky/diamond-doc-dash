@@ -45,7 +45,7 @@ export function useReportCard(pitcherId: string | undefined, periodStart: string
         setCard(null);
         return;
       }
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('report_cards')
         .select('id, pitcher_id, period_start, period_end, coach_context, narrative_summary, narrative_strengths, narrative_areas, snapshot_id, updated_at')
         .eq('user_id', user.id)
