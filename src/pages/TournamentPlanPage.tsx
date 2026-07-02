@@ -34,6 +34,7 @@ import {
   type PitchCell,
   type PitchEntries,
   type TournamentRosterEntry,
+  type RotationGroup,
 } from '@/hooks/use-tournament-plan';
 import { useTournamentPlans, slugify } from '@/hooks/use-tournament-plans';
 import {
@@ -266,6 +267,16 @@ export default function TournamentPlanPage() {
     setDirty(true);
   };
 
+  const handleGroupChange = (id: string, group: RotationGroup) => {
+    setRoster((prev) => prev.map((r) => (r.id === id ? { ...r, group } : r)));
+    setDirty(true);
+  };
+
+  const handleTargetGroupChange = (slotId: string, target: 'A' | 'B' | null) => {
+    setSchedule((prev) => prev.map((s) => (s.id === slotId ? { ...s, targetGroup: target } : s)));
+    setDirty(true);
+  };
+
   const handleSave = async () => {
     const ok = await save({ schedule, entries, roster, notes });
     if (ok) {
@@ -391,7 +402,7 @@ export default function TournamentPlanPage() {
           </CardHeader>
           <CardContent className="space-y-2">
             {schedule.map((slot) => (
-              <div key={slot.id} className="grid grid-cols-1 sm:grid-cols-[90px_120px_120px_120px_1fr_36px] gap-2 items-center text-sm">
+              <div key={slot.id} className="grid grid-cols-1 sm:grid-cols-[90px_110px_100px_110px_1fr_130px_36px] gap-2 items-center text-sm">
                 <div className="flex items-center gap-1">
                   <span className="text-xs uppercase tracking-wider text-muted-foreground">Day</span>
                   <Input
@@ -428,6 +439,10 @@ export default function TournamentPlanPage() {
                   onChange={(e) => handleSlotChange(slot.id, 'opponent', e.target.value)}
                   className="h-8"
                   placeholder="Opponent"
+                />
+                <TargetGroupPicker
+                  target={slot.targetGroup ?? null}
+                  onChange={(g) => handleTargetGroupChange(slot.id, g)}
                 />
                 <Button
                   size="icon"
@@ -479,6 +494,7 @@ export default function TournamentPlanPage() {
                         PU
                       </span>
                     )}
+                    <GroupToggle group={r.group ?? null} onChange={(g) => handleGroupChange(r.id, g)} />
                     <Button
                       size="icon"
                       variant="ghost"
@@ -492,6 +508,11 @@ export default function TournamentPlanPage() {
                 ))}
               </div>
             )}
+            {/* Legend */}
+            <p className="text-[11px] text-muted-foreground pt-1 border-t border-border/40">
+              <GroupLetterInline group="A" /> best arms who lead off the tournament ·{' '}
+              <GroupLetterInline group="B" /> depth arms who slot in on secondary days
+            </p>
 
             {/* Add pickup */}
             <div className="flex items-center gap-2 pt-2 border-t border-border/40">
@@ -575,6 +596,11 @@ export default function TournamentPlanPage() {
                       >
                         <div className="truncate max-w-[110px]">{slot.time || '—'}</div>
                         <div className="truncate max-w-[110px] text-[10px]">{slot.code || slot.opponent || ''}</div>
+                        {slot.targetGroup && (
+                          <div className="mt-1 flex justify-center">
+                            <GroupLetterInline group={slot.targetGroup} label="Plan" />
+                          </div>
+                        )}
                       </th>
                     ))}
                     <th className="px-3 py-2 border-b border-l border-border/60 text-center font-normal text-xs text-muted-foreground">
@@ -591,6 +617,7 @@ export default function TournamentPlanPage() {
                         <td className="px-3 py-2 font-medium text-foreground">
                           <div className="flex items-center gap-1">
                             <span className="truncate">{p.name}</span>
+                            {p.group && <GroupLetterInline group={p.group} />}
                             {p.isPickup && (
                               <span className="text-[9px] uppercase tracking-wider bg-blue-500/15 text-blue-700 dark:text-blue-300 px-1 rounded" title="Pickup player">
                                 PU
@@ -608,11 +635,18 @@ export default function TournamentPlanPage() {
                             targetGameIndex: rowEntries[slotIdx].gameIndex,
                           });
                           const hasOverride = typeof cell?.dayOverride === 'number' && cell.dayOverride !== slot.dayIndex;
+                          const hasPlanned = typeof cell?.planned === 'number' && cell.planned > 0;
+                          const hasActual = typeof cell?.actual === 'number' && cell.actual > 0;
+                          const offPlan =
+                            (hasPlanned || hasActual)
+                            && !!slot.targetGroup
+                            && !!p.group
+                            && p.group !== slot.targetGroup;
                           return (
                             <td key={slot.id} className="align-top px-2 py-2 border-l border-border/40">
                               <div className="flex items-center gap-1">
                                 <div className="flex-1 min-w-0">
-                                  <EligibilityBadge check={check} />
+                                  <EligibilityBadge check={check} offPlan={offPlan} slotGroup={slot.targetGroup ?? null} pitcherGroup={p.group ?? null} />
                                 </div>
                                 <DayOverridePopover
                                   slotDay={slot.dayIndex}
@@ -829,7 +863,17 @@ function DayOverridePopover({
   );
 }
 
-function EligibilityBadge({ check }: { check: ReturnType<typeof isEligibleForGame> }) {
+function EligibilityBadge({
+  check,
+  offPlan,
+  slotGroup,
+  pitcherGroup,
+}: {
+  check: ReturnType<typeof isEligibleForGame>;
+  offPlan?: boolean;
+  slotGroup?: RotationGroup;
+  pitcherGroup?: RotationGroup;
+}) {
   if (!check.eligible) {
     return (
       <div
@@ -848,12 +892,85 @@ function EligibilityBadge({ check }: { check: ReturnType<typeof isEligibleForGam
       : remaining >= 10 ? 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300'
       : 'border-orange-500/40 bg-orange-500/10 text-orange-700 dark:text-orange-300';
   return (
-    <div
-      className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold flex items-center gap-1 ${color}`}
-      title={check.reason}
+    <div className="flex flex-col gap-0.5">
+      <div
+        className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold flex items-center gap-1 ${color}`}
+        title={check.reason}
+      >
+        <CheckCircle2 className="w-3 h-3 shrink-0" />
+        <span className="truncate">Up to {remaining}</span>
+      </div>
+      {offPlan && (
+        <div
+          className="rounded-md border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-1"
+          title={`Rotation plan: Group ${slotGroup}. This pitcher is Group ${pitcherGroup}. Legal per OBA rules — just outside the intended rotation.`}
+        >
+          <AlertTriangle className="w-3 h-3 shrink-0" />
+          <span className="truncate">Off-plan · uses {pitcherGroup}, plan is {slotGroup}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GroupToggle({ group, onChange }: { group: RotationGroup; onChange: (g: RotationGroup) => void }) {
+  const cycle = () => {
+    if (group === null) onChange('A');
+    else if (group === 'A') onChange('B');
+    else onChange(null);
+  };
+  const label = group === 'A' ? 'A' : group === 'B' ? 'B' : '—';
+  const color = group === 'A'
+    ? 'bg-blue-500/15 border-blue-500/40 text-blue-700 dark:text-blue-300'
+    : group === 'B'
+      ? 'bg-purple-500/15 border-purple-500/40 text-purple-700 dark:text-purple-300'
+      : 'bg-muted border-border text-muted-foreground';
+  return (
+    <button
+      type="button"
+      onClick={cycle}
+      className={`h-6 w-6 rounded-md border text-xs font-bold flex items-center justify-center ${color}`}
+      title="Click to cycle A → B → none"
+      aria-label="Rotation group"
     >
-      <CheckCircle2 className="w-3 h-3 shrink-0" />
-      <span className="truncate">Up to {remaining}</span>
+      {label}
+    </button>
+  );
+}
+
+function GroupLetterInline({ group, label }: { group: 'A' | 'B'; label?: string }) {
+  const color = group === 'A'
+    ? 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30'
+    : 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30';
+  return (
+    <span className={`inline-flex items-center gap-1 rounded border px-1 py-px text-[9px] font-bold uppercase tracking-wider ${color}`}>
+      {label ? <span className="opacity-70">{label}</span> : null}
+      {group}
+    </span>
+  );
+}
+
+function TargetGroupPicker({ target, onChange }: { target: 'A' | 'B' | null; onChange: (t: 'A' | 'B' | null) => void }) {
+  return (
+    <div className="flex items-center gap-1">
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Plan</span>
+      <div className="flex gap-0.5">
+        {(['A', 'B'] as const).map((g) => {
+          const active = target === g;
+          const activeColor = g === 'A' ? 'bg-blue-500 text-white' : 'bg-purple-500 text-white';
+          return (
+            <button
+              key={g}
+              type="button"
+              onClick={() => onChange(active ? null : g)}
+              className={`h-6 w-6 rounded text-xs font-bold ${active ? activeColor : 'bg-muted text-muted-foreground'}`}
+              title={active ? `Clear plan (currently ${g})` : `Plan Group ${g} for this slot`}
+            >
+              {g}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -917,7 +1034,12 @@ function PitcherDayRollup({
           const byDayMap = new Map(summary.map((s) => [s.day, s]));
           return (
             <tr key={p.id} className="border-b border-border/40">
-              <td className="px-3 py-2 font-medium text-foreground">{p.name}</td>
+              <td className="px-3 py-2 font-medium text-foreground">
+                <div className="flex items-center gap-1">
+                  <span>{p.name}</span>
+                  {p.group && <GroupLetterInline group={p.group} />}
+                </div>
+              </td>
               {dayIndices.map((d) => {
                 const s = byDayMap.get(d);
                 if (!s) {
@@ -933,6 +1055,42 @@ function PitcherDayRollup({
                     <div className="font-semibold">{s.pitches} <span className="text-[10px] font-normal text-muted-foreground">P</span></div>
                     <div className="text-[10px] text-muted-foreground">
                       {s.games} game{s.games === 1 ? '' : 's'} · {tier?.label ?? 'no rest'}
+                    </div>
+                  </td>
+                );
+              })}
+            </tr>
+          );
+        })}
+        {/* Group summary rows — count each group's total pitches + arms used per day.
+            Lets the coach see 'am I actually running Group A on Day 1, Group B on Day 2?'
+            at a glance. */}
+        {(['A', 'B'] as const).map((groupKey) => {
+          const groupPlayers = roster.filter((r) => r.group === groupKey);
+          if (groupPlayers.length === 0) return null;
+          return (
+            <tr key={`group-summary-${groupKey}`} className="bg-muted/40 border-t border-border/60">
+              <td className="px-3 py-2 font-semibold text-xs uppercase tracking-wider">
+                Group {groupKey} total
+              </td>
+              {dayIndices.map((d) => {
+                let groupPitches = 0;
+                let groupArms = 0;
+                for (const p of groupPlayers) {
+                  const pe = pitcherEntries(entries, p.id, schedule);
+                  const dayPitches = pe
+                    .filter((e) => e.day === d)
+                    .reduce((sum, e) => sum + e.pitches, 0);
+                  if (dayPitches > 0) {
+                    groupPitches += dayPitches;
+                    groupArms += 1;
+                  }
+                }
+                return (
+                  <td key={d} className="px-3 py-2 border-l border-border/40 text-center">
+                    <div className="font-semibold text-sm">{groupPitches}</div>
+                    <div className="text-[10px] text-muted-foreground">
+                      {groupArms} arm{groupArms === 1 ? '' : 's'}
                     </div>
                   </td>
                 );

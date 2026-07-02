@@ -30,6 +30,14 @@ export interface PitchCell {
 export type PitchEntries = Record<string, PitchCell>;
 
 /**
+ * Rotation group for a roster player. 'A' = starters / best arms who lead
+ * off the tournament, 'B' = depth arms who slot in on secondary days. null
+ * = unassigned. Coach uses this to plan the day-by-day rotation strategy
+ * (typically: A on Day 1, B on Day 2, mixed after that).
+ */
+export type RotationGroup = 'A' | 'B' | null;
+
+/**
  * Per-tournament roster entry. `id` is either a real `pitchers.id` (for main
  * roster players) or a generated `pu_...` id (for pickup players who don't
  * exist in the main pitchers table). `isPickup` tells the UI whether to show
@@ -39,6 +47,7 @@ export interface TournamentRosterEntry {
   id: string;
   name: string;
   isPickup: boolean;
+  group?: RotationGroup;
 }
 
 export interface TournamentPlanRecord {
@@ -91,10 +100,12 @@ function normalizeRoster(raw: unknown): TournamentRosterEntry[] {
     if (typeof entry.id !== 'string' || typeof entry.name !== 'string') continue;
     if (seen.has(entry.id)) continue;
     seen.add(entry.id);
+    const group = entry.group === 'A' || entry.group === 'B' ? entry.group : null;
     out.push({
       id: entry.id,
       name: entry.name,
       isPickup: entry.isPickup === true,
+      group,
     });
   }
   return out;
@@ -102,13 +113,24 @@ function normalizeRoster(raw: unknown): TournamentRosterEntry[] {
 
 function normalizeSchedule(raw: unknown): TournamentGameSlot[] {
   if (!Array.isArray(raw)) return [];
-  return raw.filter((r): r is TournamentGameSlot => {
-    if (!r || typeof r !== 'object') return false;
+  const out: TournamentGameSlot[] = [];
+  for (const r of raw) {
+    if (!r || typeof r !== 'object') continue;
     const s = r as Record<string, unknown>;
-    return typeof s.id === 'string'
-      && typeof s.dayIndex === 'number'
-      && typeof s.gameIndex === 'number';
-  });
+    if (typeof s.id !== 'string' || typeof s.dayIndex !== 'number' || typeof s.gameIndex !== 'number') continue;
+    const target = s.targetGroup;
+    out.push({
+      id: s.id,
+      dayIndex: s.dayIndex,
+      gameIndex: s.gameIndex,
+      date: typeof s.date === 'string' ? s.date : '',
+      time: typeof s.time === 'string' ? s.time : '',
+      code: typeof s.code === 'string' ? s.code : '',
+      opponent: typeof s.opponent === 'string' ? s.opponent : '',
+      targetGroup: target === 'A' || target === 'B' ? target : null,
+    });
+  }
+  return out;
 }
 
 export function useTournamentPlan(
