@@ -376,7 +376,7 @@ export function SeasonStatsDashboard({
                     labelLine={{ stroke: 'hsl(var(--muted-foreground))' }}
                   >
                     {Object.entries(summary.eventCounts).map(([name], index) => {
-                      const colors = ['hsl(var(--primary))', 'hsl(38, 92%, 50%)', 'hsl(142, 50%, 40%)', 'hsl(280, 70%, 55%)'];
+                      const colors = ['hsl(var(--primary))', 'hsl(var(--accent))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
                       return <Cell key={name} fill={colors[index % colors.length]} />;
                     })}
                   </Pie>
@@ -416,9 +416,9 @@ export function SeasonStatsDashboard({
                     <div
                       className={`w-2 h-2 rounded-full shrink-0 ${
                         m.type === 'positive'
-                          ? 'bg-[hsl(142,70%,45%)]'
+                          ? 'bg-[hsl(var(--status-active))]'
                           : m.type === 'negative'
-                          ? 'bg-[hsl(0,72%,55%)]'
+                          ? 'bg-[hsl(var(--status-danger))]'
                           : 'bg-muted-foreground'
                       }`}
                     />
@@ -564,17 +564,17 @@ function ImprovementCard({
         {isStable ? (
           <Minus className="w-3.5 h-3.5 text-muted-foreground" />
         ) : isImproved ? (
-          <TrendingUp className="w-3.5 h-3.5 text-[hsl(142,70%,45%)]" />
+          <TrendingUp className="w-3.5 h-3.5 text-[hsl(var(--status-active))]" />
         ) : (
-          <TrendingDown className="w-3.5 h-3.5 text-[hsl(0,72%,55%)]" />
+          <TrendingDown className="w-3.5 h-3.5 text-[hsl(var(--status-danger))]" />
         )}
         <span
           className={`text-sm font-bold ${
             isStable
               ? 'text-muted-foreground'
               : isImproved
-              ? 'text-[hsl(142,70%,45%)]'
-              : 'text-[hsl(0,72%,55%)]'
+              ? 'text-[hsl(var(--status-active))]'
+              : 'text-[hsl(var(--status-danger))]'
           }`}
         >
           {formatter(second)}

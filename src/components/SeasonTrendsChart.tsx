@@ -34,7 +34,7 @@ const METRICS: MetricConfig[] = [
     key: 'velocity',
     label: 'Max Velocity',
     shortLabel: 'Velo',
-    color: 'hsl(0, 72%, 55%)',
+    color: 'hsl(var(--status-danger))',
     icon: <Gauge className="w-3.5 h-3.5" />,
     unit: ' mph',
     valueFormatter: (v: number) => `${v} mph`,
@@ -43,7 +43,7 @@ const METRICS: MetricConfig[] = [
     key: 'strikePercent',
     label: 'Strike %',
     shortLabel: 'Strike %',
-    color: 'hsl(38, 92%, 50%)',
+    color: 'hsl(var(--accent))',
     icon: <Target className="w-3.5 h-3.5" />,
     unit: '%',
     valueFormatter: (v: number) => `${v.toFixed(1)}%`,
@@ -52,7 +52,7 @@ const METRICS: MetricConfig[] = [
     key: 'pitchCount',
     label: 'Pitch Count',
     shortLabel: 'Pitches',
-    color: 'hsl(142, 50%, 40%)',
+    color: 'hsl(var(--primary))',
     icon: <TrendingUp className="w-3.5 h-3.5" />,
     unit: '',
     valueFormatter: (v: number) => `${v}`,
@@ -130,10 +130,10 @@ export function SeasonTrendsChart({ outings }: SeasonTrendsChartProps) {
             <span
               className={`text-xs font-medium px-2 py-1 rounded-full ${
                 trend === 'up'
-                  ? 'bg-[hsl(142,70%,45%)]/15 text-[hsl(142,70%,45%)]'
+                  ? 'bg-[hsl(var(--status-active))]/15 text-[hsl(var(--status-active))]'
                   : trend === 'down'
-                  ? 'bg-[hsl(0,72%,55%)]/15 text-[hsl(0,72%,55%)]'
-                  : 'bg-[hsl(200,10%,45%)]/15 text-[hsl(200,10%,45%)]'
+                  ? 'bg-[hsl(var(--status-danger))]/15 text-[hsl(var(--status-danger))]'
+                  : 'bg-[hsl(var(--status-neutral))]/15 text-[hsl(var(--status-neutral))]'
               }`}
             >
               {trend === 'up' ? 'Trending Up' : trend === 'down' ? 'Trending Down' : 'Stable'}
