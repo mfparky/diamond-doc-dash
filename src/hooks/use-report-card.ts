@@ -2,6 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+// `report_cards` isn't in the generated Supabase types yet — cast to bypass.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
+
 export interface ReportCardRecord {
   id: string;
   pitcherId: string;
@@ -41,7 +45,7 @@ export function useReportCard(pitcherId: string | undefined, periodStart: string
         setCard(null);
         return;
       }
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('report_cards')
         .select('id, pitcher_id, period_start, period_end, coach_context, narrative_summary, narrative_strengths, narrative_areas, snapshot_id, updated_at')
         .eq('user_id', user.id)
@@ -86,7 +90,7 @@ export function useReportCard(pitcherId: string | undefined, periodStart: string
           toast({ title: 'Sign in required', variant: 'destructive' });
           return false;
         }
-        const { error } = await supabase
+        const { error } = await db
           .from('report_cards')
           .upsert(
             {
