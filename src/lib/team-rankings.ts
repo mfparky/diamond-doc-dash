@@ -45,6 +45,22 @@ export interface RankingOptions {
   pitchingParticipationFloor?: number;
   /** Limit ranking to one side of the ball. Defaults to 'all'. */
   filter?: RankingFilter;
+  /**
+   * Per-bucket weight overrides. Missing keys fall back to BUCKET_WEIGHTS.
+   * Also supports an optional `ipVolume` bucket — when > 0, restores the
+   * innings-eater bonus that used to be a hard-coded toggle.
+   */
+  bucketWeights?: Partial<Record<MetricBucket | 'ipVolume', number>>;
+  /**
+   * Per-metric weight overrides. Missing keys use the metric's authored weight.
+   * Set a metric's weight to 0 to zero it out without disabling it.
+   */
+  metricWeights?: Record<string, number>;
+  /**
+   * Per-metric enabled overrides. Missing keys use the metric's
+   * `defaultEnabled` (or true when unset).
+   */
+  metricEnabled?: Record<string, boolean>;
 }
 
 /** Default participation threshold — coaches can override per-call later. */
@@ -134,6 +150,8 @@ interface MetricConfig {
   higherIsBetter: boolean;
   /** Bucket the metric contributes to. */
   bucket: MetricBucket;
+  /** Off by default when false — coach can flip on via the Levers panel. */
+  defaultEnabled?: boolean;
   /**
    * Relative weight within its bucket. Defaults to 1 for "standard" metrics.
    * Raise for headline metrics (OPS, R, RBI, ERA, WHIP); lower for noisy
@@ -165,6 +183,9 @@ const METRICS: MetricConfig[] = [
   { key: 'bat_ops', label: 'OPS', description: 'On-base + slugging', narration: 'producing at the plate (on-base + power)', higherIsBetter: true, bucket: 'offense', weight: 2 },
   { key: 'bat_r', label: 'R', description: 'Runs scored', narration: 'scoring runs', higherIsBetter: true, bucket: 'offense', weight: 1 },
   { key: 'bat_rbi', label: 'RBI', description: 'Runs batted in', narration: 'driving in runs', higherIsBetter: true, bucket: 'offense', weight: 1 },
+  // 2-out RBI is a coach favorite — comes through with two outs. Off by
+  // default so the base weighting stays clean; enable via the Levers panel.
+  { key: 'bat_2outrbi', label: '2-out RBI', description: 'Runs batted in with two outs', narration: 'coming through with two outs', higherIsBetter: true, bucket: 'offense', weight: 1, defaultEnabled: false },
   // QAB% counts walks + sac bunts + sac flies as quality at-bats, which
   // double-credits patient hitters who already get BB/K. Halved to 0.5 so
   // a kid who walks a lot but never swings doesn't get a second bump.
@@ -324,7 +345,21 @@ export function buildRankings(
     if (filter === 'pitchers') return b === 'defense' || b === 'intangibles';
     return true;
   };
-  const activeMetrics = METRICS.filter((m) => includeBucket(m.bucket));
+  // Metric enablement — respects defaultEnabled and any explicit override.
+  const isMetricEnabled = (m: MetricConfig): boolean => {
+    if (options.metricEnabled && Object.prototype.hasOwnProperty.call(options.metricEnabled, m.key)) {
+      return options.metricEnabled[m.key];
+    }
+    return m.defaultEnabled ?? true;
+  };
+  // Effective per-metric weight = authored weight unless overridden.
+  const effectiveMetricWeight = (m: MetricConfig): number => {
+    if (options.metricWeights && Object.prototype.hasOwnProperty.call(options.metricWeights, m.key)) {
+      return Math.max(0, options.metricWeights[m.key]);
+    }
+    return m.weight;
+  };
+  const activeMetrics = METRICS.filter((m) => includeBucket(m.bucket) && isMetricEnabled(m));
 
   // 3) Pre-normalize each ACTIVE metric across the team. For intangibles we
   //    don't team-normalize (raw values are already on a comparable 0-100 scale).
@@ -362,13 +397,13 @@ export function buildRankings(
       }
     }
     const offenseScore = weightedMeanIgnoringNaN(
-      offenseMetrics.map((m) => ({ value: normalizedByKey.get(m.key)?.[idx] ?? NaN, weight: m.weight })),
+      offenseMetrics.map((m) => ({ value: normalizedByKey.get(m.key)?.[idx] ?? NaN, weight: effectiveMetricWeight(m) })),
     );
     const defenseScoreRaw = weightedMeanIgnoringNaN(
-      defenseMetrics.map((m) => ({ value: normalizedByKey.get(m.key)?.[idx] ?? NaN, weight: m.weight })),
+      defenseMetrics.map((m) => ({ value: normalizedByKey.get(m.key)?.[idx] ?? NaN, weight: effectiveMetricWeight(m) })),
     );
     const intangiblesScore = weightedMeanIgnoringNaN(
-      intangiblesMetrics.map((m) => ({ value: normalizedByKey.get(m.key)?.[idx] ?? NaN, weight: m.weight })),
+      intangiblesMetrics.map((m) => ({ value: normalizedByKey.get(m.key)?.[idx] ?? NaN, weight: effectiveMetricWeight(m) })),
     );
     const pitchingVolumeScore = Number.isFinite(ipNormalized[idx]) ? ipNormalized[idx] : null;
 
@@ -381,21 +416,23 @@ export function buildRankings(
       : Math.min(1, ipRaw / participationFloor);
     const defenseScore = defenseScoreRaw === null ? null : defenseScoreRaw * participationFactor;
 
-    // Bucket weights. Offense + Defense split 50/50; Intangibles 0.1 when
-    // any rating exists. No separate IP-volume bucket — participation is
-    // baked into the defense score above.
-    // Bucket weights — kept in sync with BUCKET_WEIGHTS so the runtime
-    // math matches the auditable weighting chart. Intangibles drops to 0
-    // for unrated players so their PV is offense + defense alone.
-    const wOff = BUCKET_WEIGHTS.offense;
-    const wDef = BUCKET_WEIGHTS.defense;
-    const wIntangibles = intangiblesScore !== null ? BUCKET_WEIGHTS.intangibles : 0;
+    // Bucket weights — kept in sync with BUCKET_WEIGHTS as defaults, then
+    // overridden per-call if the Levers panel has moved anything. IP volume
+    // is an optional 4th bucket that restores the innings-eater bonus when
+    // its weight is > 0. Intangibles drops to 0 for unrated players so
+    // their PV stays offense + defense alone.
+    const bw = options.bucketWeights ?? {};
+    const wOff = bw.offense ?? BUCKET_WEIGHTS.offense;
+    const wDef = bw.defense ?? BUCKET_WEIGHTS.defense;
+    const wIntangibles = intangiblesScore !== null ? (bw.intangibles ?? BUCKET_WEIGHTS.intangibles) : 0;
+    const wIp = bw.ipVolume ?? 0;
     // Active weights re-normalize automatically because we only count
     // components that are present.
     const wPairs: Array<[number | null, number]> = [
       [offenseScore, wOff],
       [defenseScore, wDef],
       [intangiblesScore, wIntangibles],
+      [wIp > 0 ? pitchingVolumeScore : null, wIp],
     ];
     let pv = 0;
     let totalWeight = 0;
@@ -524,33 +561,66 @@ export interface MetricContributionBreakdown {
  * the final composite. Both shares are returned so the UI can audit either
  * "what drives this bucket" or "what drives the whole PV."
  */
-export function buildWeightingBreakdown(): {
+export interface WeightingBreakdownOptions {
+  bucketWeights?: Partial<Record<MetricBucket | 'ipVolume', number>>;
+  metricWeights?: Record<string, number>;
+  metricEnabled?: Record<string, boolean>;
+}
+
+export function buildWeightingBreakdown(
+  opts: WeightingBreakdownOptions = {},
+): {
   rows: MetricContributionBreakdown[];
-  bucketShares: Record<MetricBucket, number>;
+  bucketShares: Record<MetricBucket | 'ipVolume', number>;
 } {
-  const bucketRawSum: Record<MetricBucket, number> = { offense: 0, defense: 0, intangibles: 0 };
-  for (const m of METRICS) bucketRawSum[m.bucket] += m.weight;
-
-  const sumBuckets = BUCKET_WEIGHTS.offense + BUCKET_WEIGHTS.defense + BUCKET_WEIGHTS.intangibles;
-
-  const bucketShares: Record<MetricBucket, number> = {
-    offense: BUCKET_WEIGHTS.offense / sumBuckets,
-    defense: BUCKET_WEIGHTS.defense / sumBuckets,
-    intangibles: BUCKET_WEIGHTS.intangibles / sumBuckets,
+  // Respect Levers overrides: enabled + per-metric weight.
+  const isEnabled = (m: MetricConfig): boolean => {
+    if (opts.metricEnabled && Object.prototype.hasOwnProperty.call(opts.metricEnabled, m.key)) {
+      return opts.metricEnabled[m.key];
+    }
+    return m.defaultEnabled ?? true;
+  };
+  const effWeight = (m: MetricConfig): number => {
+    if (opts.metricWeights && Object.prototype.hasOwnProperty.call(opts.metricWeights, m.key)) {
+      return Math.max(0, opts.metricWeights[m.key]);
+    }
+    return m.weight;
   };
 
-  const rows: MetricContributionBreakdown[] = METRICS.map((m) => {
-    const shareOfBucket = bucketRawSum[m.bucket] === 0 ? 0 : m.weight / bucketRawSum[m.bucket];
-    const shareOfPv = bucketShares[m.bucket] * shareOfBucket;
-    return {
-      key: m.key,
-      label: m.label,
-      bucket: m.bucket,
-      rawWeight: m.weight,
-      shareOfBucket,
-      shareOfPv,
-    };
-  });
+  const bucketRawSum: Record<MetricBucket, number> = { offense: 0, defense: 0, intangibles: 0 };
+  for (const m of METRICS) {
+    if (isEnabled(m)) bucketRawSum[m.bucket] += effWeight(m);
+  }
+
+  const bw = opts.bucketWeights ?? {};
+  const wOff = bw.offense ?? BUCKET_WEIGHTS.offense;
+  const wDef = bw.defense ?? BUCKET_WEIGHTS.defense;
+  const wInt = bw.intangibles ?? BUCKET_WEIGHTS.intangibles;
+  const wIp = bw.ipVolume ?? 0;
+  const sumBuckets = wOff + wDef + wInt + wIp;
+
+  const bucketShares: Record<MetricBucket | 'ipVolume', number> = {
+    offense: sumBuckets > 0 ? wOff / sumBuckets : 0,
+    defense: sumBuckets > 0 ? wDef / sumBuckets : 0,
+    intangibles: sumBuckets > 0 ? wInt / sumBuckets : 0,
+    ipVolume: sumBuckets > 0 ? wIp / sumBuckets : 0,
+  };
+
+  const rows: MetricContributionBreakdown[] = METRICS
+    .filter(isEnabled)
+    .map((m) => {
+      const w = effWeight(m);
+      const shareOfBucket = bucketRawSum[m.bucket] === 0 ? 0 : w / bucketRawSum[m.bucket];
+      const shareOfPv = bucketShares[m.bucket] * shareOfBucket;
+      return {
+        key: m.key,
+        label: m.label,
+        bucket: m.bucket,
+        rawWeight: w,
+        shareOfBucket,
+        shareOfPv,
+      };
+    });
 
   return { rows, bucketShares };
 }

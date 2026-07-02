@@ -445,4 +445,87 @@ describe('buildWeightingBreakdown', () => {
     const fpct = rows.find((r) => r.key === 'field_fpct')!;
     expect(fpct.shareOfPv).toBeLessThan(0.03); // under 3% of total PV
   });
+
+  it('respects lever overrides: bucket weight bump + metric enable', () => {
+    const { rows, bucketShares } = buildWeightingBreakdown({
+      bucketWeights: { offense: 0.6, defense: 0.3, intangibles: 0.1 },
+      metricEnabled: { bat_2outrbi: true },
+    });
+    // Offense should now claim ~60% of PV
+    expect(bucketShares.offense).toBeCloseTo(0.6, 3);
+    expect(bucketShares.defense).toBeCloseTo(0.3, 3);
+    // 2-out RBI should show up in the rows now
+    expect(rows.some((r) => r.key === 'bat_2outrbi')).toBe(true);
+  });
+
+  it('adds an IP volume slice when bucketWeights.ipVolume > 0', () => {
+    const { bucketShares } = buildWeightingBreakdown({
+      bucketWeights: { offense: 0.45, defense: 0.45, intangibles: 0.10, ipVolume: 0.15 },
+    });
+    // 0.15 of 1.15 = ~0.13
+    expect(bucketShares.ipVolume).toBeCloseTo(0.15 / 1.15, 3);
+  });
+});
+
+describe('buildRankings — lever overrides', () => {
+  it('2-out RBI is off by default and turning it on affects the ranking', () => {
+    const inputs: RankingInput[] = [
+      { pitcherId: 'a', pitcherName: 'ClutchKid', latest: { bat_ops: 0.700, bat_r: 10, bat_rbi: 10, bat_2outrbi: 8, bat_pa: 50 } },
+      { pitcherId: 'b', pitcherName: 'SituationalMiss', latest: { bat_ops: 0.700, bat_r: 10, bat_rbi: 10, bat_2outrbi: 0, bat_pa: 50 } },
+    ];
+    const off = buildRankings(inputs, baseOptions);
+    const on = buildRankings(inputs, { ...baseOptions, metricEnabled: { bat_2outrbi: true } });
+    // When 2-out RBI is off, the two players are basically tied.
+    expect(Math.abs(off.rankings[0].playerValue - off.rankings[1].playerValue)).toBeLessThan(0.001);
+    // Turning it on moves the clutch kid to the top.
+    expect(on.rankings[0].pitcherName).toBe('ClutchKid');
+  });
+
+  it('bucket weight overrides shift the composite', () => {
+    // Two two-way players. BatOnlyBig has a much better bat + worse arm;
+    // ArmOnlyBig is the reverse. Sliding the bucket weights should flip
+    // which one ranks higher.
+    const inputs: RankingInput[] = [
+      { pitcherId: 'bat', pitcherName: 'BatOnlyBig', latest: {
+        bat_ops: 1.100, bat_pa: 100,
+        pit_era: 8.0, pit_whip: 2.0, pit_ip: 20,
+      } },
+      { pitcherId: 'arm', pitcherName: 'ArmOnlyBig', latest: {
+        bat_ops: 0.400, bat_pa: 100,
+        pit_era: 1.5, pit_whip: 0.9, pit_ip: 20,
+      } },
+    ];
+    const offHeavy = buildRankings(inputs, { ...baseOptions, bucketWeights: { offense: 0.9, defense: 0.1 } });
+    const defHeavy = buildRankings(inputs, { ...baseOptions, bucketWeights: { offense: 0.1, defense: 0.9 } });
+    expect(offHeavy.rankings[0].pitcherName).toBe('BatOnlyBig');
+    expect(defHeavy.rankings[0].pitcherName).toBe('ArmOnlyBig');
+  });
+
+  it('IP volume bonus (via bucketWeights.ipVolume) restores the innings-eater lift', () => {
+    const inputs: RankingInput[] = [
+      { pitcherId: 'starter', pitcherName: 'Starter', latest: { bat_ops: 0.700, pit_era: 3.0, pit_whip: 1.20, pit_ip: 30, bat_pa: 40 } },
+      { pitcherId: 'reliever', pitcherName: 'Reliever', latest: { bat_ops: 0.700, pit_era: 3.0, pit_whip: 1.20, pit_ip: 2, bat_pa: 40 } },
+    ];
+    const nobonus = buildRankings(inputs, baseOptions);
+    const withBonus = buildRankings(inputs, { ...baseOptions, bucketWeights: { offense: 0.45, defense: 0.45, intangibles: 0.10, ipVolume: 0.15 } });
+    // No bonus + same participation factor -> basically tied on rates.
+    expect(Math.abs(nobonus.rankings[0].playerValue - nobonus.rankings[1].playerValue)).toBeLessThan(1);
+    // Bonus flips it: starter clearly ahead
+    expect(withBonus.rankings[0].pitcherName).toBe('Starter');
+    expect(withBonus.rankings[0].playerValue).toBeGreaterThan(withBonus.rankings[1].playerValue);
+  });
+
+  it('metricWeights=0 zeroes out a metric without disabling the whole bucket', () => {
+    // With bat_r and bat_rbi zeroed, the composite reduces to OPS + other
+    // rate stats. Producer (high OPS, low R/RBI) should end up ahead.
+    const inputs: RankingInput[] = [
+      { pitcherId: 'a', pitcherName: 'Producer', latest: { bat_ops: 1.100, bat_r: 5, bat_rbi: 5, bat_pa: 40 } },
+      { pitcherId: 'b', pitcherName: 'RunsLeader', latest: { bat_ops: 0.700, bat_r: 30, bat_rbi: 25, bat_pa: 40 } },
+    ];
+    const rWeight0 = buildRankings(inputs, { ...baseOptions, metricWeights: { bat_r: 0, bat_rbi: 0 } });
+    expect(rWeight0.rankings[0].pitcherName).toBe('Producer');
+    // Producer's offense should be higher when R + RBI are ignored — even by a
+    // meaningful margin since OPS is now the only signal that separates them.
+    expect(rWeight0.rankings[0].playerValue).toBeGreaterThan(rWeight0.rankings[1].playerValue);
+  });
 });
