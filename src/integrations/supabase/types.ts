@@ -528,6 +528,7 @@ export type Database = {
       }
       tournament_pitch_plans: {
         Row: {
+          catchers: Json
           created_at: string
           entries: Json
           id: string
@@ -540,6 +541,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          catchers?: Json
           created_at?: string
           entries?: Json
           id?: string
@@ -552,6 +554,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          catchers?: Json
           created_at?: string
           entries?: Json
           id?: string
