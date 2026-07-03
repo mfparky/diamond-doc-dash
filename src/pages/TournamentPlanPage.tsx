@@ -36,6 +36,12 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { usePitchers } from '@/hooks/use-pitchers';
+import { useAllStatSnapshots } from '@/hooks/use-stat-snapshots';
+import {
+  suggestGroups,
+  suggestPitchBudget,
+  type PitcherTierAssignment,
+} from '@/lib/pitcher-tiering';
 import {
   useTournamentPlan,
   entryKey,
@@ -102,6 +108,8 @@ export default function TournamentPlanPage() {
   const activeSlug = searchParams.get('t') ?? COOPERSTOWN_TOURNAMENT_SLUG;
 
   const { pitchers, isLoading: pitchersLoading } = usePitchers();
+  const pitcherIds = useMemo(() => pitchers.map((p) => p.id), [pitchers]);
+  const { byPitcher: statsByPitcher } = useAllStatSnapshots(pitcherIds);
   const { summaries, isLoading: summariesLoading, createPlan, deletePlan, refetch: refetchSummaries } = useTournamentPlans();
 
   // Resolve the display name for the active tournament (falls back to
@@ -122,6 +130,44 @@ export default function TournamentPlanPage() {
   const [autoDialogOpen, setAutoDialogOpen] = useState(false);
   const [autoPitchesPerPitcher, setAutoPitchesPerPitcher] = useState(30);
   const [autoPitchersPerGame, setAutoPitchersPerGame] = useState(3);
+  const [autoSmartBudget, setAutoSmartBudget] = useState(true);
+  const [suggestDialogOpen, setSuggestDialogOpen] = useState(false);
+  const [suggestGroupASize, setSuggestGroupASize] = useState(5);
+
+  // Compute latest stats keyed by roster-entry id. Only main-roster players
+  // resolve (pickups have generated ids and no snapshot); the suggestion
+  // ignores anyone without a snapshot.
+  const rosterStatsById = useMemo(() => {
+    const out: Record<string, { name: string; stats: Record<string, unknown> | null }> = {};
+    for (const r of roster) {
+      const snap = statsByPitcher.get(r.id)?.[0];
+      out[r.id] = { name: r.name, stats: snap?.stats ?? null };
+    }
+    return out;
+  }, [roster, statsByPitcher]);
+
+  const suggestions = useMemo<PitcherTierAssignment[]>(() => {
+    if (!suggestDialogOpen) return [];
+    const inputs = roster.map((r) => ({
+      pitcherId: r.id,
+      name: r.name,
+      stats: (rosterStatsById[r.id]?.stats ?? null) as Record<string, import('@/lib/stat-csv').StatValue> | null,
+    }));
+    return suggestGroups(inputs, { groupASize: suggestGroupASize });
+  }, [suggestDialogOpen, roster, rosterStatsById, suggestGroupASize]);
+
+  const applySuggestions = () => {
+    const byId = new Map(suggestions.map((s) => [s.pitcherId, s]));
+    setRoster((prev) =>
+      prev.map((r) => {
+        const s = byId.get(r.id);
+        if (!s) return r;
+        return { ...r, group: s.suggestedGroup };
+      }),
+    );
+    setDirty(true);
+    setSuggestDialogOpen(false);
+  };
   const [savedFlash, setSavedFlash] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [newDialogOpen, setNewDialogOpen] = useState(false);
@@ -385,7 +431,18 @@ export default function TournamentPlanPage() {
 
       const picked = eligible.slice(0, perGame);
       for (const { p, check } of picked) {
-        const cap = Math.min(perPitcher, check.remaining ?? perPitcher);
+        // Smart budget: scale the base by group + IP history so a low-IP
+        // depth arm doesn't get asked to throw 45.
+        const smartBase = autoSmartBudget
+          ? suggestPitchBudget(
+              p.group ?? null,
+              typeof rosterStatsById[p.id]?.stats?.pit_ip === 'number'
+                ? (rosterStatsById[p.id]!.stats!.pit_ip as number)
+                : 0,
+              perPitcher,
+            )
+          : perPitcher;
+        const cap = Math.min(smartBase, check.remaining ?? smartBase);
         if (cap <= 0) continue;
         const key = entryKey(p.id, slot.id);
         const existing: PitchCell = workingEntries[key] ?? { planned: null, actual: null };
@@ -540,6 +597,19 @@ export default function TournamentPlanPage() {
                       />
                     </div>
                   </div>
+                  <label className="flex items-start gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={autoSmartBudget}
+                      onChange={(e) => setAutoSmartBudget(e.target.checked)}
+                      className="mt-1"
+                    />
+                    <span>
+                      <span className="font-semibold">Smart budget</span> — cap Group A at 45,
+                      Group B at 30, and scale down for low-IP arms. Uses the base value above
+                      as the target for a fresh Group A pitcher; everyone else gets less.
+                    </span>
+                  </label>
                   <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 flex items-start gap-2 text-xs">
                     <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
                     <p className="text-amber-800 dark:text-amber-200">
@@ -559,6 +629,71 @@ export default function TournamentPlanPage() {
             </Button>
           </div>
         </div>
+
+        {/* Suggest A/B groups dialog */}
+        <Dialog open={suggestDialogOpen} onOpenChange={setSuggestDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Suggest A/B groups from stats</DialogTitle>
+              <DialogDescription>
+                Ranks each rostered pitcher by their latest snapshot — strike %, ERA, WHIP,
+                K/BF, FPS %, IP — and places the top N in Group A, everyone else with meaningful
+                IP in Group B. Players without a snapshot stay unassigned.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="suggest-a-size">Group A size</Label>
+                  <Input
+                    id="suggest-a-size"
+                    type="number"
+                    min={1}
+                    max={roster.length || 11}
+                    value={suggestGroupASize}
+                    onChange={(e) => setSuggestGroupASize(Number(e.target.value) || 5)}
+                  />
+                </div>
+              </div>
+              <div className="rounded-md border border-border/50 max-h-72 overflow-y-auto">
+                {suggestions.length === 0 && (
+                  <p className="p-3 text-sm text-muted-foreground italic">No roster to rank.</p>
+                )}
+                {(['A', 'B', null] as const).map((g) => {
+                  const rows = suggestions.filter((s) => s.suggestedGroup === g);
+                  if (rows.length === 0) return null;
+                  return (
+                    <div key={String(g)} className="border-b border-border/40 last:border-b-0">
+                      <div className="px-3 py-1.5 bg-muted/30 text-xs uppercase tracking-wider font-semibold">
+                        {g === 'A' ? 'Group A · best arms' : g === 'B' ? 'Group B · depth arms' : 'Unassigned'}
+                      </div>
+                      <ul className="divide-y divide-border/30">
+                        {rows.map((s) => (
+                          <li key={s.pitcherId} className="px-3 py-1.5 flex items-center gap-2 text-sm">
+                            <span className="font-medium flex-1 truncate">{s.name}</span>
+                            {g && <GroupLetterInline group={g} />}
+                            <span className="text-xs text-muted-foreground truncate">{s.reason}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 flex items-start gap-2 text-xs">
+                <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                <p className="text-amber-800 dark:text-amber-200">
+                  Applying overwrites every current group assignment on the roster. You can still
+                  tap the A/B toggle to override any individual player after.
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSuggestDialogOpen(false)}>Cancel</Button>
+              <Button onClick={applySuggestions} disabled={suggestions.length === 0}>Apply</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <RulesLegend />
 
@@ -679,6 +814,15 @@ export default function TournamentPlanPage() {
                 Only players on this roster show up in the grid below. Add pickups by name, or add regulars from your main roster.
               </p>
             </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setSuggestDialogOpen(true)}
+              disabled={roster.length === 0}
+            >
+              <Wand2 className="w-4 h-4 mr-1" />
+              Suggest A/B
+            </Button>
           </CardHeader>
           <CardContent className="space-y-3">
             {roster.length === 0 && (
