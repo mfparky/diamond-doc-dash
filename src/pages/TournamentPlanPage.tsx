@@ -1891,7 +1891,7 @@ function CatchersEditorCard({
           the game grid picks it up automatically.
         </p>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2">
         {dayIndices.length === 0 && (
           <p className="text-sm text-muted-foreground italic">Add games to the schedule first.</p>
         )}
@@ -1899,32 +1899,57 @@ function CatchersEditorCard({
           <p className="text-sm text-muted-foreground italic">Add players to the roster first.</p>
         )}
         {dayIndices.map((d) => {
-          const catcherIds = new Set(catchers[String(d)] ?? []);
+          const catcherIds = catchers[String(d)] ?? [];
+          const catchingPlayers = roster.filter((p) => catcherIds.includes(p.id));
+          const availablePlayers = roster.filter((p) => !catcherIds.includes(p.id));
           return (
-            <div key={d} className="border border-border/50 rounded-md p-2">
-              <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">
+            <div key={d} className="flex flex-wrap items-center gap-1.5 py-1">
+              <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold w-14 shrink-0">
                 {dayLabel(d)}
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {roster.map((p) => {
-                  const active = catcherIds.has(p.id);
-                  return (
+              </span>
+              {catchingPlayers.length === 0 && availablePlayers.length > 0 && (
+                <span className="text-xs text-muted-foreground italic">None</span>
+              )}
+              {catchingPlayers.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => onToggle(d, p.id)}
+                  className="text-xs rounded px-2 py-0.5 border bg-orange-500/15 border-orange-500/50 text-orange-800 dark:text-orange-200 font-semibold flex items-center gap-1 hover:bg-orange-500/25"
+                  title="Remove catcher"
+                >
+                  <Shield className="w-3 h-3" />
+                  {p.name}
+                  <span className="ml-0.5 opacity-60">×</span>
+                </button>
+              ))}
+              {availablePlayers.length > 0 && (
+                <Popover>
+                  <PopoverTrigger asChild>
                     <button
-                      key={p.id}
                       type="button"
-                      onClick={() => onToggle(d, p.id)}
-                      className={`text-xs rounded px-2 py-1 border transition ${
-                        active
-                          ? 'bg-orange-500/15 border-orange-500/50 text-orange-800 dark:text-orange-200 font-semibold'
-                          : 'bg-background border-border/60 text-muted-foreground hover:border-orange-400/40 hover:text-foreground'
-                      }`}
+                      className="text-xs rounded px-2 py-0.5 border border-dashed border-border/60 text-muted-foreground hover:border-orange-400/60 hover:text-foreground flex items-center gap-0.5"
                     >
-                      {active && <Shield className="w-3 h-3 inline-block mr-1" />}
-                      {p.name}
+                      <Plus className="w-3 h-3" />
+                      Add catcher
                     </button>
-                  );
-                })}
-              </div>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-52 p-1.5 max-h-64 overflow-y-auto">
+                    <div className="space-y-0.5">
+                      {availablePlayers.map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => onToggle(d, p.id)}
+                          className="w-full text-left text-sm rounded px-2 py-1 hover:bg-muted"
+                        >
+                          {p.name}
+                        </button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
             </div>
           );
         })}
