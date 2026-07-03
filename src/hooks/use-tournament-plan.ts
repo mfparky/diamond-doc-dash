@@ -212,7 +212,7 @@ export function useTournamentPlan(
   }, [tournamentSlug, defaultSchedule, toast]);
 
   const save = useCallback(
-    async (patch: Partial<Pick<TournamentPlanRecord, 'schedule' | 'entries' | 'roster' | 'notes'>>) => {
+    async (patch: Partial<Pick<TournamentPlanRecord, 'schedule' | 'entries' | 'roster' | 'catchers' | 'notes'>>) => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
