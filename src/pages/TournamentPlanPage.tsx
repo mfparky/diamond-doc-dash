@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Save, CheckCircle2, AlertTriangle, Info, Plus, Trash2, Clock, UserPlus, Users, CalendarClock, BarChart3, StickyNote, Minus, Wand2, Shield } from 'lucide-react';
+import { ArrowLeft, Save, CheckCircle2, AlertTriangle, Info, Plus, Trash2, Clock, UserPlus, Users, CalendarClock, BarChart3, StickyNote, Minus, Wand2, Shield, FileDown } from 'lucide-react';
+import hawksLogo from '@/assets/hawks-logo.png';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -155,6 +156,22 @@ export default function TournamentPlanPage() {
     }));
     return suggestGroups(inputs, { groupASize: suggestGroupASize });
   }, [suggestDialogOpen, roster, rosterStatsById, suggestGroupASize]);
+
+  const handlePrint = () => window.print();
+
+  // Nicely formatted date range for the print header. Uses the first and last
+  // slot's date fields; falls back to '—' when either end is TBD.
+  const printedDateRange = useMemo(() => {
+    const dated = schedule.filter((s) => s.date).sort((a, b) => a.date.localeCompare(b.date));
+    if (dated.length === 0) return '';
+    const fmt = (iso: string) => {
+      const d = new Date(iso + 'T12:00:00');
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    };
+    const first = dated[0].date;
+    const last = dated[dated.length - 1].date;
+    return first === last ? fmt(first) : `${fmt(first)} — ${fmt(last)}`;
+  }, [schedule]);
 
   const applySuggestions = () => {
     const byId = new Map(suggestions.map((s) => [s.pitcherId, s]));
@@ -499,7 +516,21 @@ export default function TournamentPlanPage() {
 
   return (
     <div className="min-h-screen bg-background pb-24 sm:pb-4">
-      <div className="container mx-auto px-3 sm:px-4 py-6 max-w-[1600px] space-y-4">
+      {/* Print-only overview — hidden on screen, visible when the coach hits Print
+          or Save-as-PDF. Layout: branded header + schedule + big pitcher×game grid
+          + group totals + catchers by day + notes. All fits on one landscape page
+          for a typical tournament. */}
+      <PrintableTournamentPlan
+        tournamentName={activeName}
+        dateRange={printedDateRange}
+        schedule={schedule}
+        roster={roster}
+        entries={entries}
+        catchers={catchers}
+        notes={notes}
+      />
+
+      <div className="container mx-auto px-3 sm:px-4 py-6 max-w-[1600px] space-y-4 tournament-screen-only">
         {/* Header: back + name + tournament picker + save */}
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="ghost" size="icon" asChild>
@@ -623,6 +654,10 @@ export default function TournamentPlanPage() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            <Button variant="outline" size="sm" onClick={handlePrint} title="Print / save as PDF">
+              <FileDown className="w-4 h-4" />
+              <span className="hidden sm:inline ml-1">PDF</span>
+            </Button>
             <Button onClick={handleSave} disabled={!dirty && !savedFlash}>
               {savedFlash ? <CheckCircle2 className="w-4 h-4 mr-2" /> : <Save className="w-4 h-4 mr-2" />}
               {savedFlash ? 'Saved' : 'Save plan'}
@@ -1155,6 +1190,31 @@ export default function TournamentPlanPage() {
           </MobileSheetButton>
         </div>
       </div>
+
+      {/* Print stylesheet — hides all screen chrome, sets landscape, styles the
+          print-only overview. */}
+      <style>{`
+        @media print {
+          @page { size: letter landscape; margin: 0.4in; }
+          html, body {
+            background: white !important;
+            color: #111 !important;
+            font-family: 'Helvetica Neue', Arial, sans-serif !important;
+          }
+          nav, aside { display: none !important; }
+          /* Everything that isn't the print overview vanishes. */
+          .tournament-screen-only { display: none !important; }
+          /* Preserve colored gradients / group badges when saving as PDF. */
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .tournament-print { display: block !important; }
+          .tournament-print table { page-break-inside: avoid; }
+        }
+        /* Never show the print overview on screen. */
+        .tournament-print { display: none; }
+      `}</style>
     </div>
   );
 }
@@ -2101,3 +2161,241 @@ function CatchersEditorCard({
     </Card>
   );
 }
+
+// ============================================================================
+// Print-only tournament overview
+// ============================================================================
+
+/**
+ * Coach printout: one landscape page showing the whole tournament plan at a
+ * glance. Screen-hidden by default (see .tournament-print CSS).
+ */
+function PrintableTournamentPlan({
+  tournamentName,
+  dateRange,
+  schedule,
+  roster,
+  entries,
+  catchers,
+  notes,
+}: {
+  tournamentName: string;
+  dateRange: string;
+  schedule: TournamentGameSlot[];
+  roster: TournamentRosterEntry[];
+  entries: PitchEntries;
+  catchers: CatchersByDay;
+  notes: string;
+}) {
+  const today = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+
+  const dayIndices = useMemo(
+    () => Array.from(new Set(schedule.map((s) => s.dayIndex))).sort((a, b) => a - b),
+    [schedule],
+  );
+
+  return (
+    <div className="tournament-print" style={{ padding: '4pt 0' }}>
+      {/* Branded header */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+        borderBottom: '1pt solid #222',
+        paddingBottom: 8,
+        marginBottom: 8,
+      }}>
+        <img src={hawksLogo} alt="Newmarket Hawks" style={{ height: 40 }} />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#6b7280', fontWeight: 600 }}>
+            Newmarket Hawks · Tournament plan
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#111', lineHeight: 1.1 }}>
+            {tournamentName}
+          </div>
+          <div style={{ fontSize: 10, color: '#4b5563', marginTop: 2 }}>
+            {dateRange}
+          </div>
+        </div>
+        <div style={{ fontSize: 8, color: '#6b7280', textAlign: 'right' }}>
+          Printed {today}
+        </div>
+      </div>
+
+      {/* Schedule strip */}
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 9, marginBottom: 8 }}>
+        <thead>
+          <tr style={{ background: '#f3f4f6' }}>
+            <th style={printThStyle}>Day</th>
+            <th style={printThStyle}>Time</th>
+            <th style={printThStyle}>Code</th>
+            <th style={printThStyle}>Opponent</th>
+            <th style={printThStyle}>Plan</th>
+          </tr>
+        </thead>
+        <tbody>
+          {schedule.map((slot) => (
+            <tr key={slot.id} style={{ borderBottom: '0.5pt solid #e5e7eb' }}>
+              <td style={printTdStyle}>{dayLabel(slot.dayIndex)}</td>
+              <td style={printTdStyle}>{slot.time || 'TBD'}</td>
+              <td style={printTdStyle}>{slot.code || '—'}</td>
+              <td style={printTdStyle}>{slot.opponent || 'TBD'}</td>
+              <td style={{ ...printTdStyle, fontWeight: slot.targetGroup ? 700 : 400 }}>
+                {slot.targetGroup ? `Group ${slot.targetGroup}` : '—'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* Main pitcher × game plan */}
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 9, marginBottom: 8 }}>
+        <thead>
+          <tr style={{ background: '#f3f4f6' }}>
+            <th style={{ ...printThStyle, textAlign: 'left', minWidth: 90 }}>Pitcher</th>
+            {schedule.map((slot) => (
+              <th key={slot.id} style={{ ...printThStyle, minWidth: 60 }}>
+                <div>{dayLabel(slot.dayIndex)}</div>
+                <div style={{ fontSize: 7, fontWeight: 400, color: '#6b7280' }}>{slot.time || 'TBD'}</div>
+                {slot.targetGroup && (
+                  <div style={{ fontSize: 7, fontWeight: 700, color: slot.targetGroup === 'A' ? '#1d4ed8' : '#7c3aed' }}>
+                    Plan {slot.targetGroup}
+                  </div>
+                )}
+              </th>
+            ))}
+            <th style={{ ...printThStyle, minWidth: 45 }}>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {roster.map((p) => {
+            const rowTotal = schedule.reduce((s, slot) => s + effectivePitches(entries[entryKey(p.id, slot.id)]), 0);
+            return (
+              <tr key={p.id} style={{ borderBottom: '0.5pt solid #e5e7eb' }}>
+                <td style={{ ...printTdStyle, textAlign: 'left', fontWeight: 600 }}>
+                  {p.name}
+                  {p.group && (
+                    <span style={{
+                      marginLeft: 4,
+                      fontSize: 7,
+                      fontWeight: 700,
+                      padding: '0 3px',
+                      borderRadius: 2,
+                      color: p.group === 'A' ? '#1e3a8a' : '#5b21b6',
+                      background: p.group === 'A' ? '#dbeafe' : '#ede9fe',
+                    }}>
+                      {p.group}
+                    </span>
+                  )}
+                  {p.isPickup && (
+                    <span style={{ marginLeft: 3, fontSize: 6, color: '#6b7280', fontWeight: 400 }}>PU</span>
+                  )}
+                </td>
+                {schedule.map((slot) => {
+                  const cell = entries[entryKey(p.id, slot.id)];
+                  const planned = cell?.planned ?? null;
+                  const actual = cell?.actual ?? null;
+                  const catching = (catchers[String(slot.dayIndex)] ?? []).includes(p.id);
+                  if (catching && planned === null && actual === null) {
+                    return (
+                      <td key={slot.id} style={{ ...printTdStyle, color: '#c2410c', fontWeight: 700, fontSize: 8 }}>
+                        C
+                      </td>
+                    );
+                  }
+                  if (planned === null && actual === null) {
+                    return <td key={slot.id} style={{ ...printTdStyle, color: '#9ca3af' }}>—</td>;
+                  }
+                  return (
+                    <td key={slot.id} style={printTdStyle}>
+                      <span style={{ color: '#6b7280' }}>{planned ?? '—'}</span>
+                      <span style={{ color: '#9ca3af', margin: '0 2px' }}>/</span>
+                      <span style={{ fontWeight: 700 }}>{actual ?? '—'}</span>
+                    </td>
+                  );
+                })}
+                <td style={{ ...printTdStyle, fontWeight: 700 }}>{rowTotal}</td>
+              </tr>
+            );
+          })}
+          {(['A', 'B'] as const).map((groupKey) => {
+            const groupPlayers = roster.filter((r) => r.group === groupKey);
+            if (groupPlayers.length === 0) return null;
+            return (
+              <tr key={`sum-${groupKey}`} style={{ background: '#f9fafb', borderTop: '0.5pt solid #d1d5db' }}>
+                <td style={{ ...printTdStyle, textAlign: 'left', fontWeight: 700, fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Group {groupKey} total
+                </td>
+                {schedule.map((slot) => {
+                  const total = groupPlayers.reduce((s, p) => s + effectivePitches(entries[entryKey(p.id, slot.id)]), 0);
+                  return (
+                    <td key={slot.id} style={{ ...printTdStyle, fontWeight: 700 }}>
+                      {total > 0 ? total : ''}
+                    </td>
+                  );
+                })}
+                <td style={printTdStyle} />
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+
+      {/* Catchers + notes */}
+      <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
+        <div style={{ flex: 1, fontSize: 8, border: '0.5pt solid #e5e7eb', borderRadius: 3, padding: 6 }}>
+          <div style={{ fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b7280', fontWeight: 700, marginBottom: 3 }}>
+            Catchers
+          </div>
+          {dayIndices.map((d) => {
+            const catcherIds = catchers[String(d)] ?? [];
+            const names = roster.filter((r) => catcherIds.includes(r.id)).map((r) => r.name);
+            return (
+              <div key={d} style={{ display: 'flex', gap: 6, marginBottom: 1 }}>
+                <span style={{ fontWeight: 700, minWidth: 40 }}>{dayLabel(d)}:</span>
+                <span>{names.length > 0 ? names.join(', ') : '—'}</span>
+              </div>
+            );
+          })}
+        </div>
+        {notes.trim().length > 0 && (
+          <div style={{ flex: 2, fontSize: 8, border: '0.5pt solid #e5e7eb', borderRadius: 3, padding: 6 }}>
+            <div style={{ fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b7280', fontWeight: 700, marginBottom: 3 }}>
+              Notes
+            </div>
+            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>{notes}</div>
+          </div>
+        )}
+      </div>
+
+      {/* Legend / footer */}
+      <div style={{ marginTop: 6, fontSize: 7, color: '#6b7280', display: 'flex', justifyContent: 'space-between' }}>
+        <span>
+          Cells show <strong>planned / actual</strong>. <strong>C</strong> = catching that day.
+          <span style={{ marginLeft: 8, padding: '0 3px', borderRadius: 2, background: '#dbeafe', color: '#1e3a8a', fontWeight: 700 }}>A</span> best arms,
+          <span style={{ marginLeft: 6, padding: '0 3px', borderRadius: 2, background: '#ede9fe', color: '#5b21b6', fontWeight: 700 }}>B</span> depth arms.
+          OBA 12U/13U rest rules enforced.
+        </span>
+        <span>Newmarket Hawks · Tournament plan</span>
+      </div>
+    </div>
+  );
+}
+
+const printThStyle: React.CSSProperties = {
+  padding: '3pt 5pt',
+  border: '0.5pt solid #d1d5db',
+  fontWeight: 700,
+  textTransform: 'uppercase',
+  fontSize: 7,
+  letterSpacing: '0.06em',
+  color: '#374151',
+  textAlign: 'center',
+};
+
+const printTdStyle: React.CSSProperties = {
+  padding: '2pt 5pt',
+  border: '0.5pt solid #e5e7eb',
+  textAlign: 'center',
+  color: '#111',
+};
