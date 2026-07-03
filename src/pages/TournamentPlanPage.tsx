@@ -1505,6 +1505,7 @@ function MobilePitcherCard({
   slot,
   cell,
   rowEntries,
+  isCatchingToday,
   onCellChange,
   onDayOverrideChange,
 }: {
