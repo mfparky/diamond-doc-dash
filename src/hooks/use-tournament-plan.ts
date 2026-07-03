@@ -173,9 +173,12 @@ export function useTournamentPlan(
         setPlan(null);
         return;
       }
+      // Use * so a plan can still load when a newly-added JSONB column
+      // hasn't had its migration run yet in Supabase. Missing fields
+      // are filled by the normalize* helpers below.
       const { data, error } = await db
         .from('tournament_pitch_plans')
-        .select('id, tournament_slug, tournament_name, schedule, entries, roster, catchers, notes, updated_at')
+        .select('*')
         .eq('user_id', user.id)
         .eq('tournament_slug', tournamentSlug)
         .maybeSingle();
@@ -220,21 +223,32 @@ export function useTournamentPlan(
         const nextEntries = normalizeEntries(patch.entries ?? plan?.entries ?? {});
         const nextRoster = normalizeRoster(patch.roster ?? plan?.roster ?? []);
         const nextCatchers = normalizeCatchers(patch.catchers ?? plan?.catchers ?? {});
-        const { error } = await db
+        // Build the row with every optional column, then drop any column the
+        // DB rejects with "column does not exist" (migration not run yet).
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const fullRow: Record<string, any> = {
+          user_id: user.id,
+          tournament_slug: tournamentSlug,
+          tournament_name: tournamentName,
+          schedule: nextSchedule,
+          entries: nextEntries,
+          roster: nextRoster,
+          catchers: nextCatchers,
+          notes: patch.notes ?? plan?.notes ?? '',
+        };
+        let error = (await db
           .from('tournament_pitch_plans')
-          .upsert(
-            {
-              user_id: user.id,
-              tournament_slug: tournamentSlug,
-              tournament_name: tournamentName,
-              schedule: nextSchedule,
-              entries: nextEntries,
-              roster: nextRoster,
-              catchers: nextCatchers,
-              notes: patch.notes ?? plan?.notes ?? '',
-            },
-            { onConflict: 'user_id,tournament_slug' },
-          );
+          .upsert(fullRow, { onConflict: 'user_id,tournament_slug' })).error;
+        for (const optional of ['catchers', 'roster']) {
+          if (!error) break;
+          const msg = String(error.message ?? '').toLowerCase();
+          if (!msg.includes(optional) || !(msg.includes('does not exist') || msg.includes('could not find'))) break;
+          console.warn(`tournament_pitch_plans.${optional} column missing — retrying save without it. Run the pending migration.`);
+          delete fullRow[optional];
+          error = (await db
+            .from('tournament_pitch_plans')
+            .upsert(fullRow, { onConflict: 'user_id,tournament_slug' })).error;
+        }
         if (error) throw error;
         await fetchPlan();
         return true;
