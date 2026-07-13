@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { TournamentGameSlot } from '@/lib/cooperstown-schedule';
@@ -164,6 +164,15 @@ export function useTournamentPlan(
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+  // Hold defaultSchedule in a ref so fetchPlan doesn't depend on its identity.
+  // Callers frequently pass a fresh array literal each render; if that were in
+  // the dep list, fetchPlan (and the effect that runs it) would re-run every
+  // render — refetching the plan on every keystroke/click and racing into a
+  // "Could not load" toast. The ref keeps the latest value without churning
+  // fetchPlan's identity.
+  const defaultScheduleRef = useRef(defaultSchedule);
+  defaultScheduleRef.current = defaultSchedule;
+
   const fetchPlan = useCallback(async () => {
     if (!tournamentSlug) return;
     setIsLoading(true);
@@ -189,7 +198,7 @@ export function useTournamentPlan(
           id: data.id,
           tournamentSlug: data.tournament_slug,
           tournamentName: data.tournament_name,
-          schedule: savedSchedule.length > 0 ? savedSchedule : defaultSchedule,
+          schedule: savedSchedule.length > 0 ? savedSchedule : defaultScheduleRef.current,
           entries: normalizeEntries(data.entries),
           roster: normalizeRoster(data.roster),
           catchers: normalizeCatchers(data.catchers),
@@ -209,7 +218,7 @@ export function useTournamentPlan(
     } finally {
       setIsLoading(false);
     }
-  }, [tournamentSlug, defaultSchedule, toast]);
+  }, [tournamentSlug, toast]);
 
   const save = useCallback(
     async (patch: Partial<Pick<TournamentPlanRecord, 'schedule' | 'entries' | 'roster' | 'catchers' | 'notes'>>) => {
@@ -219,7 +228,7 @@ export function useTournamentPlan(
           toast({ title: 'Sign in required', variant: 'destructive' });
           return false;
         }
-        const nextSchedule = patch.schedule ?? plan?.schedule ?? defaultSchedule;
+        const nextSchedule = patch.schedule ?? plan?.schedule ?? defaultScheduleRef.current;
         const nextEntries = normalizeEntries(patch.entries ?? plan?.entries ?? {});
         const nextRoster = normalizeRoster(patch.roster ?? plan?.roster ?? []);
         const nextCatchers = normalizeCatchers(patch.catchers ?? plan?.catchers ?? {});
@@ -262,7 +271,7 @@ export function useTournamentPlan(
         return false;
       }
     },
-    [tournamentSlug, tournamentName, defaultSchedule, plan, fetchPlan, toast],
+    [tournamentSlug, tournamentName, plan, fetchPlan, toast],
   );
 
   useEffect(() => {

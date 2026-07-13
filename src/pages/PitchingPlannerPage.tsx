@@ -101,9 +101,12 @@ function pitcherEntries(entries: PitchEntries, pitcherId: string, schedule: Tour
   });
 }
 
-function buildEmptySchedule(): TournamentGameSlot[] {
-  return [];
-}
+// Stable empty-schedule reference. MUST be a module constant, not a fresh
+// array per render: useTournamentPlan's fetch effect depends on the identity
+// of the default schedule, so a new [] each render would refetch the plan on
+// every render (showing "Loading…" and racing into a load error whenever the
+// coach edits anything, e.g. clicking Add game).
+const EMPTY_SCHEDULE: TournamentGameSlot[] = [];
 
 function friendlyDate(iso: string): string {
   if (!iso) return '';
@@ -125,7 +128,7 @@ export default function PitchingPlannerPage() {
 
   const activeSummary = summaries.find((s) => s.slug === activeSlug);
   const activeName = activeSummary?.name ?? activeSlug;
-  const activeDefault = buildEmptySchedule();
+  const activeDefault = EMPTY_SCHEDULE;
 
   // Hook is safe with an empty slug — fetchPlan short-circuits when there's
   // no slug, so the landing view can render without hitting Supabase.
