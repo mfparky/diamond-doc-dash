@@ -80,8 +80,7 @@ export function buildReportCardPromptPayload(input: ReportCardInput): {
 - Keep each section to 3-6 sentences.
 - The player is called by first name.
 
-Return ONLY valid JSON with the shape:
-{ "summary": "…", "strengths": "…", "areas": "…" }`;
+Fill in the three sections by calling the save_report_card tool.`;
 
   const user = `Here is the data for this report card. Weave it into the narrative but do not repeat it as a table.
 
@@ -111,7 +110,7 @@ COACH RATINGS:
 COACH CONTEXT (what the coach wants you to weave in — respect this over pure stats):
 ${input.coachContext.trim() || '(none provided — use stats + ratings only)'}
 
-Return the JSON now.`;
+Call the save_report_card tool now with the three sections filled in.`;
 
   return { system, user };
 }
@@ -159,6 +158,22 @@ export async function generateReportCardDraft(input: ReportCardInput): Promise<R
       max_tokens: 1200,
       system,
       messages: [{ role: 'user', content: user }],
+      // Force structured output by making the model call this tool. The
+      // tool arguments come back as a parsed object — no text-parsing risk.
+      tools: [{
+        name: 'save_report_card',
+        description: 'Save the three narrative sections of the report card.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            summary: { type: 'string', description: 'Overall summary paragraph, 3-6 sentences.' },
+            strengths: { type: 'string', description: 'Strengths paragraph, 3-6 sentences.' },
+            areas: { type: 'string', description: 'Areas to work on paragraph, framed as opportunities, 3-6 sentences.' },
+          },
+          required: ['summary', 'strengths', 'areas'],
+        },
+      }],
+      tool_choice: { type: 'tool', name: 'save_report_card' },
     }),
   });
 
@@ -168,12 +183,31 @@ export async function generateReportCardDraft(input: ReportCardInput): Promise<R
   }
 
   const body = await response.json();
-  const text: string = body?.content?.[0]?.text ?? '';
-  const draft = extractJsonPayload(text);
-  if (!draft) {
-    throw new ReportCardLLMError('Model response did not include a JSON payload. Try Generate again.');
+  // Preferred path — read the tool_use block. When the API forces a specific
+  // tool via tool_choice, this is the reliable spot for the structured output.
+  const contentBlocks: Array<{ type: string; input?: unknown; text?: string }> = body?.content ?? [];
+  const toolUse = contentBlocks.find((c) => c.type === 'tool_use');
+  if (toolUse && toolUse.input && typeof toolUse.input === 'object') {
+    const asDraft = toolUse.input as Partial<ReportCardDraft>;
+    if (typeof asDraft.summary === 'string' && typeof asDraft.strengths === 'string' && typeof asDraft.areas === 'string') {
+      return {
+        summary: asDraft.summary.trim(),
+        strengths: asDraft.strengths.trim(),
+        areas: asDraft.areas.trim(),
+      };
+    }
   }
-  return draft;
+  // Fallback for a proxy that strips tool_choice: try to parse text content
+  // as JSON like the old path did.
+  const text: string = contentBlocks.find((c) => c.type === 'text')?.text ?? '';
+  const draft = extractJsonPayload(text);
+  if (draft) return draft;
+
+  // Nothing usable — surface enough context for debugging.
+  console.error('Report card LLM: unexpected response shape', body);
+  throw new ReportCardLLMError(
+    'Model response did not include the report card sections. Check the browser console for the raw response and try Generate again.',
+  );
 }
 
 // --- Helpers ---
