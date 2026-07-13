@@ -97,11 +97,11 @@ const Index = () => {
       onSelect: () => navigate('/report-card'),
     },
     {
-      id: 'tournament',
-      label: 'Cooperstown planner',
-      description: 'Pitcher rotation with OBA rest rules enforced',
+      id: 'planner',
+      label: 'Pitching planner',
+      description: 'Plan weekends or tournaments, OBA rest rules enforced',
       icon: <CalendarClock className="w-5 h-5" />,
-      onSelect: () => navigate('/tournament'),
+      onSelect: () => navigate('/planner'),
     },
     {
       id: 'games',
