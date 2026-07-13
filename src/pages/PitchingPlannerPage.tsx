@@ -115,7 +115,8 @@ function friendlyDate(iso: string): string {
 
 export default function PitchingPlannerPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeSlug = searchParams.get('t') ?? COOPERSTOWN_TOURNAMENT_SLUG;
+  const activeSlug = searchParams.get('t') ?? '';
+  const isLanding = !activeSlug;
 
   const { pitchers, isLoading: pitchersLoading } = usePitchers();
   const pitcherIds = useMemo(() => pitchers.map((p) => p.id), [pitchers]);
@@ -123,10 +124,11 @@ export default function PitchingPlannerPage() {
   const { summaries, isLoading: summariesLoading, createPlan, deletePlan, refetch: refetchSummaries } = useTournamentPlans();
 
   const activeSummary = summaries.find((s) => s.slug === activeSlug);
-  const activeName = activeSummary?.name
-    ?? (activeSlug === COOPERSTOWN_TOURNAMENT_SLUG ? COOPERSTOWN_TOURNAMENT_NAME : activeSlug);
-  const activeDefault = activeSlug === COOPERSTOWN_TOURNAMENT_SLUG ? COOPERSTOWN_2025 : buildEmptySchedule();
+  const activeName = activeSummary?.name ?? activeSlug;
+  const activeDefault = buildEmptySchedule();
 
+  // Hook is safe with an empty slug — fetchPlan short-circuits when there's
+  // no slug, so the landing view can render without hitting Supabase.
   const { plan, isLoading: planLoading, save } = useTournamentPlan(activeSlug, activeName, activeDefault);
 
   const [schedule, setSchedule] = useState<TournamentGameSlot[]>(activeDefault);
@@ -393,10 +395,13 @@ export default function PitchingPlannerPage() {
     }
   };
 
-  const handleCreatePlan = async (name: string) => {
+  const handleCreatePlan = async (name: string, useCooperstownTemplate: boolean) => {
     const slug = slugify(name);
     if (!slug) return;
-    const ok = await createPlan(slug, name.trim(), [], []);
+    const seedSchedule = useCooperstownTemplate
+      ? COOPERSTOWN_2025.map((s, i) => ({ ...s, id: `slot-${Date.now()}-${i}` }))
+      : [];
+    const ok = await createPlan(slug, name.trim(), seedSchedule, []);
     if (ok) {
       setNewDialogOpen(false);
       setSearchParams({ t: slug }, { replace: true });
@@ -428,6 +433,20 @@ export default function PitchingPlannerPage() {
   const isLoading = pitchersLoading || planLoading || summariesLoading;
   const canDelete = summaries.length > 1;
 
+  // Landing view — no plan selected. Coach picks an existing plan or creates one.
+  if (isLanding) {
+    return (
+      <LandingView
+        summaries={summaries}
+        isLoading={summariesLoading}
+        newDialogOpen={newDialogOpen}
+        onNewDialogOpenChange={setNewDialogOpen}
+        onOpenPlan={(slug) => setSearchParams({ t: slug }, { replace: true })}
+        onCreatePlan={handleCreatePlan}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Print view — hidden on screen, sole content when printing. */}
@@ -444,10 +463,14 @@ export default function PitchingPlannerPage() {
       <div className="planner-screen container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-4xl space-y-4">
         {/* Header */}
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="ghost" size="icon" asChild>
-            <Link to="/" aria-label="Back to dashboard">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSearchParams({}, { replace: true })}
+            aria-label="Back to plans"
+            title="Back to plans"
+          >
+            <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex-1 min-w-0">
             <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground truncate">
@@ -1171,8 +1194,9 @@ function AddPitcherPicker({
   );
 }
 
-function NewPlanDialog({ onCreate }: { onCreate: (name: string) => void }) {
+function NewPlanDialog({ onCreate }: { onCreate: (name: string, useCooperstownTemplate: boolean) => void }) {
   const [name, setName] = useState('');
+  const [useCooperstownTemplate, setUseCooperstownTemplate] = useState(false);
   const slug = slugify(name);
   return (
     <DialogContent>
@@ -1182,18 +1206,33 @@ function NewPlanDialog({ onCreate }: { onCreate: (name: string) => void }) {
           Create a fresh plan for a tournament or weekend. Add games and roster after.
         </DialogDescription>
       </DialogHeader>
-      <div className="space-y-2">
-        <Label htmlFor="new-plan-name">Plan name</Label>
-        <Input
-          id="new-plan-name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Fall Classic 2026 or Weekend Sep 14"
-        />
-        {slug && <p className="text-xs text-muted-foreground">Slug: <code>{slug}</code></p>}
+      <div className="space-y-3">
+        <div className="space-y-1">
+          <Label htmlFor="new-plan-name">Plan name</Label>
+          <Input
+            id="new-plan-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Fall Classic 2026 or Weekend Sep 14"
+          />
+          {slug && <p className="text-xs text-muted-foreground">Slug: <code>{slug}</code></p>}
+        </div>
+        <label className="flex items-start gap-2 text-sm cursor-pointer">
+          <input
+            type="checkbox"
+            checked={useCooperstownTemplate}
+            onChange={(e) => setUseCooperstownTemplate(e.target.checked)}
+            className="mt-1"
+          />
+          <span>
+            Start with the <strong>Cooperstown template</strong> (6 games, group targets pre-set for Day 1 → A, Day 2 → B). You can edit or remove any of them.
+          </span>
+        </label>
       </div>
       <DialogFooter>
-        <Button onClick={() => onCreate(name)} disabled={!name.trim()}>Create</Button>
+        <Button onClick={() => onCreate(name, useCooperstownTemplate)} disabled={!name.trim()}>
+          Create
+        </Button>
       </DialogFooter>
     </DialogContent>
   );
@@ -1464,3 +1503,98 @@ const printThStyle: React.CSSProperties = {
 const printTdStyle: React.CSSProperties = {
   padding: '2pt 5pt', border: '0.5pt solid #e5e7eb', textAlign: 'center', color: '#111',
 };
+
+// ---- Landing view (no plan selected) -------------------------------------
+
+function LandingView({
+  summaries,
+  isLoading,
+  newDialogOpen,
+  onNewDialogOpenChange,
+  onOpenPlan,
+  onCreatePlan,
+}: {
+  summaries: Array<{ slug: string; name: string; updatedAt: string }>;
+  isLoading: boolean;
+  newDialogOpen: boolean;
+  onNewDialogOpenChange: (open: boolean) => void;
+  onOpenPlan: (slug: string) => void;
+  onCreatePlan: (name: string, useCooperstownTemplate: boolean) => void;
+}) {
+  const fmtUpdated = (iso: string) => {
+    try {
+      const d = new Date(iso);
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch { return ''; }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-3 sm:px-4 py-6 max-w-3xl space-y-4">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" asChild>
+            <Link to="/" aria-label="Back to dashboard">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+          </Button>
+          <div className="flex-1 min-w-0">
+            <h1 className="font-display text-2xl font-bold text-foreground">Pitching planner</h1>
+            <p className="text-sm text-muted-foreground">
+              Plans for weekends and tournaments — OBA rest rules enforced.
+            </p>
+          </div>
+          <Dialog open={newDialogOpen} onOpenChange={onNewDialogOpenChange}>
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="w-4 h-4 mr-1" />
+                New plan
+              </Button>
+            </DialogTrigger>
+            <NewPlanDialog onCreate={onCreatePlan} />
+          </Dialog>
+        </div>
+
+        {isLoading && (
+          <Card className="glass-card">
+            <CardContent className="p-6 text-sm text-muted-foreground">Loading plans…</CardContent>
+          </Card>
+        )}
+
+        {!isLoading && summaries.length === 0 && (
+          <Card className="glass-card">
+            <CardContent className="p-6 space-y-3 text-center">
+              <p className="text-sm text-muted-foreground">
+                No plans yet. Create your first — start blank or from the Cooperstown template.
+              </p>
+              <Button onClick={() => onNewDialogOpenChange(true)}>
+                <Plus className="w-4 h-4 mr-1" />
+                Create your first plan
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {!isLoading && summaries.length > 0 && (
+          <div className="space-y-2">
+            {summaries.map((s) => (
+              <button
+                key={s.slug}
+                type="button"
+                onClick={() => onOpenPlan(s.slug)}
+                className="w-full text-left rounded-md border border-border/60 bg-background hover:bg-muted/40 hover:border-border transition p-4 flex items-center justify-between gap-3"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="font-semibold text-foreground truncate">{s.name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    Updated {fmtUpdated(s.updatedAt)}
+                  </div>
+                </div>
+                <ArrowLeft className="w-4 h-4 text-muted-foreground rotate-180 shrink-0" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
