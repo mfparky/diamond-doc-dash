@@ -77,11 +77,9 @@ describe('buildReportCardPromptPayload', () => {
     expect(user).toContain('(none provided');
   });
 
-  it('system prompt tells the model to return JSON with the three sections', () => {
+  it('system prompt instructs the model to fill sections via the tool', () => {
     const { system } = buildReportCardPromptPayload(baseInput);
-    expect(system).toContain('"summary"');
-    expect(system).toContain('"strengths"');
-    expect(system).toContain('"areas"');
+    expect(system).toContain('save_report_card');
     expect(system).toContain('do not invent numbers');
   });
 
