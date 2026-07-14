@@ -168,6 +168,9 @@ export default function PitchingPlannerPage() {
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [rosterExpanded, setRosterExpanded] = useState(false);
   const [rosterSeeded, setRosterSeeded] = useState(false);
+  // Availability status — which day to check rest/clearance for. null = auto
+  // (day after the last scheduled game).
+  const [statusDay, setStatusDay] = useState<number | null>(null);
 
   useEffect(() => {
     if (!plan) return;
@@ -213,6 +216,11 @@ export default function PitchingPlannerPage() {
     () => [...schedule].sort((a, b) => a.dayIndex - b.dayIndex || a.gameIndex - b.gameIndex),
     [schedule],
   );
+
+  // Day the availability snapshot is computed for. Defaults to the day after
+  // the last scheduled game (0-indexed), or 0 when there are no games yet.
+  const maxGameDay = schedule.length > 0 ? Math.max(...schedule.map((s) => s.dayIndex)) : -1;
+  const effectiveStatusDay = statusDay ?? (maxGameDay + 1);
 
   // ---- Handlers ----
 
@@ -703,6 +711,17 @@ export default function PitchingPlannerPage() {
           )}
         </div>
 
+        {/* Availability status snapshot */}
+        {!isLoading && roster.length > 0 && (
+          <StatusSection
+            roster={roster}
+            entries={entries}
+            schedule={sortedSchedule}
+            statusDay={effectiveStatusDay}
+            onStatusDayChange={(d) => setStatusDay(d)}
+          />
+        )}
+
         {/* Notes */}
         <Card className="glass-card">
           <CardHeader className="pb-2">
@@ -884,6 +903,115 @@ function RosterSection({
           )}
         </CardContent>
       )}
+    </Card>
+  );
+}
+
+/**
+ * Availability snapshot for a chosen day. For each available pitcher, runs the
+ * OBA eligibility engine against `statusDay` (a hypothetical first game that
+ * day) and shows: last outing, clear-to-throw vs resting, and pitches
+ * remaining. No game needs to exist for that day.
+ */
+function StatusSection({
+  roster,
+  entries,
+  schedule,
+  statusDay,
+  onStatusDayChange,
+}: {
+  roster: TournamentRosterEntry[];
+  entries: PitchEntries;
+  schedule: TournamentGameSlot[];
+  statusDay: number;
+  onStatusDayChange: (day: number) => void;
+}) {
+  const rows = useMemo(() => {
+    return roster
+      .filter((p) => !p.unavailable)
+      .map((p) => {
+        const rowEntries = pitcherEntries(entries, p.id, schedule);
+        // Last day this pitcher threw game pitches (BP already excluded).
+        let lastDay = -1;
+        let lastCount = 0;
+        for (const e of rowEntries) {
+          if (e.pitches > 0 && e.day > lastDay) {
+            lastDay = e.day;
+            lastCount = e.pitches;
+          }
+        }
+        const check = isEligibleForGame({
+          entries: rowEntries,
+          targetDay: statusDay,
+          targetGameIndex: 0,
+        });
+        return { p, check, lastDay, lastCount };
+      })
+      .sort((a, b) => {
+        // Clear-to-throw first, then by remaining desc; resting sorted after.
+        if (a.check.eligible !== b.check.eligible) return a.check.eligible ? -1 : 1;
+        return (b.check.remaining ?? 0) - (a.check.remaining ?? 0);
+      });
+  }, [roster, entries, schedule, statusDay]);
+
+  const clearCount = rows.filter((r) => r.check.eligible).length;
+
+  return (
+    <Card className="glass-card">
+      <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2 flex-wrap">
+        <div>
+          <CardTitle className="font-display text-base flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4" />
+            Availability status
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Who's clear to throw and who's still resting — computed from every game logged.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs uppercase tracking-wider text-muted-foreground">As of Day</span>
+          <Input
+            type="number"
+            min={1}
+            value={statusDay + 1}
+            onChange={(e) => {
+              const n = Number(e.target.value);
+              if (Number.isFinite(n) && n >= 1) onStatusDayChange(n - 1);
+            }}
+            className="h-8 w-16 text-center"
+          />
+          <span className="text-xs text-muted-foreground">{clearCount} clear</span>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="divide-y divide-border/40">
+          {rows.map(({ p, check, lastDay, lastCount }) => {
+            const remaining = check.remaining ?? DAILY_MAX;
+            const color = !check.eligible
+              ? 'text-red-700 dark:text-red-300'
+              : remaining >= 60 ? 'text-emerald-700 dark:text-emerald-300'
+              : remaining >= 30 ? 'text-lime-700 dark:text-lime-300'
+              : 'text-amber-700 dark:text-amber-300';
+            return (
+              <div key={p.id} className="flex items-center gap-2 px-3 py-2">
+                <span className="font-medium text-sm truncate min-w-0 flex-1">
+                  {p.name}
+                  {p.group && <span className="ml-1"><GroupLetterInline group={p.group} /></span>}
+                </span>
+                <span className="text-[11px] text-muted-foreground shrink-0 hidden sm:inline">
+                  {lastDay >= 0 ? `Last: Day ${lastDay + 1} · ${lastCount}p` : 'No outings'}
+                </span>
+                <span className={`text-xs font-semibold shrink-0 text-right ${color}`} title={check.reason}>
+                  {check.eligible ? `Clear · up to ${remaining}` : 'Resting'}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-[11px] text-muted-foreground px-3 py-2 border-t border-border/40">
+          Tap a resting pitcher's row detail on the game view for the exact eligible date. Bullpen (BP) sessions don't count toward rest.
+        </p>
+      </CardContent>
     </Card>
   );
 }
