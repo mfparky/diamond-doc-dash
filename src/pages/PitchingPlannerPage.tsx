@@ -1470,133 +1470,193 @@ function PrintableTournamentPlan({
   notes: string;
 }) {
   const today = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-  const dayIndices = useMemo(
-    () => Array.from(new Set(schedule.map((s) => s.dayIndex))).sort((a, b) => a - b),
-    [schedule],
-  );
+
+  // Per-game breakdown: role (SP = pitches first, RP = after), plan, actual,
+  // and totals. Matches the coach's Excel charting sheet.
+  const perGame = useMemo(() => {
+    return schedule.map((slot) => {
+      const assigned = roster
+        .map((p, i) => ({ p, i, cell: entries[entryKey(p.id, slot.id)] }))
+        .filter(({ cell }) => cell && ((cell.planned ?? null) !== null || (cell.actual ?? null) !== null))
+        .sort((a, b) => {
+          const ao = a.cell!.order ?? Number.POSITIVE_INFINITY;
+          const bo = b.cell!.order ?? Number.POSITIVE_INFINITY;
+          if (ao !== bo) return ao - bo;
+          return a.i - b.i;
+        });
+      const byPitcher = new Map<string, { role: 'SP' | 'RP'; planned: number | null; actual: number | null }>();
+      assigned.forEach((a, idx) => {
+        byPitcher.set(a.p.id, {
+          role: idx === 0 ? 'SP' : 'RP',
+          planned: a.cell!.planned ?? null,
+          actual: a.cell!.actual ?? null,
+        });
+      });
+      const planTotal = assigned.reduce((s, a) => s + (a.cell!.planned ?? 0), 0);
+      const actualTotal = assigned.reduce((s, a) => s + (a.cell!.actual ?? 0), 0);
+      return { slot, byPitcher, planTotal, actualTotal };
+    });
+  }, [schedule, roster, entries]);
+
+  // Blank write-in cell — light shade signals "fill me in during the game".
+  const writeInStyle: React.CSSProperties = { ...printTdStyle, background: '#fafafa', minWidth: 34 };
 
   return (
-    <div className="tournament-print" style={{ padding: '4pt 0' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, borderBottom: '1pt solid #222', paddingBottom: 8, marginBottom: 8 }}>
-        <img src={hawksLogo} alt="Newmarket Hawks" style={{ height: 40 }} />
+    <div className="tournament-print" style={{ padding: '2pt 0' }}>
+      {/* Branded header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1pt solid #222', paddingBottom: 6, marginBottom: 6 }}>
+        <img src={hawksLogo} alt="Newmarket Hawks" style={{ height: 34 }} />
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#6b7280', fontWeight: 600 }}>
+          <div style={{ fontSize: 6.5, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#6b7280', fontWeight: 600 }}>
             Newmarket Hawks · Pitching Plan
           </div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#111', lineHeight: 1.1 }}>{tournamentName}</div>
-          <div style={{ fontSize: 10, color: '#4b5563', marginTop: 2 }}>{dateRange}</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#111', lineHeight: 1.1 }}>{tournamentName}</div>
+          <div style={{ fontSize: 9, color: '#4b5563', marginTop: 1 }}>{dateRange}</div>
         </div>
-        <div style={{ fontSize: 8, color: '#6b7280', textAlign: 'right' }}>Printed {today}</div>
+        <div style={{ fontSize: 7.5, color: '#6b7280', textAlign: 'right' }}>Printed {today}</div>
       </div>
 
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 9, marginBottom: 8 }}>
-        <thead>
-          <tr style={{ background: '#f3f4f6' }}>
-            <th style={printThStyle}>Day</th>
-            <th style={printThStyle}>Time</th>
-            <th style={printThStyle}>Code</th>
-            <th style={printThStyle}>Opponent</th>
-            <th style={printThStyle}>Plan</th>
-          </tr>
-        </thead>
-        <tbody>
-          {schedule.map((slot) => (
-            <tr key={slot.id} style={{ borderBottom: '0.5pt solid #e5e7eb' }}>
-              <td style={printTdStyle}>{dayLabel(slot.dayIndex)}</td>
-              <td style={printTdStyle}>{slot.time || 'TBD'}</td>
-              <td style={printTdStyle}>{slot.code || '—'}</td>
-              <td style={printTdStyle}>{slot.opponent || 'TBD'}</td>
-              <td style={{ ...printTdStyle, fontWeight: slot.targetGroup ? 700 : 400 }}>
-                {slot.targetGroup ? `Group ${slot.targetGroup}` : '—'}
-              </td>
-            </tr>
+      {/* Main charting grid: Player + per-game Role/Plan/Actual */}
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 8.5, tableLayout: 'fixed' }}>
+        <colgroup>
+          <col style={{ width: 22 }} />
+          <col style={{ width: 96 }} />
+          {schedule.map((s) => (
+            <React.Fragment key={s.id}>
+              <col style={{ width: 26 }} />
+              <col style={{ width: 30 }} />
+              <col style={{ width: 34 }} />
+            </React.Fragment>
           ))}
-        </tbody>
-      </table>
-
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 9, marginBottom: 8 }}>
+        </colgroup>
         <thead>
-          <tr style={{ background: '#f3f4f6' }}>
-            <th style={{ ...printThStyle, textAlign: 'left', minWidth: 90 }}>Pitcher</th>
+          {/* Row 1 — game labels spanning Role/Plan/Actual */}
+          <tr>
+            <th style={{ ...printThStyle, background: '#e5e7eb' }} rowSpan={2}>BP</th>
+            <th style={{ ...printThStyle, background: '#e5e7eb', textAlign: 'left' }} rowSpan={2}>Player</th>
             {schedule.map((slot) => (
-              <th key={slot.id} style={{ ...printThStyle, minWidth: 60 }}>
-                <div>{dayLabel(slot.dayIndex)}</div>
-                <div style={{ fontSize: 7, fontWeight: 400, color: '#6b7280' }}>{slot.time || 'TBD'}</div>
-                {slot.targetGroup && (
-                  <div style={{ fontSize: 7, fontWeight: 700, color: slot.targetGroup === 'A' ? '#1d4ed8' : '#7c3aed' }}>
-                    Plan {slot.targetGroup}
-                  </div>
-                )}
+              <th key={slot.id} colSpan={3} style={{ ...printThStyle, background: '#d1d5db', borderBottom: 'none' }}>
+                <div style={{ fontSize: 8, fontWeight: 700 }}>
+                  {slot.time ? `${dayLabel(slot.dayIndex)} · ${slot.time}` : dayLabel(slot.dayIndex)}
+                </div>
+                <div style={{ fontSize: 6.5, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>
+                  {slot.opponent ? `vs ${slot.opponent}` : (slot.code || '')}
+                  {slot.targetGroup ? `  ·  Plan ${slot.targetGroup}` : ''}
+                </div>
               </th>
             ))}
-            <th style={{ ...printThStyle, minWidth: 45 }}>Total</th>
+          </tr>
+          {/* Row 2 — Role / Plan / Actual sub-headers */}
+          <tr>
+            {schedule.map((slot) => (
+              <React.Fragment key={slot.id}>
+                <th style={printSubTh}>Role</th>
+                <th style={printSubTh}>Plan</th>
+                <th style={printSubTh}>Actual</th>
+              </React.Fragment>
+            ))}
           </tr>
         </thead>
         <tbody>
-          {roster.map((p) => {
-            const rowTotal = schedule.reduce((s, slot) => s + effectivePitches(entries[entryKey(p.id, slot.id)]), 0);
-            return (
-              <tr key={p.id} style={{ borderBottom: '0.5pt solid #e5e7eb' }}>
-                <td style={{ ...printTdStyle, textAlign: 'left', fontWeight: 600 }}>
-                  {p.name}
-                  {p.group && (
-                    <span style={{
-                      marginLeft: 4, fontSize: 7, fontWeight: 700, padding: '0 3px', borderRadius: 2,
-                      color: p.group === 'A' ? '#1e3a8a' : '#5b21b6',
-                      background: p.group === 'A' ? '#dbeafe' : '#ede9fe',
-                    }}>{p.group}</span>
-                  )}
-                </td>
-                {schedule.map((slot) => {
-                  const cell = entries[entryKey(p.id, slot.id)];
-                  const planned = cell?.planned ?? null;
-                  const actual = cell?.actual ?? null;
-                  const catching = (catchers[String(slot.dayIndex)] ?? []).includes(p.id);
-                  if (catching && planned === null && actual === null) {
-                    return <td key={slot.id} style={{ ...printTdStyle, color: '#c2410c', fontWeight: 700 }}>C</td>;
-                  }
-                  if (planned === null && actual === null) {
-                    return <td key={slot.id} style={{ ...printTdStyle, color: '#9ca3af' }}>—</td>;
-                  }
+          {roster.map((p) => (
+            <tr key={p.id} style={{ borderBottom: '0.5pt solid #e5e7eb' }}>
+              {/* BP write-in column */}
+              <td style={writeInStyle} />
+              {/* Player name + group */}
+              <td style={{ ...printTdStyle, textAlign: 'left', fontWeight: 600 }}>
+                {p.name}
+                {p.group && (
+                  <span style={{
+                    marginLeft: 3, fontSize: 6.5, fontWeight: 700, padding: '0 3px', borderRadius: 2,
+                    color: p.group === 'A' ? '#1e3a8a' : '#5b21b6',
+                    background: p.group === 'A' ? '#dbeafe' : '#ede9fe',
+                  }}>{p.group}</span>
+                )}
+              </td>
+              {perGame.map(({ slot, byPitcher }) => {
+                const info = byPitcher.get(p.id);
+                const catching = (catchers[String(slot.dayIndex)] ?? []).includes(p.id);
+                if (!info) {
+                  // Not pitching this game. Mark catchers with C; otherwise blank
+                  // shaded cells the manager can still use for an in-game add.
                   return (
-                    <td key={slot.id} style={printTdStyle}>
-                      <span style={{ color: '#6b7280' }}>{planned ?? '—'}</span>
-                      <span style={{ color: '#9ca3af', margin: '0 2px' }}>/</span>
-                      <span style={{ fontWeight: 700 }}>{actual ?? '—'}</span>
-                    </td>
+                    <React.Fragment key={slot.id}>
+                      <td style={{ ...printTdStyle, color: catching ? '#c2410c' : '#d1d5db', fontWeight: catching ? 700 : 400, background: '#f9fafb' }}>
+                        {catching ? 'C' : ''}
+                      </td>
+                      <td style={{ ...printTdStyle, background: '#f9fafb' }} />
+                      <td style={writeInStyle} />
+                    </React.Fragment>
                   );
-                })}
-                <td style={{ ...printTdStyle, fontWeight: 700 }}>{rowTotal}</td>
-              </tr>
-            );
-          })}
+                }
+                return (
+                  <React.Fragment key={slot.id}>
+                    <td style={{ ...printTdStyle, fontWeight: 700, color: info.role === 'SP' ? '#166534' : '#374151' }}>
+                      {info.role}
+                    </td>
+                    <td style={{ ...printTdStyle, fontWeight: 600 }}>{info.planned ?? ''}</td>
+                    <td style={writeInStyle}>{info.actual ?? ''}</td>
+                  </React.Fragment>
+                );
+              })}
+            </tr>
+          ))}
+          {/* Total Pitches row */}
+          <tr style={{ background: '#f3f4f6', borderTop: '1pt solid #9ca3af' }}>
+            <td style={printTdStyle} />
+            <td style={{ ...printTdStyle, textAlign: 'left', fontWeight: 700, textTransform: 'uppercase', fontSize: 7, letterSpacing: '0.06em' }}>
+              Total Pitches
+            </td>
+            {perGame.map(({ slot, planTotal, actualTotal }) => (
+              <React.Fragment key={slot.id}>
+                <td style={printTdStyle} />
+                <td style={{ ...printTdStyle, fontWeight: 700 }}>{planTotal || ''}</td>
+                <td style={{ ...writeInStyle, fontWeight: 700 }}>{actualTotal || ''}</td>
+              </React.Fragment>
+            ))}
+          </tr>
         </tbody>
       </table>
 
-      <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
-        <div style={{ flex: 1, fontSize: 8, border: '0.5pt solid #e5e7eb', borderRadius: 3, padding: 6 }}>
-          <div style={{ fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b7280', fontWeight: 700, marginBottom: 3 }}>Catchers</div>
-          {dayIndices.map((d) => {
-            const catcherIds = catchers[String(d)] ?? [];
-            const names = roster.filter((r) => catcherIds.includes(r.id)).map((r) => r.name);
-            return (
-              <div key={d} style={{ display: 'flex', gap: 6, marginBottom: 1 }}>
-                <span style={{ fontWeight: 700, minWidth: 40 }}>{dayLabel(d)}:</span>
-                <span>{names.length > 0 ? names.join(', ') : '—'}</span>
-              </div>
-            );
-          })}
-        </div>
-        {notes.trim().length > 0 && (
-          <div style={{ flex: 2, fontSize: 8, border: '0.5pt solid #e5e7eb', borderRadius: 3, padding: 6 }}>
-            <div style={{ fontSize: 7, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b7280', fontWeight: 700, marginBottom: 3 }}>Notes</div>
-            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>{notes}</div>
+      {/* Footer: legend + arm-care key + notes */}
+      <div style={{ display: 'flex', gap: 12, marginTop: 8, alignItems: 'flex-start' }}>
+        <div style={{ fontSize: 7.5, color: '#374151', flex: 1 }}>
+          <div>
+            <strong>SP</strong> starts the game · <strong>RP</strong> relief · <strong>C</strong> catching (can't pitch) ·
+            shaded <strong>Actual</strong> cells are for in-game charting.
+            <span style={{ marginLeft: 8, padding: '0 3px', borderRadius: 2, background: '#dbeafe', color: '#1e3a8a', fontWeight: 700 }}>A</span> best arms
+            <span style={{ marginLeft: 6, padding: '0 3px', borderRadius: 2, background: '#ede9fe', color: '#5b21b6', fontWeight: 700 }}>B</span> depth
           </div>
-        )}
+          {notes.trim().length > 0 && (
+            <div style={{ marginTop: 5, border: '0.5pt solid #e5e7eb', borderRadius: 3, padding: 5 }}>
+              <div style={{ fontSize: 6.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b7280', fontWeight: 700, marginBottom: 2 }}>Notes</div>
+              <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.35 }}>{notes}</div>
+            </div>
+          )}
+        </div>
+        {/* Arm-care key — mirrors the OBA rest tiers */}
+        <table style={{ borderCollapse: 'collapse', fontSize: 7.5 }}>
+          <thead>
+            <tr><th colSpan={2} style={{ ...printThStyle, background: '#e5e7eb' }}>Arm Care</th></tr>
+          </thead>
+          <tbody>
+            {[['≤ 30', '0 days'], ['31–45', '1 day'], ['46–60', '2 days'], ['61–75', '3 days'], ['76–85', '4 days']].map(([r, d]) => (
+              <tr key={r}>
+                <td style={{ ...printTdStyle, fontWeight: 600 }}>{r}</td>
+                <td style={printTdStyle}>{d}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
 }
+
+const printSubTh: React.CSSProperties = {
+  padding: '2pt 3pt', border: '0.5pt solid #d1d5db', fontWeight: 700,
+  fontSize: 6.5, color: '#374151', textAlign: 'center', background: '#eef1f4',
+};
 
 const printThStyle: React.CSSProperties = {
   padding: '3pt 5pt', border: '0.5pt solid #d1d5db', fontWeight: 700,
