@@ -17,6 +17,17 @@ const db = supabase as any;
  * eligibility math treats this appearance as happening on the override day
  * instead of the game slot's own dayIndex. `null` or absent = no override.
  */
+/**
+ * Role for an appearance in a game.
+ * - 'SP' = starting pitcher (takes the mound first)
+ * - 'RP' = relief pitcher (comes in after)
+ * - 'BP' = bullpen session (~20 pitches to stay sharp during a game they
+ *   aren't pitching in). Arm maintenance — NOT a game appearance, so it's
+ *   excluded from the OBA game-pitch rest/eligibility rules.
+ * - null/absent = auto: first by sequence is SP, everyone after is RP.
+ */
+export type AppearanceRole = 'SP' | 'RP' | 'BP' | null;
+
 export interface PitchCell {
   planned: number | null;
   actual: number | null;
@@ -27,6 +38,8 @@ export interface PitchCell {
    * Absent = unordered (sorts after ordered pitchers, in roster order).
    */
   order?: number | null;
+  /** SP / RP / BP. Absent = auto (SP for the first in sequence, else RP). */
+  role?: AppearanceRole;
 }
 
 /**
@@ -100,8 +113,10 @@ function normalizeEntries(raw: unknown): PitchEntries {
     const dayOverride = typeof rawOverride === 'number' && Number.isFinite(rawOverride) ? Math.max(0, Math.trunc(rawOverride)) : null;
     const rawOrder = (cell as { order?: unknown }).order;
     const order = typeof rawOrder === 'number' && Number.isFinite(rawOrder) ? Math.max(0, Math.trunc(rawOrder)) : null;
-    if (planned !== null || actual !== null || dayOverride !== null || order !== null) {
-      out[k] = { planned, actual, dayOverride, order };
+    const rawRole = (cell as { role?: unknown }).role;
+    const role = rawRole === 'SP' || rawRole === 'RP' || rawRole === 'BP' ? rawRole : null;
+    if (planned !== null || actual !== null || dayOverride !== null || order !== null || role !== null) {
+      out[k] = { planned, actual, dayOverride, order, role };
     }
   }
   return out;
