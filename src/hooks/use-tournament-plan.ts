@@ -21,6 +21,12 @@ export interface PitchCell {
   planned: number | null;
   actual: number | null;
   dayOverride?: number | null;
+  /**
+   * Pitching sequence within a game — 0 = pitches first, 1 = second, etc.
+   * Lets the coach order assigned pitchers by when they'll take the mound.
+   * Absent = unordered (sorts after ordered pitchers, in roster order).
+   */
+  order?: number | null;
 }
 
 /**
@@ -92,8 +98,10 @@ function normalizeEntries(raw: unknown): PitchEntries {
     const actual = typeof cell.actual === 'number' && Number.isFinite(cell.actual) ? Math.max(0, Math.trunc(cell.actual)) : null;
     const rawOverride = (cell as { dayOverride?: unknown }).dayOverride;
     const dayOverride = typeof rawOverride === 'number' && Number.isFinite(rawOverride) ? Math.max(0, Math.trunc(rawOverride)) : null;
-    if (planned !== null || actual !== null || dayOverride !== null) {
-      out[k] = { planned, actual, dayOverride };
+    const rawOrder = (cell as { order?: unknown }).order;
+    const order = typeof rawOrder === 'number' && Number.isFinite(rawOrder) ? Math.max(0, Math.trunc(rawOrder)) : null;
+    if (planned !== null || actual !== null || dayOverride !== null || order !== null) {
+      out[k] = { planned, actual, dayOverride, order };
     }
   }
   return out;
