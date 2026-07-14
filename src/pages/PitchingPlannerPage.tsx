@@ -220,6 +220,44 @@ export default function PitchingPlannerPage() {
     setDirty(true);
   };
 
+  // Move an assigned pitcher up (-1) or down (+1) in the game's sequence.
+  // Rewrites every assigned cell's `order` to dense 0..n-1 so the sequence
+  // stays clean regardless of prior state.
+  const handleReorderPitcher = (pitcherId: string, slotId: string, direction: -1 | 1) => {
+    setEntries((prev) => {
+      // Current assigned pitchers for this slot, in the same order the UI shows.
+      const assigned = roster
+        .filter((p) => {
+          const c = prev[entryKey(p.id, slotId)];
+          return c && ((c.planned ?? null) !== null || (c.actual ?? null) !== null);
+        })
+        .map((p, rosterIdx) => ({ id: p.id, rosterIdx, cell: prev[entryKey(p.id, slotId)]! }))
+        .sort((a, b) => {
+          const ao = a.cell.order ?? Number.POSITIVE_INFINITY;
+          const bo = b.cell.order ?? Number.POSITIVE_INFINITY;
+          if (ao !== bo) return ao - bo;
+          return a.rosterIdx - b.rosterIdx;
+        });
+
+      const idx = assigned.findIndex((a) => a.id === pitcherId);
+      if (idx < 0) return prev;
+      const target = idx + direction;
+      if (target < 0 || target >= assigned.length) return prev;
+
+      // Swap positions, then re-number densely.
+      const reordered = [...assigned];
+      [reordered[idx], reordered[target]] = [reordered[target], reordered[idx]];
+
+      const out = { ...prev };
+      reordered.forEach((a, i) => {
+        const key = entryKey(a.id, slotId);
+        out[key] = { ...out[key], order: i };
+      });
+      return out;
+    });
+    setDirty(true);
+  };
+
   const handleSlotChange = (slotId: string, field: keyof TournamentGameSlot, value: string | number | null) => {
     setSchedule((prev) => prev.map((s) => (s.id === slotId ? { ...s, [field]: value } : s)));
     setDirty(true);
@@ -601,6 +639,7 @@ export default function PitchingPlannerPage() {
               onRemoveGame={handleRemoveGame}
               onCellChange={handleCellChange}
               onRemovePitcher={handleRemovePitcher}
+              onReorderPitcher={handleReorderPitcher}
               onToggleCatcher={handleToggleCatcher}
               onAutoFillGame={handleAutoFillGame}
             />
@@ -787,6 +826,7 @@ function GameCard({
   onRemoveGame,
   onCellChange,
   onRemovePitcher,
+  onReorderPitcher,
   onToggleCatcher,
   onAutoFillGame,
 }: {
@@ -800,15 +840,26 @@ function GameCard({
   onRemoveGame: (slotId: string) => void;
   onCellChange: (pitcherId: string, slotId: string, field: 'planned' | 'actual', raw: string | number) => void;
   onRemovePitcher: (pitcherId: string, slotId: string) => void;
+  onReorderPitcher: (pitcherId: string, slotId: string, direction: -1 | 1) => void;
   onToggleCatcher: (dayIndex: number, pitcherId: string) => void;
   onAutoFillGame: (slot: TournamentGameSlot) => void;
 }) {
   const dayCatcherIds = catchers[String(slot.dayIndex)] ?? [];
 
-  const assigned = useMemo(() => roster.filter((p) => {
-    const cell = entries[entryKey(p.id, slot.id)];
-    return cell && ((cell.planned ?? null) !== null || (cell.actual ?? null) !== null);
-  }), [roster, entries, slot.id]);
+  // Assigned pitchers, sorted by pitching sequence (cell.order), falling back
+  // to roster order for any unordered cells.
+  const assigned = useMemo(() => {
+    return roster
+      .map((p, rosterIdx) => ({ p, rosterIdx, cell: entries[entryKey(p.id, slot.id)] }))
+      .filter(({ cell }) => cell && ((cell.planned ?? null) !== null || (cell.actual ?? null) !== null))
+      .sort((a, b) => {
+        const ao = a.cell!.order ?? Number.POSITIVE_INFINITY;
+        const bo = b.cell!.order ?? Number.POSITIVE_INFINITY;
+        if (ao !== bo) return ao - bo;
+        return a.rosterIdx - b.rosterIdx;
+      })
+      .map(({ p }) => p);
+  }, [roster, entries, slot.id]);
 
   const gameTotal = assigned.reduce((s, p) => s + effectivePitches(entries[entryKey(p.id, slot.id)]), 0);
 
@@ -888,13 +939,18 @@ function GameCard({
           onToggle={onToggleCatcher}
         />
 
-        {/* Assigned pitchers */}
+        {/* Assigned pitchers, in pitching sequence */}
         {assigned.length === 0 && (
           <p className="text-sm text-muted-foreground italic px-1">
             No pitchers assigned yet. Add one below or tap Auto-fill.
           </p>
         )}
-        {assigned.map((p) => (
+        {assigned.length > 1 && (
+          <p className="text-[11px] text-muted-foreground px-1">
+            Order = pitching sequence. Use the arrows to set who takes the mound first.
+          </p>
+        )}
+        {assigned.map((p, idx) => (
           <AssignedPitcherRow
             key={p.id}
             pitcher={p}
@@ -903,8 +959,14 @@ function GameCard({
             cell={entries[entryKey(p.id, slot.id)]}
             rowEntries={pitcherEntries(entries, p.id, schedule)}
             isCatchingToday={dayCatcherIds.includes(p.id)}
+            sequence={idx + 1}
+            isFirst={idx === 0}
+            isLast={idx === assigned.length - 1}
+            showReorder={assigned.length > 1}
             onCellChange={onCellChange}
             onRemove={() => onRemovePitcher(p.id, slot.id)}
+            onMoveUp={() => onReorderPitcher(p.id, slot.id, -1)}
+            onMoveDown={() => onReorderPitcher(p.id, slot.id, 1)}
           />
         ))}
 
@@ -1003,8 +1065,14 @@ function AssignedPitcherRow({
   cell,
   rowEntries,
   isCatchingToday,
+  sequence,
+  isFirst,
+  isLast,
+  showReorder,
   onCellChange,
   onRemove,
+  onMoveUp,
+  onMoveDown,
 }: {
   pitcher: TournamentRosterEntry;
   slot: TournamentGameSlot;
@@ -1012,8 +1080,14 @@ function AssignedPitcherRow({
   cell: PitchCell | undefined;
   rowEntries: PitchEntry[];
   isCatchingToday: boolean;
+  sequence: number;
+  isFirst: boolean;
+  isLast: boolean;
+  showReorder: boolean;
   onCellChange: (pitcherId: string, slotId: string, field: 'planned' | 'actual', raw: string | number) => void;
   onRemove: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
 }) {
   const check = isEligibleForGame({
     entries: rowEntries,
@@ -1026,6 +1100,33 @@ function AssignedPitcherRow({
   return (
     <div className="rounded-md border border-border/50 p-2 space-y-2">
       <div className="flex items-center gap-2 flex-wrap">
+        {showReorder && (
+          <div className="flex items-center gap-1 shrink-0">
+            <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-muted text-xs font-bold text-foreground" title={`Pitches #${sequence} in this game`}>
+              {sequence}
+            </span>
+            <div className="flex flex-col">
+              <button
+                type="button"
+                onClick={onMoveUp}
+                disabled={isFirst}
+                className="h-3.5 text-muted-foreground hover:text-foreground disabled:opacity-30"
+                aria-label="Move earlier in the sequence"
+              >
+                <ChevronUp className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={onMoveDown}
+                disabled={isLast}
+                className="h-3.5 text-muted-foreground hover:text-foreground disabled:opacity-30"
+                aria-label="Move later in the sequence"
+              >
+                <ChevronDown className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
         <span className="font-semibold text-sm flex-1 truncate min-w-0">{pitcher.name}</span>
         {pitcher.group && <GroupLetterInline group={pitcher.group} />}
         {pitcher.isPickup && (
