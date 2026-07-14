@@ -16,6 +16,7 @@ import {
   Minus,
   ChevronDown,
   ChevronUp,
+  Ban,
 } from 'lucide-react';
 import hawksLogo from '@/assets/hawks-logo.png';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -369,6 +370,11 @@ export default function PitchingPlannerPage() {
     setDirty(true);
   };
 
+  const handleToggleUnavailable = (id: string) => {
+    setRoster((prev) => prev.map((r) => (r.id === id ? { ...r, unavailable: !r.unavailable } : r)));
+    setDirty(true);
+  };
+
   const handleTargetGroupChange = (slotId: string, target: 'A' | 'B' | null) => {
     setSchedule((prev) => prev.map((s) => (s.id === slotId ? { ...s, targetGroup: target } : s)));
     setDirty(true);
@@ -392,14 +398,18 @@ export default function PitchingPlannerPage() {
   };
 
   const handleSuggestGroups = () => {
-    const inputs = roster.map((r) => ({
-      pitcherId: r.id,
-      name: r.name,
-      stats: (rosterStatsById[r.id]?.stats ?? null),
-    }));
+    // Injured / NA players are excluded from ranking and left as-is.
+    const inputs = roster
+      .filter((r) => !r.unavailable)
+      .map((r) => ({
+        pitcherId: r.id,
+        name: r.name,
+        stats: (rosterStatsById[r.id]?.stats ?? null),
+      }));
     const suggestions = suggestGroups(inputs, { groupASize: 5 });
     const byId = new Map(suggestions.map((s) => [s.pitcherId, s]));
     setRoster((prev) => prev.map((r) => {
+      if (r.unavailable) return r; // don't touch injured players' group
       const s = byId.get(r.id);
       return s ? { ...r, group: s.suggestedGroup } : r;
     }));
@@ -412,8 +422,8 @@ export default function PitchingPlannerPage() {
    * down by IP so a fresh depth arm doesn't get 30 pitches on Day 1.
    */
   const handleAutoFillGame = (slot: TournamentGameSlot) => {
-    // Pool: target group if set, otherwise the whole roster.
-    const pool = roster.filter((p) => (slot.targetGroup ? p.group === slot.targetGroup : true));
+    // Pool: available players, in the target group if set, else whole roster.
+    const pool = roster.filter((p) => !p.unavailable && (slot.targetGroup ? p.group === slot.targetGroup : true));
     const perGame = 3;
 
     // Working copy of entries (existing state stays untouched until we commit).
@@ -631,6 +641,7 @@ export default function PitchingPlannerPage() {
           roster={roster}
           availableMainPitchers={availableMainPitchers}
           onGroupChange={handleGroupChange}
+          onToggleUnavailable={handleToggleUnavailable}
           onRename={handleRosterRename}
           onRemove={handleRemoveFromRoster}
           onAddPickup={handleAddPickup}
@@ -735,6 +746,7 @@ function RosterSection({
   roster,
   availableMainPitchers,
   onGroupChange,
+  onToggleUnavailable,
   onRename,
   onRemove,
   onAddPickup,
@@ -746,6 +758,7 @@ function RosterSection({
   roster: TournamentRosterEntry[];
   availableMainPitchers: Array<{ id: string; name: string }>;
   onGroupChange: (id: string, group: RotationGroup) => void;
+  onToggleUnavailable: (id: string) => void;
   onRename: (id: string, name: string) => void;
   onRemove: (id: string) => void;
   onAddPickup: (name: string) => void;
@@ -753,8 +766,10 @@ function RosterSection({
   onSuggestGroups: () => void;
 }) {
   const [pickupName, setPickupName] = useState('');
-  const groupACount = roster.filter((r) => r.group === 'A').length;
-  const groupBCount = roster.filter((r) => r.group === 'B').length;
+  const available = roster.filter((r) => !r.unavailable);
+  const groupACount = available.filter((r) => r.group === 'A').length;
+  const groupBCount = available.filter((r) => r.group === 'B').length;
+  const naCount = roster.filter((r) => r.unavailable).length;
 
   return (
     <Card className="glass-card">
@@ -768,6 +783,7 @@ function RosterSection({
             {roster.length} player{roster.length === 1 ? '' : 's'}
             {groupACount > 0 && ` · A ${groupACount}`}
             {groupBCount > 0 && ` · B ${groupBCount}`}
+            {naCount > 0 && ` · NA ${naCount}`}
           </span>
         </div>
         <div className="flex items-center gap-1">
@@ -792,16 +808,34 @@ function RosterSection({
           {roster.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {roster.map((r) => (
-                <div key={r.id} className="flex items-center gap-2 rounded-md border border-border/60 bg-background px-2 py-1">
+                <div
+                  key={r.id}
+                  className={`flex items-center gap-2 rounded-md border px-2 py-1 ${
+                    r.unavailable ? 'border-border/40 bg-muted/30 opacity-70' : 'border-border/60 bg-background'
+                  }`}
+                >
                   <Input
                     value={r.name}
                     onChange={(e) => onRename(r.id, e.target.value)}
-                    className="h-8 flex-1 border-0 shadow-none px-1 focus-visible:ring-1"
+                    className={`h-8 flex-1 border-0 shadow-none px-1 focus-visible:ring-1 ${r.unavailable ? 'line-through' : ''}`}
                   />
+                  {r.unavailable && (
+                    <span className="text-[9px] uppercase tracking-wider bg-red-500/15 text-red-700 dark:text-red-300 px-1 rounded">NA</span>
+                  )}
                   {r.isPickup && (
                     <span className="text-[9px] uppercase tracking-wider bg-blue-500/15 text-blue-700 dark:text-blue-300 px-1 rounded">PU</span>
                   )}
                   <GroupToggle group={r.group ?? null} onChange={(g) => onGroupChange(r.id, g)} />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className={`h-7 w-7 ${r.unavailable ? 'text-red-600' : 'text-muted-foreground hover:text-red-600'}`}
+                    onClick={() => onToggleUnavailable(r.id)}
+                    aria-label={r.unavailable ? 'Mark available' : 'Mark injured / not available'}
+                    title={r.unavailable ? 'Injured / NA — tap to restore' : 'Mark injured / not available'}
+                  >
+                    <Ban className="w-3.5 h-3.5" />
+                  </Button>
                   <Button
                     size="icon"
                     variant="ghost"
@@ -1307,6 +1341,11 @@ function AddPitcherPicker({
         return !cell || (cell.planned === null && cell.actual === null);
       })
       .map((p) => {
+        // Injured / NA players surface as ineligible so they can't be added
+        // without first clearing the flag.
+        if (p.unavailable) {
+          return { p, check: { eligible: false, reason: 'Injured / not available', remaining: null } as ReturnType<typeof isEligibleForGame> };
+        }
         const rowEntries = pitcherEntries(entries, p.id, schedule);
         const isCatchingToday = catcherIds.includes(p.id);
         const check = isEligibleForGame({

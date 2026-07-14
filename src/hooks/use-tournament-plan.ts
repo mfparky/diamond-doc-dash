@@ -67,6 +67,11 @@ export interface TournamentRosterEntry {
   name: string;
   isPickup: boolean;
   group?: RotationGroup;
+  /**
+   * Injured / not available for this tournament. Kept on the roster (so their
+   * group + history stay) but excluded from A/B suggestions and auto-fill.
+   */
+  unavailable?: boolean;
 }
 
 /**
@@ -138,6 +143,7 @@ function normalizeRoster(raw: unknown): TournamentRosterEntry[] {
       name: entry.name,
       isPickup: entry.isPickup === true,
       group,
+      unavailable: entry.unavailable === true,
     });
   }
   return out;
