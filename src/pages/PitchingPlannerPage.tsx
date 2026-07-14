@@ -555,6 +555,7 @@ export default function PitchingPlannerPage() {
         entries={entries}
         catchers={catchers}
         notes={notes}
+        statusDay={effectiveStatusDay}
       />
 
       <div className="planner-screen container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-4xl space-y-4">
@@ -1712,6 +1713,7 @@ function PrintableTournamentPlan({
   entries,
   catchers,
   notes,
+  statusDay,
 }: {
   tournamentName: string;
   dateRange: string;
@@ -1720,8 +1722,29 @@ function PrintableTournamentPlan({
   entries: PitchEntries;
   catchers: CatchersByDay;
   notes: string;
+  statusDay: number;
 }) {
   const today = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+
+  // Availability snapshot for the status day (same math as the on-screen card).
+  const statusRows = useMemo(() => {
+    return roster
+      .filter((p) => !p.unavailable)
+      .map((p) => {
+        const rowEntries = pitcherEntries(entries, p.id, schedule);
+        let lastDay = -1;
+        let lastCount = 0;
+        for (const e of rowEntries) {
+          if (e.pitches > 0 && e.day > lastDay) { lastDay = e.day; lastCount = e.pitches; }
+        }
+        const check = isEligibleForGame({ entries: rowEntries, targetDay: statusDay, targetGameIndex: 0 });
+        return { p, check, lastDay, lastCount };
+      })
+      .sort((a, b) => {
+        if (a.check.eligible !== b.check.eligible) return a.check.eligible ? -1 : 1;
+        return (b.check.remaining ?? 0) - (a.check.remaining ?? 0);
+      });
+  }, [roster, entries, schedule, statusDay]);
 
   // Per-game breakdown: role (SP = pitches first, RP = after), plan, actual,
   // and totals. Matches the coach's Excel charting sheet.
@@ -1867,6 +1890,32 @@ function PrintableTournamentPlan({
           </tr>
         </tbody>
       </table>
+
+      {/* Availability status snapshot */}
+      <div style={{ marginTop: 8, pageBreakInside: 'avoid' }}>
+        <div style={{ fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#374151', fontWeight: 700, marginBottom: 3 }}>
+          Availability — as of Day {statusDay + 1}
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2pt 10pt' }}>
+          {statusRows.map(({ p, check, lastDay, lastCount }) => {
+            const remaining = check.remaining ?? DAILY_MAX;
+            const color = !check.eligible ? '#b91c1c' : remaining >= 60 ? '#15803d' : remaining >= 30 ? '#4d7c0f' : '#b45309';
+            return (
+              <div key={p.id} style={{ fontSize: 7.5, minWidth: 150, display: 'flex', gap: 4, alignItems: 'baseline' }}>
+                <span style={{ fontWeight: 600, minWidth: 70 }}>
+                  {p.name}{p.group ? ` (${p.group})` : ''}
+                </span>
+                <span style={{ color, fontWeight: 700 }}>
+                  {check.eligible ? `Clear · up to ${remaining}` : 'Resting'}
+                </span>
+                <span style={{ color: '#9ca3af' }}>
+                  {lastDay >= 0 ? `· last D${lastDay + 1}/${lastCount}p` : '· no outings'}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Footer: legend + arm-care key + notes */}
       <div style={{ display: 'flex', gap: 12, marginTop: 8, alignItems: 'flex-start' }}>
