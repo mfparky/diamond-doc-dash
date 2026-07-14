@@ -93,11 +93,34 @@ function effectivePitches(cell: PitchCell | undefined): number {
   return 0;
 }
 
+/** True when this cell holds a game appearance (SP/RP/auto), not a bullpen. */
+function isGameAppearance(cell: PitchCell | undefined): boolean {
+  if (!cell) return false;
+  return cell.role !== 'BP';
+}
+
+/**
+ * Resolve a cell's display role. Explicit role wins; otherwise auto — the
+ * first in the game's sequence is SP, everyone after is RP.
+ */
+function effectiveRole(cell: PitchCell | undefined, sequenceIndex: number): 'SP' | 'RP' | 'BP' {
+  if (cell?.role === 'SP' || cell?.role === 'RP' || cell?.role === 'BP') return cell.role;
+  return sequenceIndex === 0 ? 'SP' : 'RP';
+}
+
+const BULLPEN_DEFAULT_PITCHES = 20;
+
+/**
+ * Feed for the OBA rules engine. Bullpen (BP) appearances are excluded —
+ * they're arm-maintenance sessions, not regulated game pitches, so they
+ * don't affect rest tiers, game counts, or eligibility.
+ */
 function pitcherEntries(entries: PitchEntries, pitcherId: string, schedule: TournamentGameSlot[]): PitchEntry[] {
   return schedule.map((slot) => {
     const cell = entries[entryKey(pitcherId, slot.id)];
     const day = typeof cell?.dayOverride === 'number' ? cell.dayOverride : slot.dayIndex;
-    return { day, gameIndex: slot.gameIndex, pitches: effectivePitches(cell) };
+    const pitches = isGameAppearance(cell) ? effectivePitches(cell) : 0;
+    return { day, gameIndex: slot.gameIndex, pitches };
   });
 }
 
@@ -216,6 +239,21 @@ export default function PitchingPlannerPage() {
       const out = { ...prev };
       delete out[key];
       return out;
+    });
+    setDirty(true);
+  };
+
+  // Set an appearance's role (SP/RP/BP). Choosing BP defaults the planned
+  // count to a 20-pitch bullpen if nothing's entered yet.
+  const handleSetRole = (pitcherId: string, slotId: string, role: 'SP' | 'RP' | 'BP') => {
+    setEntries((prev) => {
+      const key = entryKey(pitcherId, slotId);
+      const existing: PitchCell = prev[key] ?? { planned: null, actual: null };
+      const next: PitchCell = { ...existing, role };
+      if (role === 'BP' && (next.planned ?? null) === null && (next.actual ?? null) === null) {
+        next.planned = BULLPEN_DEFAULT_PITCHES;
+      }
+      return { ...prev, [key]: next };
     });
     setDirty(true);
   };
@@ -640,6 +678,7 @@ export default function PitchingPlannerPage() {
               onCellChange={handleCellChange}
               onRemovePitcher={handleRemovePitcher}
               onReorderPitcher={handleReorderPitcher}
+              onSetRole={handleSetRole}
               onToggleCatcher={handleToggleCatcher}
               onAutoFillGame={handleAutoFillGame}
             />
@@ -827,6 +866,7 @@ function GameCard({
   onCellChange,
   onRemovePitcher,
   onReorderPitcher,
+  onSetRole,
   onToggleCatcher,
   onAutoFillGame,
 }: {
@@ -841,6 +881,7 @@ function GameCard({
   onCellChange: (pitcherId: string, slotId: string, field: 'planned' | 'actual', raw: string | number) => void;
   onRemovePitcher: (pitcherId: string, slotId: string) => void;
   onReorderPitcher: (pitcherId: string, slotId: string, direction: -1 | 1) => void;
+  onSetRole: (pitcherId: string, slotId: string, role: 'SP' | 'RP' | 'BP') => void;
   onToggleCatcher: (dayIndex: number, pitcherId: string) => void;
   onAutoFillGame: (slot: TournamentGameSlot) => void;
 }) {
@@ -861,7 +902,12 @@ function GameCard({
       .map(({ p }) => p);
   }, [roster, entries, slot.id]);
 
-  const gameTotal = assigned.reduce((s, p) => s + effectivePitches(entries[entryKey(p.id, slot.id)]), 0);
+  // Game total counts game pitches only — bullpen sessions don't enter the game.
+  const gameTotal = assigned.reduce((s, p) => {
+    const cell = entries[entryKey(p.id, slot.id)];
+    return s + (isGameAppearance(cell) ? effectivePitches(cell) : 0);
+  }, 0);
+  const bullpenCount = assigned.filter((p) => !isGameAppearance(entries[entryKey(p.id, slot.id)])).length;
 
   return (
     <Card className="glass-card">
@@ -963,6 +1009,8 @@ function GameCard({
             isFirst={idx === 0}
             isLast={idx === assigned.length - 1}
             showReorder={assigned.length > 1}
+            role={effectiveRole(entries[entryKey(p.id, slot.id)], idx)}
+            onSetRole={(r) => onSetRole(p.id, slot.id, r)}
             onCellChange={onCellChange}
             onRemove={() => onRemovePitcher(p.id, slot.id)}
             onMoveUp={() => onReorderPitcher(p.id, slot.id, -1)}
@@ -985,7 +1033,8 @@ function GameCard({
             Auto-fill
           </Button>
           <span className="ml-auto text-xs text-muted-foreground">
-            Total: <strong className="text-foreground">{gameTotal}</strong>
+            Game total: <strong className="text-foreground">{gameTotal}</strong>
+            {bullpenCount > 0 && <span className="ml-1">· {bullpenCount} bullpen{bullpenCount === 1 ? '' : 's'}</span>}
           </span>
         </div>
       </CardContent>
@@ -1069,6 +1118,8 @@ function AssignedPitcherRow({
   isFirst,
   isLast,
   showReorder,
+  role,
+  onSetRole,
   onCellChange,
   onRemove,
   onMoveUp,
@@ -1084,11 +1135,14 @@ function AssignedPitcherRow({
   isFirst: boolean;
   isLast: boolean;
   showReorder: boolean;
+  role: 'SP' | 'RP' | 'BP';
+  onSetRole: (role: 'SP' | 'RP' | 'BP') => void;
   onCellChange: (pitcherId: string, slotId: string, field: 'planned' | 'actual', raw: string | number) => void;
   onRemove: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
 }) {
+  const isBullpen = role === 'BP';
   const check = isEligibleForGame({
     entries: rowEntries,
     targetDay: slot.dayIndex,
@@ -1127,12 +1181,20 @@ function AssignedPitcherRow({
             </div>
           </div>
         )}
-        <span className="font-semibold text-sm flex-1 truncate min-w-0">{pitcher.name}</span>
+        <span className="font-semibold text-sm truncate min-w-0">{pitcher.name}</span>
         {pitcher.group && <GroupLetterInline group={pitcher.group} />}
         {pitcher.isPickup && (
           <span className="text-[9px] uppercase tracking-wider bg-blue-500/15 text-blue-700 dark:text-blue-300 px-1 rounded">PU</span>
         )}
-        <EligibilityBadge check={check} offPlan={offPlan} slotGroup={slot.targetGroup ?? null} pitcherGroup={pitcher.group ?? null} />
+        <RoleSelector role={role} onChange={onSetRole} />
+        <div className="flex-1" />
+        {isBullpen ? (
+          <span className="rounded-md border border-sky-500/40 bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700 dark:text-sky-300" title="Bullpen session — arm maintenance, not a game appearance. Excluded from OBA rest rules.">
+            Bullpen
+          </span>
+        ) : (
+          <EligibilityBadge check={check} offPlan={offPlan} slotGroup={slot.targetGroup ?? null} pitcherGroup={pitcher.group ?? null} />
+        )}
         <Button
           size="icon"
           variant="ghost"
@@ -1144,7 +1206,7 @@ function AssignedPitcherRow({
         </Button>
       </div>
       <PitchStepper
-        label="Planned"
+        label={isBullpen ? 'Bullpen' : 'Planned'}
         value={cell?.planned ?? null}
         onChange={(v) => onCellChange(pitcher.id, slot.id, 'planned', v)}
       />
@@ -1154,6 +1216,29 @@ function AssignedPitcherRow({
         value={cell?.actual ?? null}
         onChange={(v) => onCellChange(pitcher.id, slot.id, 'actual', v)}
       />
+    </div>
+  );
+}
+
+function RoleSelector({ role, onChange }: { role: 'SP' | 'RP' | 'BP'; onChange: (r: 'SP' | 'RP' | 'BP') => void }) {
+  const opts: Array<'SP' | 'RP' | 'BP'> = ['SP', 'RP', 'BP'];
+  const activeColor: Record<'SP' | 'RP' | 'BP', string> = {
+    SP: 'bg-emerald-600 text-white',
+    RP: 'bg-slate-600 text-white',
+    BP: 'bg-sky-600 text-white',
+  };
+  return (
+    <div className="flex gap-0.5 shrink-0" title="SP starts · RP relief · BP 20-pitch bullpen (not a game appearance)">
+      {opts.map((o) => (
+        <button
+          key={o}
+          type="button"
+          onClick={() => onChange(o)}
+          className={`h-6 px-1.5 rounded text-[10px] font-bold ${role === o ? activeColor[o] : 'bg-muted text-muted-foreground'}`}
+        >
+          {o}
+        </button>
+      ))}
     </div>
   );
 }
@@ -1484,16 +1569,18 @@ function PrintableTournamentPlan({
           if (ao !== bo) return ao - bo;
           return a.i - b.i;
         });
-      const byPitcher = new Map<string, { role: 'SP' | 'RP'; planned: number | null; actual: number | null }>();
+      const byPitcher = new Map<string, { role: 'SP' | 'RP' | 'BP'; planned: number | null; actual: number | null }>();
       assigned.forEach((a, idx) => {
         byPitcher.set(a.p.id, {
-          role: idx === 0 ? 'SP' : 'RP',
+          role: effectiveRole(a.cell!, idx),
           planned: a.cell!.planned ?? null,
           actual: a.cell!.actual ?? null,
         });
       });
-      const planTotal = assigned.reduce((s, a) => s + (a.cell!.planned ?? 0), 0);
-      const actualTotal = assigned.reduce((s, a) => s + (a.cell!.actual ?? 0), 0);
+      // Game totals count game pitches only — bullpens are excluded.
+      const gameOnly = assigned.filter((a) => isGameAppearance(a.cell!));
+      const planTotal = gameOnly.reduce((s, a) => s + (a.cell!.planned ?? 0), 0);
+      const actualTotal = gameOnly.reduce((s, a) => s + (a.cell!.actual ?? 0), 0);
       return { slot, byPitcher, planTotal, actualTotal };
     });
   }, [schedule, roster, entries]);
@@ -1519,11 +1606,10 @@ function PrintableTournamentPlan({
       {/* Main charting grid: Player + per-game Role/Plan/Actual */}
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 8.5, tableLayout: 'fixed' }}>
         <colgroup>
-          <col style={{ width: 22 }} />
-          <col style={{ width: 96 }} />
+          <col style={{ width: 104 }} />
           {schedule.map((s) => (
             <React.Fragment key={s.id}>
-              <col style={{ width: 26 }} />
+              <col style={{ width: 28 }} />
               <col style={{ width: 30 }} />
               <col style={{ width: 34 }} />
             </React.Fragment>
@@ -1532,7 +1618,6 @@ function PrintableTournamentPlan({
         <thead>
           {/* Row 1 — game labels spanning Role/Plan/Actual */}
           <tr>
-            <th style={{ ...printThStyle, background: '#e5e7eb' }} rowSpan={2}>BP</th>
             <th style={{ ...printThStyle, background: '#e5e7eb', textAlign: 'left' }} rowSpan={2}>Player</th>
             {schedule.map((slot) => (
               <th key={slot.id} colSpan={3} style={{ ...printThStyle, background: '#d1d5db', borderBottom: 'none' }}>
@@ -1560,8 +1645,6 @@ function PrintableTournamentPlan({
         <tbody>
           {roster.map((p) => (
             <tr key={p.id} style={{ borderBottom: '0.5pt solid #e5e7eb' }}>
-              {/* BP write-in column */}
-              <td style={writeInStyle} />
               {/* Player name + group */}
               <td style={{ ...printTdStyle, textAlign: 'left', fontWeight: 600 }}>
                 {p.name}
@@ -1589,9 +1672,10 @@ function PrintableTournamentPlan({
                     </React.Fragment>
                   );
                 }
+                const roleColor = info.role === 'SP' ? '#166534' : info.role === 'BP' ? '#0369a1' : '#374151';
                 return (
                   <React.Fragment key={slot.id}>
-                    <td style={{ ...printTdStyle, fontWeight: 700, color: info.role === 'SP' ? '#166534' : '#374151' }}>
+                    <td style={{ ...printTdStyle, fontWeight: 700, color: roleColor }}>
                       {info.role}
                     </td>
                     <td style={{ ...printTdStyle, fontWeight: 600 }}>{info.planned ?? ''}</td>
@@ -1601,9 +1685,8 @@ function PrintableTournamentPlan({
               })}
             </tr>
           ))}
-          {/* Total Pitches row */}
+          {/* Total Pitches row (game pitches only — bullpens excluded) */}
           <tr style={{ background: '#f3f4f6', borderTop: '1pt solid #9ca3af' }}>
-            <td style={printTdStyle} />
             <td style={{ ...printTdStyle, textAlign: 'left', fontWeight: 700, textTransform: 'uppercase', fontSize: 7, letterSpacing: '0.06em' }}>
               Total Pitches
             </td>
@@ -1622,8 +1705,8 @@ function PrintableTournamentPlan({
       <div style={{ display: 'flex', gap: 12, marginTop: 8, alignItems: 'flex-start' }}>
         <div style={{ fontSize: 7.5, color: '#374151', flex: 1 }}>
           <div>
-            <strong>SP</strong> starts the game · <strong>RP</strong> relief · <strong>C</strong> catching (can't pitch) ·
-            shaded <strong>Actual</strong> cells are for in-game charting.
+            <strong>SP</strong> starts · <strong>RP</strong> relief · <strong style={{ color: '#0369a1' }}>BP</strong> ~20-pitch bullpen (not a game appearance) ·
+            <strong>C</strong> catching (can't pitch) · shaded <strong>Actual</strong> cells are for in-game charting.
             <span style={{ marginLeft: 8, padding: '0 3px', borderRadius: 2, background: '#dbeafe', color: '#1e3a8a', fontWeight: 700 }}>A</span> best arms
             <span style={{ marginLeft: 6, padding: '0 3px', borderRadius: 2, background: '#ede9fe', color: '#5b21b6', fontWeight: 700 }}>B</span> depth
           </div>
