@@ -1,0 +1,187 @@
+{
+  "version": 1,
+  "sdk_version": "0.22.2",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://zhhqakxjywbipmeyvlum.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "arm-stats-mcp",
+      "version": "0.1.0",
+      "title": "Arm Stats"
+    },
+    "tools": [
+      {
+        "name": "list_teams",
+        "title": "List teams",
+        "description": "List the teams the signed-in Arm Stats user belongs to. Returns id, name, and weekly pitch cap.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_pitchers",
+        "title": "List pitchers",
+        "description": "List pitchers visible to the signed-in Arm Stats user (scoped by team membership via RLS). Returns id, name, and team_id.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "team_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Optional team UUID to filter by. Omit to list across all of the user's teams."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_recent_outings",
+        "title": "List recent outings",
+        "description": "List recent pitching outings for the signed-in user (bullpens, games, practice, external). Returns date, pitcher, event type, pitch count, strikes, max velocity, notes.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "pitcher_name": {
+              "type": "string",
+              "description": "Filter by pitcher name (case-insensitive contains)."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Max rows to return (default 20)."
+            },
+            "since": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "Only include outings on/after this ISO date (YYYY-MM-DD)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "log_outing",
+        "title": "Log an outing",
+        "description": "Insert a pitching outing (bullpen, game, practice, or external) for a pitcher. Acts as the signed-in Arm Stats user; RLS enforces team membership.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "pitcher_id": {
+              "type": "string",
+              "description": "The pitcher_id string on the pitchers row."
+            },
+            "pitcher_name": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The pitcher's display name."
+            },
+            "team_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Team UUID this outing belongs to."
+            },
+            "date": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "Outing date (YYYY-MM-DD, local)."
+            },
+            "event_type": {
+              "type": "string",
+              "enum": [
+                "bullpen",
+                "game",
+                "practice",
+                "external"
+              ],
+              "description": "Kind of outing."
+            },
+            "pitch_count": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 500
+            },
+            "strikes": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 500
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Strike count. Null if not tracked."
+            },
+            "max_velocity": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 120
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "focus": {
+              "type": "string",
+              "maxLength": 500,
+              "description": "Mechanical focus / cue."
+            },
+            "notes": {
+              "type": "string",
+              "maxLength": 2000
+            }
+          },
+          "required": [
+            "pitcher_id",
+            "pitcher_name",
+            "team_id",
+            "date",
+            "event_type",
+            "pitch_count"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
