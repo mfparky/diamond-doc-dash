@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -7,6 +7,17 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -15,9 +26,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Upload, Loader2, FileSpreadsheet, AlertCircle, Check } from 'lucide-react';
+import { Upload, Loader2, FileSpreadsheet, AlertCircle, Check, Undo2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useStatUpload } from '@/hooks/use-stat-snapshots';
+import { useStatUpload, type LastUploadInfo } from '@/hooks/use-stat-snapshots';
 import {
   parseStatsCsv,
   matchRowsToRoster,
@@ -38,7 +49,7 @@ const SKIP_VALUE = '__skip__';
 
 export function StatUploadDialog({ open, onOpenChange, pitchers, onSuccess }: StatUploadDialogProps) {
   const { toast } = useToast();
-  const { upload, isUploading } = useStatUpload();
+  const { upload, getLastUpload, undoLastUpload, isUploading } = useStatUpload();
 
   const [filename, setFilename] = useState<string | null>(null);
   const [parseResult, setParseResult] = useState<ParseStatsResult | null>(null);
@@ -46,6 +57,35 @@ export function StatUploadDialog({ open, onOpenChange, pitchers, onSuccess }: St
   const [isDragging, setIsDragging] = useState(false);
   /** Map from row index in parseResult.rows -> chosen pitcher id (or SKIP_VALUE). */
   const [manualMap, setManualMap] = useState<Record<number, string>>({});
+  const [lastUpload, setLastUpload] = useState<LastUploadInfo | null>(null);
+  const [undoing, setUndoing] = useState(false);
+
+  // Load the most recent upload whenever the dialog opens, for the undo prompt.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    getLastUpload().then((info) => { if (!cancelled) setLastUpload(info); });
+    return () => { cancelled = true; };
+  }, [open, getLastUpload]);
+
+  const handleUndo = useCallback(async () => {
+    setUndoing(true);
+    const n = await undoLastUpload();
+    setUndoing(false);
+    if (n !== null) {
+      onSuccess?.();
+      const refreshed = await getLastUpload();
+      setLastUpload(refreshed);
+    }
+  }, [undoLastUpload, getLastUpload, onSuccess]);
+
+  const fmtUploadedAt = (iso: string) => {
+    try {
+      return new Date(iso).toLocaleString(undefined, {
+        month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+      });
+    } catch { return iso; }
+  };
 
   const reset = useCallback(() => {
     setFilename(null);
@@ -201,6 +241,39 @@ export function StatUploadDialog({ open, onOpenChange, pitchers, onSuccess }: St
             <p className="font-medium text-foreground">Drop a CSV here</p>
             <p className="text-sm text-muted-foreground">or tap to choose a file</p>
           </label>
+        )}
+
+        {!parseResult && lastUpload && (
+          <div className="rounded-md border border-border/60 bg-secondary/30 p-3 flex items-center gap-3">
+            <div className="flex-1 min-w-0 text-sm">
+              <p className="font-medium text-foreground">Last upload</p>
+              <p className="text-xs text-muted-foreground truncate">
+                {lastUpload.sourceFilename || 'CSV'} · {lastUpload.pitcherCount} pitcher{lastUpload.pitcherCount === 1 ? '' : 's'} · {fmtUploadedAt(lastUpload.uploadedAt)}
+              </p>
+            </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" disabled={undoing}>
+                  {undoing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Undo2 className="w-4 h-4 mr-1" />}
+                  Undo
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Undo last stats upload?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Removes {lastUpload.pitcherCount} snapshot{lastUpload.pitcherCount === 1 ? '' : 's'} from
+                    {' '}{lastUpload.sourceFilename || 'the last CSV'} ({fmtUploadedAt(lastUpload.uploadedAt)}).
+                    Rankings and report cards revert to the previous upload. This can't be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleUndo}>Undo upload</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         )}
 
         {parseError && (
