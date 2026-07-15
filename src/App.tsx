@@ -52,6 +52,7 @@ const PitchingPlannerPage = lazyWithReload(() => import("./pages/PitchingPlanner
 const BullpenChartPage = lazyWithReload(() => import("./pages/BullpenChartPage"));
 const GameChartPage = lazyWithReload(() => import("./pages/GameChartPage"));
 const LiveAbsChartPage = lazyWithReload(() => import("./pages/LiveAbsChartPage"));
+const OAuthConsent = lazyWithReload(() => import("./pages/OAuthConsent"));
 
 
 const queryClient = new QueryClient();
@@ -121,6 +122,9 @@ function AppRoutes() {
 
           {/* Design system evaluation — no auth required */}
           <Route path="/design-systems" element={<DesignSystemPage />} />
+
+          {/* Supabase OAuth 2.1 consent screen — MCP clients redirect here. */}
+          <Route path="/.lovable/oauth/consent" element={gate(<OAuthConsent />)} />
 
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
