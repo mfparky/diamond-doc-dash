@@ -119,7 +119,7 @@ export function suggestGroups(
       return {
         pitcherId: p.pitcherId,
         name: p.name,
-        suggestedGroup: null as const,
+        suggestedGroup: null as null,
         score: null,
         ip,
         reason: 'No pitching stats yet — assign manually',
@@ -148,7 +148,7 @@ export function suggestGroups(
     return {
       pitcherId: p.pitcherId,
       name: p.name,
-      suggestedGroup: null as const,
+      suggestedGroup: null as null,
       score,
       ip,
       reason: `Score ${Math.round(score)} but only ${ip.toFixed(1)} IP — needs live reps first`,
