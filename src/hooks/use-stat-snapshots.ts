@@ -156,8 +156,18 @@ export interface PendingSnapshotInsert {
   stats: Record<string, StatValue>;
 }
 
+export interface LastUploadInfo {
+  uploadedAt: string;
+  sourceFilename: string | null;
+  pitcherCount: number;
+}
+
 interface UseStatUploadResult {
   upload: (rows: PendingSnapshotInsert[], sourceFilename: string | null) => Promise<boolean>;
+  /** Look up the most recent upload batch (for a confirm prompt). */
+  getLastUpload: () => Promise<LastUploadInfo | null>;
+  /** Delete the most recent upload batch. Returns rows removed, or null on error. */
+  undoLastUpload: () => Promise<number | null>;
   isUploading: boolean;
 }
 
@@ -219,5 +229,79 @@ export function useStatUpload(): UseStatUploadResult {
     [toast],
   );
 
-  return { upload, isUploading };
+  const getLastUpload = useCallback(async (): Promise<LastUploadInfo | null> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      // Newest batch = rows sharing the max uploaded_at.
+      const { data: latest, error } = await supabase
+        .from('pitcher_stat_snapshots')
+        .select('uploaded_at, source_filename')
+        .eq('user_id', user.id)
+        .order('uploaded_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      if (!latest) return null;
+      const { count, error: countErr } = await supabase
+        .from('pitcher_stat_snapshots')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('uploaded_at', latest.uploaded_at);
+      if (countErr) throw countErr;
+      return {
+        uploadedAt: latest.uploaded_at,
+        sourceFilename: latest.source_filename,
+        pitcherCount: count ?? 0,
+      };
+    } catch (e) {
+      console.error('Error reading last upload:', e);
+      return null;
+    }
+  }, []);
+
+  const undoLastUpload = useCallback(async (): Promise<number | null> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({ title: 'Sign in required', variant: 'destructive' });
+        return null;
+      }
+      const { data: latest, error: findErr } = await supabase
+        .from('pitcher_stat_snapshots')
+        .select('uploaded_at')
+        .eq('user_id', user.id)
+        .order('uploaded_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (findErr) throw findErr;
+      if (!latest) {
+        toast({ title: 'Nothing to undo', description: 'No stat uploads found.' });
+        return 0;
+      }
+      const { data: deleted, error: delErr } = await supabase
+        .from('pitcher_stat_snapshots')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('uploaded_at', latest.uploaded_at)
+        .select('id');
+      if (delErr) throw delErr;
+      const n = deleted?.length ?? 0;
+      toast({
+        title: 'Last upload removed',
+        description: `Deleted ${n} snapshot${n === 1 ? '' : 's'}. Upload your new stats to show change vs the previous set.`,
+      });
+      return n;
+    } catch (e) {
+      console.error('Error undoing last upload:', e);
+      toast({
+        title: 'Could not undo upload',
+        description: 'Try again, or use the Supabase SQL editor.',
+        variant: 'destructive',
+      });
+      return null;
+    }
+  }, [toast]);
+
+  return { upload, getLastUpload, undoLastUpload, isUploading };
 }
