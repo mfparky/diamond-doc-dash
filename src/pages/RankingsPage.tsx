@@ -468,6 +468,17 @@ function legendRows(bucket: 'offense' | 'defense') {
   }));
 }
 
+/** Format a raw metric value for the cell tooltip, per stat convention. */
+function formatRawMetric(key: string, raw: number): string {
+  // Rates shown as .XXX (batting/opponent averages, OPS, fielding %).
+  if (['bat_ops', 'bat_avg', 'bat_obp', 'bat_ba_pct_risp', 'pit_baa', 'field_fpct'].includes(key)) {
+    return raw.toFixed(3).replace(/^0\./, '.');
+  }
+  if (key === 'pit_era' || key === 'pit_whip') return raw.toFixed(2);
+  if (key.endsWith('_pct') || key.endsWith('_pct_bf') || key === 'bat_k_pct_derived') return `${raw.toFixed(1)}%`;
+  return raw.toFixed(2);
+}
+
 function LegendBlock({
   title,
   rows,
@@ -587,8 +598,14 @@ function RankingRow({
       </TableCell>
       {visibleMetrics.map((m) => {
         const value = ranking.metricBreakdown[m.key];
+        const raw = ranking.metricRaw?.[m.key];
+        const rawLabel = raw === null || raw === undefined ? null : formatRawMetric(m.key, raw);
         return (
-          <TableCell key={m.key} className="text-right text-xs text-muted-foreground">
+          <TableCell
+            key={m.key}
+            className="text-right text-xs text-muted-foreground"
+            title={rawLabel ? `${m.label}: ${rawLabel} (score ${value?.toFixed(0) ?? '—'}/100)` : undefined}
+          >
             {value === null || value === undefined ? '—' : value.toFixed(0)}
           </TableCell>
         );

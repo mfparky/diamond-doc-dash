@@ -114,6 +114,8 @@ export interface PlayerRanking {
   hasPitching: boolean;
   /** Per-metric normalized contributions (0-100) — drives the breakdown table. */
   metricBreakdown: Record<string, number | null>;
+  /** Per-metric RAW values from the latest snapshot — for hover/tooltips. */
+  metricRaw: Record<string, number | null>;
   /** Top metric drivers (weighted) — drives the "Why ranked here?" tooltip. */
   topDrivers: MetricContribution[];
 }
@@ -388,8 +390,10 @@ export function buildRankings(
   // 3) Pre-normalize each ACTIVE metric across the team. For intangibles we
   //    don't team-normalize (raw values are already on a comparable 0-100 scale).
   const normalizedByKey = new Map<string, number[]>();
+  const rawByKey = new Map<string, number[]>();
   for (const m of activeMetrics) {
     const raw = inputs.map((i) => rawMetricValue(i, m));
+    rawByKey.set(m.key, raw);
     const normalized = m.bucket === 'intangibles'
       ? intangiblesNormalized(raw, m.higherIsBetter)
       : minMaxNormalize(raw, m.higherIsBetter);
@@ -405,10 +409,13 @@ export function buildRankings(
   // 4) Compose per-player scores.
   const allRankings: PlayerRanking[] = inputs.map((input, idx) => {
     const breakdown: Record<string, number | null> = {};
+    const rawByMetric: Record<string, number | null> = {};
     const contributions: MetricContribution[] = [];
     for (const m of activeMetrics) {
       const v = normalizedByKey.get(m.key)?.[idx] ?? NaN;
       breakdown[m.key] = Number.isFinite(v) ? v : null;
+      const rawV = rawByKey.get(m.key)?.[idx] ?? NaN;
+      rawByMetric[m.key] = Number.isFinite(rawV) ? rawV : null;
       if (Number.isFinite(v)) {
         contributions.push({
           key: m.key,
@@ -495,6 +502,7 @@ export function buildRankings(
       hasPitching: rawIp[idx] > 0,
       aboveCeiling: false,
       metricBreakdown: breakdown,
+      metricRaw: rawByMetric,
       topDrivers,
     };
   });
