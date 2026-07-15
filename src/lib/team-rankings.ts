@@ -211,11 +211,35 @@ const METRICS: MetricConfig[] = [
   },
 
   // Defense (pitching rates)
-  { key: 'pit_era', label: 'ERA', description: 'Earned run average', narration: 'limiting earned runs', higherIsBetter: false, bucket: 'defense', weight: 2 },
-  { key: 'pit_whip', label: 'WHIP', description: 'Walks + hits per inning pitched', narration: 'limiting baserunners', higherIsBetter: false, bucket: 'defense', weight: 2 },
-  { key: 'pit_fps_pct', label: 'FPS%', description: 'First-pitch strike percentage', narration: 'getting ahead in the count', higherIsBetter: true, bucket: 'defense', weight: 1 },
-  { key: 'pit_k_pct_bf', label: 'K/BF', description: 'Strikeouts per batter faced', narration: 'punching out hitters', higherIsBetter: true, bucket: 'defense', weight: 1 },
-  { key: 'pit_s_pct', label: 'Strike %', description: 'Pitches thrown for strikes', narration: 'pounding the strike zone', higherIsBetter: true, bucket: 'defense', weight: 1 },
+  // Weighted toward pitching OUTCOMES — runs prevented, baserunners allowed,
+  // strikeouts, and opponent batting average — over process stats (strike %,
+  // first-pitch strike %). All are rate stats, so they reward quality
+  // regardless of innings volume; the participation floor below still scales
+  // the whole bucket down for kids who barely pitch.
+  { key: 'pit_era', label: 'ERA', description: 'Earned run average', narration: 'limiting earned runs', higherIsBetter: false, bucket: 'defense', weight: 2.5 },
+  { key: 'pit_whip', label: 'WHIP', description: 'Walks + hits per inning pitched', narration: 'limiting baserunners', higherIsBetter: false, bucket: 'defense', weight: 2.5 },
+  { key: 'pit_k_pct_bf', label: 'K/BF', description: 'Strikeouts per batter faced', narration: 'punching out hitters', higherIsBetter: true, bucket: 'defense', weight: 2 },
+  // Opponent batting average against. GameChanger exports this as 'BAA'
+  // (→ pit_baa); derive checks a few common header spellings so it picks up
+  // whatever the CSV calls it. Lower is better.
+  {
+    key: 'pit_baa',
+    label: 'AVG against',
+    description: 'Opponent batting average against this pitcher — lower is better',
+    narration: 'holding hitters to a low average',
+    higherIsBetter: false,
+    bucket: 'defense',
+    weight: 2,
+    derive: (stats) => {
+      for (const k of ['pit_baa', 'pit_oba', 'pit_avg', 'pit_ba_against']) {
+        const v = readNumRaw(stats, k);
+        if (Number.isFinite(v)) return v;
+      }
+      return NaN;
+    },
+  },
+  { key: 'pit_fps_pct', label: 'FPS%', description: 'First-pitch strike percentage', narration: 'getting ahead in the count', higherIsBetter: true, bucket: 'defense', weight: 0.75 },
+  { key: 'pit_s_pct', label: 'Strike %', description: 'Pitches thrown for strikes', narration: 'pounding the strike zone', higherIsBetter: true, bucket: 'defense', weight: 0.75 },
   // Defense (fielding) — minimal weight because the metric depends heavily on
   // how often the ball reaches the player at all.
   { key: 'field_fpct', label: 'FPCT', description: 'Fielding percentage', narration: 'fielding cleanly when the ball comes', higherIsBetter: true, bucket: 'defense', weight: 0.25 },
@@ -539,8 +563,8 @@ export const METRIC_LABELS: Array<{
  * numbers (45 + 45 + 10 = 100%) rather than renormalization artifacts.
  */
 export const BUCKET_WEIGHTS = {
-  offense: 0.45,
-  defense: 0.45,
+  offense: 0.40,
+  defense: 0.50,
   intangibles: 0.10,
 } as const;
 

@@ -423,10 +423,10 @@ describe('buildWeightingBreakdown', () => {
     expect(total).toBeCloseTo(1, 6);
   });
 
-  it('bucket shares are exactly 45/45/10 (Off/Def/Intangibles)', () => {
+  it('bucket shares are 40/50/10 (Off/Def/Intangibles) — pitching-weighted', () => {
     const { bucketShares } = buildWeightingBreakdown();
-    expect(bucketShares.offense).toBeCloseTo(0.45, 6);
-    expect(bucketShares.defense).toBeCloseTo(0.45, 6);
+    expect(bucketShares.offense).toBeCloseTo(0.40, 6);
+    expect(bucketShares.defense).toBeCloseTo(0.50, 6);
     expect(bucketShares.intangibles).toBeCloseTo(0.10, 6);
   });
 
