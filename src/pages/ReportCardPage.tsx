@@ -557,13 +557,20 @@ function ReportSection({
         </CardTitle>
       </CardHeader>
       <CardContent className="print:pt-0">
+        {/* On-screen editable textarea — hidden in print. */}
         <Textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
           rows={6}
           placeholder={placeholder}
-          className="text-sm print:text-[11pt] print:min-h-0 print:h-auto print:border-0 print:p-0"
+          className="text-sm print:hidden"
         />
+        {/* Print-only mirror. Textareas don't auto-grow in print so we
+            render the value as a flowing paragraph block instead — this
+            guarantees the full copy shows up in the exported PDF. */}
+        <div className="hidden print:block rc-print-copy whitespace-pre-wrap">
+          {value}
+        </div>
       </CardContent>
     </Card>
   );
