@@ -242,9 +242,16 @@ const METRICS: MetricConfig[] = [
   },
   { key: 'pit_fps_pct', label: 'FPS%', description: 'First-pitch strike percentage', narration: 'getting ahead in the count', higherIsBetter: true, bucket: 'defense', weight: 0.75 },
   { key: 'pit_s_pct', label: 'Strike %', description: 'Pitches thrown for strikes', narration: 'pounding the strike zone', higherIsBetter: true, bucket: 'defense', weight: 0.75 },
-  // Defense (fielding) — minimal weight because the metric depends heavily on
-  // how often the ball reaches the player at all.
+  // Defense (fielding) — minimal default weight because these depend heavily
+  // on how often the ball reaches the player at all. Counting stats (TC/PO/A/
+  // DP) are opt-in via presets like "Defensive Juggernaut" so a big-inning
+  // catcher isn't penalized against a light-duty corner outfielder by default.
   { key: 'field_fpct', label: 'FPCT', description: 'Fielding percentage', narration: 'fielding cleanly when the ball comes', higherIsBetter: true, bucket: 'defense', weight: 0.25 },
+  { key: 'field_tc', label: 'TC', description: 'Total chances — volume of balls handled', narration: 'handling a high volume of chances', higherIsBetter: true, bucket: 'defense', weight: 0 },
+  { key: 'field_po', label: 'PO', description: 'Putouts', narration: 'recording putouts', higherIsBetter: true, bucket: 'defense', weight: 0 },
+  { key: 'field_a', label: 'A', description: 'Assists', narration: 'racking up assists', higherIsBetter: true, bucket: 'defense', weight: 0 },
+  { key: 'field_dp', label: 'DP', description: 'Double plays turned', narration: 'turning double plays', higherIsBetter: true, bucket: 'defense', weight: 0 },
+  { key: 'field_e', label: 'E', description: 'Errors — lower is better', narration: 'avoiding errors', higherIsBetter: false, bucket: 'defense', weight: 0 },
 
   // Intangibles — coach-assigned subjective ratings. Each one becomes
   // 0 / 50 / 100 (minus / even / plus). Null when not rated.

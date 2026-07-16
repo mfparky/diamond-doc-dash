@@ -58,13 +58,21 @@ export const DEFAULT_LEVER_STATE: LeverState = {
  * so the defense score reflects glove work only.
  */
 const DEFENSE_JUGGERNAUT_METRIC_WEIGHTS: Record<string, number> = {
+  // Silence the pitching side of the defense bucket entirely.
   pit_era: 0,
   pit_whip: 0,
   pit_k_pct_bf: 0,
   pit_baa: 0,
   pit_fps_pct: 0,
   pit_s_pct: 0,
-  field_fpct: 5,
+  // Reward volume of balls handled first, then double plays, then cleanliness.
+  // A player with 4 PO + 2 E (TC 6, .667) now outranks 1 PO + 0 E (TC 1, 1.000).
+  field_tc: 3,
+  field_po: 2,
+  field_a: 2,
+  field_dp: 2,
+  field_fpct: 1.5,
+  field_e: 1,
 };
 
 const PRESETS: Array<{ name: string; description: string; state: LeverState }> = [
