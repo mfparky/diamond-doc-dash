@@ -429,12 +429,12 @@ export default function ReportCardPage() {
              zeroed out below so grid gap controls spacing. */
           .report-card-doc {
             display: grid;
-            grid-template-columns: 42% 1fr;
+            grid-template-columns: 36% 1fr;
             grid-template-areas:
               "header    header"
               "metrics   narratives"
               "footer    footer";
-            column-gap: 20pt;
+            column-gap: 18pt;
             row-gap: 8pt;
             page-break-inside: avoid;
           }
