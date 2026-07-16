@@ -183,6 +183,10 @@ const METRICS: MetricConfig[] = [
   // behind a kid who walks a lot), so dropping them to 1 each puts more
   // weight on individual rate stats than situational counting stats.
   { key: 'bat_ops', label: 'OPS', description: 'On-base + slugging', narration: 'producing at the plate (on-base + power)', higherIsBetter: true, bucket: 'offense', weight: 2 },
+  // SLG is off by default (OPS already contains it) but the "Bat-first" preset
+  // enables it and cranks its weight so power hitters stand out when the
+  // offense bucket is the focus.
+  { key: 'bat_slg', label: 'SLG', description: 'Slugging percentage', narration: 'hitting for power', higherIsBetter: true, bucket: 'offense', weight: 1, defaultEnabled: false },
   // OBP + penalties for passive on-base. Off by default; the "Reward earned
   // on-base" lever flips all three on together so the OBP boost isn't just
   // rewarding kids who take walks (which OPS already partly captures).
