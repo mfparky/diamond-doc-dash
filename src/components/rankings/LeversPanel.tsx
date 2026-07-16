@@ -35,6 +35,12 @@ export interface LeverState {
     intangibles_coachability: boolean;
     intangibles_baseball_iq: boolean;
   };
+  /**
+   * Optional per-metric weight overrides. Used by presets like
+   * "Defensive Juggernaut" that reshape the defense bucket to lean on
+   * fielding rather than pitching metrics.
+   */
+  metricWeights?: Record<string, number>;
 }
 
 export const DEFAULT_LEVER_STATE: LeverState = {
@@ -45,6 +51,20 @@ export const DEFAULT_LEVER_STATE: LeverState = {
     intangibles_coachability: true,
     intangibles_baseball_iq: true,
   },
+};
+
+/**
+ * Zero out every pitching metric in the defense bucket and crank fielding %
+ * so the defense score reflects glove work only.
+ */
+const DEFENSE_JUGGERNAUT_METRIC_WEIGHTS: Record<string, number> = {
+  pit_era: 0,
+  pit_whip: 0,
+  pit_k_pct_bf: 0,
+  pit_baa: 0,
+  pit_fps_pct: 0,
+  pit_s_pct: 0,
+  field_fpct: 5,
 };
 
 const PRESETS: Array<{ name: string; description: string; state: LeverState }> = [
