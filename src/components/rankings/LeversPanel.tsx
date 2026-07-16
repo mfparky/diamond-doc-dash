@@ -329,6 +329,13 @@ export function LeversPanel({ open, onOpenChange, levers, onChange }: LeversPane
               onChange={(v) => setMetric('bat_2outrbi', v)}
             />
             <MetricToggle
+              id="lever-slg"
+              label="Slugging (SLG)"
+              description="Add SLG on top of OPS so power hitters stand out. Bat-first preset also cranks OPS + SLG weights."
+              checked={levers.metricEnabled.bat_slg}
+              onChange={(v) => setMetric('bat_slg', v)}
+            />
+            <MetricToggle
               id="lever-obp-earned"
               label="Reward earned on-base"
               description="Adds OBP to offense, with a small penalty for walks and 6+ pitch PAs — favors hitters who earn on-base over pitch-takers."
