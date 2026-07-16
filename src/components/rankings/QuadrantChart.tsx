@@ -137,6 +137,10 @@ export function QuadrantChart({ rankings }: QuadrantChartProps) {
         z: Math.max(60, (r.pitchingVolumeScore ?? 0) * 4 + 80), // 80–480 dot range
         belowReef: r.belowReef,
         pv: r.playerValue,
+        topDrivers: r.topDrivers,
+        belowParticipationFloor: r.belowParticipationFloor,
+        belowMinPa: r.belowMinPa,
+        inningsPitched: r.inningsPitched,
         ...getLabelPlacement(x, y, index),
       };
     });
