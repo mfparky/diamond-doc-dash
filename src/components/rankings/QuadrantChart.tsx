@@ -27,6 +27,10 @@ interface QuadrantPoint {
   pv: number;
   labelDy: number;
   labelAnchor: 'start' | 'middle' | 'end';
+  topDrivers: PlayerRanking['topDrivers'];
+  belowParticipationFloor: boolean;
+  belowMinPa: boolean;
+  inningsPitched: number;
 }
 
 function getLabelPlacement(x: number, y: number, index: number) {
