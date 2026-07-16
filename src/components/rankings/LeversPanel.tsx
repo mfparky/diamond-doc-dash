@@ -30,6 +30,14 @@ export interface LeverState {
   /** Per-metric include/exclude toggles. */
   metricEnabled: {
     bat_2outrbi: boolean;
+    /**
+     * "Reward earned on-base." When true, we enable OBP as an offense metric
+     * AND penalize raw walks + 6+ pitch PAs — so a kid who gets on via hits
+     * / HBP wins over a kid who just takes pitches.
+     */
+    bat_obp: boolean;
+    bat_bb: boolean;
+    bat_6_pct: boolean;
     /** When false, hides the entire intangibles bucket by disabling all 3. */
     intangibles_effort: boolean;
     intangibles_coachability: boolean;
@@ -47,6 +55,9 @@ export const DEFAULT_LEVER_STATE: LeverState = {
   bucketWeights: { offense: 0.45, defense: 0.45, intangibles: 0.10, ipVolume: 0 },
   metricEnabled: {
     bat_2outrbi: false,
+    bat_obp: false,
+    bat_bb: false,
+    bat_6_pct: false,
     intangibles_effort: true,
     intangibles_coachability: true,
     intangibles_baseball_iq: true,
