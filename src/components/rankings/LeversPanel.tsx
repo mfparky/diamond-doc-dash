@@ -30,6 +30,8 @@ export interface LeverState {
   /** Per-metric include/exclude toggles. */
   metricEnabled: {
     bat_2outrbi: boolean;
+    /** Adds SLG on top of OPS — the Bat-first preset flips this on. */
+    bat_slg: boolean;
     /**
      * "Reward earned on-base." When true, we enable OBP as an offense metric
      * AND penalize raw walks + 6+ pitch PAs — so a kid who gets on via hits
@@ -55,6 +57,7 @@ export const DEFAULT_LEVER_STATE: LeverState = {
   bucketWeights: { offense: 0.45, defense: 0.45, intangibles: 0.10, ipVolume: 0 },
   metricEnabled: {
     bat_2outrbi: false,
+    bat_slg: false,
     bat_obp: false,
     bat_bb: false,
     bat_6_pct: false,
@@ -95,10 +98,16 @@ const PRESETS: Array<{ name: string; description: string; state: LeverState }> =
   },
   {
     name: 'Bat-first',
-    description: 'Offense-heavy for finding your bats',
+    description: 'Offense-heavy, SLG + OPS boosted for finding your bats',
     state: {
       bucketWeights: { offense: 0.60, defense: 0.30, intangibles: 0.10, ipVolume: 0 },
-      metricEnabled: DEFAULT_LEVER_STATE.metricEnabled,
+      metricEnabled: {
+        ...DEFAULT_LEVER_STATE.metricEnabled,
+        bat_slg: true,
+      },
+      // Boost the power/production rate stats so sluggers separate from
+      // contact-only kids when the coach is bat-shopping.
+      metricWeights: { bat_ops: 3, bat_slg: 2 },
     },
   },
   {
@@ -116,6 +125,7 @@ const PRESETS: Array<{ name: string; description: string; state: LeverState }> =
       bucketWeights: { offense: 0.45, defense: 0.40, intangibles: 0.15, ipVolume: 0 },
       metricEnabled: {
         bat_2outrbi: true,
+        bat_slg: false,
         bat_obp: false,
         bat_bb: false,
         bat_6_pct: false,
@@ -141,6 +151,7 @@ const PRESETS: Array<{ name: string; description: string; state: LeverState }> =
       bucketWeights: { offense: 0.50, defense: 0.50, intangibles: 0, ipVolume: 0 },
       metricEnabled: {
         bat_2outrbi: false,
+        bat_slg: false,
         bat_obp: false,
         bat_bb: false,
         bat_6_pct: false,
@@ -316,6 +327,13 @@ export function LeversPanel({ open, onOpenChange, levers, onChange }: LeversPane
               description="Reward players who come through with two outs."
               checked={levers.metricEnabled.bat_2outrbi}
               onChange={(v) => setMetric('bat_2outrbi', v)}
+            />
+            <MetricToggle
+              id="lever-slg"
+              label="Slugging (SLG)"
+              description="Add SLG on top of OPS so power hitters stand out. Bat-first preset also cranks OPS + SLG weights."
+              checked={levers.metricEnabled.bat_slg}
+              onChange={(v) => setMetric('bat_slg', v)}
             />
             <MetricToggle
               id="lever-obp-earned"

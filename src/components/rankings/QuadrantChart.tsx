@@ -27,6 +27,10 @@ interface QuadrantPoint {
   pv: number;
   labelDy: number;
   labelAnchor: 'start' | 'middle' | 'end';
+  topDrivers: PlayerRanking['topDrivers'];
+  belowParticipationFloor: boolean;
+  belowMinPa: boolean;
+  inningsPitched: number;
 }
 
 function getLabelPlacement(x: number, y: number, index: number) {
@@ -133,6 +137,10 @@ export function QuadrantChart({ rankings }: QuadrantChartProps) {
         z: Math.max(60, (r.pitchingVolumeScore ?? 0) * 4 + 80), // 80–480 dot range
         belowReef: r.belowReef,
         pv: r.playerValue,
+        topDrivers: r.topDrivers,
+        belowParticipationFloor: r.belowParticipationFloor,
+        belowMinPa: r.belowMinPa,
+        inningsPitched: r.inningsPitched,
         ...getLabelPlacement(x, y, index),
       };
     });
@@ -183,11 +191,60 @@ export function QuadrantChart({ rankings }: QuadrantChartProps) {
               content={({ active, payload }) => {
                 if (!active || !payload || payload.length === 0) return null;
                 const p = payload[0].payload as typeof data[number];
+                const strengths = p.topDrivers.filter((d) => d.score >= 60).slice(0, 3);
+                const weaknesses = [...p.topDrivers]
+                  .filter((d) => d.score <= 40)
+                  .sort((a, b) => a.score - b.score)
+                  .slice(0, 2);
                 return (
-                  <div className="rounded-md border border-border bg-card p-2 text-xs shadow-md">
-                    <p className="font-semibold text-foreground">{p.name}</p>
-                    <p className="text-muted-foreground">PV {p.pv.toFixed(1)}</p>
-                    <p className="text-muted-foreground">Off {p.x.toFixed(0)} · Def {p.y.toFixed(0)}</p>
+                  <div className="rounded-md border border-border bg-card p-2.5 text-xs shadow-md max-w-[240px] space-y-1.5">
+                    <div>
+                      <p className="font-semibold text-foreground">{p.name}</p>
+                      <p className="text-muted-foreground">
+                        PV {p.pv.toFixed(1)} · Off {p.x.toFixed(0)} · Def {p.y.toFixed(0)}
+                      </p>
+                    </div>
+                    {strengths.length > 0 && (
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
+                          Strengths
+                        </p>
+                        <ul className="space-y-0.5">
+                          {strengths.map((d) => (
+                            <li key={d.key} className="flex items-baseline justify-between gap-2">
+                              <span className="text-foreground truncate">{d.label}</span>
+                              <span className="tabular-nums text-[hsl(var(--status-active))] font-semibold">
+                                {Math.round(d.score)}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {weaknesses.length > 0 && (
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">
+                          Dragging rank
+                        </p>
+                        <ul className="space-y-0.5">
+                          {weaknesses.map((d) => (
+                            <li key={d.key} className="flex items-baseline justify-between gap-2">
+                              <span className="text-foreground truncate">{d.label}</span>
+                              <span className="tabular-nums text-[hsl(var(--status-danger))] font-semibold">
+                                {Math.round(d.score)}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {(p.belowParticipationFloor || p.belowMinPa) && (
+                      <p className="text-[10px] text-[hsl(var(--status-warning))] leading-snug pt-1 border-t border-border/40">
+                        {p.belowMinPa && 'Low PA sample. '}
+                        {p.belowParticipationFloor &&
+                          `Limited pitching (${p.inningsPitched.toFixed(1)} IP) — defense scaled down.`}
+                      </p>
+                    )}
                   </div>
                 );
               }}
