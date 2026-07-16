@@ -97,6 +97,7 @@ export default function RankingsPage() {
       filter,
       bucketWeights: levers.bucketWeights,
       metricEnabled: levers.metricEnabled,
+      metricWeights: levers.metricWeights,
     }),
     [reefMode, filter, levers],
   );
@@ -446,6 +447,7 @@ export default function RankingsPage() {
             <WeightingChart
               bucketWeights={levers.bucketWeights}
               metricEnabled={levers.metricEnabled}
+              metricWeights={levers.metricWeights}
             />
 
             <LeversPanel
