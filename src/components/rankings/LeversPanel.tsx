@@ -98,10 +98,16 @@ const PRESETS: Array<{ name: string; description: string; state: LeverState }> =
   },
   {
     name: 'Bat-first',
-    description: 'Offense-heavy for finding your bats',
+    description: 'Offense-heavy, SLG + OPS boosted for finding your bats',
     state: {
       bucketWeights: { offense: 0.60, defense: 0.30, intangibles: 0.10, ipVolume: 0 },
-      metricEnabled: DEFAULT_LEVER_STATE.metricEnabled,
+      metricEnabled: {
+        ...DEFAULT_LEVER_STATE.metricEnabled,
+        bat_slg: true,
+      },
+      // Boost the power/production rate stats so sluggers separate from
+      // contact-only kids when the coach is bat-shopping.
+      metricWeights: { bat_ops: 3, bat_slg: 2 },
     },
   },
   {
@@ -119,6 +125,7 @@ const PRESETS: Array<{ name: string; description: string; state: LeverState }> =
       bucketWeights: { offense: 0.45, defense: 0.40, intangibles: 0.15, ipVolume: 0 },
       metricEnabled: {
         bat_2outrbi: true,
+        bat_slg: false,
         bat_obp: false,
         bat_bb: false,
         bat_6_pct: false,
