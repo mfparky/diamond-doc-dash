@@ -65,14 +65,15 @@ const DEFENSE_JUGGERNAUT_METRIC_WEIGHTS: Record<string, number> = {
   pit_baa: 0,
   pit_fps_pct: 0,
   pit_s_pct: 0,
-  // Reward volume of balls handled first, then double plays, then cleanliness.
-  // A player with 4 PO + 2 E (TC 6, .667) now outranks 1 PO + 0 E (TC 1, 1.000).
-  field_tc: 3,
-  field_po: 2,
-  field_a: 2,
-  field_dp: 2,
-  field_fpct: 1.5,
-  field_e: 1,
+  // Reward range and involvement — assists (bat-in-play conversions) lead,
+  // then raw chances handled. FPCT / errors are down-weighted so a rangy
+  // infielder who touches everything isn't punished for the occasional miss.
+  field_a: 5,
+  field_tc: 2,
+  field_dp: 1,
+  field_po: 0.5,
+  field_fpct: 0.25,
+  field_e: 0.25,
 };
 
 const PRESETS: Array<{ name: string; description: string; state: LeverState }> = [

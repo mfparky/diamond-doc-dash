@@ -244,21 +244,21 @@ export function StatUploadDialog({ open, onOpenChange, pitchers, onSuccess }: St
         )}
 
         {!parseResult && lastUpload && (
-          <div className="rounded-md border border-border/60 bg-secondary/30 p-3 flex items-center gap-3">
+          <div className="rounded-md border border-border/60 bg-secondary/30 p-3 flex flex-wrap items-center gap-3">
             <div className="flex-1 min-w-0 text-sm">
               <p className="font-medium text-foreground">Last upload</p>
-              <p className="text-xs text-muted-foreground truncate">
+              <p className="text-xs text-muted-foreground break-words">
                 {lastUpload.sourceFilename || 'CSV'} · {lastUpload.pitcherCount} pitcher{lastUpload.pitcherCount === 1 ? '' : 's'} · {fmtUploadedAt(lastUpload.uploadedAt)}
               </p>
             </div>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm" disabled={undoing}>
+                <Button variant="outline" size="sm" disabled={undoing} className="shrink-0">
                   {undoing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Undo2 className="w-4 h-4 mr-1" />}
                   Undo
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Undo last stats upload?</AlertDialogTitle>
                   <AlertDialogDescription>
@@ -267,7 +267,7 @@ export function StatUploadDialog({ open, onOpenChange, pitchers, onSuccess }: St
                     Rankings and report cards revert to the previous upload. This can't be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                <AlertDialogFooter>
+                <AlertDialogFooter className="gap-2">
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction onClick={handleUndo}>Undo upload</AlertDialogAction>
                 </AlertDialogFooter>
