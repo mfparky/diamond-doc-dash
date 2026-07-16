@@ -116,6 +116,9 @@ const PRESETS: Array<{ name: string; description: string; state: LeverState }> =
       bucketWeights: { offense: 0.45, defense: 0.40, intangibles: 0.15, ipVolume: 0 },
       metricEnabled: {
         bat_2outrbi: true,
+        bat_obp: false,
+        bat_bb: false,
+        bat_6_pct: false,
         intangibles_effort: true,
         intangibles_coachability: true,
         intangibles_baseball_iq: true,
