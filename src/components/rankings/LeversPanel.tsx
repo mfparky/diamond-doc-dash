@@ -103,6 +103,15 @@ const PRESETS: Array<{ name: string; description: string; state: LeverState }> =
     },
   },
   {
+    name: 'Defensive Juggernaut',
+    description: 'Glove-first — fielding % over pitching in the defense bucket',
+    state: {
+      bucketWeights: { offense: 0.25, defense: 0.65, intangibles: 0.10, ipVolume: 0 },
+      metricEnabled: DEFAULT_LEVER_STATE.metricEnabled,
+      metricWeights: DEFENSE_JUGGERNAUT_METRIC_WEIGHTS,
+    },
+  },
+  {
     name: 'Pure stats',
     description: 'Turn off intangibles — just what the CSV says',
     state: {
