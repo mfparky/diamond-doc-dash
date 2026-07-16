@@ -447,6 +447,7 @@ export default function RankingsPage() {
             <WeightingChart
               bucketWeights={levers.bucketWeights}
               metricEnabled={levers.metricEnabled}
+              metricWeights={levers.metricWeights}
             />
 
             <LeversPanel
