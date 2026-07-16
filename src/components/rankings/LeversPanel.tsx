@@ -151,6 +151,7 @@ const PRESETS: Array<{ name: string; description: string; state: LeverState }> =
       bucketWeights: { offense: 0.50, defense: 0.50, intangibles: 0, ipVolume: 0 },
       metricEnabled: {
         bat_2outrbi: false,
+        bat_slg: false,
         bat_obp: false,
         bat_bb: false,
         bat_6_pct: false,
