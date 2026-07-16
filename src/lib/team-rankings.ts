@@ -183,6 +183,12 @@ const METRICS: MetricConfig[] = [
   // behind a kid who walks a lot), so dropping them to 1 each puts more
   // weight on individual rate stats than situational counting stats.
   { key: 'bat_ops', label: 'OPS', description: 'On-base + slugging', narration: 'producing at the plate (on-base + power)', higherIsBetter: true, bucket: 'offense', weight: 2 },
+  // OBP + penalties for passive on-base. Off by default; the "Reward earned
+  // on-base" lever flips all three on together so the OBP boost isn't just
+  // rewarding kids who take walks (which OPS already partly captures).
+  { key: 'bat_obp', label: 'OBP', description: 'On-base percentage', narration: 'getting on base', higherIsBetter: true, bucket: 'offense', weight: 1.5, defaultEnabled: false },
+  { key: 'bat_bb', label: 'BB (penalty)', description: 'Walks — penalized so the OBP boost rewards hits, not passivity', narration: 'earning on-base without leaning on walks', higherIsBetter: false, bucket: 'offense', weight: 0.5, defaultEnabled: false },
+  { key: 'bat_6_pct', label: '6+ PA% (penalty)', description: 'Percentage of plate appearances that go 6+ pitches — penalized alongside walks', narration: 'staying aggressive early in counts', higherIsBetter: false, bucket: 'offense', weight: 0.5, defaultEnabled: false },
   { key: 'bat_r', label: 'R', description: 'Runs scored', narration: 'scoring runs', higherIsBetter: true, bucket: 'offense', weight: 1 },
   { key: 'bat_rbi', label: 'RBI', description: 'Runs batted in', narration: 'driving in runs', higherIsBetter: true, bucket: 'offense', weight: 1 },
   // 2-out RBI is a coach favorite — comes through with two outs. Off by
