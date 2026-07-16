@@ -57,6 +57,7 @@ export const DEFAULT_LEVER_STATE: LeverState = {
   bucketWeights: { offense: 0.45, defense: 0.45, intangibles: 0.10, ipVolume: 0 },
   metricEnabled: {
     bat_2outrbi: false,
+    bat_slg: false,
     bat_obp: false,
     bat_bb: false,
     bat_6_pct: false,
