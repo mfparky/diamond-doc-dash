@@ -318,6 +318,23 @@ export function LeversPanel({ open, onOpenChange, levers, onChange }: LeversPane
               onChange={(v) => setMetric('bat_2outrbi', v)}
             />
             <MetricToggle
+              id="lever-obp-earned"
+              label="Reward earned on-base"
+              description="Adds OBP to offense, with a small penalty for walks and 6+ pitch PAs — favors hitters who earn on-base over pitch-takers."
+              checked={levers.metricEnabled.bat_obp}
+              onChange={(v) => {
+                onChange({
+                  ...levers,
+                  metricEnabled: {
+                    ...levers.metricEnabled,
+                    bat_obp: v,
+                    bat_bb: v,
+                    bat_6_pct: v,
+                  },
+                });
+              }}
+            />
+            <MetricToggle
               id="lever-effort"
               label="Effort rating"
               description="Include coach-assigned effort in the intangibles bucket."
