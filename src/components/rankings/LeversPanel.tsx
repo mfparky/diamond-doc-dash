@@ -30,6 +30,8 @@ export interface LeverState {
   /** Per-metric include/exclude toggles. */
   metricEnabled: {
     bat_2outrbi: boolean;
+    /** Adds SLG on top of OPS — the Bat-first preset flips this on. */
+    bat_slg: boolean;
     /**
      * "Reward earned on-base." When true, we enable OBP as an offense metric
      * AND penalize raw walks + 6+ pitch PAs — so a kid who gets on via hits
