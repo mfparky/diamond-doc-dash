@@ -274,29 +274,6 @@ export function StatUploadDialog({ open, onOpenChange, pitchers, onSuccess }: St
               </AlertDialogContent>
             </AlertDialog>
           </div>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm" disabled={undoing}>
-                  {undoing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Undo2 className="w-4 h-4 mr-1" />}
-                  Undo
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Undo last stats upload?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Removes {lastUpload.pitcherCount} snapshot{lastUpload.pitcherCount === 1 ? '' : 's'} from
-                    {' '}{lastUpload.sourceFilename || 'the last CSV'} ({fmtUploadedAt(lastUpload.uploadedAt)}).
-                    Rankings and report cards revert to the previous upload. This can't be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleUndo}>Undo upload</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
         )}
 
         {parseError && (
