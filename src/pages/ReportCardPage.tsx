@@ -498,27 +498,22 @@ export default function ReportCardPage() {
             margin-bottom: 3pt !important;
           }
 
-          /* --- Textareas flow as paragraphs --- */
-          textarea {
-            border: none !important;
-            padding: 0 !important;
-            background: transparent !important;
+          /* --- Narrative copy in print --- flows as a paragraph so
+             the full content prints (textareas don't auto-grow). */
+          .rc-print-copy {
             color: #111 !important;
             font-family: 'Helvetica Neue', Arial, sans-serif !important;
-            font-size: 9.5pt !important;
-            line-height: 1.4 !important;
-            resize: none !important;
-            overflow: visible !important;
-            height: auto !important;
-            min-height: 0 !important;
-            display: block !important;
-            width: 100% !important;
+            font-size: 8.75pt !important;
+            line-height: 1.35 !important;
+            margin: 0 0 4pt 0 !important;
           }
+          .rc-narratives-slot { font-size: 8.75pt; }
+          .rc-narratives-slot .glass-card + .glass-card { margin-top: 4pt !important; }
 
           /* --- Metrics panel — tighter for landscape column --- */
           .rc-metrics-slot .space-y-3 > * + * { margin-top: 5pt !important; }
-          .rc-metrics-slot .text-sm { font-size: 9pt !important; }
-          .rc-metrics-slot .text-xs { font-size: 8pt !important; }
+          .rc-metrics-slot .text-sm { font-size: 8.5pt !important; }
+          .rc-metrics-slot .text-xs { font-size: 7.5pt !important; }
 
           /* --- Print-only branded footer --- */
           .rc-footer {
