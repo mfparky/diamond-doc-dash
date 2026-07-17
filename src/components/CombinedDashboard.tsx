@@ -802,7 +802,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
               <p className="text-xs text-muted-foreground">Game outings in the selected range</p>
             </div>
             <Button variant="outline" size="sm" asChild>
-              <Link to="/games" className="gap-2">
+              <Link to="/game-log" className="gap-2">
                 <ListChecks className="w-4 h-4" /> Review
               </Link>
             </Button>
@@ -860,7 +860,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
                     {gamesStats.gameSummaries.map((g) => (
                       <Link
                         key={g.id}
-                        to={g.id.startsWith('outing-') ? '/games' : `/games/${g.id}`}
+                        to={g.id.startsWith('outing-') ? '/game-log' : `/game-log/${g.id}`}
                         className="grid grid-cols-[minmax(80px,0.9fr)_minmax(120px,1.4fr)_repeat(4,minmax(64px,0.7fr))] gap-2 items-center px-2 py-2 rounded-md hover:bg-muted/40 transition-colors"
                       >
                         <span className="text-sm font-medium text-foreground">{formatGameDate(g.date)}</span>

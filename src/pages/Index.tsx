@@ -57,65 +57,34 @@ const Index = () => {
   const { toast } = useToast();
 
   const moreSheetItems: MoreSheetItem[] = [
+    // Charting — mostly a preseason activity (setting up live/bullpen/game
+    // charting), grouped with the other occasional setup & planning tools
+    // rather than elevated above them.
     {
       id: 'game-mode',
-      label: 'Game mode',
+      label: 'Live pitch counter',
       description: 'Live pitch-by-pitch counter',
       icon: <Gamepad2 className="w-5 h-5" />,
-      onSelect: () => navigate('/game'),
-    },
-    {
-      id: 'upload-stats',
-      label: 'Upload season stats',
-      description: 'Import a GameChanger CSV to power health reports',
-      icon: <FileSpreadsheet className="w-5 h-5" />,
-      onSelect: () => setShowStatUpload(true),
-    },
-    ...(isRankingsAdmin
-      ? [
-          {
-            id: 'rankings',
-            label: 'Player rankings',
-            description: 'Composite Player Value + Reef line from uploaded stats',
-            icon: <Trophy className="w-5 h-5" />,
-            onSelect: () => navigate('/rankings'),
-          } satisfies MoreSheetItem,
-        ]
-      : []),
-    {
-      id: 'lineup',
-      label: 'Lineup planner',
-      description: 'Auto-generate a batting order from each player’s stats',
-      icon: <ListOrdered className="w-5 h-5" />,
-      onSelect: () => navigate('/lineup'),
-    },
-    {
-      id: 'report-card',
-      label: 'Report cards',
-      description: 'AI-drafted mid-season reviews, coach-edited',
-      icon: <FileText className="w-5 h-5" />,
-      onSelect: () => navigate('/report-card'),
-    },
-    {
-      id: 'planner',
-      label: 'Pitching planner',
-      description: 'Plan weekends or tournaments, OBA rest rules enforced',
-      icon: <CalendarClock className="w-5 h-5" />,
-      onSelect: () => navigate('/planner'),
+      onSelect: () => navigate('/counter'),
+      group: 'Charting',
     },
     {
       id: 'games',
-      label: 'Games',
+      label: 'Game log',
       description: 'Review past games & strike %',
       icon: <ListChecks className="w-5 h-5" />,
-      onSelect: () => navigate('/games'),
+      onSelect: () => navigate('/game-log'),
+      group: 'Charting',
     },
+
+    // Team setup & planning
     {
       id: 'roster',
       label: 'Manage roster',
       description: 'Add or edit pitchers',
       icon: <Settings className="w-5 h-5" />,
       onSelect: () => setShowRosterManagement(true),
+      group: 'Team Setup & Planning',
     },
     {
       id: 'scorekeepers',
@@ -123,27 +92,23 @@ const Index = () => {
       description: 'Grant pitch-counter-only access',
       icon: <Users className="w-5 h-5" />,
       onSelect: () => setShowScorekeepers(true),
+      group: 'Team Setup & Planning',
     },
     {
-      id: 'scan',
-      label: 'Scan paper form',
-      description: 'Capture a printed pitch chart',
-      icon: <Camera className="w-5 h-5" />,
-      onSelect: () => setShowFormScanner(true),
+      id: 'lineup',
+      label: 'Lineup planner',
+      description: 'Auto-generate a batting order from each player’s stats',
+      icon: <ListOrdered className="w-5 h-5" />,
+      onSelect: () => navigate('/lineup'),
+      group: 'Team Setup & Planning',
     },
     {
-      id: 'print-form',
-      label: 'Print pitch chart',
-      description: 'Open a printable session sheet',
-      icon: <Printer className="w-5 h-5" />,
-      onSelect: () => navigate('/print-form'),
-    },
-    {
-      id: 'print-live-abs',
-      label: 'Print Live ABs form',
-      description: 'Open a printable Live ABs sheet',
-      icon: <ClipboardList className="w-5 h-5" />,
-      onSelect: () => navigate('/print-live-abs'),
+      id: 'planner',
+      label: 'Pitching planner',
+      description: 'Plan weekends or tournaments, OBA rest rules enforced',
+      icon: <CalendarClock className="w-5 h-5" />,
+      onSelect: () => navigate('/planner'),
+      group: 'Team Setup & Planning',
     },
     ...(dashboardSettings.workoutsEnabled
       ? [
@@ -153,15 +118,73 @@ const Index = () => {
             description: 'Track workout completions',
             icon: <ShieldCheck className="w-5 h-5" />,
             onSelect: () => navigate('/accountability'),
+            group: 'Team Setup & Planning',
           } satisfies MoreSheetItem,
         ]
       : []),
+
+    // Season analytics
+    {
+      id: 'upload-stats',
+      label: 'Upload season stats',
+      description: 'Import a GameChanger CSV to power health reports',
+      icon: <FileSpreadsheet className="w-5 h-5" />,
+      onSelect: () => setShowStatUpload(true),
+      group: 'Season Analytics',
+    },
+    {
+      id: 'report-card',
+      label: 'Report cards',
+      description: 'AI-drafted mid-season reviews, coach-edited',
+      icon: <FileText className="w-5 h-5" />,
+      onSelect: () => navigate('/report-card'),
+      group: 'Season Analytics',
+    },
+    ...(isRankingsAdmin
+      ? [
+          {
+            id: 'rankings',
+            label: 'Player rankings',
+            description: 'Composite Player Value + Reef line from uploaded stats',
+            icon: <Trophy className="w-5 h-5" />,
+            onSelect: () => navigate('/rankings'),
+            group: 'Season Analytics',
+          } satisfies MoreSheetItem,
+        ]
+      : []),
+
+    // Utilities
+    {
+      id: 'scan',
+      label: 'Scan paper form',
+      description: 'Capture a printed pitch chart',
+      icon: <Camera className="w-5 h-5" />,
+      onSelect: () => setShowFormScanner(true),
+      group: 'Utilities',
+    },
+    {
+      id: 'print-form',
+      label: 'Print pitch chart',
+      description: 'Open a printable session sheet',
+      icon: <Printer className="w-5 h-5" />,
+      onSelect: () => navigate('/print-form'),
+      group: 'Utilities',
+    },
+    {
+      id: 'print-live-abs',
+      label: 'Print Live ABs form',
+      description: 'Open a printable Live ABs sheet',
+      icon: <ClipboardList className="w-5 h-5" />,
+      onSelect: () => navigate('/print-live-abs'),
+      group: 'Utilities',
+    },
     {
       id: 'calibrate',
       label: 'Calibrate strike zone',
       description: 'Tune the scanner alignment',
       icon: <ScanLine className="w-5 h-5" />,
       onSelect: () => navigate('/calibrate'),
+      group: 'Utilities',
     },
     {
       id: 'settings',
@@ -169,6 +192,7 @@ const Index = () => {
       description: 'App preferences (workouts toggle, etc.)',
       icon: <SlidersHorizontal className="w-5 h-5" />,
       onSelect: () => setShowSettings(true),
+      group: 'Utilities',
     },
   ];
 
@@ -284,7 +308,6 @@ const Index = () => {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onAddOuting={() => setShowOutingForm(true)}
-        onOpenRoster={() => setShowRosterManagement(true)}
         onOpenMore={() => setShowMoreSheet(true)}
         isOnPlayerDetail={currentView === 'detail'}
         onBackToPlayers={handleBackToDashboard}
@@ -419,7 +442,6 @@ const Index = () => {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onAddOuting={() => setShowOutingForm(true)}
-        onOpenRoster={() => setShowRosterManagement(true)}
         onOpenMore={() => setShowMoreSheet(true)}
         isOnPlayerDetail={currentView === 'detail'}
         onBackToPlayers={handleBackToDashboard}

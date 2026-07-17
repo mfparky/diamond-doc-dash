@@ -1,11 +1,10 @@
-import { Users, BarChart3, Plus, ClipboardList, MoreHorizontal } from 'lucide-react';
+import { Users, BarChart3, Plus, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface BottomNavProps {
   activeTab: 'players' | 'team';
   onTabChange: (tab: 'players' | 'team') => void;
   onAddOuting: () => void;
-  onOpenRoster: () => void;
   onOpenMore: () => void;
   isOnPlayerDetail?: boolean;
   onBackToPlayers?: () => void;
@@ -15,7 +14,6 @@ export function BottomNav({
   activeTab,
   onTabChange,
   onAddOuting,
-  onOpenRoster,
   onOpenMore,
   isOnPlayerDetail,
   onBackToPlayers,
@@ -78,17 +76,6 @@ export function BottomNav({
             <Plus className="w-7 h-7" />
           </div>
           <span className="text-xs font-medium text-muted-foreground">Log</span>
-        </button>
-
-        {/* Roster */}
-        <button
-          type="button"
-          onClick={onOpenRoster}
-          className={slotClasses(false)}
-          style={{ WebkitTapHighlightColor: 'transparent' }}
-        >
-          <ClipboardList className="w-6 h-6" />
-          <span className="text-xs font-medium">Roster</span>
         </button>
 
         {/* More */}
