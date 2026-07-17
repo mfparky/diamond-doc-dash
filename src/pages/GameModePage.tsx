@@ -281,7 +281,7 @@ export default function GameModePage() {
         .single();
       if (error) throw error;
       setGame(data as GameRow);
-      navigate(`/game/${data.id}`, { replace: true });
+      navigate(`/counter/${data.id}`, { replace: true });
     } catch (e) {
       toast({ title: 'Could not start game', description: getErrorMessage(e), variant: 'destructive' });
     } finally {
@@ -457,7 +457,7 @@ export default function GameModePage() {
       if (error) throw error;
 
       toast({ title: 'Game saved', description: `${outingRows.length} outing${outingRows.length === 1 ? '' : 's'} added to Arm Tracker.` });
-      navigate(`/games/${game.id}`);
+      navigate(`/game-log/${game.id}`);
     } catch (e) {
       toast({ title: 'Could not finish game', description: getErrorMessage(e), variant: 'destructive' });
     } finally {
@@ -677,7 +677,7 @@ export default function GameModePage() {
     <div className="h-[100dvh] w-full bg-background flex flex-col overflow-hidden touch-pan-y">
       {/* Header (fixed) */}
       <div className="px-3 py-2 border-b border-border bg-card flex items-center gap-2 shrink-0">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/games')} className="px-2 shrink-0">
+        <Button variant="ghost" size="sm" onClick={() => navigate('/game-log')} className="px-2 shrink-0">
           <ArrowLeft className="w-4 h-4 sm:mr-1" />
           <span className="hidden sm:inline">Games</span>
         </Button>

@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useParams } from "react-router-dom";
 import { Suspense, lazy, type ComponentType } from "react";
 import { DesignSystemProvider } from "@/contexts/DesignSystemContext";
 import { useAuth } from "@/hooks/use-auth";
@@ -55,6 +55,14 @@ const LiveAbsChartPage = lazyWithReload(() => import("./pages/LiveAbsChartPage")
 const OAuthConsent = lazyWithReload(() => import("./pages/OAuthConsent"));
 
 
+// Forwards a legacy /game/:gameId or /games/:gameId bookmark to its renamed
+// route, preserving the gameId. The destination route owns all auth/role
+// gating — this component never renders protected content itself.
+function LegacyGameRedirect({ base }: { base: string }) {
+  const { gameId } = useParams();
+  return <Navigate to={`${base}/${gameId}`} replace />;
+}
+
 const queryClient = new QueryClient();
 
 function RouteFallback() {
@@ -75,12 +83,12 @@ function AppRoutes() {
 
   // Scorekeepers can ONLY access the live pitch counter.
   const gate = (el: JSX.Element) =>
-    !user ? <Auth /> : isScorekeeper ? <Navigate to="/game" replace /> : el;
+    !user ? <Auth /> : isScorekeeper ? <Navigate to="/counter" replace /> : el;
 
   // Player Rankings is restricted to a small allow-list of coach emails.
   const rankingsGate = (el: JSX.Element) => {
     if (!user) return <Auth />;
-    if (isScorekeeper) return <Navigate to="/game" replace />;
+    if (isScorekeeper) return <Navigate to="/counter" replace />;
     if (!isRankingsAdminEmail(user.email)) return <Navigate to="/" replace />;
     return el;
   };
@@ -114,11 +122,17 @@ function AppRoutes() {
           <Route path="/chart/bullpen" element={gate(<BullpenChartPage />)} />
           <Route path="/chart/game" element={gate(<GameChartPage />)} />
           <Route path="/chart/live-abs" element={gate(<LiveAbsChartPage />)} />
-          {/* Game mode is allowed for scorekeepers */}
-          <Route path="/game" element={user ? <GameModePage /> : <Auth />} />
-          <Route path="/game/:gameId" element={user ? <GameModePage /> : <Auth />} />
-          <Route path="/games" element={gate(<GamesPage />)} />
-          <Route path="/games/:gameId" element={isScorekeeper ? <Navigate to="/game" replace /> : <GamesPage />} />
+          {/* Live pitch counter is allowed for scorekeepers */}
+          <Route path="/counter" element={user ? <GameModePage /> : <Auth />} />
+          <Route path="/counter/:gameId" element={user ? <GameModePage /> : <Auth />} />
+          <Route path="/game-log" element={gate(<GamesPage />)} />
+          <Route path="/game-log/:gameId" element={isScorekeeper ? <Navigate to="/counter" replace /> : <GamesPage />} />
+          {/* Legacy path redirects — old bookmarks/PWA shortcuts keep working.
+              These forward only; the real auth/role gating lives on the routes above. */}
+          <Route path="/game" element={<Navigate to="/counter" replace />} />
+          <Route path="/game/:gameId" element={<LegacyGameRedirect base="/counter" />} />
+          <Route path="/games" element={<Navigate to="/game-log" replace />} />
+          <Route path="/games/:gameId" element={<LegacyGameRedirect base="/game-log" />} />
 
           {/* Design system evaluation — no auth required */}
           <Route path="/design-systems" element={<DesignSystemPage />} />

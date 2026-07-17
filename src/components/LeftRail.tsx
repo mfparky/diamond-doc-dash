@@ -1,4 +1,4 @@
-import { Users, BarChart3, Plus, ClipboardList, MoreHorizontal, type LucideIcon } from 'lucide-react';
+import { Users, BarChart3, Plus, MoreHorizontal, type LucideIcon } from 'lucide-react';
 import hawksLogo from '@/assets/hawks-logo.png';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { cn } from '@/lib/utils';
@@ -7,7 +7,6 @@ interface LeftRailProps {
   activeTab: 'players' | 'team';
   onTabChange: (tab: 'players' | 'team') => void;
   onAddOuting: () => void;
-  onOpenRoster: () => void;
   onOpenMore: () => void;
   isOnPlayerDetail?: boolean;
   onBackToPlayers?: () => void;
@@ -24,7 +23,6 @@ export function LeftRail({
   activeTab,
   onTabChange,
   onAddOuting,
-  onOpenRoster,
   onOpenMore,
   isOnPlayerDetail,
   onBackToPlayers,
@@ -63,7 +61,6 @@ export function LeftRail({
           active={activeTab === 'team'}
           onClick={handleTeam}
         />
-        <RailButton icon={ClipboardList} label="Roster" onClick={onOpenRoster} />
         <RailButton icon={MoreHorizontal} label="More" onClick={onOpenMore} />
       </nav>
 

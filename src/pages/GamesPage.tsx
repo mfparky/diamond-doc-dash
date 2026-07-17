@@ -126,7 +126,7 @@ function GamesList() {
         .single();
       if (error) throw error;
       setCreating(false);
-      navigate(`/games/${data.id}`);
+      navigate(`/game-log/${data.id}`);
     } catch (e: any) {
       toast({ title: 'Could not create game', description: e.message, variant: 'destructive' });
     } finally {
@@ -167,7 +167,7 @@ function GamesList() {
             {games.map(g => (
               <Card key={g.id} className="hover:bg-secondary/30 transition-colors">
                 <CardContent className="p-3 flex items-center justify-between gap-2">
-                  <Link to={`/games/${g.id}`} className="flex-1 min-w-0">
+                  <Link to={`/game-log/${g.id}`} className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0">
                         <p className="font-semibold truncate">
@@ -190,7 +190,7 @@ function GamesList() {
         )}
 
         <div className="mt-8 pt-4 border-t border-border">
-          <Button variant="outline" size="sm" className="w-full" onClick={() => navigate('/game')}>
+          <Button variant="outline" size="sm" className="w-full" onClick={() => navigate('/counter')}>
             <Radio className="w-4 h-4 mr-2" /> Open live ball/strike counter
           </Button>
           <p className="text-[11px] text-muted-foreground text-center mt-2">
@@ -399,11 +399,11 @@ function GameReview({ gameId }: { gameId: string }) {
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-2xl mx-auto space-y-4">
         <div className="flex items-center justify-between">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/games')}>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/game-log')}>
             <ArrowLeft className="w-4 h-4 mr-1" /> Games
           </Button>
           {game.status !== 'completed' && (
-            <Button size="sm" onClick={() => navigate(`/game/${game.id}`)}>
+            <Button size="sm" onClick={() => navigate(`/counter/${game.id}`)}>
               Resume live
             </Button>
           )}
