@@ -33,15 +33,6 @@ interface MetricConfig {
 
 const METRICS: MetricConfig[] = [
   {
-    key: 'velocity',
-    label: 'Max Velocity',
-    shortLabel: 'Velo',
-    color: 'hsl(var(--status-danger))',
-    icon: <Gauge className="w-3.5 h-3.5" />,
-    unit: ' mph',
-    valueFormatter: (v: number) => `${v} mph`,
-  },
-  {
     key: 'strikePercent',
     label: 'Strike %',
     shortLabel: 'Strike %',
@@ -59,10 +50,19 @@ const METRICS: MetricConfig[] = [
     unit: '',
     valueFormatter: (v: number) => `${v}`,
   },
+  {
+    key: 'velocity',
+    label: 'Max Velocity',
+    shortLabel: 'Velo',
+    color: 'hsl(var(--status-danger))',
+    icon: <Gauge className="w-3.5 h-3.5" />,
+    unit: ' mph',
+    valueFormatter: (v: number) => `${v} mph`,
+  },
 ];
 
 export function SeasonTrendsChart({ outings, title = 'Season Trends', subtitle }: SeasonTrendsChartProps) {
-  const [activeMetric, setActiveMetric] = useState<MetricKey>('velocity');
+  const [activeMetric, setActiveMetric] = useState<MetricKey>('strikePercent');
 
   const chartData = useMemo(() => {
     const sorted = [...outings]
