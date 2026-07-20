@@ -25,7 +25,7 @@ import { ProgressReportCard } from '@/components/ProgressReportCard';
 import { generateReport } from '@/lib/generate-report';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { TrendingUp, Target, Gauge, Calendar, Video, Shield, ArrowLeft, ArrowRight, Play, MessageSquare, ClipboardCheck, Share2, Copy, Check, Download, Star, Users, Camera } from 'lucide-react';
+import { TrendingUp, Target, Gauge, Calendar, Video, Shield, ArrowLeft, ArrowRight, Play, MessageSquare, ClipboardCheck, Share2, Copy, Check, Download, Star, Users, Camera, Trophy } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import hawksLogo from '@/assets/hawks-logo.png';
 import { LiveAbsSummary } from '@/components/LiveAbsSummary';
@@ -512,6 +512,66 @@ export default function PlayerDashboard() {
           );
         })()}
 
+        {/* Season Stats - Games Only (prominent, parent-facing) */}
+        {(() => {
+          const currentYear = new Date().getFullYear();
+          const seasonGameOutings = outings.filter(
+            (o) => o.eventType === 'Game' && new Date(o.date).getFullYear() === currentYear
+          );
+          if (seasonGameOutings.length === 0) return null;
+
+          const totalPitches = seasonGameOutings.reduce((sum, o) => sum + o.pitchCount, 0);
+          const withStrikes = seasonGameOutings.filter((o) => o.strikes !== null);
+          const pitchesWithStrikes = withStrikes.reduce((sum, o) => sum + o.pitchCount, 0);
+          const strikes = withStrikes.reduce((sum, o) => sum + (o.strikes ?? 0), 0);
+          const strikePercent = pitchesWithStrikes > 0 ? (strikes / pitchesWithStrikes) * 100 : null;
+          const maxVelo = Math.max(0, ...seasonGameOutings.map((o) => o.maxVelo || 0));
+
+          return (
+            <Card className="glass-card border-primary/30 bg-primary/5">
+              <CardContent className="p-4 space-y-4">
+                <div>
+                  <h2 className="font-display text-lg font-bold text-foreground flex items-center gap-2">
+                    <Trophy className="w-5 h-5 text-primary" />
+                    Season Stats
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-primary/15 text-primary">
+                      Games Only
+                    </span>
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {seasonGameOutings.length} game{seasonGameOutings.length !== 1 ? 's' : ''} logged this season
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { label: 'Games', value: String(seasonGameOutings.length), icon: Calendar, iconClass: 'text-primary', bgClass: 'bg-primary/10' },
+                    { label: 'Pitches', value: String(totalPitches), icon: TrendingUp, iconClass: 'text-primary', bgClass: 'bg-primary/10' },
+                    { label: 'Strike %', value: strikePercent !== null ? `${strikePercent.toFixed(1)}%` : '-', icon: Target, iconClass: 'text-accent', bgClass: 'bg-accent/10' },
+                    { label: 'Max Velo', value: maxVelo > 0 ? String(maxVelo) : '-', icon: Gauge, iconClass: 'text-status-danger', bgClass: 'bg-status-danger/10' },
+                  ].map((stat) => (
+                    <Card key={stat.label} className="stat-card">
+                      <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+                        <div className={`p-2 rounded-lg ${stat.bgClass}`}>
+                          <stat.icon className={`w-5 h-5 ${stat.iconClass}`} />
+                        </div>
+                        <p className="text-xs text-muted-foreground">{stat.label}</p>
+                        <p className="font-bold text-foreground text-2xl">{stat.value}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                <SeasonTrendsChart
+                  title="Season Progression"
+                  subtitle="Game outings only"
+                  outings={seasonGameOutings}
+                />
+              </CardContent>
+            </Card>
+          );
+        })()}
+
         {/* Enhanced View Toggle - only visible with ?advanced=1 URL param */}
         {advancedEnabled && (
         <div className="flex items-center justify-between">
@@ -725,13 +785,6 @@ export default function PlayerDashboard() {
 
         {/* Season Trends Chart */}
         <SeasonTrendsChart outings={pitcher.outings} />
-
-        {/* Season Progression - games only */}
-        <SeasonTrendsChart
-          title="Season Progression"
-          subtitle="Game outings only"
-          outings={pitcher.outings.filter((o) => o.eventType === 'Game')}
-        />
 
         {/* Season Pitch Count Chart */}
         <PitchCountChart outings={pitcher.outings} />
