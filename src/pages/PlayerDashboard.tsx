@@ -723,21 +723,28 @@ export default function PlayerDashboard() {
           return null;
         })()}
 
-        {/* Achievements */}
-        <BadgeGrid badges={evaluateBadges(filterByWindow(pitcher.outings, 'date'), filterByWindow(allPitchLocations, 'createdAt'), pitchTypes)} />
-
         {/* Season Trends Chart */}
         <SeasonTrendsChart outings={pitcher.outings} />
+
+        {/* Season Progression - games only */}
+        <SeasonTrendsChart
+          title="Season Progression"
+          subtitle="Game outings only"
+          outings={pitcher.outings.filter((o) => o.eventType === 'Game')}
+        />
 
         {/* Season Pitch Count Chart */}
         <PitchCountChart outings={pitcher.outings} />
 
         {/* Strike Location Viewer */}
-        <StrikeLocationViewer 
-          pitcherId={pitcher.id} 
+        <StrikeLocationViewer
+          pitcherId={pitcher.id}
           outings={pitcher.outings}
           pitchTypes={pitchTypes}
         />
+
+        {/* Achievements */}
+        <BadgeGrid badges={evaluateBadges(filterByWindow(pitcher.outings, 'date'), filterByWindow(allPitchLocations, 'createdAt'), pitchTypes)} />
 
         {/* Outing History - Read Only */}
         <Card className="glass-card">

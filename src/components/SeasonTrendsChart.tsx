@@ -15,6 +15,8 @@ import { TrendingUp, Target, Gauge } from 'lucide-react';
 
 interface SeasonTrendsChartProps {
   outings: Outing[];
+  title?: string;
+  subtitle?: string;
 }
 
 type MetricKey = 'velocity' | 'strikePercent' | 'pitchCount';
@@ -59,7 +61,7 @@ const METRICS: MetricConfig[] = [
   },
 ];
 
-export function SeasonTrendsChart({ outings }: SeasonTrendsChartProps) {
+export function SeasonTrendsChart({ outings, title = 'Season Trends', subtitle }: SeasonTrendsChartProps) {
   const [activeMetric, setActiveMetric] = useState<MetricKey>('velocity');
 
   const chartData = useMemo(() => {
@@ -125,7 +127,10 @@ export function SeasonTrendsChart({ outings }: SeasonTrendsChartProps) {
     <Card className="glass-card">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="font-display text-lg">Season Trends</CardTitle>
+          <div>
+            <CardTitle className="font-display text-lg">{title}</CardTitle>
+            {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
+          </div>
           {trend && (
             <span
               className={`text-xs font-medium px-2 py-1 rounded-full ${
