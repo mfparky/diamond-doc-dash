@@ -24,6 +24,7 @@ import {
   computeCoreMetrics,
   type CoreMetricInput,
 } from '@/lib/report-card-metrics';
+import { FIELD_POSITIONS, positionLabel } from '@/lib/field-positions';
 
 function todayIso(): string {
   const d = new Date();
@@ -68,6 +69,9 @@ export default function ReportCardPage() {
   const [strengths, setStrengths] = useState('');
   const [areas, setAreas] = useState('');
   const [adjustments, setAdjustments] = useState<Record<string, number>>({});
+  const [positionPrimary, setPositionPrimary] = useState('');
+  const [positionSupport1, setPositionSupport1] = useState('');
+  const [positionSupport2, setPositionSupport2] = useState('');
   const [generating, setGenerating] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
 
@@ -82,6 +86,9 @@ export default function ReportCardPage() {
     setStrengths(card?.strengths ?? '');
     setAreas(card?.areas ?? '');
     setAdjustments(card?.metricAdjustments ?? {});
+    setPositionPrimary(card?.positionPrimary ?? '');
+    setPositionSupport1(card?.positionSupport1 ?? '');
+    setPositionSupport2(card?.positionSupport2 ?? '');
   }, [card, playerId]);
 
   // Team-wide inputs feed the percentile pool. Latest snapshot per pitcher.
@@ -172,6 +179,9 @@ export default function ReportCardPage() {
       areas,
       snapshotId: latestSnapshot?.id ?? null,
       metricAdjustments: adjustments,
+      positionPrimary: positionPrimary || null,
+      positionSupport1: positionSupport1 || null,
+      positionSupport2: positionSupport2 || null,
     });
     if (ok) {
       setSavedFlash(true);
@@ -299,10 +309,18 @@ export default function ReportCardPage() {
                 </div>
               </div>
 
-              <div className="rc-metrics-slot">
+              <div className="rc-metrics-slot space-y-4 print:space-y-2">
                 <CoreMetricsPanel
                   metrics={coreMetrics}
                   onAdjust={handleAdjustMetric}
+                />
+                <PositionOfFocus
+                  primary={positionPrimary}
+                  support1={positionSupport1}
+                  support2={positionSupport2}
+                  onPrimaryChange={setPositionPrimary}
+                  onSupport1Change={setPositionSupport1}
+                  onSupport2Change={setPositionSupport2}
                 />
               </div>
 
@@ -530,6 +548,93 @@ export default function ReportCardPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+function PositionOfFocus({
+  primary,
+  support1,
+  support2,
+  onPrimaryChange,
+  onSupport1Change,
+  onSupport2Change,
+}: {
+  primary: string;
+  support1: string;
+  support2: string;
+  onPrimaryChange: (v: string) => void;
+  onSupport1Change: (v: string) => void;
+  onSupport2Change: (v: string) => void;
+}) {
+  const hasAny = !!(primary || support1 || support2);
+
+  return (
+    <Card className={`glass-card print:shadow-none print:border-none ${hasAny ? '' : 'print:hidden'}`}>
+      <CardHeader className="pb-2 print:pb-1">
+        <CardTitle className="font-display text-base uppercase tracking-wider text-muted-foreground print:text-foreground">
+          Position of focus
+        </CardTitle>
+        <p className="text-xs text-muted-foreground print:hidden">
+          Pick a primary position and up to two supporting positions to show on the printout.
+        </p>
+      </CardHeader>
+      <CardContent className="print:pt-0">
+        {/* On-screen pickers — hidden in print. */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 print:hidden">
+          <div className="space-y-1">
+            <Label htmlFor="rc-pos-primary" className="text-xs text-muted-foreground">Primary</Label>
+            <select
+              id="rc-pos-primary"
+              className="w-full h-9 rounded-md border border-border/60 bg-background px-2 text-sm"
+              value={primary}
+              onChange={(e) => onPrimaryChange(e.target.value)}
+            >
+              <option value="">None</option>
+              {FIELD_POSITIONS.filter((p) => p.value !== support1 && p.value !== support2).map((p) => (
+                <option key={p.value} value={p.value}>{p.label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="rc-pos-support1" className="text-xs text-muted-foreground">Support 1</Label>
+            <select
+              id="rc-pos-support1"
+              className="w-full h-9 rounded-md border border-border/60 bg-background px-2 text-sm"
+              value={support1}
+              onChange={(e) => onSupport1Change(e.target.value)}
+            >
+              <option value="">None</option>
+              {FIELD_POSITIONS.filter((p) => p.value !== primary && p.value !== support2).map((p) => (
+                <option key={p.value} value={p.value}>{p.label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="rc-pos-support2" className="text-xs text-muted-foreground">Support 2</Label>
+            <select
+              id="rc-pos-support2"
+              className="w-full h-9 rounded-md border border-border/60 bg-background px-2 text-sm"
+              value={support2}
+              onChange={(e) => onSupport2Change(e.target.value)}
+            >
+              <option value="">None</option>
+              {FIELD_POSITIONS.filter((p) => p.value !== primary && p.value !== support1).map((p) => (
+                <option key={p.value} value={p.value}>{p.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Print-only mirror. */}
+        {hasAny && (
+          <div className="hidden print:flex print:flex-wrap print:gap-x-4 rc-print-copy">
+            {primary && <span><strong>Primary:</strong> {positionLabel(primary)}</span>}
+            {support1 && <span><strong>Support:</strong> {positionLabel(support1)}</span>}
+            {support2 && <span><strong>Support:</strong> {positionLabel(support2)}</span>}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

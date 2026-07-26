@@ -19,14 +19,21 @@ export interface ReportCardRecord {
   snapshotId: string | null;
   /** Coach ±nudges keyed by metric key. Missing keys mean no override. */
   metricAdjustments: Record<string, number>;
+  /** Position(s) of focus shown under the metrics in the printout. */
+  positionPrimary: string | null;
+  positionSupport1: string | null;
+  positionSupport2: string | null;
   updatedAt: string;
 }
+
+type ReportCardPatch = Partial<Pick<ReportCardRecord,
+  'coachContext' | 'summary' | 'strengths' | 'areas' | 'snapshotId' | 'metricAdjustments'
+  | 'positionPrimary' | 'positionSupport1' | 'positionSupport2'>>;
 
 interface UseReportCardResult {
   card: ReportCardRecord | null;
   isLoading: boolean;
-  save: (patch: Partial<Pick<ReportCardRecord,
-    'coachContext' | 'summary' | 'strengths' | 'areas' | 'snapshotId' | 'metricAdjustments'>>) => Promise<boolean>;
+  save: (patch: ReportCardPatch) => Promise<boolean>;
   refetch: () => Promise<void>;
 }
 
@@ -75,7 +82,7 @@ export function useReportCard(pitcherId: string | undefined, periodStart: string
       }
       const { data, error } = await db
         .from('report_cards')
-        .select('id, pitcher_id, period_start, period_end, coach_context, narrative_summary, narrative_strengths, narrative_areas, snapshot_id, metric_adjustments, updated_at')
+        .select('id, pitcher_id, period_start, period_end, coach_context, narrative_summary, narrative_strengths, narrative_areas, snapshot_id, metric_adjustments, position_primary, position_support_1, position_support_2, updated_at')
         .eq('user_id', user.id)
         .eq('pitcher_id', pitcherId)
         .eq('period_start', periodStart)
@@ -93,6 +100,9 @@ export function useReportCard(pitcherId: string | undefined, periodStart: string
           areas: data.narrative_areas ?? '',
           snapshotId: data.snapshot_id,
           metricAdjustments: normalizeAdjustments(data.metric_adjustments),
+          positionPrimary: data.position_primary ?? null,
+          positionSupport1: data.position_support_1 ?? null,
+          positionSupport2: data.position_support_2 ?? null,
           updatedAt: data.updated_at,
         });
       } else {
@@ -111,7 +121,7 @@ export function useReportCard(pitcherId: string | undefined, periodStart: string
   }, [pitcherId, periodStart, periodEnd, toast]);
 
   const save = useCallback(
-    async (patch: Partial<Pick<ReportCardRecord, 'coachContext' | 'summary' | 'strengths' | 'areas' | 'snapshotId' | 'metricAdjustments'>>) => {
+    async (patch: ReportCardPatch) => {
       if (!pitcherId) return false;
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -136,6 +146,12 @@ export function useReportCard(pitcherId: string | undefined, periodStart: string
               narrative_areas: patch.areas ?? card?.areas ?? '',
               snapshot_id: patch.snapshotId ?? card?.snapshotId ?? null,
               metric_adjustments: nextAdjustments,
+              // These three are explicitly nullable (a coach clearing a position
+              // pick sends null on purpose), so "in patch" distinguishes that
+              // from "key omitted" — a plain ?? would wrongly keep the old value.
+              position_primary: 'positionPrimary' in patch ? patch.positionPrimary : card?.positionPrimary ?? null,
+              position_support_1: 'positionSupport1' in patch ? patch.positionSupport1 : card?.positionSupport1 ?? null,
+              position_support_2: 'positionSupport2' in patch ? patch.positionSupport2 : card?.positionSupport2 ?? null,
             },
             { onConflict: 'user_id,pitcher_id,period_start' },
           );
