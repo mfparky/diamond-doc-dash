@@ -43,6 +43,11 @@ function friendlyDate(iso: string): string {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+// Fixed, non-editable — every printed report card shows identical wording so
+// no parent can read favoritism into a difference in phrasing between players.
+const TRYOUT_PREAMBLE =
+  'No roster spots are held for next season. Every player will be evaluated at fall tryouts, and the team will be built based on positional needs, hitting, and pitching — not on returning-player status. Every spot on the roster is open.';
+
 export default function ReportCardPage() {
   const { toast } = useToast();
   const [search, setSearch] = useSearchParams();
@@ -72,6 +77,7 @@ export default function ReportCardPage() {
   const [positionPrimary, setPositionPrimary] = useState('');
   const [positionSupport1, setPositionSupport1] = useState('');
   const [positionSupport2, setPositionSupport2] = useState('');
+  const [tryoutFocus, setTryoutFocus] = useState('');
   const [generating, setGenerating] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
 
@@ -89,6 +95,7 @@ export default function ReportCardPage() {
     setPositionPrimary(card?.positionPrimary ?? '');
     setPositionSupport1(card?.positionSupport1 ?? '');
     setPositionSupport2(card?.positionSupport2 ?? '');
+    setTryoutFocus(card?.tryoutFocus ?? '');
   }, [card, playerId]);
 
   // Team-wide inputs feed the percentile pool. Latest snapshot per pitcher.
@@ -182,6 +189,7 @@ export default function ReportCardPage() {
       positionPrimary: positionPrimary || null,
       positionSupport1: positionSupport1 || null,
       positionSupport2: positionSupport2 || null,
+      tryoutFocus,
     });
     if (ok) {
       setSavedFlash(true);
@@ -343,6 +351,13 @@ export default function ReportCardPage() {
                   onChange={setAreas}
                   placeholder="Growth opportunities framed as next steps, not deficits."
                 />
+                <ReportSection
+                  title="Focus for Fall Tryouts"
+                  preamble={TRYOUT_PREAMBLE}
+                  value={tryoutFocus}
+                  onChange={setTryoutFocus}
+                  placeholder="What should this player work on before fall tryouts to compete for a spot?"
+                />
               </div>
 
               {/* Branded footer — visible only in print */}
@@ -353,11 +368,11 @@ export default function ReportCardPage() {
 
               {/* Footer actions — hidden in print */}
               <div className="flex flex-wrap gap-2 justify-end print:hidden">
-                <Button variant="outline" onClick={handlePrint} disabled={!summary && !strengths && !areas}>
+                <Button variant="outline" onClick={handlePrint} disabled={!summary && !strengths && !areas && !tryoutFocus}>
                   <FileDown className="w-4 h-4 mr-2" />
                   Download PDF
                 </Button>
-                <Button onClick={handleSave} disabled={!summary && !strengths && !areas}>
+                <Button onClick={handleSave} disabled={!summary && !strengths && !areas && !tryoutFocus}>
                   {savedFlash ? <CheckCircle2 className="w-4 h-4 mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                   {savedFlash ? 'Saved' : 'Save report card'}
                 </Button>
@@ -643,11 +658,14 @@ function ReportSection({
   value,
   onChange,
   placeholder,
+  preamble,
 }: {
   title: string;
   value: string;
   onChange: (v: string) => void;
   placeholder: string;
+  /** Fixed, non-editable text shown above the textarea on screen AND in print. */
+  preamble?: string;
 }) {
   return (
     <Card className="glass-card print:shadow-none print:border-none">
@@ -657,6 +675,11 @@ function ReportSection({
         </CardTitle>
       </CardHeader>
       <CardContent className="print:pt-0">
+        {preamble && (
+          <p className="mb-3 text-xs italic text-muted-foreground border-l-2 border-primary/50 pl-3 print:text-foreground print:border-black/50 rc-print-copy">
+            {preamble}
+          </p>
+        )}
         {/* On-screen editable textarea — hidden in print. */}
         <Textarea
           value={value}
