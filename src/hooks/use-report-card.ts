@@ -23,12 +23,14 @@ export interface ReportCardRecord {
   positionPrimary: string | null;
   positionSupport1: string | null;
   positionSupport2: string | null;
+  /** Coach's note on what to work on for fall tryouts. Printed under a fixed preamble. */
+  tryoutFocus: string;
   updatedAt: string;
 }
 
 type ReportCardPatch = Partial<Pick<ReportCardRecord,
   'coachContext' | 'summary' | 'strengths' | 'areas' | 'snapshotId' | 'metricAdjustments'
-  | 'positionPrimary' | 'positionSupport1' | 'positionSupport2'>>;
+  | 'positionPrimary' | 'positionSupport1' | 'positionSupport2' | 'tryoutFocus'>>;
 
 interface UseReportCardResult {
   card: ReportCardRecord | null;
@@ -82,7 +84,7 @@ export function useReportCard(pitcherId: string | undefined, periodStart: string
       }
       const { data, error } = await db
         .from('report_cards')
-        .select('id, pitcher_id, period_start, period_end, coach_context, narrative_summary, narrative_strengths, narrative_areas, snapshot_id, metric_adjustments, position_primary, position_support_1, position_support_2, updated_at')
+        .select('id, pitcher_id, period_start, period_end, coach_context, narrative_summary, narrative_strengths, narrative_areas, snapshot_id, metric_adjustments, position_primary, position_support_1, position_support_2, tryout_focus, updated_at')
         .eq('user_id', user.id)
         .eq('pitcher_id', pitcherId)
         .eq('period_start', periodStart)
@@ -103,6 +105,7 @@ export function useReportCard(pitcherId: string | undefined, periodStart: string
           positionPrimary: data.position_primary ?? null,
           positionSupport1: data.position_support_1 ?? null,
           positionSupport2: data.position_support_2 ?? null,
+          tryoutFocus: data.tryout_focus ?? '',
           updatedAt: data.updated_at,
         });
       } else {
@@ -144,6 +147,7 @@ export function useReportCard(pitcherId: string | undefined, periodStart: string
               narrative_summary: patch.summary ?? card?.summary ?? '',
               narrative_strengths: patch.strengths ?? card?.strengths ?? '',
               narrative_areas: patch.areas ?? card?.areas ?? '',
+              tryout_focus: patch.tryoutFocus ?? card?.tryoutFocus ?? '',
               snapshot_id: patch.snapshotId ?? card?.snapshotId ?? null,
               metric_adjustments: nextAdjustments,
               // These three are explicitly nullable (a coach clearing a position
