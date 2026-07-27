@@ -338,18 +338,24 @@ export default function ReportCardPage() {
                   value={summary}
                   onChange={setSummary}
                   placeholder="A short paragraph capturing the whole player. Generate a draft or write from scratch."
+                  maxLength={200}
+                  rows={4}
                 />
                 <ReportSection
                   title="Strengths"
                   value={strengths}
                   onChange={setStrengths}
                   placeholder="Where the player is producing. Ground each claim in specific stats or coach observations."
+                  maxLength={300}
+                  rows={5}
                 />
                 <ReportSection
                   title="Areas to work on"
                   value={areas}
                   onChange={setAreas}
                   placeholder="Growth opportunities framed as next steps, not deficits."
+                  maxLength={300}
+                  rows={5}
                 />
                 <ReportSection
                   title="Focus for Fall Tryouts"
@@ -357,6 +363,8 @@ export default function ReportCardPage() {
                   value={tryoutFocus}
                   onChange={setTryoutFocus}
                   placeholder="What should this player work on before fall tryouts to compete for a spot?"
+                  maxLength={300}
+                  rows={5}
                 />
               </div>
 
@@ -462,13 +470,13 @@ export default function ReportCardPage() {
              zeroed out below so grid gap controls spacing. */
           .report-card-doc {
             display: grid;
-            grid-template-columns: 36% 1fr;
+            grid-template-columns: 32% 1fr;
             grid-template-areas:
               "header    header"
               "metrics   narratives"
               "footer    footer";
-            column-gap: 18pt;
-            row-gap: 8pt;
+            column-gap: 14pt;
+            row-gap: 6pt;
             page-break-inside: avoid;
           }
           .report-card-doc > * { margin-top: 0 !important; margin-bottom: 0 !important; }
@@ -489,11 +497,11 @@ export default function ReportCardPage() {
             border-radius: 0 !important;
           }
           .rc-header-inner {
-            padding: 8pt 0 6pt 0;
+            padding: 6pt 0 5pt 0;
             border-bottom: 0.75pt solid #222;
-            gap: 14pt !important;
+            gap: 12pt !important;
           }
-          .rc-logo { height: 42pt; }
+          .rc-logo { height: 36pt; }
           .rc-eyebrow {
             color: #6b7280 !important;
             font-size: 7pt;
@@ -524,11 +532,11 @@ export default function ReportCardPage() {
           /* --- Section headings --- */
           [class*="uppercase"][class*="tracking-wider"] {
             color: #111 !important;
-            font-size: 9pt !important;
-            letter-spacing: 0.12em !important;
+            font-size: 8.5pt !important;
+            letter-spacing: 0.1em !important;
             border-bottom: 0.5pt solid #d1d5db !important;
-            padding-bottom: 2pt !important;
-            margin-bottom: 3pt !important;
+            padding-bottom: 1pt !important;
+            margin-bottom: 2pt !important;
           }
 
           /* --- Narrative copy in print --- flows as a paragraph so
@@ -536,12 +544,12 @@ export default function ReportCardPage() {
           .rc-print-copy {
             color: #111 !important;
             font-family: 'Helvetica Neue', Arial, sans-serif !important;
-            font-size: 8.75pt !important;
-            line-height: 1.35 !important;
-            margin: 0 0 4pt 0 !important;
+            font-size: 8.25pt !important;
+            line-height: 1.25 !important;
+            margin: 0 0 3pt 0 !important;
           }
-          .rc-narratives-slot { font-size: 8.75pt; }
-          .rc-narratives-slot .glass-card + .glass-card { margin-top: 4pt !important; }
+          .rc-narratives-slot { font-size: 8.25pt; }
+          .rc-narratives-slot .glass-card + .glass-card { margin-top: 3pt !important; }
 
           /* --- Metrics panel — tighter for landscape column --- */
           .rc-metrics-slot .space-y-3 > * + * { margin-top: 5pt !important; }
@@ -554,9 +562,9 @@ export default function ReportCardPage() {
             justify-content: space-between;
             align-items: center;
             border-top: 0.5pt solid #d1d5db;
-            padding-top: 5pt;
-            margin-top: 8pt !important;
-            font-size: 7.5pt;
+            padding-top: 3pt;
+            margin-top: 5pt !important;
+            font-size: 7pt;
             color: #6b7280;
             page-break-inside: avoid;
           }
@@ -659,6 +667,8 @@ function ReportSection({
   onChange,
   placeholder,
   preamble,
+  maxLength,
+  rows = 6,
 }: {
   title: string;
   value: string;
@@ -666,6 +676,9 @@ function ReportSection({
   placeholder: string;
   /** Fixed, non-editable text shown above the textarea on screen AND in print. */
   preamble?: string;
+  /** Hard character cap — keeps the printed card on one page. */
+  maxLength?: number;
+  rows?: number;
 }) {
   return (
     <Card className="glass-card print:shadow-none print:border-none">
@@ -684,10 +697,16 @@ function ReportSection({
         <Textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          rows={6}
+          rows={rows}
+          maxLength={maxLength}
           placeholder={placeholder}
           className="text-sm print:hidden"
         />
+        {maxLength && (
+          <p className="mt-1 text-[11px] text-muted-foreground text-right print:hidden">
+            {value.length} / {maxLength}
+          </p>
+        )}
         {/* Print-only mirror. Textareas don't auto-grow in print so we
             render the value as a flowing paragraph block instead — this
             guarantees the full copy shows up in the exported PDF. */}
