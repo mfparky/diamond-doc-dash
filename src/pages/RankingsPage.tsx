@@ -11,7 +11,7 @@ import {
   ReferenceLine,
   Cell,
 } from 'recharts';
-import { ArrowLeft, Trophy, Upload, Info, Minus, Equal, Plus, Eye, ChevronDown, Sparkles } from 'lucide-react';
+import { ArrowLeft, Trophy, Upload, Info, Minus, Equal, Plus, Eye, ChevronDown, Sparkles, Flame } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -56,7 +56,7 @@ type RatingDimension = 'effort' | 'coachability' | 'baseball_iq';
 type ChartView = 'bar' | 'quadrant' | 'tier' | 'radar';
 
 export default function RankingsPage() {
-  const { pitchers, isLoading: pitchersLoading, setCoachRating } = usePitchers();
+  const { pitchers, isLoading: pitchersLoading, setCoachRating, setHighImpactArm } = usePitchers();
   const pitcherIds = useMemo(() => pitchers.map((p) => p.id), [pitchers]);
   const { byPitcher, isLoading: snapshotsLoading, mostRecentUploadedAt } = useAllStatSnapshots(pitcherIds);
 
@@ -74,6 +74,7 @@ export default function RankingsPage() {
       effortRating: p.effortRating,
       coachabilityRating: p.coachabilityRating,
       baseballIqRating: p.baseballIqRating,
+      highImpactArm: p.highImpactArm,
     }));
   }, [pitchers, byPitcher]);
 
@@ -87,6 +88,7 @@ export default function RankingsPage() {
       effortRating: p.effortRating,
       coachabilityRating: p.coachabilityRating,
       baseballIqRating: p.baseballIqRating,
+      highImpactArm: p.highImpactArm,
     }));
   }, [pitchers, byPitcher]);
 
@@ -240,7 +242,23 @@ export default function RankingsPage() {
                       </div>
                       <div>
                         <p className="font-semibold text-foreground mb-1">Pitching participation</p>
-                        <p className="text-muted-foreground">Defense score is scaled by IP up to {MIN_IP_FLOOR} innings. Kids who barely pitch are damped so they can't lean on FPCT alone.</p>
+                        <p className="text-muted-foreground">
+                          Only the pitching half of Defense is scaled by IP up to {MIN_IP_FLOOR} innings — a kid who
+                          barely pitches has that small sample shrunk toward neutral, so they can't lean on a lucky
+                          tiny-sample ERA. Fielding (FPCT etc.) is scored independently and always counts in full,
+                          even for a player who never pitches.
+                        </p>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-foreground mb-1">
+                          <Flame className="inline w-3 h-3 mb-0.5 text-orange-500" /> Trusted arm
+                        </p>
+                        <p className="text-muted-foreground">
+                          Click the flame next to a player's name to mark them as a high-impact arm — this bypasses
+                          the participation floor for that player, so their pitching numbers count at full value and
+                          full weight regardless of IP. Use it for a kid you know is a real difference-maker despite
+                          limited innings (e.g. a closer).
+                        </p>
                       </div>
                     </PopoverContent>
                   </Popover>
@@ -387,6 +405,7 @@ export default function RankingsPage() {
                         ranking={r}
                         pitcher={pitcherById.get(r.pitcherId)}
                         onSetRating={setCoachRating}
+                        onToggleHighImpactArm={setHighImpactArm}
                         rankChange={rankChangeByPitcherId.get(r.pitcherId) ?? null}
                       />
                     ))}
@@ -541,11 +560,13 @@ function RankingRow({
   ranking,
   pitcher,
   onSetRating,
+  onToggleHighImpactArm,
   rankChange,
 }: {
   ranking: PlayerRanking;
   pitcher: PitcherRecord | undefined;
   onSetRating: (id: string, dim: RatingDimension, rating: CoachRating) => Promise<boolean>;
+  onToggleHighImpactArm: (id: string, value: boolean) => Promise<boolean>;
   rankChange: number | null;
 }) {
   const visibleMetrics = METRIC_LABELS.filter((m) => m.bucket !== 'intangibles');
@@ -555,6 +576,22 @@ function RankingRow({
         <span className="inline-flex items-center gap-1.5">
           {ranking.pitcherName}
           <RankChangeBadge change={rankChange} />
+          <button
+            type="button"
+            onClick={() => pitcher && onToggleHighImpactArm(pitcher.id, !pitcher.highImpactArm)}
+            disabled={!pitcher}
+            title={
+              pitcher?.highImpactArm
+                ? 'Trusted arm — pitching counts at full value/weight regardless of IP. Click to remove.'
+                : "Mark as a trusted high-impact arm — bypasses the pitching participation floor so this player's pitching numbers count in full even at low IP."
+            }
+            className={cn(
+              'inline-flex items-center justify-center w-5 h-5 rounded-full transition-colors shrink-0',
+              pitcher?.highImpactArm ? 'text-orange-500' : 'text-muted-foreground/25 hover:text-muted-foreground',
+            )}
+          >
+            <Flame className="w-3.5 h-3.5" fill={pitcher?.highImpactArm ? 'currentColor' : 'none'} />
+          </button>
         </span>
         {ranking.aboveCeiling && (
           <span className="ml-2 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">

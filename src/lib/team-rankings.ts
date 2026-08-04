@@ -13,6 +13,13 @@ export interface RankingInput {
   effortRating?: CoachRating;
   coachabilityRating?: CoachRating;
   baseballIqRating?: CoachRating;
+  /**
+   * Coach override: trust this arm's pitching sample at full value and full
+   * weight regardless of IP — bypasses the pitching participation floor
+   * entirely for this player. For a kid the coach knows is high-impact
+   * despite low innings (e.g. a closer who only sees high-leverage spots).
+   */
+  highImpactArm?: boolean;
 }
 
 export type RankingFilter = 'all' | 'hitters' | 'pitchers';
@@ -456,18 +463,26 @@ export function buildRankings(
     const pitchingVolumeScore = Number.isFinite(ipNormalized[idx]) ? ipNormalized[idx] : null;
 
     // Pitching participation damps only the PITCHING half of the defense
-    // bucket, shrinking an unreliable (low-IP) sample toward the neutral
-    // midpoint (50) rather than toward 0 — a kid who barely pitches can't
-    // ride a lucky small-sample ERA to a high defense score, but a rough
-    // small sample doesn't get unfairly crushed either. The FIELDING half
-    // (FPCT etc.) is scored and weighted completely independently, so a
-    // true non-pitcher's real glove work is never zeroed out just because
-    // they don't pitch — it used to be, because this multiplied the whole
-    // blended defense score (pitching + fielding together) by the factor,
-    // so a pure hitter's participationFactor of 0 wiped out their fielding
-    // score along with the pitching noise it was meant to damp.
+    // bucket — both its VALUE (shrunk toward the neutral midpoint 50, not
+    // toward 0 — standard shrinkage for a low-confidence sample) and its
+    // WEIGHT in the pitching/fielding blend (so a real glove can actually
+    // show through instead of being drowned out by a tiny, unreliable
+    // pitching sample that still carries its full authored weight). A kid
+    // who throws 5+ IP (the floor) is completely unaffected either way.
+    // The FIELDING half (FPCT etc.) is scored and weighted completely
+    // independently and is never touched by pitching participation — it
+    // used to be, because the old code multiplied the whole blended defense
+    // score (pitching + fielding together) by the factor, so a pure
+    // hitter's participationFactor of 0 wiped out their fielding score
+    // along with the pitching noise it was meant to damp.
+    //
+    // `highImpactArm` is a coach override (set per-player on the roster):
+    // when true, the floor is bypassed entirely and this player's pitching
+    // counts at full trust/weight regardless of IP — for a kid the coach
+    // knows is high-impact despite low innings (e.g. a closer who only
+    // sees high-leverage one-inning spots).
     const ipRaw = Number.isFinite(rawIp[idx]) ? rawIp[idx] : 0;
-    const participationFactor = participationFloor <= 0
+    const participationFactor = input.highImpactArm || participationFloor <= 0
       ? 1
       : Math.min(1, ipRaw / participationFloor);
     const pitchingDefenseMetrics = defenseMetrics.filter((m) => m.key.startsWith('pit_'));
@@ -483,7 +498,7 @@ export function buildRankings(
       fieldingDefenseMetrics.map((m) => ({ value: normalizedByKey.get(m.key)?.[idx] ?? NaN, weight: effectiveMetricWeight(m) })),
     );
     const pitchingScore = pitchingRawScore === null ? null : 50 + (pitchingRawScore - 50) * participationFactor;
-    const pitchingWeightTotal = pitchingDefenseMetrics.reduce((sum, m) => sum + weightIfFinite(m), 0);
+    const pitchingWeightTotal = pitchingDefenseMetrics.reduce((sum, m) => sum + weightIfFinite(m), 0) * participationFactor;
     const fieldingWeightTotal = fieldingDefenseMetrics.reduce((sum, m) => sum + weightIfFinite(m), 0);
     const defenseScore = weightedMeanIgnoringNaN([
       { value: pitchingScore ?? NaN, weight: pitchingWeightTotal },
