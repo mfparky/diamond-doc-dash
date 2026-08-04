@@ -25,7 +25,7 @@ import { ProgressReportCard } from '@/components/ProgressReportCard';
 import { generateReport } from '@/lib/generate-report';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { TrendingUp, Target, Crosshair, Gauge, Calendar, Video, Shield, ArrowLeft, ArrowRight, Play, MessageSquare, ClipboardCheck, Share2, Copy, Check, Download, Star, Users, Camera, Trophy } from 'lucide-react';
+import { TrendingUp, Target, Crosshair, Gauge, Calendar, Video, Shield, ArrowLeft, ArrowRight, Play, MessageSquare, ClipboardCheck, Share2, Copy, Check, Download, Star, Users, Camera, Trophy, FileText } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import hawksLogo from '@/assets/hawks-logo.png';
 import { LiveAbsSummary } from '@/components/LiveAbsSummary';
@@ -33,6 +33,19 @@ import { LiveAbsDashboard } from '@/components/LiveAbsDashboard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { WorkoutGallery } from '@/components/WorkoutGallery';
 import { WhatsNewDialog } from '@/components/WhatsNewDialog';
+
+interface PublishedReportCard {
+  id: string;
+  periodStart: string;
+  periodEnd: string;
+  summary: string;
+  strengths: string;
+  areas: string;
+  tryoutFocus: string;
+  positionPrimary: string | null;
+  positionSupport1: string | null;
+  positionSupport2: string | null;
+}
 
 export default function PlayerDashboard() {
   const { playerId } = useParams<{ playerId: string }>();
@@ -47,6 +60,7 @@ export default function PlayerDashboard() {
   const { fetchPitchTypes, fetchPitchLocationsForPitcher } = usePitchLocations();
   const [allPitchLocations, setAllPitchLocations] = useState<PitchLocation[]>([]);
   const { filterByWindow: localFilterByWindow } = useAchievementWindow();
+  const [publishedReportCard, setPublishedReportCard] = useState<PublishedReportCard | null>(null);
   const [teamAchievementStart, setTeamAchievementStart] = useState<Date | undefined>();
   const [teamAchievementEnd, setTeamAchievementEnd] = useState<Date | undefined>();
   const [teamLeaderboardStart, setTeamLeaderboardStart] = useState<Date | undefined>();
@@ -103,6 +117,46 @@ export default function PlayerDashboard() {
     })();
     return () => { cancelled = true; };
   }, [playerId, completions.length]);
+
+  // Coach-published report card for THIS player only — scoped by playerId from
+  // the URL and by the published=true RLS policy, same isolation model as the
+  // rest of this page. Never fetches or renders any other player's card.
+  useEffect(() => {
+    if (!playerId) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await (supabase as any)
+        .from('report_cards')
+        .select('id, period_start, period_end, narrative_summary, narrative_strengths, narrative_areas, tryout_focus, position_primary, position_support_1, position_support_2')
+        .eq('pitcher_id', playerId)
+        .eq('published', true)
+        .order('period_end', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cancelled) return;
+      if (error) {
+        console.warn('Published report card failed to load:', error);
+        return;
+      }
+      if (data) {
+        setPublishedReportCard({
+          id: data.id,
+          periodStart: data.period_start,
+          periodEnd: data.period_end,
+          summary: data.narrative_summary ?? '',
+          strengths: data.narrative_strengths ?? '',
+          areas: data.narrative_areas ?? '',
+          tryoutFocus: data.tryout_focus ?? '',
+          positionPrimary: data.position_primary ?? null,
+          positionSupport1: data.position_support_1 ?? null,
+          positionSupport2: data.position_support_2 ?? null,
+        });
+      } else {
+        setPublishedReportCard(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [playerId]);
 
   const effortAssignments = useMemo(
     () => assignments.map((a) => ({
@@ -577,6 +631,65 @@ export default function PlayerDashboard() {
             </Card>
           );
         })()}
+
+        {/* Coach Report Card — only rendered when the coach has explicitly
+            published one for this exact player. Nothing here is ever fetched
+            or shown for any other pitcher_id. */}
+        {publishedReportCard && (
+          <Card className="glass-card border-accent/30 bg-accent/5">
+            <CardContent className="p-4 space-y-4">
+              <div>
+                <h2 className="font-display text-lg font-bold text-foreground flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-accent" />
+                  Coach Report Card
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {formatDate(publishedReportCard.periodStart)} – {formatDate(publishedReportCard.periodEnd)}
+                </p>
+              </div>
+
+              {(publishedReportCard.positionPrimary || publishedReportCard.positionSupport1 || publishedReportCard.positionSupport2) && (
+                <div className="flex flex-wrap gap-1.5">
+                  {[publishedReportCard.positionPrimary, publishedReportCard.positionSupport1, publishedReportCard.positionSupport2]
+                    .filter((pos): pos is string => !!pos)
+                    .map((pos, idx) => (
+                      <span
+                        key={`${pos}-${idx}`}
+                        className={`text-xs font-medium px-2 py-0.5 rounded-full ${idx === 0 ? 'bg-accent/20 text-accent' : 'bg-secondary text-muted-foreground'}`}
+                      >
+                        {pos}
+                      </span>
+                    ))}
+                </div>
+              )}
+
+              {publishedReportCard.summary && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Summary</p>
+                  <p className="text-sm text-foreground mt-1">{publishedReportCard.summary}</p>
+                </div>
+              )}
+              {publishedReportCard.strengths && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Strengths</p>
+                  <p className="text-sm text-foreground mt-1">{publishedReportCard.strengths}</p>
+                </div>
+              )}
+              {publishedReportCard.areas && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Areas to Work On</p>
+                  <p className="text-sm text-foreground mt-1">{publishedReportCard.areas}</p>
+                </div>
+              )}
+              {publishedReportCard.tryoutFocus && (
+                <div className="border-t border-border/30 pt-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Focus for Fall Tryouts</p>
+                  <p className="text-sm text-foreground mt-1">{publishedReportCard.tryoutFocus}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Enhanced View Toggle - only visible with ?advanced=1 URL param */}
         {advancedEnabled && (

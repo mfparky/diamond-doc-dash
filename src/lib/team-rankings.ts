@@ -455,14 +455,40 @@ export function buildRankings(
     );
     const pitchingVolumeScore = Number.isFinite(ipNormalized[idx]) ? ipNormalized[idx] : null;
 
-    // Pitching participation. Scales the defense score down for kids who
-    // barely or never pitch (so they can't ride a great FPCT to a high
-    // defense bucket). Semi-regular pitchers (>= floor IP) are unaffected.
+    // Pitching participation damps only the PITCHING half of the defense
+    // bucket, shrinking an unreliable (low-IP) sample toward the neutral
+    // midpoint (50) rather than toward 0 — a kid who barely pitches can't
+    // ride a lucky small-sample ERA to a high defense score, but a rough
+    // small sample doesn't get unfairly crushed either. The FIELDING half
+    // (FPCT etc.) is scored and weighted completely independently, so a
+    // true non-pitcher's real glove work is never zeroed out just because
+    // they don't pitch — it used to be, because this multiplied the whole
+    // blended defense score (pitching + fielding together) by the factor,
+    // so a pure hitter's participationFactor of 0 wiped out their fielding
+    // score along with the pitching noise it was meant to damp.
     const ipRaw = Number.isFinite(rawIp[idx]) ? rawIp[idx] : 0;
     const participationFactor = participationFloor <= 0
       ? 1
       : Math.min(1, ipRaw / participationFloor);
-    const defenseScore = defenseScoreRaw === null ? null : defenseScoreRaw * participationFactor;
+    const pitchingDefenseMetrics = defenseMetrics.filter((m) => m.key.startsWith('pit_'));
+    const fieldingDefenseMetrics = defenseMetrics.filter((m) => !m.key.startsWith('pit_'));
+    const weightIfFinite = (m: MetricConfig): number => {
+      const v = normalizedByKey.get(m.key)?.[idx] ?? NaN;
+      return Number.isFinite(v) ? effectiveMetricWeight(m) : 0;
+    };
+    const pitchingRawScore = weightedMeanIgnoringNaN(
+      pitchingDefenseMetrics.map((m) => ({ value: normalizedByKey.get(m.key)?.[idx] ?? NaN, weight: effectiveMetricWeight(m) })),
+    );
+    const fieldingScore = weightedMeanIgnoringNaN(
+      fieldingDefenseMetrics.map((m) => ({ value: normalizedByKey.get(m.key)?.[idx] ?? NaN, weight: effectiveMetricWeight(m) })),
+    );
+    const pitchingScore = pitchingRawScore === null ? null : 50 + (pitchingRawScore - 50) * participationFactor;
+    const pitchingWeightTotal = pitchingDefenseMetrics.reduce((sum, m) => sum + weightIfFinite(m), 0);
+    const fieldingWeightTotal = fieldingDefenseMetrics.reduce((sum, m) => sum + weightIfFinite(m), 0);
+    const defenseScore = weightedMeanIgnoringNaN([
+      { value: pitchingScore ?? NaN, weight: pitchingWeightTotal },
+      { value: fieldingScore ?? NaN, weight: fieldingWeightTotal },
+    ]);
 
     // Bucket weights — kept in sync with BUCKET_WEIGHTS as defaults, then
     // overridden per-call if the Levers panel has moved anything. IP volume

@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Wand2, Save, FileDown, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { ArrowLeft, Wand2, Save, FileDown, CheckCircle2, AlertTriangle, Loader2, Radio } from 'lucide-react';
 import hawksLogo from '@/assets/hawks-logo.png';
 import { usePitchers } from '@/hooks/use-pitchers';
 import { useAllStatSnapshots } from '@/hooks/use-stat-snapshots';
@@ -78,6 +79,7 @@ export default function ReportCardPage() {
   const [positionSupport1, setPositionSupport1] = useState('');
   const [positionSupport2, setPositionSupport2] = useState('');
   const [tryoutFocus, setTryoutFocus] = useState('');
+  const [published, setPublished] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
 
@@ -96,6 +98,7 @@ export default function ReportCardPage() {
     setPositionSupport1(card?.positionSupport1 ?? '');
     setPositionSupport2(card?.positionSupport2 ?? '');
     setTryoutFocus(card?.tryoutFocus ?? '');
+    setPublished(card?.published ?? false);
   }, [card, playerId]);
 
   // Team-wide inputs feed the percentile pool. Latest snapshot per pitcher.
@@ -190,6 +193,7 @@ export default function ReportCardPage() {
       positionSupport1: positionSupport1 || null,
       positionSupport2: positionSupport2 || null,
       tryoutFocus,
+      published,
     });
     if (ok) {
       setSavedFlash(true);
@@ -366,6 +370,43 @@ export default function ReportCardPage() {
                   maxLength={300}
                   rows={5}
                 />
+              </div>
+
+              {/* Publish control — coach decides if/when this specific player's
+                  card is visible on their public dashboard. Off by default. */}
+              <div className="print:hidden rounded-lg border border-border/60 bg-secondary/30 p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className={`p-2 rounded-lg shrink-0 ${published ? 'bg-success/10' : 'bg-muted'}`}>
+                      <Radio className={`w-4 h-4 ${published ? 'text-success' : 'text-muted-foreground'}`} />
+                    </div>
+                    <div>
+                      <Label htmlFor="rc-publish" className="text-sm font-medium text-foreground cursor-pointer">
+                        Publish to {player.name}'s dashboard
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-0.5 max-w-md">
+                        When on and saved, this report card appears on {player.name}'s public dashboard —
+                        and only theirs. Off by default; turn off any time to pull it back down.
+                      </p>
+                      {card?.published && (
+                        <p className="text-xs text-success mt-1 font-medium">
+                          Live now{card.publishedAt ? ` · last published ${friendlyDate(card.publishedAt.slice(0, 10))}` : ''}
+                        </p>
+                      )}
+                      {!card?.published && published && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 font-medium">
+                          Not live yet — click Save to publish
+                        </p>
+                      )}
+                      {card?.published && !published && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 font-medium">
+                          Still live — click Save to pull it down
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <Switch id="rc-publish" checked={published} onCheckedChange={setPublished} />
+                </div>
               </div>
 
               {/* Branded footer — visible only in print */}
