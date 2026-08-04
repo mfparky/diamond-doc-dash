@@ -152,18 +152,20 @@ export const CORE_METRIC_DEFS: CoreMetricDef[] = [
 ];
 
 /**
- * Min-max normalize the values within the team. Skips NaN players and
- * gives everyone 50 when the team has too little data to compare.
+ * Min-max normalize the values within the team. Skips NaN players. When
+ * fewer than 2 teammates have this stat, or everyone is tied, there's no
+ * real spread to rank against — return NaN (band "No data") rather than
+ * defaulting everyone to 50, which silently landed in the "Strong" band.
  */
 export function normalizeToPercentile(values: number[], higherIsBetter: boolean): number[] {
   const valid = values.filter((v) => Number.isFinite(v));
   if (valid.length < 2) {
-    return values.map((v) => (Number.isFinite(v) ? 50 : NaN));
+    return values.map(() => NaN);
   }
   const min = Math.min(...valid);
   const max = Math.max(...valid);
   if (min === max) {
-    return values.map((v) => (Number.isFinite(v) ? 50 : NaN));
+    return values.map(() => NaN);
   }
   return values.map((v) => {
     if (!Number.isFinite(v)) return NaN;

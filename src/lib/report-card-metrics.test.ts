@@ -26,12 +26,12 @@ describe('normalizeToPercentile', () => {
     expect(normalizeToPercentile([0, 5, 10], false)).toEqual([100, 50, 0]);
   });
 
-  it('gives 50 to everyone when the team is too small to compare', () => {
-    expect(normalizeToPercentile([5], true)).toEqual([50]);
+  it('returns NaN for everyone when the team is too small to compare', () => {
+    expect(normalizeToPercentile([5], true).every((v) => Number.isNaN(v))).toBe(true);
   });
 
-  it('gives 50 to everyone when everyone ties', () => {
-    expect(normalizeToPercentile([7, 7, 7], true)).toEqual([50, 50, 50]);
+  it('returns NaN for everyone when everyone ties', () => {
+    expect(normalizeToPercentile([7, 7, 7], true).every((v) => Number.isNaN(v))).toBe(true);
   });
 
   it('preserves NaN for players missing the stat', () => {
