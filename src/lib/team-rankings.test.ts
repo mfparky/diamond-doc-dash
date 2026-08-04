@@ -79,17 +79,19 @@ describe('buildRankings — composition', () => {
     expect(pitcher.playerValue).toBeGreaterThan(0);
   });
 
-  it('participation floor damps defense for kids who barely pitch', () => {
-    // Three identical pitching lines, very different IP loads. Floor at 5 IP.
+  it('participation floor shrinks a low-IP pitching line toward neutral, not toward 0', () => {
+    // Three DIFFERENT pitching lines (so the raw score isn't already sitting
+    // at the neutral 50 from a min===max tie), very different IP loads.
+    // Floor at 5 IP. Rare has the best raw line but the smallest sample.
     const inputs: RankingInput[] = [
       { pitcherId: 'starter', pitcherName: 'Starter', latest: {
-        bat_ops: 0.700, pit_era: 3.0, pit_whip: 1.20, pit_ip: 20,
+        bat_ops: 0.700, pit_era: 4.0, pit_whip: 1.40, pit_ip: 20,
       } },
       { pitcherId: 'semi', pitcherName: 'SemiRegular', latest: {
         bat_ops: 0.700, pit_era: 3.0, pit_whip: 1.20, pit_ip: 5,
       } },
       { pitcherId: 'rare', pitcherName: 'Rare', latest: {
-        bat_ops: 0.700, pit_era: 3.0, pit_whip: 1.20, pit_ip: 1,
+        bat_ops: 0.700, pit_era: 1.0, pit_whip: 0.80, pit_ip: 1,
       } },
     ];
     const { rankings } = buildRankings(inputs, { ...baseOptions, pitchingParticipationFloor: 5 });
@@ -103,24 +105,38 @@ describe('buildRankings — composition', () => {
     expect(starter.belowParticipationFloor).toBe(false);
     expect(semi.belowParticipationFloor).toBe(false);
 
-    // Rare (1 IP) is at 20% participation — defense damped by that factor.
+    // Rare (1 IP) has the best raw line of the three (lowest ERA/WHIP →
+    // highest raw defense score, 100 — team-best on both metrics). At 20%
+    // participation, that raw score is shrunk 80% of the way toward the
+    // neutral midpoint (50 + (100-50)*0.2 = 60) rather than toward 0 — a
+    // great one-inning outing reads as "mildly above average," not "crushed
+    // to near-zero," which is what the old (multiply-the-whole-thing-by-the-
+    // factor) implementation would have done: 100 * 0.2 = 20.
     expect(rare.participationFactor).toBeCloseTo(0.2, 6);
     expect(rare.belowParticipationFloor).toBe(true);
+    expect(rare.defenseScoreRaw).toBeCloseTo(100, 6);
+    expect(rare.defenseScore).toBeCloseTo(60, 6);
     expect(rare.defenseScore).toBeLessThan(rare.defenseScoreRaw!);
-    expect(rare.playerValue).toBeLessThan(semi.playerValue);
+    expect(rare.defenseScore).toBeGreaterThan(50);
   });
 
-  it('does not penalize non-pitchers beyond their already-NaN pitching metrics + damping', () => {
-    // Pure hitter, no pitching at all → participationFactor 0 → defense fully damped to 0.
+  it('never zeroes out a non-pitcher\'s real fielding score', () => {
+    // Pure hitter, no pitching at all — participationFactor is 0, but that
+    // must only damp a (nonexistent) pitching component, not the fielding
+    // score, which should reflect the real FPCT percentile.
     const inputs: RankingInput[] = [
       { pitcherId: 'bat', pitcherName: 'BatOnly', latest: { bat_ops: 1.000, field_fpct: 1.0 } },
+      { pitcherId: 'bat2', pitcherName: 'BatOnly2', latest: { bat_ops: 0.900, field_fpct: 0.6 } },
       { pitcherId: 'arm', pitcherName: 'ArmOnly', latest: { bat_ops: 0.400, pit_era: 2.0, pit_whip: 1.0, pit_ip: 10 } },
     ];
     const { rankings } = buildRankings(inputs, { ...baseOptions, pitchingParticipationFloor: 5 });
     const bat = rankings.find((r) => r.pitcherName === 'BatOnly')!;
+    const bat2 = rankings.find((r) => r.pitcherName === 'BatOnly2')!;
     const arm = rankings.find((r) => r.pitcherName === 'ArmOnly')!;
     expect(bat.participationFactor).toBe(0);
-    expect(bat.defenseScore).toBe(0);
+    // Best FPCT in the team → full credit, not zeroed by pitching participation.
+    expect(bat.defenseScore).toBe(100);
+    expect(bat.defenseScore).toBeGreaterThan(bat2.defenseScore!);
     expect(arm.participationFactor).toBe(1);
     // Both should still have a sensible PV, neither at 0.
     expect(bat.playerValue).toBeGreaterThan(0);
