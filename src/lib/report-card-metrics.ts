@@ -14,7 +14,7 @@ import type { CoachRating } from '@/hooks/use-pitchers';
  * etc.). Nudges are clamped to [-2, +2] bands.
  */
 
-export type MetricBand = 'needs-work' | 'developing' | 'strong' | 'excelling';
+export type MetricBand = 'needs-work' | 'developing' | 'on-target' | 'strong' | 'excelling';
 
 export interface CoreMetricInput {
   pitcherId: string;
@@ -174,13 +174,15 @@ export function normalizeToPercentile(values: number[], higherIsBetter: boolean)
   });
 }
 
-const BAND_ORDER: MetricBand[] = ['needs-work', 'developing', 'strong', 'excelling'];
+const BAND_ORDER: MetricBand[] = ['needs-work', 'developing', 'on-target', 'strong', 'excelling'];
 
+/** Even quintiles — each band spans 20 points of team percentile. */
 export function percentileToBand(percentile: number): MetricBand | null {
   if (!Number.isFinite(percentile)) return null;
-  if (percentile < 25) return 'needs-work';
-  if (percentile < 50) return 'developing';
-  if (percentile < 75) return 'strong';
+  if (percentile < 20) return 'needs-work';
+  if (percentile < 40) return 'developing';
+  if (percentile < 60) return 'on-target';
+  if (percentile < 80) return 'strong';
   return 'excelling';
 }
 
@@ -232,6 +234,7 @@ export function bandLabel(band: MetricBand | null): string {
   switch (band) {
     case 'needs-work': return 'Needs work';
     case 'developing': return 'Developing';
+    case 'on-target': return 'On target';
     case 'strong': return 'Strong';
     case 'excelling': return 'Excelling';
   }

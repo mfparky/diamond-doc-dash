@@ -16,19 +16,25 @@ interface CoreMetricsPanelProps {
 
 const BAND_STYLES: Record<MetricBand, { fillPct: number; bar: string; label: string; print: string }> = {
   'needs-work': {
-    fillPct: 25,
+    fillPct: 20,
     bar: 'bg-red-500',
     label: 'text-red-700 dark:text-red-300',
     print: 'print:bg-red-400',
   },
   developing: {
-    fillPct: 50,
-    bar: 'bg-amber-500',
-    label: 'text-amber-700 dark:text-amber-300',
-    print: 'print:bg-amber-400',
+    fillPct: 40,
+    bar: 'bg-orange-500',
+    label: 'text-orange-700 dark:text-orange-300',
+    print: 'print:bg-orange-400',
+  },
+  'on-target': {
+    fillPct: 60,
+    bar: 'bg-yellow-500',
+    label: 'text-yellow-700 dark:text-yellow-300',
+    print: 'print:bg-yellow-400',
   },
   strong: {
-    fillPct: 75,
+    fillPct: 80,
     bar: 'bg-lime-500',
     label: 'text-lime-700 dark:text-lime-300',
     print: 'print:bg-lime-400',

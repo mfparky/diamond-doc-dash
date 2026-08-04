@@ -43,14 +43,16 @@ describe('normalizeToPercentile', () => {
 });
 
 describe('percentileToBand', () => {
-  it('maps quartiles', () => {
+  it('maps even quintiles', () => {
     expect(percentileToBand(0)).toBe('needs-work');
-    expect(percentileToBand(24.9)).toBe('needs-work');
-    expect(percentileToBand(25)).toBe('developing');
-    expect(percentileToBand(49.9)).toBe('developing');
-    expect(percentileToBand(50)).toBe('strong');
-    expect(percentileToBand(74.9)).toBe('strong');
-    expect(percentileToBand(75)).toBe('excelling');
+    expect(percentileToBand(19.9)).toBe('needs-work');
+    expect(percentileToBand(20)).toBe('developing');
+    expect(percentileToBand(39.9)).toBe('developing');
+    expect(percentileToBand(40)).toBe('on-target');
+    expect(percentileToBand(59.9)).toBe('on-target');
+    expect(percentileToBand(60)).toBe('strong');
+    expect(percentileToBand(79.9)).toBe('strong');
+    expect(percentileToBand(80)).toBe('excelling');
     expect(percentileToBand(100)).toBe('excelling');
   });
 
@@ -61,8 +63,9 @@ describe('percentileToBand', () => {
 
 describe('shiftBand', () => {
   it('nudges up and down', () => {
-    expect(shiftBand('developing', 1)).toBe('strong');
-    expect(shiftBand('strong', -1)).toBe('developing');
+    expect(shiftBand('developing', 1)).toBe('on-target');
+    expect(shiftBand('on-target', 1)).toBe('strong');
+    expect(shiftBand('strong', -1)).toBe('on-target');
   });
 
   it('clamps at the ends of the scale', () => {
@@ -132,20 +135,21 @@ describe('computeCoreMetrics', () => {
     const nudged = computeCoreMetrics({ targetPitcherId: 'c', teamInputs: team, adjustments: { bat_ops: 2 } });
     const auto = computeCoreMetrics({ targetPitcherId: 'c', teamInputs: team, adjustments: {} });
     expect(auto.find((m) => m.def.key === 'bat_ops')!.autoBand).toBe('needs-work');
-    // Bumping by +2 from needs-work lands on strong.
-    expect(nudged.find((m) => m.def.key === 'bat_ops')!.band).toBe('strong');
+    // Bumping by +2 from needs-work (index 0) lands on on-target (index 2).
+    expect(nudged.find((m) => m.def.key === 'bat_ops')!.band).toBe('on-target');
   });
 
   it('clamps out-of-range adjustments before applying', () => {
     const wild = computeCoreMetrics({ targetPitcherId: 'c', teamInputs: team, adjustments: { bat_ops: 99 } });
-    // +2 from needs-work → strong (can't go past excelling either).
-    expect(wild.find((m) => m.def.key === 'bat_ops')!.band).toBe('strong');
+    // +2 from needs-work → on-target (can't go past excelling either).
+    expect(wild.find((m) => m.def.key === 'bat_ops')!.band).toBe('on-target');
   });
 });
 
 describe('bandLabel', () => {
   it('gives coach-friendly names', () => {
     expect(bandLabel('needs-work')).toBe('Needs work');
+    expect(bandLabel('on-target')).toBe('On target');
     expect(bandLabel('excelling')).toBe('Excelling');
     expect(bandLabel(null)).toBe('No data');
   });
