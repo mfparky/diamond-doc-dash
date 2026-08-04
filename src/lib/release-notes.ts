@@ -12,34 +12,41 @@ export interface ReleaseNotes {
 }
 
 export const CURRENT_RELEASE: ReleaseNotes = {
-  version: "2026-05-06",
-  enabled: false,
-  title: "What's New 🎉",
+  version: "2026-08-04",
+  enabled: true,
+  title: "What's New for Families 🎉",
   features: [
     {
-      heading: "📊 Consistency Score",
+      heading: "📈 Trend Arrows Everywhere",
       description:
-        "Coaches now see a blended Consistency grade for each pitcher — combining strike % stability (60%) with workout regularity (40%), shown as ±pp · days/wk.",
+        "Little green and red arrows now sit beside pulse, strike % and top velo — so you can see at a glance whether your kid is climbing week over week. Green arrow = brag rights.",
     },
     {
-      heading: "📋 Roster on Mobile Nav",
-      description: "The mobile bottom nav now has quick access to Roster management instead of Workouts.",
+      heading: "🗒️ Report Cards That Actually Fit",
+      description:
+        "Mid-season write-ups no longer get chopped off when printed. Full coach commentary, front and back, ready for the fridge door.",
     },
     {
-      heading: "📝 Long Workout Descriptions",
+      heading: "🎨 Charts You Can Actually Read",
       description:
-        "Long workout text now truncates cleanly with a 'Read more' modal, so dashboards stay tidy on every screen size.",
+        "Every graph got a fresh coat of paint with high-contrast, colour-blind-friendly colours — no more squinting at grey-on-grey in the bleachers at 8am.",
     },
     {
-      heading: "⚡ Faster App Load",
+      heading: "🌗 Light or Dark, Your Call",
       description:
-        "Secondary routes are now lazy-loaded for a snappier coach experience, plus better error toasts when something fails to load.",
+        "A sun/moon button now lives in the top corner of every page. Bright sun at the diamond? Tap it. Late-night stat scrolling? Tap it back.",
     },
     {
-      heading: "🛠️ Bug Fixes & Polish",
+      heading: "⚾ Cleaner Game Pages",
       description:
-        "Outing form rejects empty submissions, larger touch targets for dugout use, Today/Yesterday quick-pick on dates, and stability improvements across the app.",
+        "Games now show our team and the opponent as separate totals, plus a game-by-game view of pitch counts and strike % — so you can find your player's outing in seconds.",
+    },
+    {
+      heading: "💪 Workout Wall & Leaderboard Polish",
+      description:
+        "Photo uploads are faster, long workout notes tuck behind a tidy 'Read more', and the leaderboard totals now hide together when a coach turns them off.",
     },
   ],
   signoff: "-Coach Matt",
 };
+

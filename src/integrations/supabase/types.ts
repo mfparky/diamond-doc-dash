@@ -401,7 +401,11 @@ export type Database = {
           period_end: string
           period_start: string
           pitcher_id: string
+          position_primary: string | null
+          position_support_1: string | null
+          position_support_2: string | null
           snapshot_id: string | null
+          tryout_focus: string | null
           updated_at: string
           user_id: string
         }
@@ -416,7 +420,11 @@ export type Database = {
           period_end: string
           period_start: string
           pitcher_id: string
+          position_primary?: string | null
+          position_support_1?: string | null
+          position_support_2?: string | null
           snapshot_id?: string | null
+          tryout_focus?: string | null
           updated_at?: string
           user_id: string
         }
@@ -431,7 +439,11 @@ export type Database = {
           period_end?: string
           period_start?: string
           pitcher_id?: string
+          position_primary?: string | null
+          position_support_1?: string | null
+          position_support_2?: string | null
           snapshot_id?: string | null
+          tryout_focus?: string | null
           updated_at?: string
           user_id?: string
         }
