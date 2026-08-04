@@ -17,16 +17,12 @@ export const CURRENT_RELEASE: ReleaseNotes = {
   title: "What's New for Families 🎉",
   features: [
     {
-      heading: "📈 Trend Arrows Everywhere",
+      heading: "🎯 Game Strike % Now Counts Games Only",
       description:
-        "Little green and red arrows now sit beside pulse, strike % and top velo — so you can see at a glance whether your kid is climbing week over week. Green arrow = brag rights.",
+        "Strike percentage on game pages no longer gets watered down by bullpen and practice sessions — game numbers are game numbers, bullpen work is tracked separately.",
     },
     {
-      heading: "🗒️ Report Cards That Actually Fit",
-      description:
-        "Mid-season write-ups no longer get chopped off when printed. Full coach commentary, front and back, ready for the fridge door.",
-    },
-    {
+
       heading: "🎨 Charts You Can Actually Read",
       description:
         "Every graph got a fresh coat of paint with high-contrast, colour-blind-friendly colours — no more squinting at grey-on-grey in the bleachers at 8am.",
