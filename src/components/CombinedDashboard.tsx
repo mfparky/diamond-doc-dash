@@ -441,31 +441,40 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
       return 'neutral';
     };
 
-    const currentGameOutings = filteredOutings.filter((o) => o.eventType === 'Game');
-    const prevGameOutings = previousOutings.filter((o) => o.eventType === 'Game');
-    const calcGameStrikePct = (list: Outing[]): number | null => {
-      const withStrikes = list.filter((o) => o.strikes !== null && o.strikes !== undefined);
+    const calcStrikePct = (list: Outing[], eventType: Outing['eventType']): number | null => {
+      const withStrikes = list.filter((o) => o.eventType === eventType && o.strikes !== null && o.strikes !== undefined);
       const pitches = withStrikes.reduce((s, o) => s + o.pitchCount, 0);
       const strikes = withStrikes.reduce((s, o) => s + (o.strikes ?? 0), 0);
       return pitches > 0 ? Math.round((strikes / pitches) * 100) : null;
     };
-    const currentGameStrikePct = calcGameStrikePct(currentGameOutings);
-    const previousGameStrikePct = calcGameStrikePct(prevGameOutings);
+    const currentGameStrikePct = calcStrikePct(filteredOutings, 'Game');
+    const previousGameStrikePct = calcStrikePct(previousOutings, 'Game');
+    const currentBullpenStrikePct = calcStrikePct(filteredOutings, 'Bullpen');
+    const previousBullpenStrikePct = calcStrikePct(previousOutings, 'Bullpen');
 
     return {
       pitches: getTrend(stats.totalPitches, previousStats.totalPitches),
       pitchesDiff: stats.totalPitches - previousStats.totalPitches,
-      strikePercentage: getTrend(stats.strikePercentage, previousStats.strikePercentage),
-      strikePercentageDiff: (stats.strikePercentage ?? 0) - (previousStats.strikePercentage ?? 0),
       outings: getTrend(stats.totalOutings, previousStats.totalOutings),
       outingsDiff: stats.totalOutings - previousStats.totalOutings,
       gameStrikePercentage: getTrend(currentGameStrikePct, previousGameStrikePct),
       gameStrikePercentageDiff: (currentGameStrikePct ?? 0) - (previousGameStrikePct ?? 0),
       currentGameStrikePct,
       previousGameStrikePct,
+      bullpenStrikePercentage: getTrend(currentBullpenStrikePct, previousBullpenStrikePct),
+      bullpenStrikePercentageDiff: (currentBullpenStrikePct ?? 0) - (previousBullpenStrikePct ?? 0),
+      currentBullpenStrikePct,
+      previousBullpenStrikePct,
     };
   }, [stats, previousStats, filteredOutings, previousOutings]);
 
+  // Bullpen strike % for the current period (mirrors gamesStats.strikePercentage but for Bullpen outings)
+  const bullpenStrikePercentage = useMemo(() => {
+    const bullpenOutings = filteredOutings.filter((o) => o.eventType === 'Bullpen' && o.strikes !== null);
+    const pitches = bullpenOutings.reduce((sum, o) => sum + o.pitchCount, 0);
+    const strikes = bullpenOutings.reduce((sum, o) => sum + (o.strikes ?? 0), 0);
+    return pitches > 0 ? Math.round((strikes / pitches) * 100) : null;
+  }, [filteredOutings]);
 
   const gamesStats = useMemo(() => {
     const start = parseLocalDateAtNoon(dateRange.start);
@@ -754,7 +763,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
           </CardContent>
         </Card>
 
-        {/* Total Strike % — across all sessions */}
+        {/* Bullpen Strike % — from Bullpen outings only, independent of Game Strike % */}
         <Card className="glass-card">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 sm:gap-3">
@@ -763,13 +772,13 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Total Strike %</p>
-                  {stats.strikePercentage !== null && (
-                    <TrendIndicator trend={trends.strikePercentage} diff={trends.strikePercentageDiff} suffix="%" />
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Bullpen Strike %</p>
+                  {bullpenStrikePercentage !== null && (
+                    <TrendIndicator trend={trends.bullpenStrikePercentage} diff={trends.bullpenStrikePercentageDiff} suffix="%" />
                   )}
                 </div>
                 <p className="text-lg sm:text-2xl font-bold text-foreground">
-                  {stats.strikePercentage !== null ? `${stats.strikePercentage}%` : '—'}
+                  {bullpenStrikePercentage !== null ? `${bullpenStrikePercentage}%` : '—'}
                 </p>
               </div>
             </div>

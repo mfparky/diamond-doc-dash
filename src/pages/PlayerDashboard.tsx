@@ -25,7 +25,7 @@ import { ProgressReportCard } from '@/components/ProgressReportCard';
 import { generateReport } from '@/lib/generate-report';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { TrendingUp, Target, Gauge, Calendar, Video, Shield, ArrowLeft, ArrowRight, Play, MessageSquare, ClipboardCheck, Share2, Copy, Check, Download, Star, Users, Camera, Trophy } from 'lucide-react';
+import { TrendingUp, Target, Crosshair, Gauge, Calendar, Video, Shield, ArrowLeft, ArrowRight, Play, MessageSquare, ClipboardCheck, Share2, Copy, Check, Download, Star, Users, Camera, Trophy } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import hawksLogo from '@/assets/hawks-logo.png';
 import { LiveAbsSummary } from '@/components/LiveAbsSummary';
@@ -484,17 +484,23 @@ export default function PlayerDashboard() {
         {/* Stats Grid */}
         {(() => {
           const totalPitches = outings.reduce((sum, o) => sum + o.pitchCount, 0);
-          const outingsWithStrikes = outings.filter(o => o.strikes !== null);
-          const totalPitchesWithStrikes = outingsWithStrikes.reduce((sum, o) => sum + o.pitchCount, 0);
-          const totalStrikes = outingsWithStrikes.reduce((sum, o) => sum + (o.strikes ?? 0), 0);
-          const seasonStrikePercent = totalPitchesWithStrikes > 0 ? (totalStrikes / totalPitchesWithStrikes) * 100 : 0;
+
+          const strikePercentFor = (eventType: Outing['eventType']) => {
+            const typeOutings = outings.filter((o) => o.eventType === eventType && o.strikes !== null);
+            const pitches = typeOutings.reduce((sum, o) => sum + o.pitchCount, 0);
+            const strikes = typeOutings.reduce((sum, o) => sum + (o.strikes ?? 0), 0);
+            return pitches > 0 ? (strikes / pitches) * 100 : null;
+          };
+          const gameStrikePercent = strikePercentFor('Game');
+          const bullpenStrikePercent = strikePercentFor('Bullpen');
 
           return (
-            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-5 snap-x snap-mandatory">
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-6 snap-x snap-mandatory">
               {[
                 { label: '7-Day Pulse', value: String(pitcher.sevenDayPulse), icon: TrendingUp, iconClass: 'text-primary', bgClass: 'bg-primary/10' },
                 { label: 'Total Pitches', value: String(totalPitches), icon: TrendingUp, iconClass: 'text-primary', bgClass: 'bg-primary/10' },
-                { label: 'Strike %', value: `${seasonStrikePercent.toFixed(1)}%`, icon: Target, iconClass: 'text-accent', bgClass: 'bg-accent/10' },
+                { label: 'Game Strike %', value: gameStrikePercent !== null ? `${gameStrikePercent.toFixed(1)}%` : '—', icon: Target, iconClass: 'text-accent', bgClass: 'bg-accent/10' },
+                { label: 'Bullpen Strike %', value: bullpenStrikePercent !== null ? `${bullpenStrikePercent.toFixed(1)}%` : '—', icon: Crosshair, iconClass: 'text-warning', bgClass: 'bg-warning/10' },
                 { label: 'Max Velo', value: pitcher.maxVelo ? String(pitcher.maxVelo) : '-', icon: Gauge, iconClass: 'text-status-danger', bgClass: 'bg-status-danger/10' },
                 { label: 'Last Outing', value: formatDate(pitcher.lastOuting), icon: Calendar, iconClass: 'text-muted-foreground', bgClass: 'bg-muted', small: true },
               ].map((stat) => (
