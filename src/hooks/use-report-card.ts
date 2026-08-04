@@ -25,12 +25,15 @@ export interface ReportCardRecord {
   positionSupport2: string | null;
   /** Coach's note on what to work on for fall tryouts. Printed under a fixed preamble. */
   tryoutFocus: string;
+  /** When true, this card is readable on the player's public dashboard. */
+  published: boolean;
+  publishedAt: string | null;
   updatedAt: string;
 }
 
 type ReportCardPatch = Partial<Pick<ReportCardRecord,
   'coachContext' | 'summary' | 'strengths' | 'areas' | 'snapshotId' | 'metricAdjustments'
-  | 'positionPrimary' | 'positionSupport1' | 'positionSupport2' | 'tryoutFocus'>>;
+  | 'positionPrimary' | 'positionSupport1' | 'positionSupport2' | 'tryoutFocus' | 'published'>>;
 
 interface UseReportCardResult {
   card: ReportCardRecord | null;
@@ -84,7 +87,7 @@ export function useReportCard(pitcherId: string | undefined, periodStart: string
       }
       const { data, error } = await db
         .from('report_cards')
-        .select('id, pitcher_id, period_start, period_end, coach_context, narrative_summary, narrative_strengths, narrative_areas, snapshot_id, metric_adjustments, position_primary, position_support_1, position_support_2, tryout_focus, updated_at')
+        .select('id, pitcher_id, period_start, period_end, coach_context, narrative_summary, narrative_strengths, narrative_areas, snapshot_id, metric_adjustments, position_primary, position_support_1, position_support_2, tryout_focus, published, published_at, updated_at')
         .eq('user_id', user.id)
         .eq('pitcher_id', pitcherId)
         .eq('period_start', periodStart)
@@ -106,6 +109,8 @@ export function useReportCard(pitcherId: string | undefined, periodStart: string
           positionSupport1: data.position_support_1 ?? null,
           positionSupport2: data.position_support_2 ?? null,
           tryoutFocus: data.tryout_focus ?? '',
+          published: data.published ?? false,
+          publishedAt: data.published_at ?? null,
           updatedAt: data.updated_at,
         });
       } else {
@@ -135,6 +140,10 @@ export function useReportCard(pitcherId: string | undefined, periodStart: string
         const nextAdjustments = normalizeAdjustments(
           patch.metricAdjustments ?? card?.metricAdjustments ?? {},
         );
+        const nextPublished = patch.published ?? card?.published ?? false;
+        // Re-stamp published_at on every save while published so "last shown to
+        // parents" tracks edits, not just the first publish; clear it on unpublish.
+        const nextPublishedAt = nextPublished ? new Date().toISOString() : null;
         const { error } = await db
           .from('report_cards')
           .upsert(
@@ -156,6 +165,8 @@ export function useReportCard(pitcherId: string | undefined, periodStart: string
               position_primary: 'positionPrimary' in patch ? patch.positionPrimary : card?.positionPrimary ?? null,
               position_support_1: 'positionSupport1' in patch ? patch.positionSupport1 : card?.positionSupport1 ?? null,
               position_support_2: 'positionSupport2' in patch ? patch.positionSupport2 : card?.positionSupport2 ?? null,
+              published: nextPublished,
+              published_at: nextPublishedAt,
             },
             { onConflict: 'user_id,pitcher_id,period_start' },
           );
