@@ -120,6 +120,49 @@ describe('buildRankings — composition', () => {
     expect(rare.defenseScore).toBeGreaterThan(50);
   });
 
+  it('lets a real glove lift a barely-pitched kid\'s defense score, even with a bad small sample', () => {
+    const inputs: RankingInput[] = [
+      { pitcherId: 'good', pitcherName: 'FullTrust', latest: {
+        pit_era: 1.0, pit_whip: 0.8, pit_ip: 10, field_fpct: 0.6,
+      } },
+      { pitcherId: 'shaky', pitcherName: 'ShakySample', latest: {
+        pit_era: 9.0, pit_whip: 2.2, pit_ip: 1, field_fpct: 1.0,
+      } },
+    ];
+    const { rankings } = buildRankings(inputs, { ...baseOptions, pitchingParticipationFloor: 5 });
+    const shaky = rankings.find((r) => r.pitcherName === 'ShakySample')!;
+
+    // Shaky's raw pitching line is the worst on the team (era/whip both
+    // worse than FullTrust's), but their FPCT is the best. Weight-scaling
+    // the tiny pitching sample lets that real glove work pull the blended
+    // defense score above neutral (52), not just less-terrible.
+    expect(shaky.defenseScore).toBeCloseTo(52, 6);
+    expect(shaky.defenseScore).toBeGreaterThan(50);
+  });
+
+  it('highImpactArm bypasses the participation floor entirely for that player', () => {
+    // A reference player is needed so era/whip/fpct actually normalize
+    // against a spread rather than collapsing to 50 with only one data point.
+    const inputs: RankingInput[] = [
+      { pitcherId: 'good', pitcherName: 'FullTrust', latest: {
+        pit_era: 1.0, pit_whip: 0.8, pit_ip: 10, field_fpct: 0.6,
+      } },
+      { pitcherId: 'shaky', pitcherName: 'ShakySample', latest: {
+        pit_era: 9.0, pit_whip: 2.2, pit_ip: 1, field_fpct: 1.0,
+      }, highImpactArm: true },
+    ];
+    const { rankings } = buildRankings(inputs, { ...baseOptions, pitchingParticipationFloor: 5 });
+    const shaky = rankings.find((r) => r.pitcherName === 'ShakySample')!;
+
+    // Override forces full trust: participationFactor is 1 regardless of IP,
+    // so the (genuinely bad) pitching line counts at full, un-shrunk weight
+    // and value — this drags the blend down, since the coach has vouched
+    // the small sample is representative, not asked for it to be protected.
+    expect(shaky.participationFactor).toBe(1);
+    expect(shaky.belowParticipationFloor).toBe(false);
+    expect(shaky.defenseScore).toBeLessThan(50);
+  });
+
   it('never zeroes out a non-pitcher\'s real fielding score', () => {
     // Pure hitter, no pitching at all — participationFactor is 0, but that
     // must only damp a (nonexistent) pitching component, not the fielding

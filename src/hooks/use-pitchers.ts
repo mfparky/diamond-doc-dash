@@ -19,6 +19,8 @@ export interface PitcherRecord {
   effortRating: CoachRating;
   coachabilityRating: CoachRating;
   baseballIqRating: CoachRating;
+  /** Coach override: trust this arm's pitching sample at full weight regardless of IP. */
+  highImpactArm: boolean;
 }
 
 function toCoachRating(value: string | null | undefined): CoachRating {
@@ -53,6 +55,7 @@ export function usePitchers() {
         effortRating: toCoachRating(row.effort_rating),
         coachabilityRating: toCoachRating(row.coachability_rating),
         baseballIqRating: toCoachRating(row.baseball_iq_rating),
+        highImpactArm: (row as any).high_impact_arm ?? false,
       }));
 
       setPitchers(mappedPitchers);
@@ -118,6 +121,7 @@ export function usePitchers() {
         effortRating: toCoachRating(data.effort_rating),
         coachabilityRating: toCoachRating(data.coachability_rating),
         baseballIqRating: toCoachRating(data.baseball_iq_rating),
+        highImpactArm: (data as any).high_impact_arm ?? false,
       };
 
       setPitchers((prev) => [...prev, newPitcher].sort((a, b) => a.name.localeCompare(b.name)));
@@ -244,6 +248,35 @@ export function usePitchers() {
     [pitchers, toast],
   );
 
+  // Toggle the "trusted high-impact arm" override that bypasses the pitching
+  // participation floor for one player on the Rankings page. Optimistic
+  // update with rollback, same shape as setCoachRating.
+  const setHighImpactArm = useCallback(
+    async (id: string, value: boolean): Promise<boolean> => {
+      const previous = pitchers.find((p) => p.id === id)?.highImpactArm ?? false;
+      setPitchers((prev) => prev.map((p) => (p.id === id ? { ...p, highImpactArm: value } : p)));
+
+      try {
+        const { error } = await (supabase as any)
+          .from('pitchers')
+          .update({ high_impact_arm: value })
+          .eq('id', id);
+        if (error) throw error;
+        return true;
+      } catch (error) {
+        logger.error('Error setting high-impact arm flag:', error);
+        setPitchers((prev) => prev.map((p) => (p.id === id ? { ...p, highImpactArm: previous } : p)));
+        toast({
+          title: 'Could not save',
+          description: 'Try again.',
+          variant: 'destructive',
+        });
+        return false;
+      }
+    },
+    [pitchers, toast],
+  );
+
   // Load pitchers on mount
   useEffect(() => {
     fetchPitchers();
@@ -256,6 +289,7 @@ export function usePitchers() {
     updatePitcher,
     deletePitcher,
     setCoachRating,
+    setHighImpactArm,
     refetch: fetchPitchers,
   };
 }
