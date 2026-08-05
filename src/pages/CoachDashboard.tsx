@@ -35,7 +35,7 @@ export default function CoachDashboard() {
         setIsLoading(true);
 
         // Fetch all pitchers owned by this user
-        const { data: pitchersData, error: pitchersError } = await supabase.rpc('get_public_user_pitchers', { p_user_id: userId });
+        const { data: pitchersData, error: pitchersError } = await (supabase.rpc as any)('get_public_user_pitchers', { p_user_id: userId });
 
         if (pitchersError) throw pitchersError;
 
@@ -54,7 +54,7 @@ export default function CoachDashboard() {
         });
 
         // Fetch all outings for these pitchers
-        const { data: outingsDataRaw, error: outingsError } = await supabase.rpc('get_public_user_outings', { p_user_id: userId });
+        const { data: outingsDataRaw, error: outingsError } = await (supabase.rpc as any)('get_public_user_outings', { p_user_id: userId });
 
         if (outingsError) throw outingsError;
 

@@ -198,7 +198,7 @@ export default function PlayerDashboard() {
         setError(null);
 
         // Fetch pitcher by ID
-        const { data: pitcherRows, error: pitcherError } = await supabase.rpc('get_public_pitcher', { p_pitcher_id: playerId });
+        const { data: pitcherRows, error: pitcherError } = await (supabase.rpc as any)('get_public_pitcher', { p_pitcher_id: playerId });
 
         if (pitcherError) throw pitcherError;
         const pitcherData = pitcherRows?.[0];
@@ -228,8 +228,7 @@ export default function PlayerDashboard() {
 
           if (pitcherData.team_id) {
             setTeamId(pitcherData.team_id);
-            supabase
-              .rpc('get_public_team_info', { p_team_id: pitcherData.team_id })
+            (supabase.rpc as any)('get_public_team_info', { p_team_id: pitcherData.team_id })
               .then(({ data: teamRows }) => {
                 const teamData = teamRows?.[0];
                 if (!cancelled && teamData) {
@@ -258,7 +257,7 @@ export default function PlayerDashboard() {
         }
 
         // Fetch outings for this pitcher
-        const { data: outingsDataRaw, error: outingsError } = await supabase.rpc('get_public_pitcher_outings', { p_pitcher_id: playerId });
+        const { data: outingsDataRaw, error: outingsError } = await (supabase.rpc as any)('get_public_pitcher_outings', { p_pitcher_id: playerId });
 
         if (outingsError) throw outingsError;
 
