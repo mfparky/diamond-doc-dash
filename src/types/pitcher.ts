@@ -4,6 +4,8 @@ export interface Outing {
   date: string;
   pitcherName: string;
   eventType: 'Bullpen' | 'External' | 'Game' | 'Live ABs';
+  /** Explicit link to a games row, when the outing was attached to a specific game. */
+  gameId?: string;
   pitchCount: number;
   strikes: number | null;
   maxVelo: number;
