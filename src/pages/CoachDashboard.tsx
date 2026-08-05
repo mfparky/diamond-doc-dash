@@ -35,10 +35,7 @@ export default function CoachDashboard() {
         setIsLoading(true);
 
         // Fetch all pitchers owned by this user
-        const { data: pitchersData, error: pitchersError } = await supabase
-          .from('pitchers')
-          .select('*')
-          .eq('user_id', userId);
+        const { data: pitchersData, error: pitchersError } = await supabase.rpc('get_public_user_pitchers', { p_user_id: userId });
 
         if (pitchersError) throw pitchersError;
 
@@ -57,14 +54,13 @@ export default function CoachDashboard() {
         });
 
         // Fetch all outings for these pitchers
-        const pitcherNames = pitchersData.map((p) => p.name);
-        const { data: outingsData, error: outingsError } = await supabase
-          .from('outings')
-          .select('*')
-          .in('pitcher_name', pitcherNames)
-          .order('date', { ascending: false });
+        const { data: outingsDataRaw, error: outingsError } = await supabase.rpc('get_public_user_outings', { p_user_id: userId });
 
         if (outingsError) throw outingsError;
+
+        const outingsData = [...(outingsDataRaw || [])].sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+        );
 
         const mappedOutings: Outing[] = (outingsData || []).map((row) => ({
           id: row.id,

@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { validatePitcher } from '@/lib/validation';
 import { PitchTypeConfig } from '@/types/pitch-location';
+import { getPrimaryMembership } from '@/lib/team-membership';
 
 export type CoachRating = 'minus' | 'even' | 'plus' | null;
 
@@ -97,12 +98,18 @@ export function usePitchers() {
         return null;
       }
 
+      // Stamp team_id explicitly so isolation doesn't rely solely on the DB
+      // trigger fallback — a new roster entry must always belong to the
+      // adding coach's team.
+      const membership = await getPrimaryMembership(user.id);
+
       const { data, error } = await supabase
         .from('pitchers')
         .insert({
           name: validatedData.name,
           max_weekly_pitches: validatedData.maxWeeklyPitches,
           user_id: user.id,
+          team_id: membership?.teamId ?? null,
         })
         .select()
         .single();

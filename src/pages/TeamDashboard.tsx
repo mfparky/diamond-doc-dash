@@ -37,17 +37,11 @@ export default function TeamDashboard() {
         setIsLoading(true);
 
         // Fetch team name
-        const { data: teamData } = await supabase
-          .from('teams')
-          .select('name')
-          .eq('id', teamId)
-          .maybeSingle();
+        const { data: teamRows } = await supabase.rpc('get_public_team_info', { p_team_id: teamId });
+        const teamData = teamRows?.[0];
 
         // Fetch pitchers on the team
-        const { data: pitchersData, error: pitchersError } = await supabase
-          .from('pitchers')
-          .select('*')
-          .eq('team_id', teamId);
+        const { data: pitchersData, error: pitchersError } = await supabase.rpc('get_public_team_pitchers', { p_team_id: teamId });
 
         if (pitchersError) throw pitchersError;
 
@@ -69,15 +63,14 @@ export default function TeamDashboard() {
           ptMap[p.name] = (p.pitch_types as PitchTypeConfig) || DEFAULT_PITCH_TYPES;
         });
 
-        // Fetch all outings for team pitchers
-        const pitcherNames = pitchersData.map((p) => p.name);
-        const { data: outingsData, error: outingsError } = await supabase
-          .from('outings')
-          .select('*')
-          .in('pitcher_name', pitcherNames)
-          .order('date', { ascending: false });
+        // Fetch all outings for the team
+        const { data: outingsDataRaw, error: outingsError } = await supabase.rpc('get_public_team_outings', { p_team_id: teamId });
 
         if (outingsError) throw outingsError;
+
+        const outingsData = [...(outingsDataRaw || [])].sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+        );
 
         const mappedOutings: Outing[] = (outingsData || []).map((row) => ({
           id: row.id,

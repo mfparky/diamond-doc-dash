@@ -3,6 +3,7 @@ import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { PitchLocation, PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
+import { getPrimaryMembership } from '@/lib/team-membership';
 
 export function usePitchLocations() {
   const [isLoading, setIsLoading] = useState(false);
@@ -93,6 +94,31 @@ export function usePitchLocations() {
     }
   }, [toast]);
 
+  // Fetch pitch locations for a pitcher via the public RPC — used by the
+  // unauthenticated player dashboard, where a direct table select is scoped
+  // out by RLS now that the blanket public policy is gone.
+  const fetchPublicPitchLocationsForPitcher = useCallback(async (pitcherId: string): Promise<PitchLocation[]> => {
+    try {
+      const { data, error } = await supabase.rpc('get_public_pitcher_pitch_locations', { p_pitcher_id: pitcherId });
+      if (error) throw error;
+
+      return (data || []).map((row) => ({
+        id: row.id,
+        outingId: row.outing_id,
+        pitcherId: row.pitcher_id,
+        pitchNumber: row.pitch_number,
+        pitchType: row.pitch_type,
+        xLocation: Number(row.x_location),
+        yLocation: Number(row.y_location),
+        isStrike: row.is_strike,
+        createdAt: row.created_at,
+      }));
+    } catch (error) {
+      logger.error('Error fetching public pitch locations:', error);
+      return [];
+    }
+  }, []);
+
   // Add pitch locations for an outing
   const addPitchLocations = useCallback(async (
     outingId: string,
@@ -118,6 +144,8 @@ export function usePitchLocations() {
         return false;
       }
 
+      const membership = await getPrimaryMembership(user.id);
+
       const insertData = locations.map((loc) => ({
         outing_id: outingId,
         pitcher_id: pitcherId,
@@ -127,6 +155,7 @@ export function usePitchLocations() {
         y_location: loc.yLocation,
         is_strike: loc.isStrike,
         user_id: user.id,
+        team_id: membership?.teamId ?? null,
       }));
 
       const { error } = await supabase
@@ -219,6 +248,7 @@ export function usePitchLocations() {
     isLoading,
     fetchPitchLocationsForOuting,
     fetchPitchLocationsForPitcher,
+    fetchPublicPitchLocationsForPitcher,
     addPitchLocations,
     deletePitchLocationsForOuting,
     fetchPitchTypes,

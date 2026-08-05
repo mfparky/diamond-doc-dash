@@ -1,0 +1,54 @@
+-- ROLLBACK for 20260805100000_close_crossover_rls_holes.sql
+--
+-- This file is NOT a migration (note the .sql.txt extension — it will not
+-- be picked up by the migration runner). It's a documented, ready-to-run
+-- manual rollback in case Phase 1's RLS tightening breaks something in
+-- production that wasn't caught in testing. Run its statements directly
+-- via the Supabase SQL editor / psql if needed. Restores the exact public
+-- policies that were dropped, verbatim from their original migrations, and
+-- removes the new triggers/RPCs.
+--
+-- Do NOT run this reflexively — first check whether the break is actually
+-- in the RPCs/trigger vs. something else, since restoring these policies
+-- re-opens the cross-team data leak this migration was written to close.
+
+BEGIN;
+
+-- Restore public policies (verbatim from 20260204044538, 20260401042158,
+-- 20260513150354, 20260513164834)
+CREATE POLICY "Public can view pitchers by id"
+  ON public.pitchers FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "Public can view outings by pitcher"
+  ON public.outings FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "Public can view pitch_locations by pitcher"
+  ON public.pitch_locations FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "Public can view team leaderboard dates"
+  ON public.teams FOR SELECT TO anon USING (true);
+CREATE POLICY "Public can view games"
+  ON public.games FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "Public can view game_pitches"
+  ON public.game_pitches FOR SELECT TO anon, authenticated USING (true);
+
+DROP POLICY IF EXISTS "Users can check their own approval status" ON public.user_approvals;
+CREATE POLICY "Anyone can check approval"
+  ON public.user_approvals FOR SELECT TO anon, authenticated USING (true);
+
+-- Remove the new triggers
+DROP TRIGGER IF EXISTS trg_pitchers_set_team_id ON public.pitchers;
+DROP TRIGGER IF EXISTS trg_outings_set_team_id ON public.outings;
+DROP TRIGGER IF EXISTS trg_pitch_locations_set_team_id ON public.pitch_locations;
+DROP FUNCTION IF EXISTS public.set_team_id_from_membership();
+
+-- Remove the new RPCs (safe to drop even if kept — frontend would need to
+-- be reverted to raw table queries in the same rollback for these to no
+-- longer be called)
+DROP FUNCTION IF EXISTS public.get_public_team_info(uuid);
+DROP FUNCTION IF EXISTS public.get_public_team_pitchers(uuid);
+DROP FUNCTION IF EXISTS public.get_public_pitcher(uuid);
+DROP FUNCTION IF EXISTS public.get_public_user_pitchers(uuid);
+DROP FUNCTION IF EXISTS public.get_public_team_outings(uuid);
+DROP FUNCTION IF EXISTS public.get_public_user_outings(uuid);
+DROP FUNCTION IF EXISTS public.get_public_pitcher_outings(uuid);
+DROP FUNCTION IF EXISTS public.get_public_pitcher_pitch_locations(uuid);
+
+COMMIT;

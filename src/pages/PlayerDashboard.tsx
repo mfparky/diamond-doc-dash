@@ -57,7 +57,7 @@ export default function PlayerDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [selectedVideoOuting, setSelectedVideoOuting] = useState<Outing | null>(null);
   const [showAccountability, setShowAccountability] = useState(false);
-  const { fetchPitchTypes, fetchPitchLocationsForPitcher } = usePitchLocations();
+  const { fetchPublicPitchLocationsForPitcher } = usePitchLocations();
   const [allPitchLocations, setAllPitchLocations] = useState<PitchLocation[]>([]);
   const { filterByWindow: localFilterByWindow } = useAchievementWindow();
   const [publishedReportCard, setPublishedReportCard] = useState<PublishedReportCard | null>(null);
@@ -198,14 +198,11 @@ export default function PlayerDashboard() {
         setError(null);
 
         // Fetch pitcher by ID
-        const { data: pitcherData, error: pitcherError } = await supabase
-          .from('pitchers')
-          .select('*')
-          .eq('id', playerId)
-          .maybeSingle();
+        const { data: pitcherRows, error: pitcherError } = await supabase.rpc('get_public_pitcher', { p_pitcher_id: playerId });
 
         if (pitcherError) throw pitcherError;
-        
+        const pitcherData = pitcherRows?.[0];
+
         if (!pitcherData) {
           setError('Player not found');
           setIsLoading(false);
@@ -232,14 +229,12 @@ export default function PlayerDashboard() {
           if (pitcherData.team_id) {
             setTeamId(pitcherData.team_id);
             supabase
-              .from('teams')
-              .select('leaderboard_from, leaderboard_to, achievement_from, achievement_to')
-              .eq('id', pitcherData.team_id)
-              .maybeSingle()
-              .then(({ data: teamData }) => {
+              .rpc('get_public_team_info', { p_team_id: pitcherData.team_id })
+              .then(({ data: teamRows }) => {
+                const teamData = teamRows?.[0];
                 if (!cancelled && teamData) {
-                  if ((teamData as any).achievement_from) setTeamAchievementStart(new Date((teamData as any).achievement_from + 'T00:00:00'));
-                  if ((teamData as any).achievement_to) setTeamAchievementEnd(new Date((teamData as any).achievement_to + 'T00:00:00'));
+                  if (teamData.achievement_from) setTeamAchievementStart(new Date(teamData.achievement_from + 'T00:00:00'));
+                  if (teamData.achievement_to) setTeamAchievementEnd(new Date(teamData.achievement_to + 'T00:00:00'));
                   if (teamData.leaderboard_from) setTeamLeaderboardStart(new Date(teamData.leaderboard_from + 'T00:00:00'));
                   if (teamData.leaderboard_to) setTeamLeaderboardEnd(new Date(teamData.leaderboard_to + 'T00:00:00'));
                 }
@@ -263,13 +258,13 @@ export default function PlayerDashboard() {
         }
 
         // Fetch outings for this pitcher
-        const { data: outingsData, error: outingsError } = await supabase
-          .from('outings')
-          .select('*')
-          .eq('pitcher_name', pitcherData.name)
-          .order('date', { ascending: false });
+        const { data: outingsDataRaw, error: outingsError } = await supabase.rpc('get_public_pitcher_outings', { p_pitcher_id: playerId });
 
         if (outingsError) throw outingsError;
+
+        const outingsData = [...(outingsDataRaw || [])].sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+        );
 
         // Map outings
         const mappedOutings: Outing[] = (outingsData || []).map((row) => ({
@@ -315,16 +310,12 @@ export default function PlayerDashboard() {
           setPitcher(calculatedPitcher);
         }
 
-        // Fetch pitch types and locations in the background
-        void withTimeout(fetchPitchTypes(playerId), 8000)
-          .then((types) => {
-            if (!cancelled) setPitchTypes(types);
-          })
-          .catch((err) => {
-            console.warn('Pitch types failed to load (fallback to defaults):', err);
-          });
+        // Pitch types already came back on the pitcher row itself — no second fetch needed.
+        if (pitcherData.pitch_types && typeof pitcherData.pitch_types === 'object') {
+          setPitchTypes(pitcherData.pitch_types as PitchTypeConfig);
+        }
 
-        void withTimeout(fetchPitchLocationsForPitcher(playerId), 8000)
+        void withTimeout(fetchPublicPitchLocationsForPitcher(playerId), 8000)
           .then((locs) => {
             if (!cancelled) setAllPitchLocations(locs);
           })
@@ -343,7 +334,7 @@ export default function PlayerDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [playerId, fetchPitchTypes, fetchPitchLocationsForPitcher]);
+  }, [playerId, fetchPublicPitchLocationsForPitcher]);
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';
