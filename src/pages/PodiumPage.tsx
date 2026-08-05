@@ -35,11 +35,8 @@ export default function PodiumPage() {
     let cancelled = false;
 
     async function load() {
-      const { data: team } = await supabase
-        .from("teams")
-        .select("name, leaderboard_from, leaderboard_to")
-        .eq("id", teamId!)
-        .single();
+      const { data: teamRows } = await supabase.rpc("get_public_team_info", { p_team_id: teamId! });
+      const team = teamRows?.[0];
       if (!team || cancelled) return;
       setTeamName(team.name);
 
@@ -52,7 +49,7 @@ export default function PodiumPage() {
         : endOfWeek(now, { weekStartsOn: 1 });
       setWindowLabel(`${format(from, "MMM d")} – ${format(to, "MMM d, yyyy")}`);
 
-      const { data: pitchers } = await supabase.from("pitchers").select("id, name").eq("team_id", teamId!);
+      const { data: pitchers } = await supabase.rpc("get_public_team_pitchers", { p_team_id: teamId! });
       if (!pitchers || cancelled) return;
 
       const ids = pitchers.map((p) => p.id);

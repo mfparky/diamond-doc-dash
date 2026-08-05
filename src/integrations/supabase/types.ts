@@ -734,6 +734,46 @@ export type Database = {
         Args: { _team_id: string; _user_id: string }
         Returns: boolean
       }
+      get_public_team_info: {
+        Args: { p_team_id: string }
+        Returns: {
+          id: string
+          name: string
+          design_system: string | null
+          leaderboard_from: string | null
+          leaderboard_to: string | null
+          achievement_from: string | null
+          achievement_to: string | null
+        }[]
+      }
+      get_public_team_pitchers: {
+        Args: { p_team_id: string }
+        Returns: Database["public"]["Tables"]["pitchers"]["Row"][]
+      }
+      get_public_pitcher: {
+        Args: { p_pitcher_id: string }
+        Returns: Database["public"]["Tables"]["pitchers"]["Row"][]
+      }
+      get_public_user_pitchers: {
+        Args: { p_user_id: string }
+        Returns: Database["public"]["Tables"]["pitchers"]["Row"][]
+      }
+      get_public_team_outings: {
+        Args: { p_team_id: string }
+        Returns: Database["public"]["Tables"]["outings"]["Row"][]
+      }
+      get_public_user_outings: {
+        Args: { p_user_id: string }
+        Returns: Database["public"]["Tables"]["outings"]["Row"][]
+      }
+      get_public_pitcher_outings: {
+        Args: { p_pitcher_id: string }
+        Returns: Database["public"]["Tables"]["outings"]["Row"][]
+      }
+      get_public_pitcher_pitch_locations: {
+        Args: { p_pitcher_id: string }
+        Returns: Database["public"]["Tables"]["pitch_locations"]["Row"][]
+      }
     }
     Enums: {
       [_ in never]: never

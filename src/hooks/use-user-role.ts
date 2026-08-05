@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
+import { getPrimaryMembership, type TeamRole } from '@/lib/team-membership';
 
-export type TeamRole = 'owner' | 'member' | 'scorekeeper';
+export type { TeamRole };
 
 /**
  * Returns the highest-privilege role this user holds across any team.
@@ -24,17 +24,10 @@ export function useUserRole() {
     }
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from('team_members')
-        .select('role, team_id')
-        .eq('user_id', user.id);
+      const primary = await getPrimaryMembership(user.id);
       if (cancelled) return;
-      const rows = (data || []) as { role: string; team_id: string }[];
-      // Priority: owner > member > scorekeeper
-      const priority = (r: string) => (r === 'owner' ? 3 : r === 'member' ? 2 : r === 'scorekeeper' ? 1 : 0);
-      const top = rows.sort((a, b) => priority(b.role) - priority(a.role))[0];
-      setRole((top?.role as TeamRole) ?? null);
-      setTeamId(top?.team_id ?? null);
+      setRole(primary?.role ?? null);
+      setTeamId(primary?.teamId ?? null);
       setLoading(false);
     })();
     return () => { cancelled = true; };
