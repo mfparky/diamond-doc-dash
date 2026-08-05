@@ -16,20 +16,25 @@ ALTER TABLE public.outings
 -- a pitcher_uuid and that resolve to exactly one pitcher, so it can never
 -- mis-link an outing across teams even if two teams happen to share a
 -- pitcher name.
-UPDATE public.outings o
-SET pitcher_uuid = matched.id
-FROM (
-  SELECT o2.id AS outing_id, p.id
+WITH candidate_matches AS (
+  SELECT o2.id AS outing_id, p.id AS pitcher_id
   FROM public.outings o2
   JOIN public.pitchers p ON p.name = o2.pitcher_name
     AND (
       (p.team_id IS NOT NULL AND p.team_id = o2.team_id)
       OR (p.team_id IS NULL AND p.user_id IS NOT NULL AND p.user_id = o2.user_id)
     )
-  GROUP BY o2.id, p.id
-  HAVING count(*) OVER (PARTITION BY o2.id) = 1
-) AS matched
-WHERE o.id = matched.outing_id
+),
+unambiguous_matches AS (
+  SELECT outing_id, min(pitcher_id) AS pitcher_id
+  FROM candidate_matches
+  GROUP BY outing_id
+  HAVING count(*) = 1
+)
+UPDATE public.outings o
+SET pitcher_uuid = m.pitcher_id
+FROM unambiguous_matches m
+WHERE o.id = m.outing_id
   AND o.pitcher_uuid IS NULL;
 
 -- Auto-resolve pitcher_uuid on write for any path not yet updated to pass
