@@ -1,0 +1,18 @@
+-- ROLLBACK for 20260805130000_self_serve_teams.sql
+-- Not a migration (.sql.txt). Run manually if needed.
+-- Note: dropping the unique constraints does NOT delete any teams/members
+-- that were created via create_team/join_team_by_code while this was live —
+-- those rows are real data and are left in place. This only removes the
+-- self-serve write path and the constraints backing it.
+
+BEGIN;
+
+DROP FUNCTION IF EXISTS public.get_my_team_memberships();
+DROP FUNCTION IF EXISTS public.remove_team_member(uuid);
+DROP FUNCTION IF EXISTS public.join_team_by_code(text);
+DROP FUNCTION IF EXISTS public.create_team(text);
+
+ALTER TABLE public.teams DROP CONSTRAINT IF EXISTS teams_join_code_key;
+ALTER TABLE public.team_members DROP CONSTRAINT IF EXISTS team_members_team_id_user_id_key;
+
+COMMIT;

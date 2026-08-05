@@ -12,6 +12,8 @@ import { AllTimeStats } from '@/components/AllTimeStats';
 import { RosterManagementDialog } from '@/components/RosterManagementDialog';
 import { PaperFormScanner } from '@/components/PaperFormScanner';
 import { ManageScorekeepersDialog } from '@/components/ManageScorekeepersDialog';
+import { CreateOrJoinTeamDialog } from '@/components/CreateOrJoinTeamDialog';
+import { useTeamMemberships } from '@/hooks/use-team-memberships';
 import { StatUploadDialog } from '@/components/StatUploadDialog';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -48,6 +50,8 @@ const Index = () => {
   const [showRosterManagement, setShowRosterManagement] = useState(false);
   const [showFormScanner, setShowFormScanner] = useState(false);
   const [showScorekeepers, setShowScorekeepers] = useState(false);
+  const [showCreateOrJoinTeam, setShowCreateOrJoinTeam] = useState(false);
+  const { refetch: refetchMemberships, setActiveTeamId } = useTeamMemberships();
   const [showMoreSheet, setShowMoreSheet] = useState(false);
   const [showStatUpload, setShowStatUpload] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -92,6 +96,14 @@ const Index = () => {
       description: 'Grant pitch-counter-only access',
       icon: <Users className="w-5 h-5" />,
       onSelect: () => setShowScorekeepers(true),
+      group: 'Team Setup & Planning',
+    },
+    {
+      id: 'create-or-join-team',
+      label: 'Create or join a team',
+      description: 'Start a new team, or join one with a code',
+      icon: <Users className="w-5 h-5" />,
+      onSelect: () => setShowCreateOrJoinTeam(true),
       group: 'Team Setup & Planning',
     },
     {
@@ -500,6 +512,15 @@ const Index = () => {
       <WhatsNewDialog />
 
       <ManageScorekeepersDialog open={showScorekeepers} onOpenChange={setShowScorekeepers} />
+
+      <CreateOrJoinTeamDialog
+        open={showCreateOrJoinTeam}
+        onOpenChange={setShowCreateOrJoinTeam}
+        onTeamReady={async (teamId) => {
+          await refetchMemberships();
+          setActiveTeamId(teamId);
+        }}
+      />
     </div>
   );
 };

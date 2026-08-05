@@ -4,12 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Outing } from '@/types/pitcher';
 import { useToast } from '@/hooks/use-toast';
 import { validateOuting } from '@/lib/validation';
-import { getPrimaryMembership } from '@/lib/team-membership';
+import { useTeamMemberships } from '@/hooks/use-team-memberships';
 
 export function useOutings() {
   const [outings, setOutings] = useState<Outing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { activeTeamId } = useTeamMemberships();
 
   // Fetch outings from Supabase
   const fetchOutings = useCallback(async () => {
@@ -98,9 +99,8 @@ export function useOutings() {
       const legacyPitcherId = outingData.pitcherName.toLowerCase().replace(/\s+/g, '-');
 
       // Stamp team_id explicitly so isolation doesn't rely solely on the DB
-      // trigger fallback — a coach's outings must always belong to their team.
-      const membership = await getPrimaryMembership(user.id);
-
+      // trigger fallback — a coach's outings must always belong to their
+      // currently active team (not just "a" team, for coaches on more than one).
       const { data, error } = await supabase
         .from('outings')
         .insert({
@@ -117,7 +117,7 @@ export function useOutings() {
           video_url_1: outingData.videoUrl1 || null,
           focus: outingData.focus || null,
           user_id: user.id,
-          team_id: membership?.teamId ?? null,
+          team_id: activeTeamId ?? null,
         })
         .select()
         .single();
@@ -160,7 +160,7 @@ export function useOutings() {
       });
       return null;
     }
-  }, [toast]);
+  }, [toast, activeTeamId]);
 
   // Update an existing outing
   const updateOuting = useCallback(async (id: string, outingData: Partial<Omit<Outing, 'id' | 'timestamp'>>): Promise<boolean> => {

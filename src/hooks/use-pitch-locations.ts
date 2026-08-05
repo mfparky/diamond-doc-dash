@@ -3,11 +3,12 @@ import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { PitchLocation, PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
-import { getPrimaryMembership } from '@/lib/team-membership';
+import { useTeamMemberships } from '@/hooks/use-team-memberships';
 
 export function usePitchLocations() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { activeTeamId } = useTeamMemberships();
 
   // Fetch pitch locations for an outing
   const fetchPitchLocationsForOuting = useCallback(async (outingId: string): Promise<PitchLocation[]> => {
@@ -144,8 +145,6 @@ export function usePitchLocations() {
         return false;
       }
 
-      const membership = await getPrimaryMembership(user.id);
-
       const insertData = locations.map((loc) => ({
         outing_id: outingId,
         pitcher_id: pitcherId,
@@ -155,7 +154,7 @@ export function usePitchLocations() {
         y_location: loc.yLocation,
         is_strike: loc.isStrike,
         user_id: user.id,
-        team_id: membership?.teamId ?? null,
+        team_id: activeTeamId ?? null,
       }));
 
       const { error } = await supabase
@@ -179,7 +178,7 @@ export function usePitchLocations() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [toast, activeTeamId]);
 
   // Delete all pitch locations for an outing
   const deletePitchLocationsForOuting = useCallback(async (outingId: string): Promise<boolean> => {

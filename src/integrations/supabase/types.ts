@@ -792,6 +792,26 @@ export type Database = {
         Args: { p_user_id: string; p_start: string; p_end: string }
         Returns: Database["public"]["Tables"]["pitch_locations"]["Row"][]
       }
+      create_team: {
+        Args: { p_team_name: string }
+        Returns: string
+      }
+      join_team_by_code: {
+        Args: { p_code: string }
+        Returns: string
+      }
+      remove_team_member: {
+        Args: { p_member_row_id: string }
+        Returns: undefined
+      }
+      get_my_team_memberships: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          team_id: string
+          team_name: string
+          role: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

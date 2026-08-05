@@ -16,6 +16,7 @@ interface Props {
 interface Member {
   id: string;
   user_id: string;
+  role: string;
   email?: string | null;
 }
 
@@ -46,9 +47,9 @@ export function ManageScorekeepersDialog({ open, onOpenChange }: Props) {
   async function loadMembers(tid: string) {
     const { data } = await supabase
       .from('team_members')
-      .select('id, user_id')
+      .select('id, user_id, role')
       .eq('team_id', tid)
-      .eq('role', 'scorekeeper');
+      .in('role', ['scorekeeper', 'member']);
     const rows = (data || []) as Member[];
     // Look up emails from user_approvals
     if (rows.length) {
@@ -94,7 +95,7 @@ export function ManageScorekeepersDialog({ open, onOpenChange }: Props) {
   }
 
   async function remove(id: string) {
-    const { error } = await supabase.from('team_members').delete().eq('id', id);
+    const { error } = await supabase.rpc('remove_team_member', { p_member_row_id: id });
     if (error) {
       toast({ title: 'Could not remove', description: error.message, variant: 'destructive' });
       return;
@@ -106,9 +107,9 @@ export function ManageScorekeepersDialog({ open, onOpenChange }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Manage scorekeepers</DialogTitle>
+          <DialogTitle>Manage team members</DialogTitle>
           <DialogDescription>
-            Scorekeepers can only access the live pitch counter. Their pitches still feed Outings + Games.
+            Scorekeepers can only access the live pitch counter. Members who joined with your team's code have full coach access — review the list below and remove anyone who shouldn't be there.
           </DialogDescription>
         </DialogHeader>
 
@@ -131,14 +132,17 @@ export function ManageScorekeepersDialog({ open, onOpenChange }: Props) {
           </div>
 
           <div className="space-y-2">
-            <Label>Current scorekeepers ({members.length})</Label>
+            <Label>Team members ({members.length})</Label>
             {members.length === 0 ? (
               <p className="text-sm text-muted-foreground">None yet.</p>
             ) : (
               <ul className="space-y-1">
                 {members.map(m => (
                   <li key={m.id} className="flex items-center justify-between rounded border border-border bg-card px-3 py-2">
-                    <span className="text-sm">{m.email ?? m.user_id}</span>
+                    <span className="text-sm">
+                      {m.email ?? m.user_id}
+                      <span className="ml-2 text-xs text-muted-foreground capitalize">{m.role}</span>
+                    </span>
                     <Button variant="ghost" size="icon" onClick={() => remove(m.id)} aria-label="Remove">
                       <Trash2 className="w-4 h-4" />
                     </Button>
