@@ -487,14 +487,47 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
     };
 
     const gamesInRange = games.filter((game) => inRange(game.date));
-    const knownGameDates = new Set(gamesInRange.map((game) => game.date));
     const gameOutings = filteredOutings.filter((outing) => outing.eventType === 'Game');
-    const outingOnlyGames: GameDashboardRow[] = [...new Set(gameOutings.map((outing) => outing.date))]
-      .filter((date) => !knownGameDates.has(date))
-      .map((date) => ({ id: `outing-${date}`, date, opponent_name: null, status: 'completed', team_id: coachTeamId, user_id: null }));
+
+    // Attribute each Game outing to exactly ONE game so doubleheaders never merge.
+    // Priority: explicit game_id link → the only game on that date → synthetic date bucket.
+    const gamesById = new Map(gamesInRange.map((g) => [g.id, g]));
+    const gamesByDate = new Map<string, GameDashboardRow[]>();
+    gamesInRange.forEach((g) => {
+      gamesByDate.set(g.date, [...(gamesByDate.get(g.date) ?? []), g]);
+    });
+
+    const outingsByGameId = new Map<string, Outing[]>();
+    const unlinkedByDate = new Map<string, Outing[]>();
+    const pushTo = (map: Map<string, Outing[]>, key: string, outing: Outing) => {
+      map.set(key, [...(map.get(key) ?? []), outing]);
+    };
+    gameOutings.forEach((outing) => {
+      if (outing.gameId && gamesById.has(outing.gameId)) {
+        pushTo(outingsByGameId, outing.gameId, outing);
+      } else {
+        pushTo(unlinkedByDate, outing.date, outing);
+      }
+    });
+
+    const outingOnlyGames: GameDashboardRow[] = [];
+    unlinkedByDate.forEach((list, date) => {
+      const sameDate = gamesByDate.get(date) ?? [];
+      if (sameDate.length === 1) {
+        // Only one game that day — safe to fold the unlinked outings into it.
+        list.forEach((outing) => pushTo(outingsByGameId, sameDate[0].id, outing));
+      } else {
+        // No game record, or a doubleheader with ambiguous links: keep a separate bucket.
+        const id = `outing-${date}`;
+        outingOnlyGames.push({ id, date, opponent_name: null, status: 'completed', team_id: coachTeamId, user_id: null });
+        outingsByGameId.set(id, list);
+      }
+    });
 
     const displayGames = [...gamesInRange, ...outingOnlyGames]
       .sort((a, b) => parseLocalDateAtNoon(b.date).getTime() - parseLocalDateAtNoon(a.date).getTime());
+
+    const outingsFor = (gameId: string) => outingsByGameId.get(gameId) ?? [];
 
     const totalGamePitches = gameOutings.reduce((sum, outing) => sum + outing.pitchCount, 0);
     const gameOutingsWithStrikes = gameOutings.filter((outing) => outing.strikes !== null);
@@ -510,8 +543,26 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
       .sort((a, b) => a.localeCompare(b));
     const recentGames = displayGames.slice(0, 5);
 
+    // Ordinal within the same calendar date, so a doubleheader reads "Aug 5 (G1/G2)".
+    const chronological = [...displayGames].sort(
+      (a, b) => parseLocalDateAtNoon(a.date).getTime() - parseLocalDateAtNoon(b.date).getTime(),
+    );
+    const dateCounts = new Map<string, number>();
+    chronological.forEach((g) => dateCounts.set(g.date, (dateCounts.get(g.date) ?? 0) + 1));
+    const seenPerDate = new Map<string, number>();
+    const gameNumber = new Map<string, number | null>();
+    chronological.forEach((g) => {
+      if ((dateCounts.get(g.date) ?? 0) > 1) {
+        const n = (seenPerDate.get(g.date) ?? 0) + 1;
+        seenPerDate.set(g.date, n);
+        gameNumber.set(g.id, n);
+      } else {
+        gameNumber.set(g.id, null);
+      }
+    });
+
     const gameSummaries = displayGames.map((game) => {
-      const outingsForGame = gameOutings.filter((o) => o.date === game.date);
+      const outingsForGame = outingsFor(game.id);
       const pitches = outingsForGame.reduce((sum, o) => sum + o.pitchCount, 0);
       const withStrikes = outingsForGame.filter((o) => o.strikes !== null);
       const sPitches = withStrikes.reduce((sum, o) => sum + o.pitchCount, 0);
@@ -526,19 +577,20 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
         strikePct: sPitches > 0 ? Math.round((sStrikes / sPitches) * 100) : null,
         pitcherCount,
         topVelo,
+        gameNumber: gameNumber.get(game.id) ?? null,
       };
     });
 
     const matrix = pitcherNames.map((name) => ({
       name,
-      total: recentGames.reduce((sum, game) => sum + gameOutings
-        .filter((outing) => outing.date === game.date && outing.pitcherName === name)
+      total: recentGames.reduce((sum, game) => sum + outingsFor(game.id)
+        .filter((outing) => outing.pitcherName === name)
         .reduce((pitchSum, outing) => pitchSum + outing.pitchCount, 0), 0),
       cells: recentGames.map((game) => ({
         gameId: game.id,
         date: game.date,
-        pitches: gameOutings
-          .filter((outing) => outing.date === game.date && outing.pitcherName === name)
+        pitches: outingsFor(game.id)
+          .filter((outing) => outing.pitcherName === name)
           .reduce((sum, outing) => sum + outing.pitchCount, 0),
       })),
     })).filter((row) => row.total > 0);
