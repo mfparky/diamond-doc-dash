@@ -11,7 +11,8 @@ import {
   ReferenceLine,
   Cell,
 } from 'recharts';
-import { ArrowLeft, Trophy, Upload, Info, Minus, Equal, Plus, Eye, ChevronDown, Sparkles, Flame } from 'lucide-react';
+import { ArrowLeft, Trophy, Upload, Info, Minus, Equal, Plus, Eye, ChevronDown, Sparkles, Flame, Users, X } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -65,6 +66,15 @@ export default function RankingsPage() {
   const [chartView, setChartView] = useState<ChartView>('bar');
   const [levers, setLevers] = useState<LeverState>(DEFAULT_LEVER_STATE);
   const [showLevers, setShowLevers] = useState(false);
+  const [swapSelection, setSwapSelection] = useState<Set<string>>(new Set());
+  const toggleSwapSelection = (pitcherId: string) => {
+    setSwapSelection((prev) => {
+      const next = new Set(prev);
+      if (next.has(pitcherId)) next.delete(pitcherId);
+      else next.add(pitcherId);
+      return next;
+    });
+  };
 
   const inputs = useMemo<RankingInput[]>(() => {
     return pitchers.map((p) => ({
@@ -107,7 +117,23 @@ export default function RankingsPage() {
   const {
     rankings, excluded, reefThreshold, reefPercentile,
     ceilingThreshold, ceilingPercentile,
+    replacementOffenseRate, replacementEra, runsPerWin,
   } = useMemo(() => buildRankings(inputs, rankingOpts), [inputs, rankingOpts]);
+
+  // Swap simulator: sum the VORP/WAR of every checked player. Since VORP is
+  // literally "value over a replacement-level player," swapping a selected
+  // player out for a replacement-level one costs exactly their VORP —
+  // runs scored drops by their offense VORP, runs allowed rises by their
+  // pitching VORP (they were preventing that many runs above replacement),
+  // and win value drops by their WAR.
+  const swapSummary = useMemo(() => {
+    const all = [...rankings, ...excluded];
+    const selected = all.filter((r) => swapSelection.has(r.pitcherId));
+    const runsScoredImpact = -selected.reduce((sum, r) => sum + (r.vorpOffense ?? 0), 0);
+    const runsAllowedImpact = selected.reduce((sum, r) => sum + (r.vorpPitching ?? 0), 0);
+    const winsImpact = -selected.reduce((sum, r) => sum + (r.war ?? 0), 0);
+    return { players: selected, runsScoredImpact, runsAllowedImpact, winsImpact };
+  }, [rankings, excluded, swapSelection]);
 
   // Compute previous ranks for trend deltas. Only meaningful when at least
   // one pitcher has a second snapshot to fuel a previous ranking.
@@ -377,6 +403,7 @@ export default function RankingsPage() {
                 <p className="text-xs text-muted-foreground">
                   Each column is the player's 0–100 rank within the team for that metric.
                   Click <Eye className="inline w-3 h-3" /> to see the top drivers for a player.
+                  Check <Users className="inline w-3 h-3" /> to add a player to the swap simulator below.
                 </p>
               </CardHeader>
               <CardContent className="overflow-x-auto px-0">
@@ -384,6 +411,7 @@ export default function RankingsPage() {
                   <TableHeader>
                     <TableRow className="border-border/40 hover:bg-transparent">
                       <TableHead className="sticky left-0 bg-background z-10 text-[10px] uppercase tracking-wider">Player</TableHead>
+                      <TableHead className="text-center w-8 text-[10px] uppercase tracking-wider">Swap</TableHead>
                       <TableHead className="text-center w-10 text-[10px] uppercase tracking-wider">Why</TableHead>
                       <TableHead className="text-right text-[10px] uppercase tracking-wider text-foreground">PV</TableHead>
                       <TableHead className="text-right text-[10px] uppercase tracking-wider">Off</TableHead>
@@ -407,6 +435,8 @@ export default function RankingsPage() {
                         onSetRating={setCoachRating}
                         onToggleHighImpactArm={setHighImpactArm}
                         rankChange={rankChangeByPitcherId.get(r.pitcherId) ?? null}
+                        swapSelected={swapSelection.has(r.pitcherId)}
+                        onToggleSwap={toggleSwapSelection}
                       />
                     ))}
                   </TableBody>
@@ -428,6 +458,77 @@ export default function RankingsPage() {
                         </li>
                       ))}
                     </ul>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Swap simulator — VORP/WAR impact of swapping checked players
+                for a replacement-level player (the belowReef average). */}
+            <Card className="glass-card border-primary/20">
+              <CardHeader className="pb-2">
+                <CardTitle className="font-display text-lg flex items-center gap-2">
+                  <Users className="w-4 h-4 text-primary" />
+                  Swap Simulator
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Check players above to project the impact of swapping them for a replacement-level
+                  player — the average of everyone currently below the reef line. Runs are estimated
+                  from (R+RBI)/PA vs. that baseline for offense, and ERA × IP for pitching; wins convert
+                  runs at {runsPerWin} runs/win, the standard sabermetric reference point (not calibrated
+                  to this league — treat WAR as a rough estimate).
+                </p>
+              </CardHeader>
+              <CardContent>
+                {swapSummary.players.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-2">
+                    No players selected. Check the Swap column above to build a projection.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap gap-1.5">
+                      {swapSummary.players.map((p) => (
+                        <span
+                          key={p.pitcherId}
+                          className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-primary/10 text-primary"
+                        >
+                          {p.pitcherName}
+                          <button
+                            type="button"
+                            onClick={() => toggleSwapSelection(p.pitcherId)}
+                            aria-label={`Remove ${p.pitcherName} from swap simulator`}
+                            className="hover:text-destructive"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <SwapImpactTile
+                        label="Runs Scored"
+                        value={swapSummary.runsScoredImpact}
+                        goodDirection="positive"
+                      />
+                      <SwapImpactTile
+                        label="Runs Allowed"
+                        value={swapSummary.runsAllowedImpact}
+                        goodDirection="negative"
+                      />
+                      <SwapImpactTile
+                        label="Wins"
+                        value={swapSummary.winsImpact}
+                        goodDirection="positive"
+                        decimals={2}
+                      />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Negative Runs Scored / positive Runs Allowed / negative Wins all mean the swap makes
+                      the team worse — reading top to bottom, that's the expected direction when swapping
+                      out your good players. Reef mode and metric levers above change the reef pool this
+                      baseline is drawn from.
+                    </p>
                   </div>
                 )}
               </CardContent>
@@ -526,6 +627,40 @@ function LegendBlock({
   );
 }
 
+/**
+ * One stat tile in the Swap Simulator. `goodDirection` says which sign reads
+ * as "better for the team" for this metric — Runs Scored: positive is good;
+ * Runs Allowed: negative is good (fewer allowed); Wins: positive is good.
+ */
+function SwapImpactTile({
+  label,
+  value,
+  goodDirection,
+  decimals = 1,
+}: {
+  label: string;
+  value: number;
+  goodDirection: 'positive' | 'negative';
+  decimals?: number;
+}) {
+  const isGood = goodDirection === 'positive' ? value > 0 : value < 0;
+  const isBad = goodDirection === 'positive' ? value < 0 : value > 0;
+  const colorClass = isGood
+    ? 'text-emerald-600 dark:text-emerald-400'
+    : isBad
+      ? 'text-red-600 dark:text-red-400'
+      : 'text-muted-foreground';
+  const sign = value > 0 ? '+' : '';
+  return (
+    <div className="rounded-lg border border-border/50 p-3 text-center">
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className={cn('text-xl font-bold tabular-nums', colorClass)}>
+        {sign}{value.toFixed(decimals)}
+      </p>
+    </div>
+  );
+}
+
 /** Small ↑N / ↓N pill next to a player name. Null = no baseline (single upload). */
 function RankChangeBadge({ change }: { change: number | null }) {
   if (change === null) return null;
@@ -562,12 +697,16 @@ function RankingRow({
   onSetRating,
   onToggleHighImpactArm,
   rankChange,
+  swapSelected,
+  onToggleSwap,
 }: {
   ranking: PlayerRanking;
   pitcher: PitcherRecord | undefined;
   onSetRating: (id: string, dim: RatingDimension, rating: CoachRating) => Promise<boolean>;
   onToggleHighImpactArm: (id: string, value: boolean) => Promise<boolean>;
   rankChange: number | null;
+  swapSelected: boolean;
+  onToggleSwap: (pitcherId: string) => void;
 }) {
   const visibleMetrics = METRIC_LABELS.filter((m) => m.bucket !== 'intangibles');
   return (
@@ -607,6 +746,13 @@ function RankingRow({
             limited pitching
           </span>
         )}
+      </TableCell>
+      <TableCell className="text-center">
+        <Checkbox
+          checked={swapSelected}
+          onCheckedChange={() => onToggleSwap(ranking.pitcherId)}
+          aria-label={`Include ${ranking.pitcherName} in swap simulator`}
+        />
       </TableCell>
       <TableCell className="text-center">
         <WhyPopover ranking={ranking} />

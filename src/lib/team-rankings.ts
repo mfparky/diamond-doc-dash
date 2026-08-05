@@ -68,10 +68,28 @@ export interface RankingOptions {
    * `defaultEnabled` (or true when unset).
    */
   metricEnabled?: Record<string, boolean>;
+  /**
+   * Runs-per-win conversion used to turn VORP (runs above replacement) into
+   * WAR. There's no locally-calibrated Pythagorean exponent for this team
+   * (no runs-scored/allowed game log to fit one), so this is the standard
+   * sabermetric reference value, exposed so a coach can tune it rather than
+   * trust a hidden constant. Defaults to DEFAULT_RUNS_PER_WIN.
+   */
+  runsPerWin?: number;
 }
 
 /** Default participation threshold — coaches can override per-call later. */
 export const DEFAULT_PITCHING_PARTICIPATION_FLOOR = 5;
+
+/**
+ * Default runs-per-win for VORP → WAR conversion. This is the commonly-cited
+ * sabermetric reference point (~10 runs = 1 win in a modern MLB-scoring
+ * environment) — not something derived from this team's own games, since we
+ * don't track runs scored/allowed per game to fit a real conversion. Treat
+ * WAR as a rough estimate and tune `runsPerWin` if it doesn't feel right for
+ * this league's scoring environment.
+ */
+export const DEFAULT_RUNS_PER_WIN = 10;
 
 // --- Output shapes ---
 
@@ -125,6 +143,23 @@ export interface PlayerRanking {
   metricRaw: Record<string, number | null>;
   /** Top metric drivers (weighted) — drives the "Why ranked here?" tooltip. */
   topDrivers: MetricContribution[];
+  /**
+   * Runs above a replacement-level player's OFFENSE, over this player's
+   * actual PA: (player's (R+RBI)/PA − replacement (R+RBI)/PA) × PA.
+   * Null when there's no PA data to compute a rate from.
+   */
+  vorpOffense: number | null;
+  /**
+   * Runs prevented above a replacement-level PITCHER, over this player's
+   * actual IP: (replacement ERA − player's ERA) × (IP / 9). Null when
+   * there's no ERA/IP data.
+   */
+  vorpPitching: number | null;
+  /**
+   * Combined (vorpOffense + vorpPitching) converted to wins via the
+   * configured runsPerWin. Null when both VORP components are null.
+   */
+  war: number | null;
 }
 
 export interface RankingResult {
@@ -138,6 +173,15 @@ export interface RankingResult {
   ceilingThreshold: number | null;
   /** Percentile from the top used for the ceiling (10 / 15 / 20), null when off. */
   ceilingPercentile: number | null;
+  /**
+   * Replacement-level baseline used for VORP: the average (R+RBI)/PA and
+   * average ERA of players flagged belowReef. Null when nobody in the reef
+   * pool (or the team) has that kind of data.
+   */
+  replacementOffenseRate: number | null;
+  replacementEra: number | null;
+  /** Runs-per-win conversion actually used (option or DEFAULT_RUNS_PER_WIN). */
+  runsPerWin: number;
 }
 
 // --- Metric configuration ---
@@ -562,6 +606,9 @@ export function buildRankings(
       metricBreakdown: breakdown,
       metricRaw: rawByMetric,
       topDrivers,
+      vorpOffense: null,
+      vorpPitching: null,
+      war: null,
     };
   });
 
@@ -596,6 +643,58 @@ export function buildRankings(
     }
   }
 
+  // 9) VORP / WAR. Replacement level is defined as the average of players
+  // already flagged belowReef (bottom reefPercentile by Player Value) — the
+  // same reef line coaches already see, rather than a separately-tuned
+  // baseline. Falls back to the whole eligible team's average if nobody in
+  // the reef pool has usable PA/IP data (tiny roster).
+  const inputByPitcherId = new Map(inputs.map((i) => [i.pitcherId, i]));
+  const rawOffenseRate = (input: RankingInput | undefined): number => {
+    if (!input) return NaN;
+    const pa = readNum(input.latest, 'bat_pa');
+    if (!Number.isFinite(pa) || pa <= 0) return NaN;
+    const r = readNum(input.latest, 'bat_r');
+    const rbi = readNum(input.latest, 'bat_rbi');
+    if (!Number.isFinite(r) && !Number.isFinite(rbi)) return NaN;
+    return ((Number.isFinite(r) ? r : 0) + (Number.isFinite(rbi) ? rbi : 0)) / pa;
+  };
+  const rawEra = (input: RankingInput | undefined): number =>
+    input ? readNum(input.latest, 'pit_era') : NaN;
+
+  const replacementPool = eligible.filter((p) => p.belowReef).map((p) => inputByPitcherId.get(p.pitcherId));
+  const replacementOffenseRates = replacementPool.map(rawOffenseRate).filter((v) => Number.isFinite(v));
+  const replacementEras = replacementPool.map(rawEra).filter((v) => Number.isFinite(v));
+  const allOffenseRates = eligible.map((p) => rawOffenseRate(inputByPitcherId.get(p.pitcherId))).filter((v) => Number.isFinite(v));
+  const allEras = eligible.map((p) => rawEra(inputByPitcherId.get(p.pitcherId))).filter((v) => Number.isFinite(v));
+
+  const replacementOffenseRate = replacementOffenseRates.length > 0
+    ? meanIgnoringNaN(replacementOffenseRates)
+    : (allOffenseRates.length > 0 ? meanIgnoringNaN(allOffenseRates) : null);
+  const replacementEra = replacementEras.length > 0
+    ? meanIgnoringNaN(replacementEras)
+    : (allEras.length > 0 ? meanIgnoringNaN(allEras) : null);
+
+  const runsPerWin = options.runsPerWin ?? DEFAULT_RUNS_PER_WIN;
+
+  for (const p of allRankings) {
+    const input = inputByPitcherId.get(p.pitcherId);
+    const pa = readNum(input?.latest ?? null, 'bat_pa');
+    const offenseRate = rawOffenseRate(input);
+    p.vorpOffense = (replacementOffenseRate !== null && Number.isFinite(offenseRate) && Number.isFinite(pa))
+      ? (offenseRate - replacementOffenseRate) * pa
+      : null;
+
+    const ip = readNum(input?.latest ?? null, 'pit_ip');
+    const era = rawEra(input);
+    p.vorpPitching = (replacementEra !== null && Number.isFinite(era) && Number.isFinite(ip))
+      ? (replacementEra - era) * (ip / 9)
+      : null;
+
+    p.war = (p.vorpOffense !== null || p.vorpPitching !== null)
+      ? ((p.vorpOffense ?? 0) + (p.vorpPitching ?? 0)) / runsPerWin
+      : null;
+  }
+
   return {
     rankings: eligible,
     excluded,
@@ -603,6 +702,9 @@ export function buildRankings(
     reefPercentile,
     ceilingThreshold,
     ceilingPercentile,
+    replacementOffenseRate,
+    replacementEra,
+    runsPerWin,
   };
 }
 
