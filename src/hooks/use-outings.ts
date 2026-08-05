@@ -28,6 +28,7 @@ export function useOutings() {
         date: row.date,
         pitcherName: row.pitcher_name,
         eventType: row.event_type as Outing['eventType'],
+        gameId: (row as { game_id?: string | null }).game_id ?? undefined,
         pitchCount: row.pitch_count,
         strikes: row.strikes,
         maxVelo: row.max_velocity ?? 0,
