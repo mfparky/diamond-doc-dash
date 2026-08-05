@@ -271,6 +271,7 @@ export default function PlayerDashboard() {
           timestamp: row.created_at,
           date: row.date,
           pitcherName: row.pitcher_name,
+          pitcherId: row.pitcher_uuid ?? undefined,
           eventType: row.event_type as Outing['eventType'],
           pitchCount: row.pitch_count,
           strikes: row.strikes,

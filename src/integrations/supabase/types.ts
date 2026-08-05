@@ -177,6 +177,7 @@ export type Database = {
           notes: string | null
           pitch_count: number
           pitcher_id: string
+          pitcher_uuid: string | null
           pitcher_name: string
           strikes: number | null
           team_id: string | null
@@ -201,6 +202,7 @@ export type Database = {
           notes?: string | null
           pitch_count: number
           pitcher_id: string
+          pitcher_uuid?: string | null
           pitcher_name: string
           strikes?: number | null
           team_id?: string | null
@@ -225,6 +227,7 @@ export type Database = {
           notes?: string | null
           pitch_count?: number
           pitcher_id?: string
+          pitcher_uuid?: string | null
           pitcher_name?: string
           strikes?: number | null
           team_id?: string | null
@@ -243,6 +246,13 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outings_pitcher_uuid_fkey"
+            columns: ["pitcher_uuid"]
+            isOneToOne: false
+            referencedRelation: "pitchers"
             referencedColumns: ["id"]
           },
         ]

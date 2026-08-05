@@ -4,6 +4,7 @@ import hawksLogo from '@/assets/hawks-logo.png';
 import { useScrollDirection } from '@/hooks/use-scroll-direction';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { TeamSwitcher } from '@/components/TeamSwitcher';
 
 interface HeaderProps {
   onAddOuting: () => void;
@@ -72,6 +73,8 @@ export function Header({ onAddOuting, activeTab = 'players', onTabChange, onOpen
                 Team
               </Button>
             </div>
+
+            <TeamSwitcher />
 
             {onOpenMore && (
               <Button

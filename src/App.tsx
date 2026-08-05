@@ -7,9 +7,11 @@ import { Suspense, lazy, type ComponentType } from "react";
 import { DesignSystemProvider } from "@/contexts/DesignSystemContext";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserRole } from "@/hooks/use-user-role";
+import { useTeamMemberships } from "@/hooks/use-team-memberships";
 import { isRankingsAdminEmail } from "@/lib/admin-access";
 import { Auth } from "@/components/Auth";
 import { HomeButton } from "@/components/HomeButton";
+import { CreateOrJoinTeamDialog } from "@/components/CreateOrJoinTeamDialog";
 import { Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -73,17 +75,40 @@ function RouteFallback() {
   );
 }
 
+// Shown in place of the routed app for an approved user who hasn't created
+// or joined a team yet. Always open (no dismiss) — the app underneath has
+// nothing meaningful to show without at least one team membership.
+function CreateOrJoinTeamGate({ onTeamReady }: { onTeamReady: (teamId: string) => void }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <CreateOrJoinTeamDialog open onOpenChange={() => {}} onTeamReady={onTeamReady} />
+    </div>
+  );
+}
+
 function AppRoutes() {
   const { user, loading } = useAuth();
   const { isScorekeeper, loading: roleLoading } = useUserRole();
+  const { memberships, loading: membershipsLoading, refetch: refetchMemberships, setActiveTeamId } = useTeamMemberships();
 
-  if (loading || (user && roleLoading)) {
+  if (loading || (user && (roleLoading || membershipsLoading))) {
     return <RouteFallback />;
   }
 
-  // Scorekeepers can ONLY access the live pitch counter.
+  const handleTeamReady = async (teamId: string) => {
+    await refetchMemberships();
+    setActiveTeamId(teamId);
+  };
+
+  // Scorekeepers can ONLY access the live pitch counter. An approved user
+  // with zero team memberships sees the create/join gate instead of the
+  // routed app — public routes below (player/team/podium links) are
+  // unaffected since they never go through gate().
   const gate = (el: JSX.Element) =>
-    !user ? <Auth /> : isScorekeeper ? <Navigate to="/counter" replace /> : el;
+    !user ? <Auth /> :
+    isScorekeeper ? <Navigate to="/counter" replace /> :
+    memberships.length === 0 ? <CreateOrJoinTeamGate onTeamReady={handleTeamReady} /> :
+    el;
 
   // Player Rankings is restricted to a small allow-list of coach emails.
   const rankingsGate = (el: JSX.Element) => {

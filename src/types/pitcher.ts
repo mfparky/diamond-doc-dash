@@ -3,6 +3,8 @@ export interface Outing {
   timestamp: string;
   date: string;
   pitcherName: string;
+  /** Real pitchers.id this outing belongs to — preferred over name matching. */
+  pitcherId?: string;
   eventType: 'Bullpen' | 'External' | 'Game' | 'Live ABs';
   /** Explicit link to a games row, when the outing was attached to a specific game. */
   gameId?: string;

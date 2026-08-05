@@ -25,6 +25,8 @@ interface CombinedDashboardProps {
   pitcherPitchTypes: Record<string, PitchTypeConfig>;
   parentMode?: boolean;
   teamId?: string;
+  /** Legacy solo-coach public dashboard (no team) — /dashboard/:userId. */
+  userId?: string;
   pitchers?: PitcherRecord[];
   /** Coach-only: opens the season-stat CSV upload dialog. */
   onRequestStatUpload?: () => void;
@@ -62,7 +64,7 @@ type ViewMode = '7-day' | 'season';
 
 type ResultFilter = 'all' | 'strikes' | 'balls';
 
-export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = false, teamId, pitchers, onRequestStatUpload }: CombinedDashboardProps) {
+export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = false, teamId, userId, pitchers, onRequestStatUpload }: CombinedDashboardProps) {
   const [showWorkoutLeaderboard] = useShowWorkoutLeaderboard();
   const [pitchLocations, setPitchLocations] = useState<PitchLocation[]>([]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(true);
@@ -86,20 +88,13 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
   // Fetch total workout completions for the season (parent mode)
   useEffect(() => {
     if (!parentMode) return;
-    const pitcherNames = [...new Set(outings.map(o => o.pitcherName))];
-    if (pitcherNames.length === 0) return;
+    // pitcherId is populated on outings whose pitcher was resolved (Phase 2's
+    // pitcher_uuid) — avoids a separate name-based pitchers lookup entirely.
+    const ids = [...new Set(outings.map(o => o.pitcherId).filter((id): id is string => !!id))];
+    if (ids.length === 0) return;
 
     async function fetchWorkoutCount() {
       try {
-        // Get pitcher IDs from names
-        const { data: pitchers } = await supabase
-          .from('pitchers')
-          .select('id')
-          .in('name', pitcherNames);
-
-        if (!pitchers || pitchers.length === 0) return;
-
-        const ids = pitchers.map(p => p.id);
         const { count, error } = await supabase
           .from('workout_completions')
           .select('*', { count: 'exact', head: true })
@@ -128,12 +123,11 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
     async function fetchTeamPitchersAndDates() {
       try {
         const [pitchersRes, teamRes] = await Promise.all([
-          supabase.from('pitchers').select('*').eq('team_id', teamId),
-          supabase.from('teams').select('leaderboard_from, leaderboard_to, owner_id').eq('id', teamId).maybeSingle(),
+          supabase.rpc('get_public_team_pitchers', { p_team_id: teamId }),
+          supabase.rpc('get_public_team_info', { p_team_id: teamId }),
         ]);
 
         if (pitchersRes.data && pitchersRes.data.length > 0) {
-          // Pitchers have team_id set — use them directly
           setTeamPitchers(pitchersRes.data.map(p => ({
             id: p.id,
             name: p.name,
@@ -176,26 +170,11 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
           }
         }
 
-        if (teamRes.data) {
-          let lbFrom = teamRes.data.leaderboard_from;
-          let lbTo = teamRes.data.leaderboard_to;
-
-          // Fallback to dashboard_settings if team dates aren't set
-          if ((!lbFrom || !lbTo) && teamRes.data.owner_id) {
-            const { data: settings } = await supabase
-              .from('dashboard_settings')
-              .select('leaderboard_from, leaderboard_to')
-              .eq('user_id', teamRes.data.owner_id)
-              .maybeSingle();
-            if (settings) {
-              lbFrom = lbFrom || settings.leaderboard_from;
-              lbTo = lbTo || settings.leaderboard_to;
-            }
-          }
-
+        const teamInfo = teamRes.data?.[0];
+        if (teamInfo) {
           setLeaderboardDates({
-            from: lbFrom ? new Date(lbFrom + 'T00:00:00') : undefined,
-            to: lbTo ? new Date(lbTo + 'T00:00:00') : undefined,
+            from: teamInfo.leaderboard_from ? new Date(teamInfo.leaderboard_from + 'T00:00:00') : undefined,
+            to: teamInfo.leaderboard_to ? new Date(teamInfo.leaderboard_to + 'T00:00:00') : undefined,
           });
         }
       } catch (err) {
@@ -209,7 +188,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
     }
 
     fetchTeamPitchersAndDates();
-  }, [parentMode, teamId, outings, toast]);
+  }, [parentMode, teamId, toast]);
 
   // Fetch workout count + leaderboard dates for coach (non-parent) view
   useEffect(() => {
@@ -332,24 +311,48 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
     const fetchAllLocations = async () => {
       setIsLoadingLocations(true);
       try {
-        // Paginate to avoid Supabase's 1000-row default limit
-        const allRows: PitchLocationRow[] = [];
-        const PAGE_SIZE = 1000;
-        let from = 0;
-        let hasMore = true;
+        const startIso = `${dateRange.start}T00:00:00`;
+        const endIso = `${dateRange.end}T23:59:59`;
+        let allRows: PitchLocationRow[] = [];
 
-        while (hasMore) {
-          const { data, error } = await supabase
-            .from('pitch_locations')
-            .select('*')
-            .gte('created_at', `${dateRange.start}T00:00:00`)
-            .lte('created_at', `${dateRange.end}T23:59:59`)
-            .range(from, from + PAGE_SIZE - 1);
+        if (parentMode) {
+          // Public dashboard — no direct table access (RLS no longer
+          // permits it for anon); use the team/user-scoped RPC instead.
+          // Data volume for one team is small enough that no pagination
+          // is needed here, unlike the authenticated path below.
+          if (teamId) {
+            const { data, error } = await supabase.rpc('get_public_team_pitch_locations', {
+              p_team_id: teamId, p_start: startIso, p_end: endIso,
+            });
+            if (error) throw error;
+            allRows = data || [];
+          } else if (userId) {
+            const { data, error } = await supabase.rpc('get_public_user_pitch_locations', {
+              p_user_id: userId, p_start: startIso, p_end: endIso,
+            });
+            if (error) throw error;
+            allRows = data || [];
+          }
+        } else {
+          // Authenticated coach view — RLS already scopes this to the
+          // caller's own team, so a direct paginated select is fine.
+          const PAGE_SIZE = 1000;
+          let from = 0;
+          let hasMore = true;
 
-          if (error) throw error;
-          allRows.push(...(data || []));
-          hasMore = (data?.length ?? 0) === PAGE_SIZE;
-          from += PAGE_SIZE;
+          while (hasMore) {
+            const { data, error } = await supabase
+              .from('pitch_locations')
+              .select('*')
+              .gte('created_at', startIso)
+              .lte('created_at', endIso)
+              .range(from, from + PAGE_SIZE - 1);
+
+            if (error) throw error;
+            allRows.push(...(data || []));
+            hasMore = (data?.length ?? 0) === PAGE_SIZE;
+            from += PAGE_SIZE;
+          }
         }
 
         const locations: PitchLocation[] = allRows.map((row) => ({
@@ -372,7 +375,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
     };
 
     fetchAllLocations();
-  }, [dateRange]);
+  }, [dateRange, parentMode, teamId, userId]);
 
   const handleDateRangeChange = (start: Date, end: Date) => {
     setSeasonStart(start);

@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { validatePitcher } from '@/lib/validation';
 import { PitchTypeConfig } from '@/types/pitch-location';
-import { getPrimaryMembership } from '@/lib/team-membership';
+import { useTeamMemberships } from '@/hooks/use-team-memberships';
 
 export type CoachRating = 'minus' | 'even' | 'plus' | null;
 
@@ -33,6 +33,7 @@ export function usePitchers() {
   const [pitchers, setPitchers] = useState<PitcherRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { activeTeamId } = useTeamMemberships();
 
   // Fetch pitchers from Supabase
   const fetchPitchers = useCallback(async () => {
@@ -100,16 +101,14 @@ export function usePitchers() {
 
       // Stamp team_id explicitly so isolation doesn't rely solely on the DB
       // trigger fallback — a new roster entry must always belong to the
-      // adding coach's team.
-      const membership = await getPrimaryMembership(user.id);
-
+      // adding coach's currently active team.
       const { data, error } = await supabase
         .from('pitchers')
         .insert({
           name: validatedData.name,
           max_weekly_pitches: validatedData.maxWeeklyPitches,
           user_id: user.id,
-          team_id: membership?.teamId ?? null,
+          team_id: activeTeamId ?? null,
         })
         .select()
         .single();
@@ -151,7 +150,7 @@ export function usePitchers() {
       });
       return null;
     }
-  }, [toast]);
+  }, [toast, activeTeamId]);
 
   // Update a pitcher
   const updatePitcher = useCallback(async (id: string, updates: { name?: string; maxWeeklyPitches?: number }): Promise<boolean> => {

@@ -429,6 +429,7 @@ export default function GameModePage() {
         ];
         return {
           pitcher_id: pid,
+          pitcher_uuid: pid,
           pitcher_name: agg.name,
           date: game.date,
           event_type: 'Game',

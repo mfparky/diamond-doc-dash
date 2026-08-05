@@ -17,7 +17,12 @@ export const initialPitchers: Pitcher[] = [
 ];
 
 export function calculatePitcherStats(pitcher: Pitcher, allOutings: Outing[]): Pitcher {
-  const pitcherOutings = allOutings.filter(o => o.pitcherName === pitcher.name);
+  // Prefer the real FK match; fall back to name matching only for outings
+  // that don't have a resolved pitcherId (pre-Phase-2 rows, or an
+  // ambiguous same-name lookup the DB trigger declined to guess at).
+  const pitcherOutings = allOutings.filter(o =>
+    o.pitcherId ? o.pitcherId === pitcher.id : o.pitcherName === pitcher.name
+  );
   
   if (pitcherOutings.length === 0) {
     return {

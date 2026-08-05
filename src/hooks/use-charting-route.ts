@@ -77,6 +77,7 @@ export function useChartingRoute() {
 
       const newOuting = await addOuting({
         pitcherName: pitcher.name,
+        pitcherId: pitcher.id,
         date: data.date,
         eventType: data.eventType,
         pitchCount: data.pitchCount,
