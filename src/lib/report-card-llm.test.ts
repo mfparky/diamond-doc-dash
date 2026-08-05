@@ -37,6 +37,16 @@ describe('buildReportCardPromptPayload', () => {
     expect(user).toContain('Mid-season 2026');
   });
 
+  it('diffs IP as true innings, not a naive box-score decimal subtraction', () => {
+    // "6.2" = 6⅔ innings, "5.1" = 5⅓ — true delta is 1.333, not 6.2 - 5.1 = 1.1.
+    const { user } = buildReportCardPromptPayload({
+      ...baseInput,
+      latestStats: { ...baseInput.latestStats, pit_ip: 6.2 },
+      previousStats: { ...baseInput.previousStats, pit_ip: 5.1 },
+    });
+    expect(user).toContain('IP: 6.2 (+1.3 vs previous, better)');
+  });
+
   it('translates coach ratings to plain-English phrasing', () => {
     const { user } = buildReportCardPromptPayload(baseInput);
     expect(user).toContain('Effort: above average');

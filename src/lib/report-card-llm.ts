@@ -1,4 +1,4 @@
-import type { StatValue } from './stat-csv';
+import { type StatValue, parseInningsPitched } from './stat-csv';
 import type { PlayerRanking } from './team-rankings';
 import type { CoachRating } from '@/hooks/use-pitchers';
 import { getStoredApiKey } from './scan-form';
@@ -228,7 +228,12 @@ function summarizeStats(
     const v = num(latest, key);
     if (v === null) return;
     const p = num(previous, key);
-    const delta = p !== null ? v - p : null;
+    // pit_ip is box-score notation (6.1 = 6⅓) — convert before diffing, or
+    // the delta reflects a naive decimal subtraction instead of true innings.
+    // v/p themselves stay raw for display below (that's the notation a coach expects).
+    const vForDelta = key === 'pit_ip' ? parseInningsPitched(v) : v;
+    const pForDelta = key === 'pit_ip' && p !== null ? parseInningsPitched(p) : p;
+    const delta = pForDelta !== null ? vForDelta - pForDelta : null;
     const trend = delta === null
       ? ''
       : delta === 0

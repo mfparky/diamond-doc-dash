@@ -1,4 +1,4 @@
-import type { StatValue } from './stat-csv';
+import { type StatValue, parseInningsPitched } from './stat-csv';
 
 // --- Inputs / options ---
 
@@ -279,8 +279,13 @@ const METRICS: MetricConfig[] = [
   // first-pitch strike %). All are rate stats, so they reward quality
   // regardless of innings volume; the participation floor below still scales
   // the whole bucket down for kids who barely pitch.
-  { key: 'pit_era', label: 'ERA', description: 'Earned run average', narration: 'limiting earned runs', higherIsBetter: false, bucket: 'defense', weight: 2.5 },
-  { key: 'pit_whip', label: 'WHIP', description: 'Walks + hits per inning pitched', narration: 'limiting baserunners', higherIsBetter: false, bucket: 'defense', weight: 2.5 },
+  // Off by default: on a 10-15 IP youth-season sample, ERA/WHIP swing hard
+  // off one bad inning (a single blow-up outing can be someone's whole
+  // season line) — too punitive for the volume these kids actually throw.
+  // Coach can flip them back on via the Levers panel for a team with
+  // deeper innings.
+  { key: 'pit_era', label: 'ERA', description: 'Earned run average', narration: 'limiting earned runs', higherIsBetter: false, bucket: 'defense', weight: 2.5, defaultEnabled: false },
+  { key: 'pit_whip', label: 'WHIP', description: 'Walks + hits per inning pitched', narration: 'limiting baserunners', higherIsBetter: false, bucket: 'defense', weight: 2.5, defaultEnabled: false },
   { key: 'pit_k_pct_bf', label: 'K/BF', description: 'Strikeouts per batter faced', narration: 'punching out hitters', higherIsBetter: true, bucket: 'defense', weight: 2 },
   // Opponent batting average against. GameChanger exports this as 'BAA'
   // (→ pit_baa); derive checks a few common header spellings so it picks up
@@ -341,6 +346,9 @@ function readNum(stats: Record<string, StatValue> | null, key: string): number {
   const v = stats[key];
   return typeof v === 'number' && Number.isFinite(v) ? v : NaN;
 }
+
+// parseInningsPitched lives in stat-csv.ts (shared with team-health.ts and
+// pitcher-tiering.ts, which do the same raw pit_ip math).
 
 /**
  * Min-max scale to 0..100. Players whose value is NaN stay NaN (so they're
@@ -467,8 +475,11 @@ export function buildRankings(
       : minMaxNormalize(raw, m.higherIsBetter);
     normalizedByKey.set(m.key, normalized);
   }
+  // rawIp keeps the original box-score notation (e.g. 6.1) for display;
+  // trueIp converts it to real decimal innings (6.333) for any math done on it.
   const rawIp = inputs.map((i) => readNum(i.latest, PITCHING_VOLUME_METRIC.key));
-  const ipNormalized = minMaxNormalize(rawIp, true);
+  const trueIp = rawIp.map(parseInningsPitched);
+  const ipNormalized = minMaxNormalize(trueIp, true);
 
   const offenseMetrics = activeMetrics.filter((m) => m.bucket === 'offense');
   const defenseMetrics = activeMetrics.filter((m) => m.bucket === 'defense');
@@ -525,10 +536,14 @@ export function buildRankings(
     // counts at full trust/weight regardless of IP — for a kid the coach
     // knows is high-impact despite low innings (e.g. a closer who only
     // sees high-leverage one-inning spots).
+    // ipRaw keeps the box-score notation for display (inningsPitched below);
+    // the floor comparison needs true decimal innings or it over-damps any
+    // pitcher whose IP has a fractional (.1 / .2) part.
     const ipRaw = Number.isFinite(rawIp[idx]) ? rawIp[idx] : 0;
+    const ipTrueForPlayer = Number.isFinite(trueIp[idx]) ? trueIp[idx] : 0;
     const participationFactor = input.highImpactArm || participationFloor <= 0
       ? 1
-      : Math.min(1, ipRaw / participationFloor);
+      : Math.min(1, ipTrueForPlayer / participationFloor);
     const pitchingDefenseMetrics = defenseMetrics.filter((m) => m.key.startsWith('pit_'));
     const fieldingDefenseMetrics = defenseMetrics.filter((m) => !m.key.startsWith('pit_'));
     const weightIfFinite = (m: MetricConfig): number => {
@@ -684,10 +699,21 @@ export function buildRankings(
       ? (offenseRate - replacementOffenseRate) * pa
       : null;
 
-    const ip = readNum(input?.latest ?? null, 'pit_ip');
+    // Shrink the ERA gap by the same participationFactor already computed
+    // for the composite Defense score (reusing it here also means the
+    // highImpactArm override — which sets participationFactor to 1 — applies
+    // consistently). VORP/WAR feeds the Swap Simulator, which is explicitly
+    // a forward-looking "what if we swapped this player" projection — it
+    // should trust a small, noisy IP sample exactly as much as the rest of
+    // the app already decided to, not take a blow-up (or a lucky) outing at
+    // full face value just because this is a different formula.
+    // pit_ip is box-score notation (6.1 = 6⅓) — convert before using it as
+    // a quantity, or a fractional-innings outing gets scaled by a number up
+    // to 3x smaller than its real innings (see parseInningsPitched).
+    const ip = parseInningsPitched(readNum(input?.latest ?? null, 'pit_ip'));
     const era = rawEra(input);
     p.vorpPitching = (replacementEra !== null && Number.isFinite(era) && Number.isFinite(ip))
-      ? (replacementEra - era) * (ip / 9)
+      ? (replacementEra - era) * p.participationFactor * (ip / 9)
       : null;
 
     p.war = (p.vorpOffense !== null || p.vorpPitching !== null)

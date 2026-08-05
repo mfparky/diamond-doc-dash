@@ -32,6 +32,18 @@ describe('scorePitcher', () => {
     expect(s).toBeGreaterThanOrEqual(0);
     expect(s).toBeLessThanOrEqual(100);
   });
+
+  it('reads pit_ip as box-score notation (6.2 = 6⅔ innings), not a raw decimal', () => {
+    // "6.2" on a box score means 6 innings + 2 outs = 6.667 true innings.
+    const boxNotation = scorePitcher(stats({ pit_ip: 6.2 }))!;
+    const trueDecimalEquivalent = scorePitcher(stats({ pit_ip: 6 + 2 / 3 }))!;
+    expect(boxNotation).toBeCloseTo(trueDecimalEquivalent, 6);
+    // Sanity check it's actually different from the old (buggy) raw reading,
+    // which would have scored 6.2 as if it were 6.2 true innings.
+    const oldBuggyIpScore = (Math.min(6.2, 25) / 25) * 100 * 0.05;
+    const fixedIpScore = (Math.min(6 + 2 / 3, 25) / 25) * 100 * 0.05;
+    expect(fixedIpScore).toBeGreaterThan(oldBuggyIpScore);
+  });
 });
 
 describe('suggestGroups', () => {

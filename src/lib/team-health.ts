@@ -1,4 +1,4 @@
-import type { StatValue } from './stat-csv';
+import { type StatValue, parseInningsPitched, formatInningsAsBoxScore } from './stat-csv';
 
 export interface PitcherSnapshotInput {
   pitcherId: string;
@@ -43,22 +43,45 @@ function sumStat(snapshots: PitcherSnapshotInput[], key: string): number | null 
   return any ? total : null;
 }
 
+/**
+ * Sum pit_ip across pitchers in TRUE innings, not their raw box-score
+ * notation — you can't just add "0.2" + "0.2" and get "0.4" (two 2-out
+ * fragments carry into a full inning plus an out; naive summing silently
+ * loses that carry and understates the team total by several percent).
+ */
+function sumInningsPitched(snapshots: PitcherSnapshotInput[]): number | null {
+  let total = 0;
+  let any = false;
+  for (const s of snapshots) {
+    const v = num(s.latest, 'pit_ip');
+    if (v !== null) {
+      total += parseInningsPitched(v);
+      any = true;
+    }
+  }
+  return any ? total : null;
+}
+
 export function aggregateTeamStats(snapshots: PitcherSnapshotInput[]): TeamAggregates {
   const withLatest = snapshots.filter((s) => s.latest !== null);
-  const totalIp = sumStat(snapshots, 'pit_ip');
+  const totalIpTrue = sumInningsPitched(snapshots);
   const totalBf = sumStat(snapshots, 'pit_bf');
   const totalPitches = sumStat(snapshots, 'pit_p');
   const totalH = sumStat(snapshots, 'pit_h');
   const totalBb = sumStat(snapshots, 'pit_bb');
   const totalEr = sumStat(snapshots, 'pit_er');
   const totalSo = sumStat(snapshots, 'pit_so');
+  // Box-score notation for display (e.g. "78.1") — matches the CSV's own
+  // Totals row. era/whip below use totalIpTrue, the real decimal, as the
+  // divisor.
+  const totalIp = totalIpTrue !== null ? formatInningsAsBoxScore(totalIpTrue) : null;
 
-  const era = totalIp !== null && totalIp > 0 && totalEr !== null
-    ? (totalEr * 9) / totalIp
+  const era = totalIpTrue !== null && totalIpTrue > 0 && totalEr !== null
+    ? (totalEr * 9) / totalIpTrue
     : null;
 
-  const whip = totalIp !== null && totalIp > 0 && totalH !== null && totalBb !== null
-    ? (totalH + totalBb) / totalIp
+  const whip = totalIpTrue !== null && totalIpTrue > 0 && totalH !== null && totalBb !== null
+    ? (totalH + totalBb) / totalIpTrue
     : null;
 
   // Strike% derived from per-pitcher S% weighted by pitch count.
@@ -323,12 +346,12 @@ export function computeTeamRateStats(snapshots: PitcherSnapshotInput[]): TeamRat
   const agg = aggregateTeamStats(snapshots);
 
   // Pitching-side counting stats we need beyond the aggregate:
-  const totalIp = sumStat(snapshots, 'pit_ip');
+  const totalIpTrue = sumInningsPitched(snapshots);
   const totalBb = sumStat(snapshots, 'pit_bb');
   const totalBf = sumStat(snapshots, 'pit_bf');
   const totalSoPitching = sumStat(snapshots, 'pit_so');
 
-  const bb_pct_inn = totalIp !== null && totalIp > 0 && totalBb !== null ? totalBb / totalIp : null;
+  const bb_pct_inn = totalIpTrue !== null && totalIpTrue > 0 && totalBb !== null ? totalBb / totalIpTrue : null;
   const k_pct_bf = totalBf !== null && totalBf > 0 && totalSoPitching !== null ? totalSoPitching / totalBf : null;
 
   // FPS% is a per-pitcher rate — weight by BF so control-heavy starters count

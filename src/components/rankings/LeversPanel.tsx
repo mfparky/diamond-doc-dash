@@ -40,6 +40,13 @@ export interface LeverState {
     bat_obp: boolean;
     bat_bb: boolean;
     bat_6_pct: boolean;
+    /**
+     * ERA/WHIP swing hard on a small youth-season IP sample — off by default
+     * so one blow-up outing doesn't tank a kid's defense score. Coach can
+     * turn these back on for a team with deeper innings.
+     */
+    pit_era: boolean;
+    pit_whip: boolean;
     /** When false, hides the entire intangibles bucket by disabling all 3. */
     intangibles_effort: boolean;
     intangibles_coachability: boolean;
@@ -61,6 +68,8 @@ export const DEFAULT_LEVER_STATE: LeverState = {
     bat_obp: false,
     bat_bb: false,
     bat_6_pct: false,
+    pit_era: false,
+    pit_whip: false,
     intangibles_effort: true,
     intangibles_coachability: true,
     intangibles_baseball_iq: true,
@@ -129,6 +138,8 @@ const PRESETS: Array<{ name: string; description: string; state: LeverState }> =
         bat_obp: false,
         bat_bb: false,
         bat_6_pct: false,
+        pit_era: false,
+        pit_whip: false,
         intangibles_effort: true,
         intangibles_coachability: true,
         intangibles_baseball_iq: true,
@@ -155,6 +166,8 @@ const PRESETS: Array<{ name: string; description: string; state: LeverState }> =
         bat_obp: false,
         bat_bb: false,
         bat_6_pct: false,
+        pit_era: true,
+        pit_whip: true,
         intangibles_effort: false,
         intangibles_coachability: false,
         intangibles_baseball_iq: false,
@@ -348,6 +361,22 @@ export function LeversPanel({ open, onOpenChange, levers, onChange }: LeversPane
                     bat_obp: v,
                     bat_bb: v,
                     bat_6_pct: v,
+                  },
+                });
+              }}
+            />
+            <MetricToggle
+              id="lever-era-whip"
+              label="ERA & WHIP"
+              description="Off by default — on a short youth-season IP sample, one blow-up outing can swing these hard. Turn on if your staff has deeper innings."
+              checked={levers.metricEnabled.pit_era}
+              onChange={(v) => {
+                onChange({
+                  ...levers,
+                  metricEnabled: {
+                    ...levers.metricEnabled,
+                    pit_era: v,
+                    pit_whip: v,
                   },
                 });
               }}

@@ -71,7 +71,7 @@ import {
   type PitchEntry,
 } from '@/lib/tournament-pitch-rules';
 import { suggestGroups, suggestPitchBudget } from '@/lib/pitcher-tiering';
-import type { StatValue } from '@/lib/stat-csv';
+import { parseInningsPitched, type StatValue } from '@/lib/stat-csv';
 
 /**
  * PitchingPlannerPage — a game-centric planner for weekend or tournament use.
@@ -467,8 +467,10 @@ export default function PitchingPlannerPage() {
     eligible.sort((a, b) => (totals.get(a.p.id) ?? 0) - (totals.get(b.p.id) ?? 0));
 
     for (const { p, check } of eligible.slice(0, perGame)) {
+      // pit_ip is box-score notation (6.1 = 6⅓) — convert before scaling the
+      // budget, or a fractional-innings pitcher gets under-budgeted.
       const ip = typeof rosterStatsById[p.id]?.stats?.pit_ip === 'number'
-        ? (rosterStatsById[p.id]!.stats!.pit_ip as number)
+        ? parseInningsPitched(rosterStatsById[p.id]!.stats!.pit_ip as number)
         : 0;
       const budget = suggestPitchBudget(p.group ?? null, ip, 30);
       const cap = Math.min(budget, check.remaining ?? budget);
