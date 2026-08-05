@@ -249,6 +249,10 @@ const METRICS: MetricConfig[] = [
   // 2-out RBI is a coach favorite — comes through with two outs. Off by
   // default so the base weighting stays clean; enable via the Levers panel.
   { key: 'bat_2outrbi', label: '2-out RBI', description: 'Runs batted in with two outs', narration: 'coming through with two outs', higherIsBetter: true, bucket: 'offense', weight: 1, defaultEnabled: false },
+  // Plain batting average — straightforward "did the ball find grass"
+  // signal, weighted a bit above QAB% since QAB% double-counts some of what
+  // BB/K already captures (see below) while AVG is a clean, independent read.
+  { key: 'bat_avg', label: 'AVG', description: 'Batting average', narration: 'hitting for average', higherIsBetter: true, bucket: 'offense', weight: 0.75 },
   // QAB% counts walks + sac bunts + sac flies as quality at-bats, which
   // double-credits patient hitters who already get BB/K. Halved to 0.5 so
   // a kid who walks a lot but never swings doesn't get a second bump.
