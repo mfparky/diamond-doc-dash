@@ -99,7 +99,7 @@ export function usePitchLocations() {
   // out by RLS now that the blanket public policy is gone.
   const fetchPublicPitchLocationsForPitcher = useCallback(async (pitcherId: string): Promise<PitchLocation[]> => {
     try {
-      const { data, error } = await supabase.rpc('get_public_pitcher_pitch_locations', { p_pitcher_id: pitcherId });
+      const { data, error } = await (supabase.rpc as any)('get_public_pitcher_pitch_locations', { p_pitcher_id: pitcherId });
       if (error) throw error;
 
       return (data || []).map((row) => ({

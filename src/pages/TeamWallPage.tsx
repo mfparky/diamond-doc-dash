@@ -22,8 +22,8 @@ export default function TeamWallPage() {
     if (!teamId) return;
     async function load() {
       const [{ data: teamRows }, { data: pitchers }] = await Promise.all([
-        supabase.rpc('get_public_team_info', { p_team_id: teamId! }),
-        supabase.rpc('get_public_team_pitchers', { p_team_id: teamId! }),
+        (supabase.rpc as any)('get_public_team_info', { p_team_id: teamId! }),
+        (supabase.rpc as any)('get_public_team_pitchers', { p_team_id: teamId! }),
       ]);
       const team = teamRows?.[0];
       if (team) setTeamName(team.name);
