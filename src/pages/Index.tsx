@@ -236,11 +236,11 @@ const Index = () => {
   }, [rosterPitchers, outings]);
 
   const handleAddOuting = async (outingData: Omit<Outing, 'id' | 'timestamp'>, pitchLocations?: Array<{pitchNumber: number; pitchType: number; xLocation: number; yLocation: number; isStrike: boolean}>): Promise<Outing | null> => {
-    const newOuting = await addOuting(outingData);
+    const selectedPitcher = rosterPitchers.find(p => p.name === outingData.pitcherName);
+    const newOuting = await addOuting({ ...outingData, pitcherId: outingData.pitcherId ?? selectedPitcher?.id });
     if (newOuting) {
       // Save pitch locations if provided
       if (pitchLocations && pitchLocations.length > 0) {
-        const selectedPitcher = rosterPitchers.find(p => p.name === outingData.pitcherName);
         if (selectedPitcher) {
           await addPitchLocations(newOuting.id, selectedPitcher.id, pitchLocations);
         }
@@ -262,7 +262,7 @@ const Index = () => {
     pitcherId: string,
     pitchLocations: Array<{ pitchNumber: number; pitchType: number; xLocation: number; yLocation: number; isStrike: boolean }>
   ) => {
-    const newOuting = await addOuting(outingData);
+    const newOuting = await addOuting({ ...outingData, pitcherId: outingData.pitcherId ?? pitcherId });
     if (newOuting && pitchLocations.length > 0) {
       await addPitchLocations(newOuting.id, pitcherId, pitchLocations);
     }

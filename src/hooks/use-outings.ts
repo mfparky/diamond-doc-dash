@@ -27,6 +27,7 @@ export function useOutings() {
         timestamp: row.created_at,
         date: row.date,
         pitcherName: row.pitcher_name,
+        pitcherId: row.pitcher_uuid ?? undefined,
         eventType: row.event_type as Outing['eventType'],
         pitchCount: row.pitch_count,
         strikes: row.strikes,
@@ -93,8 +94,8 @@ export function useOutings() {
         return null;
       }
 
-      // Find the pitcher to get their ID
-      const pitcherId = outingData.pitcherName.toLowerCase().replace(/\s+/g, '-');
+      // Legacy slug — kept only for the deprecated pitcher_id text column.
+      const legacyPitcherId = outingData.pitcherName.toLowerCase().replace(/\s+/g, '-');
 
       // Stamp team_id explicitly so isolation doesn't rely solely on the DB
       // trigger fallback — a coach's outings must always belong to their team.
@@ -103,7 +104,8 @@ export function useOutings() {
       const { data, error } = await supabase
         .from('outings')
         .insert({
-          pitcher_id: pitcherId,
+          pitcher_id: legacyPitcherId,
+          pitcher_uuid: outingData.pitcherId ?? null,
           pitcher_name: outingData.pitcherName,
           date: outingData.date,
           event_type: outingData.eventType,
@@ -127,6 +129,7 @@ export function useOutings() {
         timestamp: data.created_at,
         date: data.date,
         pitcherName: data.pitcher_name,
+        pitcherId: data.pitcher_uuid ?? undefined,
         eventType: data.event_type as Outing['eventType'],
         pitchCount: data.pitch_count,
         strikes: data.strikes,

@@ -1,0 +1,21 @@
+-- ROLLBACK for 20260805110000_outings_pitcher_uuid.sql
+-- Not a migration (.sql.txt, not picked up by the migration runner).
+-- Run manually via the Supabase SQL editor / psql if this needs reverting.
+--
+-- Dropping the column also drops its trigger dependency automatically, but
+-- we drop the triggers/function explicitly first for clarity and restore
+-- Phase 1's original trigger name.
+
+BEGIN;
+
+DROP TRIGGER IF EXISTS trg_outings_2_set_pitcher_uuid ON public.outings;
+DROP FUNCTION IF EXISTS public.set_outing_pitcher_uuid();
+
+DROP TRIGGER IF EXISTS trg_outings_1_set_team_id ON public.outings;
+CREATE TRIGGER trg_outings_set_team_id
+  BEFORE INSERT ON public.outings
+  FOR EACH ROW EXECUTE FUNCTION public.set_team_id_from_membership();
+
+ALTER TABLE public.outings DROP COLUMN IF EXISTS pitcher_uuid;
+
+COMMIT;

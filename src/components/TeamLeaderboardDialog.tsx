@@ -23,11 +23,8 @@ export function TeamLeaderboardDialog({ open, onOpenChange, pitcherId }: TeamLea
     const fetchTeamPitchers = async () => {
       setIsLoading(true);
       try {
-        const { data: pitcher } = await supabase
-          .from('pitchers')
-          .select('team_id, user_id')
-          .eq('id', pitcherId)
-          .maybeSingle();
+        const { data: pitcherRows } = await supabase.rpc('get_public_pitcher', { p_pitcher_id: pitcherId });
+        const pitcher = pitcherRows?.[0];
 
         if (!pitcher) {
           setTeamPitchers([]);
@@ -40,11 +37,8 @@ export function TeamLeaderboardDialog({ open, onOpenChange, pitcherId }: TeamLea
         let lbTo: string | null = null;
 
         if (pitcher.team_id) {
-          const { data: team } = await supabase
-            .from('teams')
-            .select('leaderboard_from, leaderboard_to')
-            .eq('id', pitcher.team_id)
-            .maybeSingle();
+          const { data: teamRows } = await supabase.rpc('get_public_team_info', { p_team_id: pitcher.team_id });
+          const team = teamRows?.[0];
 
           if (team) {
             lbFrom = team.leaderboard_from;
@@ -70,17 +64,17 @@ export function TeamLeaderboardDialog({ open, onOpenChange, pitcherId }: TeamLea
         setLeaderboardTo(lbTo ? new Date(lbTo + 'T00:00:00') : undefined);
 
         // Fetch teammates by team_id, or fall back to user_id grouping
-        let query = supabase.from('pitchers').select('*');
+        let pitchers: typeof pitcherRows = [];
         if (pitcher.team_id) {
-          query = query.eq('team_id', pitcher.team_id);
+          const { data } = await supabase.rpc('get_public_team_pitchers', { p_team_id: pitcher.team_id });
+          pitchers = data || [];
         } else if (pitcher.user_id) {
-          query = query.eq('user_id', pitcher.user_id);
+          const { data } = await supabase.rpc('get_public_user_pitchers', { p_user_id: pitcher.user_id });
+          pitchers = data || [];
         } else {
           setTeamPitchers([]);
           return;
         }
-
-        const { data: pitchers } = await query;
 
         const mapped: PitcherRecord[] = (pitchers || []).map((p) => ({
           id: p.id,

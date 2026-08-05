@@ -1,0 +1,9 @@
+-- ROLLBACK for 20260805120000_combined_dashboard_public_rpcs.sql
+-- Not a migration (.sql.txt). Run manually if needed.
+
+BEGIN;
+
+DROP FUNCTION IF EXISTS public.get_public_team_pitch_locations(uuid, timestamptz, timestamptz);
+DROP FUNCTION IF EXISTS public.get_public_user_pitch_locations(uuid, timestamptz, timestamptz);
+
+COMMIT;

@@ -177,6 +177,7 @@ export type Database = {
           notes: string | null
           pitch_count: number
           pitcher_id: string
+          pitcher_uuid: string | null
           pitcher_name: string
           strikes: number | null
           team_id: string | null
@@ -201,6 +202,7 @@ export type Database = {
           notes?: string | null
           pitch_count: number
           pitcher_id: string
+          pitcher_uuid?: string | null
           pitcher_name: string
           strikes?: number | null
           team_id?: string | null
@@ -225,6 +227,7 @@ export type Database = {
           notes?: string | null
           pitch_count?: number
           pitcher_id?: string
+          pitcher_uuid?: string | null
           pitcher_name?: string
           strikes?: number | null
           team_id?: string | null
@@ -243,6 +246,13 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outings_pitcher_uuid_fkey"
+            columns: ["pitcher_uuid"]
+            isOneToOne: false
+            referencedRelation: "pitchers"
             referencedColumns: ["id"]
           },
         ]
@@ -772,6 +782,14 @@ export type Database = {
       }
       get_public_pitcher_pitch_locations: {
         Args: { p_pitcher_id: string }
+        Returns: Database["public"]["Tables"]["pitch_locations"]["Row"][]
+      }
+      get_public_team_pitch_locations: {
+        Args: { p_team_id: string; p_start: string; p_end: string }
+        Returns: Database["public"]["Tables"]["pitch_locations"]["Row"][]
+      }
+      get_public_user_pitch_locations: {
+        Args: { p_user_id: string; p_start: string; p_end: string }
         Returns: Database["public"]["Tables"]["pitch_locations"]["Row"][]
       }
     }

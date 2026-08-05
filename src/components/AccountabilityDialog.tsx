@@ -99,11 +99,8 @@ export function AccountabilityDialog({
     (async () => {
       try {
         // Find this pitcher's team
-        const { data: pitcherRow } = await supabase
-          .from('pitchers')
-          .select('id, team_id, user_id')
-          .eq('id', pitcherId)
-          .maybeSingle();
+        const { data: pitcherRows } = await supabase.rpc('get_public_pitcher', { p_pitcher_id: pitcherId });
+        const pitcherRow = pitcherRows?.[0];
 
         if (!pitcherRow) { setIsInTop5(false); return; }
 
@@ -111,13 +108,10 @@ export function AccountabilityDialog({
         let from: string | null = null;
         let to: string | null = null;
         if ((pitcherRow as any).team_id) {
-          const { data: team } = await supabase
-            .from('teams')
-            .select('leaderboard_from, leaderboard_to')
-            .eq('id', (pitcherRow as any).team_id)
-            .maybeSingle();
-          from = (team as any)?.leaderboard_from ?? null;
-          to = (team as any)?.leaderboard_to ?? null;
+          const { data: teamRows } = await supabase.rpc('get_public_team_info', { p_team_id: (pitcherRow as any).team_id });
+          const team = teamRows?.[0];
+          from = team?.leaderboard_from ?? null;
+          to = team?.leaderboard_to ?? null;
         } else if ((pitcherRow as any).user_id) {
           const { data: ds } = await supabase
             .from('dashboard_settings' as any)
@@ -146,11 +140,8 @@ export function AccountabilityDialog({
         // Get all team pitcher ids
         let teammateIds: string[] = [pitcherId];
         if ((pitcherRow as any).team_id) {
-          const { data: roster } = await supabase
-            .from('pitchers')
-            .select('id')
-            .eq('team_id', (pitcherRow as any).team_id);
-          teammateIds = (roster || []).map((r: any) => r.id);
+          const { data: roster } = await supabase.rpc('get_public_team_pitchers', { p_team_id: (pitcherRow as any).team_id });
+          teammateIds = (roster || []).map((r) => r.id);
         }
 
         if (teammateIds.length <= 5) {
