@@ -102,6 +102,45 @@ function coerceCell(raw: string): StatValue {
 }
 
 /**
+ * GameChanger (and standard box-score) notation encodes innings pitched as
+ * whole.outs — "6.1" means 6⅓ innings (one out into the 7th), "6.2" means
+ * 6⅔ (two outs); the fractional digit is never anything but 0, 1, or 2.
+ * Reading pit_ip as a literal base-10 decimal understates any fractional
+ * inning — "0.2" (⅔ of an inning) reads as 0.2 instead of 0.667, a ~70%
+ * shrink at the extreme — which throws off anything computed FROM it:
+ * summed team totals, participation-floor thresholds, budget scaling.
+ *
+ * Stats that come pre-computed from the file (ERA, WHIP) are unaffected —
+ * GameChanger already computed those correctly against true innings. This
+ * conversion only matters for math WE do directly on the raw pit_ip number.
+ * Keep the original raw value for anything shown to a coach as "X.Y IP" —
+ * that's the box-score notation they expect to see.
+ */
+export function parseInningsPitched(raw: number): number {
+  if (!Number.isFinite(raw)) return raw;
+  const whole = Math.trunc(raw);
+  const outsDigit = Math.round((raw - whole) * 10);
+  if (outsDigit === 1) return whole + 1 / 3;
+  if (outsDigit === 2) return whole + 2 / 3;
+  return raw;
+}
+
+/**
+ * Inverse of parseInningsPitched. A summed team total in true decimal
+ * innings (e.g. 78.333, from adding several pitchers' converted innings)
+ * needs to go back to box-score notation to read the way a coach expects —
+ * "78.1", matching the CSV's own Totals row — instead of a real decimal
+ * that doesn't match any number in the file.
+ */
+export function formatInningsAsBoxScore(trueInnings: number): number {
+  if (!Number.isFinite(trueInnings)) return trueInnings;
+  const whole = Math.floor(trueInnings);
+  const outs = Math.round((trueInnings - whole) * 3);
+  if (outs >= 3) return whole + 1;
+  return whole + outs / 10;
+}
+
+/**
  * Parses a GameChanger-style season-stat CSV string.
  * Throws if the CSV doesn't look like a stat export (no section row / header row).
  */

@@ -17,6 +17,10 @@ const baseOptions: RankingOptions = {
   reefMode: '25',
   // Tests opt in to the participation floor when they want to exercise it.
   pitchingParticipationFloor: 0,
+  // ERA/WHIP are off by default in the app (too punitive on a small youth
+  // IP sample) but most of these tests use them as stand-in defense
+  // metrics to exercise generic composition mechanics, so opt back in here.
+  metricEnabled: { pit_era: true, pit_whip: true },
 };
 
 function fixtureInputs(): RankingInput[] {
@@ -340,6 +344,18 @@ describe('buildRankings — weighting', () => {
     ];
     const { rankings } = buildRankings(inputs, baseOptions);
     expect(rankings[0].pitcherName).toBe('StrongArm');
+  });
+
+  it('ignores ERA/WHIP by default — too punitive on a small youth IP sample', () => {
+    const inputs: RankingInput[] = [
+      // Blow-up ERA/WHIP, but a clean glove — should NOT be penalized
+      // when ERA/WHIP are left at their app default (off).
+      { pitcherId: 'a', pitcherName: 'RoughOuting', latest: { pit_era: 12.0, pit_whip: 3.5, field_fpct: 0.95 } },
+      { pitcherId: 'b', pitcherName: 'SameGlove', latest: { pit_era: 1.0, pit_whip: 0.7, field_fpct: 0.95 } },
+    ];
+    // No metricEnabled override — exercises the real app default.
+    const { rankings } = buildRankings(inputs, { reefMode: '25', pitchingParticipationFloor: 0 });
+    expect(rankings[0].playerValue).toBeCloseTo(rankings[1].playerValue, 6);
   });
 });
 

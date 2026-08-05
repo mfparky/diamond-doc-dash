@@ -69,12 +69,29 @@ describe('aggregateTeamStats', () => {
 
   it('aggregates the real fixture without crashing and yields plausible team totals', () => {
     const agg = aggregateTeamStats(snapshotsFromFixture());
-    // Fixture totals row shows 78.1 IP across the team
-    expect(agg.totalIp).not.toBeNull();
-    expect(agg.totalIp!).toBeGreaterThan(50);
+    // The fixture's own Totals row shows 78.1 IP (= 78⅓ true innings) —
+    // GameChanger computes this correctly, so it's the ground truth to
+    // match against. A naive decimal sum of every pitcher's raw IP value
+    // gives 75.3 instead — understating the team total by ~4%.
+    expect(agg.totalIp).toBe(78.1);
     expect(agg.era).not.toBeNull();
     expect(agg.whip).not.toBeNull();
     expect(agg.pitchersWithStats).toBeGreaterThan(0);
+  });
+
+  it('sums fractional innings with carry, not naive decimal addition', () => {
+    // Three pitchers each with a 2-out (⅔ inning) outing. Naive decimal
+    // addition gives 0.2+0.2+0.2 = 0.6 — not even valid box-score notation.
+    // The real total is 3 full innings (⅔ + ⅔ + ⅔ = 2), carried correctly.
+    const snapshots: PitcherSnapshotInput[] = [
+      { pitcherId: 'a', pitcherName: 'A', latest: { pit_ip: 0.2, pit_er: 1, pit_h: 1, pit_bb: 0 }, previous: null },
+      { pitcherId: 'b', pitcherName: 'B', latest: { pit_ip: 0.2, pit_er: 1, pit_h: 1, pit_bb: 0 }, previous: null },
+      { pitcherId: 'c', pitcherName: 'C', latest: { pit_ip: 0.2, pit_er: 1, pit_h: 1, pit_bb: 0 }, previous: null },
+    ];
+    const agg = aggregateTeamStats(snapshots);
+    expect(agg.totalIp).toBe(2.0);
+    // ERA = (3 ER * 9) / 2 true innings = 13.5, not (3*9)/0.6 = 45
+    expect(agg.era).toBeCloseTo(13.5, 2);
   });
 });
 

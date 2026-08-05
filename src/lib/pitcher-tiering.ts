@@ -1,4 +1,4 @@
-import type { StatValue } from './stat-csv';
+import { type StatValue, parseInningsPitched } from './stat-csv';
 
 /**
  * Pure scoring + tier-assignment for the tournament-planner A/B rotation.
@@ -56,7 +56,9 @@ function readNum(stats: Record<string, StatValue> | null, key: string): number |
  */
 export function scorePitcher(stats: Record<string, StatValue> | null): number | null {
   if (!stats) return null;
-  const ip = readNum(stats, 'pit_ip') ?? 0;
+  // pit_ip is box-score notation (6.1 = 6⅓) — convert before scaling ipScore,
+  // or a fractional outing scores up to 3x lower than it should.
+  const ip = parseInningsPitched(readNum(stats, 'pit_ip') ?? 0);
   const era = readNum(stats, 'pit_era');
   const whip = readNum(stats, 'pit_whip');
   const strikePct = readNum(stats, 'pit_s_pct');
