@@ -252,6 +252,42 @@ describe('buildRankings — VORP / WAR', () => {
     expect(dCustom.war).toBeCloseTo(5.0 / 5, 6); // 1.0
   });
 
+  it('shrinks pitching VORP by the same participationFactor as the composite Defense score', () => {
+    // A one-outing 10.5 ERA blow-up on a 1-IP sample shouldn't count at full
+    // face value in a forward-looking "what if we swapped him" projection —
+    // it should be shrunk exactly as much as the main Defense score already
+    // shrinks it, not taken at face value just because VORP is a different
+    // code path.
+    const inputs: RankingInput[] = [
+      { pitcherId: 'best', pitcherName: 'Best', latest: { pit_era: 2.0, pit_ip: 10 } },
+      { pitcherId: 'mid', pitcherName: 'Mid', latest: { pit_era: 5.0, pit_ip: 10 } },
+      { pitcherId: 'worst', pitcherName: 'Worst', latest: { pit_era: 9.0, pit_ip: 10 } },
+      { pitcherId: 'shaky', pitcherName: 'Shaky', latest: { pit_era: 10.5, pit_ip: 1 } },
+    ];
+    const { rankings, excluded, replacementEra } = buildRankings(
+      inputs,
+      { ...baseOptions, reefMode: '50', pitchingParticipationFloor: 5 },
+    );
+    const all = [...rankings, ...excluded];
+    const shaky = all.find((r) => r.pitcherName === 'Shaky')!;
+    const worst = all.find((r) => r.pitcherName === 'Worst')!;
+
+    expect(shaky.participationFactor).toBeCloseTo(0.2, 6);
+    expect(worst.participationFactor).toBe(1);
+    expect(replacementEra).not.toBeNull();
+
+    const unshrunkVorp = (replacementEra! - 10.5) * (1 / 9);
+    const expectedShrunkVorp = (replacementEra! - 10.5) * shaky.participationFactor * (1 / 9);
+    expect(shaky.vorpPitching).toBeCloseTo(expectedShrunkVorp, 6);
+    // Shrinking pulls the VORP toward zero — a small, noisy sample doesn't
+    // earn full credit (or full blame) in either direction.
+    expect(Math.abs(shaky.vorpPitching!)).toBeLessThan(Math.abs(unshrunkVorp));
+
+    // Full-IP "Worst" gets no such protection — a genuinely bad season-long
+    // line is trusted in full, unshrunk.
+    expect(worst.vorpPitching).toBeCloseTo((replacementEra! - 9.0) * 1 * (10 / 9), 6);
+  });
+
   it('leaves VORP/WAR null when a player has no PA/IP data to rate', () => {
     const inputs: RankingInput[] = [
       { pitcherId: 'a', pitcherName: 'A', latest: { bat_ops: 0.700 } }, // no bat_pa

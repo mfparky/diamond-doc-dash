@@ -684,10 +684,18 @@ export function buildRankings(
       ? (offenseRate - replacementOffenseRate) * pa
       : null;
 
+    // Shrink the ERA gap by the same participationFactor already computed
+    // for the composite Defense score (reusing it here also means the
+    // highImpactArm override — which sets participationFactor to 1 — applies
+    // consistently). VORP/WAR feeds the Swap Simulator, which is explicitly
+    // a forward-looking "what if we swapped this player" projection — it
+    // should trust a small, noisy IP sample exactly as much as the rest of
+    // the app already decided to, not take a blow-up (or a lucky) outing at
+    // full face value just because this is a different formula.
     const ip = readNum(input?.latest ?? null, 'pit_ip');
     const era = rawEra(input);
     p.vorpPitching = (replacementEra !== null && Number.isFinite(era) && Number.isFinite(ip))
-      ? (replacementEra - era) * (ip / 9)
+      ? (replacementEra - era) * p.participationFactor * (ip / 9)
       : null;
 
     p.war = (p.vorpOffense !== null || p.vorpPitching !== null)
