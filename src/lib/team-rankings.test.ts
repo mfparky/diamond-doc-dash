@@ -199,6 +199,73 @@ describe('buildRankings — composition', () => {
   });
 });
 
+describe('buildRankings — VORP / WAR', () => {
+  it('computes offense VORP against the belowReef pool\'s average rate', () => {
+    // 4 hitters, ops/r/rbi all monotonic a<b<c<d so ranking is unambiguous.
+    // reefMode 50 splits the bottom 2 (a, b) into the replacement pool.
+    const inputs: RankingInput[] = [
+      { pitcherId: 'a', pitcherName: 'A', latest: { bat_ops: 0.300, bat_pa: 20, bat_r: 1, bat_rbi: 1 } }, // rate 0.1
+      { pitcherId: 'b', pitcherName: 'B', latest: { bat_ops: 0.600, bat_pa: 20, bat_r: 3, bat_rbi: 3 } }, // rate 0.3
+      { pitcherId: 'c', pitcherName: 'C', latest: { bat_ops: 0.900, bat_pa: 20, bat_r: 5, bat_rbi: 5 } }, // rate 0.5
+      { pitcherId: 'd', pitcherName: 'D', latest: { bat_ops: 1.200, bat_pa: 30, bat_r: 11, bat_rbi: 10 } }, // rate 0.7
+    ];
+    const { rankings, excluded, replacementOffenseRate } = buildRankings(inputs, { ...baseOptions, reefMode: '50' });
+    const all = [...rankings, ...excluded];
+    expect(all.map((r) => r.pitcherName).sort()).toEqual(['A', 'B', 'C', 'D']);
+
+    const a = all.find((r) => r.pitcherName === 'A')!;
+    const b = all.find((r) => r.pitcherName === 'B')!;
+    const c = all.find((r) => r.pitcherName === 'C')!;
+    const d = all.find((r) => r.pitcherName === 'D')!;
+
+    expect(a.belowReef).toBe(true);
+    expect(b.belowReef).toBe(true);
+    expect(c.belowReef).toBe(false);
+    // Replacement rate = average of A (0.1) and B (0.3) = 0.2
+    expect(replacementOffenseRate).toBeCloseTo(0.2, 6);
+    expect(c.vorpOffense).toBeCloseTo((0.5 - 0.2) * 20, 6); // 6.0
+    expect(d.vorpOffense).toBeCloseTo((0.7 - 0.2) * 30, 6); // 15.0
+  });
+
+  it('computes pitching VORP and converts to WAR via runsPerWin', () => {
+    const inputs: RankingInput[] = [
+      { pitcherId: 'a', pitcherName: 'A', latest: { pit_era: 8.0, pit_ip: 5 } },
+      { pitcherId: 'b', pitcherName: 'B', latest: { pit_era: 6.0, pit_ip: 5 } },
+      { pitcherId: 'c', pitcherName: 'C', latest: { pit_era: 4.0, pit_ip: 9 } },
+      { pitcherId: 'd', pitcherName: 'D', latest: { pit_era: 2.0, pit_ip: 9 } },
+    ];
+    const { rankings, excluded, replacementEra, runsPerWin } = buildRankings(inputs, { ...baseOptions, reefMode: '50' });
+    const all = [...rankings, ...excluded];
+    const c = all.find((r) => r.pitcherName === 'C')!;
+    const d = all.find((r) => r.pitcherName === 'D')!;
+
+    // Replacement ERA = average of A (8.0) and B (6.0) = 7.0
+    expect(replacementEra).toBeCloseTo(7.0, 6);
+    expect(runsPerWin).toBe(10); // DEFAULT_RUNS_PER_WIN, no override passed
+    expect(c.vorpPitching).toBeCloseTo((7.0 - 4.0) * (9 / 9), 6); // 3.0
+    expect(d.vorpPitching).toBeCloseTo((7.0 - 2.0) * (9 / 9), 6); // 5.0
+    expect(d.war).toBeCloseTo(5.0 / 10, 6); // 0.5
+
+    // Custom runsPerWin halves the win value for the same run value.
+    const withCustomRpw = buildRankings(inputs, { ...baseOptions, reefMode: '50', runsPerWin: 5 });
+    const dCustom = [...withCustomRpw.rankings, ...withCustomRpw.excluded].find((r) => r.pitcherName === 'D')!;
+    expect(dCustom.war).toBeCloseTo(5.0 / 5, 6); // 1.0
+  });
+
+  it('leaves VORP/WAR null when a player has no PA/IP data to rate', () => {
+    const inputs: RankingInput[] = [
+      { pitcherId: 'a', pitcherName: 'A', latest: { bat_ops: 0.700 } }, // no bat_pa
+      { pitcherId: 'b', pitcherName: 'B', latest: { bat_ops: 0.500 } },
+    ];
+    const { rankings } = buildRankings(inputs, baseOptions);
+    for (const r of rankings) {
+      expect(r.vorpOffense).toBeNull();
+      expect(r.vorpPitching).toBeNull();
+      expect(r.war).toBeNull();
+    }
+  });
+});
+
 describe('buildRankings — weighting', () => {
   it('promotes a player who leads in R+RBI even with average peripheral stats', () => {
     // Three identical players, except one leads in R and RBI.
