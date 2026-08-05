@@ -16,25 +16,27 @@ ALTER TABLE public.outings
 -- a pitcher_uuid and that resolve to exactly one pitcher, so it can never
 -- mis-link an outing across teams even if two teams happen to share a
 -- pitcher name.
+-- Postgres has no min()/max() aggregate for uuid, so pick the single match
+-- via a window-function count computed in the SELECT list (legal there,
+-- unlike inside HAVING) and filter on that count in the outer UPDATE's
+-- WHERE clause instead of trying to aggregate the uuid itself.
 WITH candidate_matches AS (
-  SELECT o2.id AS outing_id, p.id AS pitcher_id
+  SELECT
+    o2.id AS outing_id,
+    p.id AS pitcher_id,
+    count(*) OVER (PARTITION BY o2.id) AS match_count
   FROM public.outings o2
   JOIN public.pitchers p ON p.name = o2.pitcher_name
     AND (
       (p.team_id IS NOT NULL AND p.team_id = o2.team_id)
       OR (p.team_id IS NULL AND p.user_id IS NOT NULL AND p.user_id = o2.user_id)
     )
-),
-unambiguous_matches AS (
-  SELECT outing_id, min(pitcher_id) AS pitcher_id
-  FROM candidate_matches
-  GROUP BY outing_id
-  HAVING count(*) = 1
 )
 UPDATE public.outings o
 SET pitcher_uuid = m.pitcher_id
-FROM unambiguous_matches m
+FROM candidate_matches m
 WHERE o.id = m.outing_id
+  AND m.match_count = 1
   AND o.pitcher_uuid IS NULL;
 
 -- Auto-resolve pitcher_uuid on write for any path not yet updated to pass
@@ -48,10 +50,11 @@ SET search_path = public
 AS $$
 DECLARE
   v_match_count int;
-  v_pitcher_id uuid;
 BEGIN
   IF NEW.pitcher_uuid IS NULL THEN
-    SELECT count(*), max(p.id) INTO v_match_count, v_pitcher_id
+    -- No min()/max() aggregate exists for uuid in Postgres, so count first,
+    -- then separately fetch the single row only when the count is exactly 1.
+    SELECT count(*) INTO v_match_count
     FROM public.pitchers p
     WHERE p.name = NEW.pitcher_name
       AND (
@@ -62,7 +65,14 @@ BEGIN
     -- Only auto-fill when the lookup is unambiguous — don't guess if more
     -- than one pitcher matches.
     IF v_match_count = 1 THEN
-      NEW.pitcher_uuid := v_pitcher_id;
+      SELECT p.id INTO NEW.pitcher_uuid
+      FROM public.pitchers p
+      WHERE p.name = NEW.pitcher_name
+        AND (
+          (p.team_id IS NOT NULL AND p.team_id = NEW.team_id)
+          OR (p.team_id IS NULL AND p.user_id IS NOT NULL AND p.user_id = NEW.user_id)
+        )
+      LIMIT 1;
     END IF;
   END IF;
   RETURN NEW;
