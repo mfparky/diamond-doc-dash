@@ -13,7 +13,7 @@ export interface ReleaseNotes {
 
 export const CURRENT_RELEASE: ReleaseNotes = {
   version: "2026-08-04",
-  enabled: true,
+  enabled: false,
   title: "What's New for Families 🎉",
   features: [
     {
@@ -22,7 +22,6 @@ export const CURRENT_RELEASE: ReleaseNotes = {
         "Strike percentage on game pages no longer gets watered down by bullpen and practice sessions — game numbers are game numbers, bullpen work is tracked separately.",
     },
     {
-
       heading: "🎨 Charts You Can Actually Read",
       description:
         "Every graph got a fresh coat of paint with high-contrast, colour-blind-friendly colours — no more squinting at grey-on-grey in the bleachers at 8am.",
@@ -45,4 +44,3 @@ export const CURRENT_RELEASE: ReleaseNotes = {
   ],
   signoff: "-Coach Matt",
 };
-
