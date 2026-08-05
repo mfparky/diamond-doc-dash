@@ -357,6 +357,17 @@ describe('buildRankings — weighting', () => {
     const { rankings } = buildRankings(inputs, { reefMode: '25', pitchingParticipationFloor: 0 });
     expect(rankings[0].playerValue).toBeCloseTo(rankings[1].playerValue, 6);
   });
+
+  it('weighs AVG a bit more than QAB% on offense', () => {
+    const inputs: RankingInput[] = [
+      // High AVG, low QAB% vs low AVG, high QAB% — same OPS/other metrics
+      // so AVG's heavier weight (0.75 vs QAB%'s 0.5) decides it.
+      { pitcherId: 'a', pitcherName: 'HighAvg', latest: { bat_ops: 0.700, bat_avg: 0.400, bat_qab_pct: 30 } },
+      { pitcherId: 'b', pitcherName: 'HighQab', latest: { bat_ops: 0.700, bat_avg: 0.200, bat_qab_pct: 60 } },
+    ];
+    const { rankings } = buildRankings(inputs, baseOptions);
+    expect(rankings[0].pitcherName).toBe('HighAvg');
+  });
 });
 
 describe('buildRankings — reef line', () => {
