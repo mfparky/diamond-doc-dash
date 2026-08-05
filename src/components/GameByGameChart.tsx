@@ -21,6 +21,8 @@ export interface GameSummary {
   strikePct: number | null;
   pitcherCount: number;
   topVelo: number;
+  /** 1-based ordinal when multiple games share a date (doubleheaders); null otherwise. */
+  gameNumber?: number | null;
 }
 
 interface GameByGameChartProps {
@@ -45,7 +47,11 @@ export function GameByGameChart({ games }: GameByGameChartProps) {
     () =>
       [...games]
         .sort((a, b) => parseLocalDateAtNoon(a.date).getTime() - parseLocalDateAtNoon(b.date).getTime())
-        .map((g) => ({ ...g, label: formatShortDate(g.date) })),
+        .map((g) => ({
+          ...g,
+          // Each game keeps its own bar — doubleheaders read "Aug 5 G1" / "Aug 5 G2".
+          label: g.gameNumber ? `${formatShortDate(g.date)} G${g.gameNumber}` : formatShortDate(g.date),
+        })),
     [games],
   );
 
