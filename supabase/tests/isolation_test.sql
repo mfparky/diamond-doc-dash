@@ -108,6 +108,8 @@ BEGIN
   INSERT INTO public.workout_completions (id, assignment_id, pitcher_id, week_start, day_of_week) VALUES
     (completion_a, assignment_a, pitcher_a, date_trunc('week', current_date)::date, 0),
     (completion_b, assignment_b, pitcher_b, date_trunc('week', current_date)::date, 0);
+
+  RAISE NOTICE 'DEBUG: pitcher_a=% pitcher_b=% completion_a=% completion_b=%', pitcher_a, pitcher_b, completion_a, completion_b;
 END $seed$;
 
 -- ── Part 1: direct table access as team A's authenticated owner ─────────
@@ -270,6 +272,8 @@ BEGIN
   END IF;
 
   -- unmark_workout_complete with team A's pitcher but team B's completion id must delete nothing.
+  RAISE NOTICE 'DEBUG: completion_b.pitcher_id before unmark = %',
+    (SELECT pitcher_id FROM public.workout_completions WHERE id = 'b0000000-0000-0000-0000-000000000006');
   PERFORM public.unmark_workout_complete(
     'b0000000-0000-0000-0000-000000000006'::uuid, -- team B's completion
     'a0000000-0000-0000-0000-000000000003'::uuid  -- team A's pitcher
