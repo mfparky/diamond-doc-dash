@@ -349,31 +349,13 @@ export function DesignSystemProvider({ children }: { children: React.ReactNode }
     const saved = localStorage.getItem('ds-mode');
     return (saved === 'light' || saved === 'dark') ? saved : 'dark';
   });
-  const [loading, setLoading] = useState(true);
+  // No team is known yet at mount — callers apply a specific team's theme
+  // once they've resolved which team they're for (see setSystem below,
+  // called without a teamId to apply-without-persisting). Starts "not
+  // loading" since there's nothing to wait on here anymore.
+  const [loading, setLoading] = useState(false);
 
   const activeSystem = DESIGN_SYSTEMS.find(s => s.id === activeId) || DESIGN_SYSTEMS[0];
-
-  // On mount, fetch team's design_system from DB
-  useEffect(() => {
-    async function fetchTheme() {
-      try {
-        const { data } = await supabase
-          .from('teams')
-          .select('design_system')
-          .limit(1)
-          .maybeSingle();
-
-        if (data?.design_system && data.design_system !== 'default') {
-          setActiveId(data.design_system);
-        }
-      } catch {
-        // Fall back to default
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchTheme();
-  }, []);
 
   // Apply theme to DOM whenever system or mode changes
   useEffect(() => {

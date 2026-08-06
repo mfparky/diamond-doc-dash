@@ -1,0 +1,10 @@
+-- Manual rollback for 20260806130000_drop_pitchers_name_unique.sql
+--
+-- WARNING: only run this if no two rows in public.pitchers currently share
+-- a name — otherwise the ADD CONSTRAINT below will fail. Check first:
+--   SELECT name, count(*) FROM public.pitchers GROUP BY name HAVING count(*) > 1;
+-- If duplicates exist (e.g. from the same-name-across-teams scenario this
+-- migration was written to unblock), this constraint cannot be restored
+-- without first renaming/removing the duplicates.
+
+ALTER TABLE public.pitchers ADD CONSTRAINT pitchers_name_key UNIQUE (name);

@@ -1,0 +1,53 @@
+-- Manual rollback for 20260806120000_close_legacy_public_read_policies.sql
+--
+-- WARNING: running this re-opens the cross-team/unauthenticated data leaks
+-- these policies caused — including fully unauthenticated CRUD on pitchers
+-- and outings, not just cross-team reads. Only use this if dropping the
+-- policies broke something unexpected and you need breathing room to
+-- investigate — treat it as a temporary measure, not a real fix.
+
+-- Generation 1: original unauthenticated CRUD-for-anyone policies.
+CREATE POLICY "Anyone can view outings"
+  ON public.outings FOR SELECT
+  USING (true);
+
+CREATE POLICY "Anyone can log outings"
+  ON public.outings FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Anyone can update outings"
+  ON public.outings FOR UPDATE
+  USING (true);
+
+CREATE POLICY "Anyone can delete outings"
+  ON public.outings FOR DELETE
+  USING (true);
+
+CREATE POLICY "Anyone can view pitchers"
+  ON public.pitchers FOR SELECT
+  USING (true);
+
+CREATE POLICY "Anyone can add pitchers"
+  ON public.pitchers FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Anyone can update pitchers"
+  ON public.pitchers FOR UPDATE
+  USING (true);
+
+CREATE POLICY "Anyone can delete pitchers"
+  ON public.pitchers FOR DELETE
+  USING (true);
+
+-- Generation 2: public read policies missed by Phase 1.
+CREATE POLICY "Public can view pitchers"
+  ON public.pitchers FOR SELECT
+  USING (true);
+
+CREATE POLICY "Public can view outings"
+  ON public.outings FOR SELECT
+  USING (true);
+
+CREATE POLICY "Public can view pitch_locations"
+  ON public.pitch_locations FOR SELECT
+  USING (true);

@@ -275,7 +275,7 @@ export default function WorkoutAccountabilityPage() {
         // 1. Get all pitchers for this coach
         const { data: pitcherRows } = await supabase
           .from('pitchers')
-          .select('id, name')
+          .select('id, name, team_id')
           .eq('user_id', user.id)
           .order('name');
 
@@ -285,18 +285,20 @@ export default function WorkoutAccountabilityPage() {
         }
 
         const pitcherIds = pitcherRows.map((p) => p.id);
+        const pitcherIdSet = new Set(pitcherIds);
+        const teamId = pitcherRows.find((p) => p.team_id)?.team_id ?? null;
 
         // 2. Get all assignments
-        const { data: assignmentRows } = await supabase
-          .from('workout_assignments')
-          .select('id, pitcher_id, title, frequency, expires_at')
-          .in('pitcher_id', pitcherIds);
+        const { data: assignmentRowsRaw } = teamId
+          ? await supabase.rpc('get_public_team_workout_assignments', { p_team_id: teamId })
+          : await supabase.rpc('get_public_user_workout_assignments', { p_user_id: user.id });
+        const assignmentRows = (assignmentRowsRaw || []).filter((a) => pitcherIdSet.has(a.pitcher_id));
 
         // 3. Get all completions (with created_at for truth metric)
-        const { data: completionRows } = await supabase
-          .from('workout_completions')
-          .select('id, assignment_id, pitcher_id, week_start, day_of_week, created_at')
-          .in('pitcher_id', pitcherIds);
+        const { data: completionRowsRaw } = teamId
+          ? await supabase.rpc('get_public_team_workout_completions', { p_team_id: teamId })
+          : await supabase.rpc('get_public_user_workout_completions', { p_user_id: user.id });
+        const completionRows = (completionRowsRaw || []).filter((c) => pitcherIdSet.has(c.pitcher_id));
 
         const assignments = assignmentRows || [];
         const completions = (completionRows || []).map((c) => ({

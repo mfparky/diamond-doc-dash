@@ -1,0 +1,38 @@
+-- ROLLBACK for 20260806090000_close_workout_public_policies.sql
+-- Not a migration (.sql.txt). Run manually if needed.
+-- Restores the original fully-open policies verbatim. Frontend code would
+-- also need reverting to raw table calls in the same rollback for these
+-- to actually be used again — the RPCs are harmless to leave in place
+-- otherwise.
+
+BEGIN;
+
+CREATE POLICY "Public can view workout_assignments by pitcher"
+  ON public.workout_assignments FOR SELECT
+  USING (true);
+
+CREATE POLICY "Anyone can view workout_completions"
+  ON public.workout_completions FOR SELECT
+  USING (true);
+CREATE POLICY "Anyone can create workout_completions"
+  ON public.workout_completions FOR INSERT
+  WITH CHECK (true);
+CREATE POLICY "Anyone can update workout_completions"
+  ON public.workout_completions FOR UPDATE
+  USING (true);
+CREATE POLICY "Anyone can delete workout_completions"
+  ON public.workout_completions FOR DELETE
+  USING (true);
+
+DROP FUNCTION IF EXISTS public.get_public_pitcher_workout_assignments(uuid);
+DROP FUNCTION IF EXISTS public.get_public_team_workout_assignments(uuid);
+DROP FUNCTION IF EXISTS public.get_public_pitcher_workout_completions(uuid);
+DROP FUNCTION IF EXISTS public.get_public_team_workout_completions(uuid);
+DROP FUNCTION IF EXISTS public.get_public_user_workout_assignments(uuid);
+DROP FUNCTION IF EXISTS public.get_public_user_workout_completions(uuid);
+DROP FUNCTION IF EXISTS public.mark_workout_complete(uuid, uuid, date, int, text);
+DROP FUNCTION IF EXISTS public.unmark_workout_complete(uuid, uuid);
+DROP FUNCTION IF EXISTS public.update_workout_completion_notes(uuid, uuid, text);
+DROP FUNCTION IF EXISTS public.update_workout_completion_photo(uuid, uuid, text);
+
+COMMIT;

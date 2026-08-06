@@ -3,8 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useParams } from "react-router-dom";
-import { Suspense, lazy, type ComponentType } from "react";
-import { DesignSystemProvider } from "@/contexts/DesignSystemContext";
+import { Suspense, lazy, useEffect, type ComponentType } from "react";
+import { DesignSystemProvider, useDesignSystem } from "@/contexts/DesignSystemContext";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserRole } from "@/hooks/use-user-role";
 import { useTeamMemberships } from "@/hooks/use-team-memberships";
@@ -13,6 +13,7 @@ import { Auth } from "@/components/Auth";
 import { HomeButton } from "@/components/HomeButton";
 import { CreateOrJoinTeamDialog } from "@/components/CreateOrJoinTeamDialog";
 import { Navigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -89,7 +90,21 @@ function CreateOrJoinTeamGate({ onTeamReady }: { onTeamReady: (teamId: string) =
 function AppRoutes() {
   const { user, loading } = useAuth();
   const { isScorekeeper, loading: roleLoading } = useUserRole();
-  const { memberships, loading: membershipsLoading, refetch: refetchMemberships, setActiveTeamId } = useTeamMemberships();
+  const { memberships, activeTeamId, loading: membershipsLoading, refetch: refetchMemberships, setActiveTeamId } = useTeamMemberships();
+  const { setSystem } = useDesignSystem();
+
+  // Apply the active team's branding whenever it changes — replaces the
+  // old unscoped "grab whatever team is first" fetch in DesignSystemContext.
+  useEffect(() => {
+    if (!activeTeamId) return;
+    let cancelled = false;
+    supabase.rpc('get_public_team_info', { p_team_id: activeTeamId }).then(({ data }) => {
+      if (cancelled) return;
+      const team = data?.[0];
+      setSystem(team?.design_system || 'default');
+    });
+    return () => { cancelled = true; };
+  }, [activeTeamId, setSystem]);
 
   if (loading || (user && (roleLoading || membershipsLoading))) {
     return <RouteFallback />;

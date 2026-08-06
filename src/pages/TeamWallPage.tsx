@@ -6,10 +6,12 @@ import { usePageMeta } from '@/hooks/use-page-meta';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useDesignSystem } from '@/contexts/DesignSystemContext';
 
 export default function TeamWallPage() {
   const { teamId } = useParams<{ teamId: string }>();
   const navigate = useNavigate();
+  const { setSystem } = useDesignSystem();
   const [teamName, setTeamName] = useState('Team');
   const [pitcherIds, setPitcherIds] = useState<string[]>([]);
 
@@ -26,11 +28,14 @@ export default function TeamWallPage() {
         (supabase.rpc as any)('get_public_team_pitchers', { p_team_id: teamId! }),
       ]);
       const team = teamRows?.[0];
-      if (team) setTeamName(team.name);
+      if (team) {
+        setTeamName(team.name);
+        setSystem(team.design_system || 'default');
+      }
       if (pitchers) setPitcherIds(pitchers.map((p) => p.id));
     }
     load();
-  }, [teamId]);
+  }, [teamId, setSystem]);
 
   return (
     <div className="min-h-screen bg-background">

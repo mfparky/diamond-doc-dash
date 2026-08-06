@@ -72,15 +72,20 @@ export function RosterManagementDialog({
     if (pitchers.length === 0) return;
     
     try {
-      const { data, error } = await supabase
-        .from('workout_assignments')
-        .select('*')
-        .in('pitcher_id', pitchers.map(p => p.id));
+      const teamId = pitchers.find(p => p.teamId)?.teamId ?? null;
+      const userId = pitchers.find(p => p.userId)?.userId ?? null;
+      const pitcherIdSet = new Set(pitchers.map(p => p.id));
+
+      const { data, error } = teamId
+        ? await supabase.rpc('get_public_team_workout_assignments', { p_team_id: teamId })
+        : userId
+        ? await supabase.rpc('get_public_user_workout_assignments', { p_user_id: userId })
+        : { data: [], error: null };
 
       if (error) throw error;
 
       const grouped: Record<string, WorkoutAssignment[]> = {};
-      (data || []).forEach((row) => {
+      (data || []).filter((row) => pitcherIdSet.has(row.pitcher_id)).forEach((row) => {
         const pitcherId = row.pitcher_id;
         if (!grouped[pitcherId]) grouped[pitcherId] = [];
         grouped[pitcherId].push({
@@ -379,13 +384,21 @@ export function RosterManagementDialog({
 
       // Pull completion counts for all team pitchers in that window
       const pitcherIds = pitchers.map(p => p.id);
-      const { data: completions, error: completionsError } = await supabase
-        .from('workout_completions')
-        .select('pitcher_id, week_start, assignment_id')
-        .in('pitcher_id', pitcherIds)
-        .in('week_start', weekStarts.length > 0 ? weekStarts : ['1970-01-01']);
+      const pitcherIdSet = new Set(pitcherIds);
+      const weekSet = new Set(weekStarts.length > 0 ? weekStarts : ['1970-01-01']);
+      const teamId = pitchers.find(p => p.teamId)?.teamId ?? null;
+      const userId = pitchers.find(p => p.userId)?.userId ?? null;
+
+      const { data: completionsRaw, error: completionsError } = teamId
+        ? await supabase.rpc('get_public_team_workout_completions', { p_team_id: teamId })
+        : userId
+        ? await supabase.rpc('get_public_user_workout_completions', { p_user_id: userId })
+        : { data: [], error: null };
 
       if (completionsError) throw completionsError;
+      const completions = (completionsRaw || []).filter(
+        (c) => pitcherIdSet.has(c.pitcher_id) && weekSet.has(c.week_start)
+      );
 
       // Map of assignment id → weight (double-points = 2)
       const weightById: Record<string, number> = {};

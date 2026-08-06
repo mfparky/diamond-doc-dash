@@ -28,6 +28,7 @@ import { Label } from '@/components/ui/label';
 import { TrendingUp, Target, Crosshair, Gauge, Calendar, Video, Shield, ArrowLeft, ArrowRight, Play, MessageSquare, ClipboardCheck, Share2, Copy, Check, Download, Star, Users, Camera, Trophy, FileText } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import hawksLogo from '@/assets/hawks-logo.png';
+import { useDesignSystem } from '@/contexts/DesignSystemContext';
 import { LiveAbsSummary } from '@/components/LiveAbsSummary';
 import { LiveAbsDashboard } from '@/components/LiveAbsDashboard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -58,6 +59,8 @@ export default function PlayerDashboard() {
   const [selectedVideoOuting, setSelectedVideoOuting] = useState<Outing | null>(null);
   const [showAccountability, setShowAccountability] = useState(false);
   const { fetchPublicPitchLocationsForPitcher } = usePitchLocations();
+  const { setSystem } = useDesignSystem();
+  const [teamLogoUrl, setTeamLogoUrl] = useState<string | null>(null);
   const [allPitchLocations, setAllPitchLocations] = useState<PitchLocation[]>([]);
   const { filterByWindow: localFilterByWindow } = useAchievementWindow();
   const [publishedReportCard, setPublishedReportCard] = useState<PublishedReportCard | null>(null);
@@ -108,10 +111,7 @@ export default function PlayerDashboard() {
     if (!playerId) return;
     let cancelled = false;
     (async () => {
-      const { data, error } = await supabase
-        .from('workout_completions')
-        .select('assignment_id, week_start, day_of_week')
-        .eq('pitcher_id', playerId);
+      const { data, error } = await supabase.rpc('get_public_pitcher_workout_completions', { p_pitcher_id: playerId });
       if (cancelled || error || !data) return;
       setAllCompletions(data.map((r: any) => ({ assignmentId: r.assignment_id, weekStart: r.week_start, dayOfWeek: r.day_of_week })));
     })();
@@ -236,6 +236,8 @@ export default function PlayerDashboard() {
                   if (teamData.achievement_to) setTeamAchievementEnd(new Date(teamData.achievement_to + 'T00:00:00'));
                   if (teamData.leaderboard_from) setTeamLeaderboardStart(new Date(teamData.leaderboard_from + 'T00:00:00'));
                   if (teamData.leaderboard_to) setTeamLeaderboardEnd(new Date(teamData.leaderboard_to + 'T00:00:00'));
+                  setTeamLogoUrl(teamData.logo_url ?? null);
+                  setSystem(teamData.design_system || 'default');
                 }
               });
           } else if (pitcherData.user_id) {
@@ -334,7 +336,7 @@ export default function PlayerDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [playerId, fetchPublicPitchLocationsForPitcher]);
+  }, [playerId, fetchPublicPitchLocationsForPitcher, setSystem]);
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';
@@ -398,7 +400,7 @@ export default function PlayerDashboard() {
           {/* Row 1: Name + Status */}
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0">
-              <img src={hawksLogo} alt="Hawks" className="w-9 h-9 object-contain shrink-0" />
+              <img src={teamLogoUrl ?? hawksLogo} alt="Team" className="w-9 h-9 object-contain shrink-0" />
               <h1 className="font-display text-lg font-bold text-foreground truncate">{pitcher.name}</h1>
             </div>
             <StatusBadge status={pitcher.restStatus} compact />
