@@ -250,6 +250,17 @@ BEGIN
   RAISE NOTICE 'Part 3 (public RPC scoping, same-name collision) passed';
 END $check$;
 
+-- Part 2 left the session as role 'anon' and never reset it. workout_completions
+-- and workout_assignments have ZERO direct-access policies now (everything
+-- routes through SECURITY DEFINER RPCs by design), so RLS default-denies
+-- 'anon' from seeing ANY row there via plain SELECT — including rows that
+-- genuinely still exist. Part 4 verifies state with raw SELECTs, so it needs
+-- a role that can actually see the table; reset back to the bypass-capable
+-- connecting role. The RPC calls themselves are unaffected either way (they
+-- run SECURITY DEFINER, bypassing RLS internally regardless of caller role).
+RESET role;
+SELECT set_config('request.jwt.claims', '', true);
+
 -- ── Part 4: workout-completion write RPCs refuse cross-team requests ────
 DO $check$
 DECLARE
