@@ -854,15 +854,15 @@ export type Database = {
         Returns: Database["public"]["Tables"]["workout_completions"]["Row"][]
       }
       unmark_workout_complete: {
-        Args: { p_completion_id: string }
+        Args: { p_completion_id: string; p_pitcher_id: string }
         Returns: undefined
       }
       update_workout_completion_notes: {
-        Args: { p_completion_id: string; p_notes: string }
+        Args: { p_completion_id: string; p_pitcher_id: string; p_notes: string }
         Returns: undefined
       }
       update_workout_completion_photo: {
-        Args: { p_completion_id: string; p_photo_url: string | null }
+        Args: { p_completion_id: string; p_pitcher_id: string; p_photo_url: string | null }
         Returns: undefined
       }
     }

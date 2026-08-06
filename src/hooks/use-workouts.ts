@@ -288,7 +288,10 @@ export function useWorkouts(pitcherId?: string) {
     try {
       if (existing) {
         // Remove completion
-        const { error } = await supabase.rpc('unmark_workout_complete', { p_completion_id: existing.id });
+        const { error } = await supabase.rpc('unmark_workout_complete', {
+          p_completion_id: existing.id,
+          p_pitcher_id: pitcherId,
+        });
 
         if (error) throw error;
 
@@ -332,9 +335,10 @@ export function useWorkouts(pitcherId?: string) {
     completionId: string,
     notes: string
   ): Promise<boolean> => {
+    if (!pitcherId) return false;
     try {
       const { error } = await supabase.rpc('update_workout_completion_notes', {
-        p_completion_id: completionId, p_notes: notes,
+        p_completion_id: completionId, p_pitcher_id: pitcherId, p_notes: notes,
       });
 
       if (error) throw error;
@@ -347,7 +351,7 @@ export function useWorkouts(pitcherId?: string) {
       logger.error('Error updating completion notes:', error);
       return false;
     }
-  }, []);
+  }, [pitcherId]);
 
   // Compress an image to max 1024px on either dimension, output as JPEG
   const compressImage = useCallback((file: File): Promise<File> => {
@@ -433,9 +437,10 @@ export function useWorkouts(pitcherId?: string) {
     completionId: string,
     photoUrl: string | null
   ): Promise<boolean> => {
+    if (!pitcherId) return false;
     try {
       const { error } = await supabase.rpc('update_workout_completion_photo', {
-        p_completion_id: completionId, p_photo_url: photoUrl,
+        p_completion_id: completionId, p_pitcher_id: pitcherId, p_photo_url: photoUrl,
       });
 
       if (error) throw error;
@@ -448,7 +453,7 @@ export function useWorkouts(pitcherId?: string) {
       logger.error('Error updating completion photo:', error);
       return false;
     }
-  }, []);
+  }, [pitcherId]);
 
   // Load assignments + initial-week completions on mount / pitcher change
   useEffect(() => {

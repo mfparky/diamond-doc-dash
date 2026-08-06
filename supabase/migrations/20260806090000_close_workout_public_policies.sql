@@ -97,25 +97,29 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.unmark_workout_complete(p_completion_id uuid)
+-- p_pitcher_id must match the completion's own pitcher_id — without this,
+-- any caller (anon or authenticated) who obtains a completion_id could
+-- delete/update ANY team's completion, since these run SECURITY DEFINER
+-- with no other access control on this table.
+CREATE OR REPLACE FUNCTION public.unmark_workout_complete(p_completion_id uuid, p_pitcher_id uuid)
 RETURNS void
 LANGUAGE sql SECURITY DEFINER SET search_path = public
 AS $$
-  DELETE FROM public.workout_completions WHERE id = p_completion_id;
+  DELETE FROM public.workout_completions WHERE id = p_completion_id AND pitcher_id = p_pitcher_id;
 $$;
 
-CREATE OR REPLACE FUNCTION public.update_workout_completion_notes(p_completion_id uuid, p_notes text)
+CREATE OR REPLACE FUNCTION public.update_workout_completion_notes(p_completion_id uuid, p_pitcher_id uuid, p_notes text)
 RETURNS void
 LANGUAGE sql SECURITY DEFINER SET search_path = public
 AS $$
-  UPDATE public.workout_completions SET notes = p_notes WHERE id = p_completion_id;
+  UPDATE public.workout_completions SET notes = p_notes WHERE id = p_completion_id AND pitcher_id = p_pitcher_id;
 $$;
 
-CREATE OR REPLACE FUNCTION public.update_workout_completion_photo(p_completion_id uuid, p_photo_url text)
+CREATE OR REPLACE FUNCTION public.update_workout_completion_photo(p_completion_id uuid, p_pitcher_id uuid, p_photo_url text)
 RETURNS void
 LANGUAGE sql SECURITY DEFINER SET search_path = public
 AS $$
-  UPDATE public.workout_completions SET photo_url = p_photo_url WHERE id = p_completion_id;
+  UPDATE public.workout_completions SET photo_url = p_photo_url WHERE id = p_completion_id AND pitcher_id = p_pitcher_id;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.get_public_pitcher_workout_assignments(uuid) TO anon, authenticated;
@@ -125,9 +129,9 @@ GRANT EXECUTE ON FUNCTION public.get_public_team_workout_completions(uuid) TO an
 GRANT EXECUTE ON FUNCTION public.get_public_user_workout_assignments(uuid) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.get_public_user_workout_completions(uuid) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.mark_workout_complete(uuid, uuid, date, int, text) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.unmark_workout_complete(uuid) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.update_workout_completion_notes(uuid, text) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.update_workout_completion_photo(uuid, text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.unmark_workout_complete(uuid, uuid) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.update_workout_completion_notes(uuid, uuid, text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.update_workout_completion_photo(uuid, uuid, text) TO anon, authenticated;
 
 DROP POLICY IF EXISTS "Public can view workout_assignments by pitcher" ON public.workout_assignments;
 

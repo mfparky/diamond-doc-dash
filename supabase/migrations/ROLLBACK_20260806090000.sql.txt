@@ -31,8 +31,8 @@ DROP FUNCTION IF EXISTS public.get_public_team_workout_completions(uuid);
 DROP FUNCTION IF EXISTS public.get_public_user_workout_assignments(uuid);
 DROP FUNCTION IF EXISTS public.get_public_user_workout_completions(uuid);
 DROP FUNCTION IF EXISTS public.mark_workout_complete(uuid, uuid, date, int, text);
-DROP FUNCTION IF EXISTS public.unmark_workout_complete(uuid);
-DROP FUNCTION IF EXISTS public.update_workout_completion_notes(uuid, text);
-DROP FUNCTION IF EXISTS public.update_workout_completion_photo(uuid, text);
+DROP FUNCTION IF EXISTS public.unmark_workout_complete(uuid, uuid);
+DROP FUNCTION IF EXISTS public.update_workout_completion_notes(uuid, uuid, text);
+DROP FUNCTION IF EXISTS public.update_workout_completion_photo(uuid, uuid, text);
 
 COMMIT;
