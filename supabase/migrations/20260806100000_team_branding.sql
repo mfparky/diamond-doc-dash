@@ -48,6 +48,11 @@ USING (
   AND public.is_team_owner(auth.uid(), ((storage.foldername(name))[1])::uuid)
 );
 
+-- CREATE OR REPLACE can't change a function's return-row shape (it's adding
+-- logo_url to the existing 7-column return type here), so the prior
+-- signature must be dropped explicitly first.
+DROP FUNCTION IF EXISTS public.get_public_team_info(uuid);
+
 CREATE OR REPLACE FUNCTION public.get_public_team_info(p_team_id uuid)
 RETURNS TABLE (
   id uuid, name text, design_system text, logo_url text,
