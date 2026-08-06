@@ -20,6 +20,13 @@
 -- fabricated id used here starts with 'a0000000-' or 'b0000000-' so it can
 -- never collide with a real row's randomly-generated UUID.
 --
+-- REQUIRED VARIABLES
+-- public.teams.owner_id has a foreign key to auth.users, so the two fake
+-- teams' owners must be real, already-existing auth.users ids (any two
+-- distinct users work — nothing is written to their real account, the
+-- transaction always rolls back). Pass them in with -v:
+--   psql "$DB_URL" -v owner_a_id='<real-uuid>' -v owner_b_id='<real-uuid>' -f supabase/tests/isolation_test.sql
+--
 -- WHAT IT PROVES
 -- Seeds two teams (A, B), each with a pitcher named "Same Name" (proving
 -- name collisions across teams don't cause crossover — see
@@ -37,14 +44,32 @@
 --      B's assignment/completion when called with team A's pitcher id.
 
 \set ON_ERROR_STOP on
+\if :{?owner_a_id}
+\else
+  \warn 'owner_a_id not set — pass -v owner_a_id=<real-user-uuid>'
+  \quit
+\endif
+\if :{?owner_b_id}
+\else
+  \warn 'owner_b_id not set — pass -v owner_b_id=<real-user-uuid>'
+  \quit
+\endif
 
 BEGIN;
+
+-- psql does not expand :'var' substitutions inside dollar-quoted ($$) bodies
+-- (it treats that content as an opaque literal, since function/procedure
+-- bodies often contain literal colons of their own). Route the two real
+-- user ids through a session setting instead, readable via current_setting()
+-- from inside the DO block below.
+SELECT set_config('isolation_test.owner_a_id', :'owner_a_id', true);
+SELECT set_config('isolation_test.owner_b_id', :'owner_b_id', true);
 
 -- ── Seed two teams with a same-named pitcher on each ────────────────────
 DO $seed$
 DECLARE
-  owner_a uuid := 'a0000000-0000-0000-0000-000000000001';
-  owner_b uuid := 'b0000000-0000-0000-0000-000000000001';
+  owner_a uuid := current_setting('isolation_test.owner_a_id')::uuid;
+  owner_b uuid := current_setting('isolation_test.owner_b_id')::uuid;
   team_a uuid := 'a0000000-0000-0000-0000-000000000002';
   team_b uuid := 'b0000000-0000-0000-0000-000000000002';
   pitcher_a uuid := 'a0000000-0000-0000-0000-000000000003';
@@ -69,8 +94,8 @@ BEGIN
     (pitcher_b, 'Same Name', team_b, 120);
 
   INSERT INTO public.outings (id, pitcher_id, pitcher_uuid, pitcher_name, team_id, date, event_type, pitch_count) VALUES
-    (outing_a, pitcher_a::text, pitcher_a, 'Same Name', team_a, current_date, 'bullpen', 10),
-    (outing_b, pitcher_b::text, pitcher_b, 'Same Name', team_b, current_date, 'bullpen', 10);
+    (outing_a, pitcher_a::text, pitcher_a, 'Same Name', team_a, current_date, 'Bullpen', 10),
+    (outing_b, pitcher_b::text, pitcher_b, 'Same Name', team_b, current_date, 'Bullpen', 10);
 
   INSERT INTO public.pitch_locations (outing_id, pitcher_id, pitch_number, pitch_type, x_location, y_location) VALUES
     (outing_a, pitcher_a::text, 1, 1, 0, 0),
@@ -83,11 +108,13 @@ BEGIN
   INSERT INTO public.workout_completions (id, assignment_id, pitcher_id, week_start, day_of_week) VALUES
     (completion_a, assignment_a, pitcher_a, date_trunc('week', current_date)::date, 0),
     (completion_b, assignment_b, pitcher_b, date_trunc('week', current_date)::date, 0);
+
+  RAISE NOTICE 'DEBUG: pitcher_a=% pitcher_b=% completion_a=% completion_b=%', pitcher_a, pitcher_b, completion_a, completion_b;
 END $seed$;
 
 -- ── Part 1: direct table access as team A's authenticated owner ─────────
 SET LOCAL role = 'authenticated';
-SELECT set_config('request.jwt.claims', json_build_object('sub', 'a0000000-0000-0000-0000-000000000001')::text, true);
+SELECT set_config('request.jwt.claims', json_build_object('sub', :'owner_a_id')::text, true);
 
 DO $check$
 BEGIN
@@ -245,6 +272,8 @@ BEGIN
   END IF;
 
   -- unmark_workout_complete with team A's pitcher but team B's completion id must delete nothing.
+  RAISE NOTICE 'DEBUG: completion_b.pitcher_id before unmark = %',
+    (SELECT pitcher_id FROM public.workout_completions WHERE id = 'b0000000-0000-0000-0000-000000000006');
   PERFORM public.unmark_workout_complete(
     'b0000000-0000-0000-0000-000000000006'::uuid, -- team B's completion
     'a0000000-0000-0000-0000-000000000003'::uuid  -- team A's pitcher

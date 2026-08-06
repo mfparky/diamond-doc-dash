@@ -3,6 +3,8 @@
 
 BEGIN;
 
+DROP FUNCTION IF EXISTS public.get_public_team_info(uuid);
+
 CREATE OR REPLACE FUNCTION public.get_public_team_info(p_team_id uuid)
 RETURNS TABLE (
   id uuid, name text, design_system text,
