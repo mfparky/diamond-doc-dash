@@ -20,6 +20,13 @@
 -- fabricated id used here starts with 'a0000000-' or 'b0000000-' so it can
 -- never collide with a real row's randomly-generated UUID.
 --
+-- REQUIRED VARIABLES
+-- public.teams.owner_id has a foreign key to auth.users, so the two fake
+-- teams' owners must be real, already-existing auth.users ids (any two
+-- distinct users work — nothing is written to their real account, the
+-- transaction always rolls back). Pass them in with -v:
+--   psql "$DB_URL" -v owner_a_id='<real-uuid>' -v owner_b_id='<real-uuid>' -f supabase/tests/isolation_test.sql
+--
 -- WHAT IT PROVES
 -- Seeds two teams (A, B), each with a pitcher named "Same Name" (proving
 -- name collisions across teams don't cause crossover — see
@@ -37,14 +44,24 @@
 --      B's assignment/completion when called with team A's pitcher id.
 
 \set ON_ERROR_STOP on
+\if :{?owner_a_id}
+\else
+  \warn 'owner_a_id not set — pass -v owner_a_id=<real-user-uuid>'
+  \quit
+\endif
+\if :{?owner_b_id}
+\else
+  \warn 'owner_b_id not set — pass -v owner_b_id=<real-user-uuid>'
+  \quit
+\endif
 
 BEGIN;
 
 -- ── Seed two teams with a same-named pitcher on each ────────────────────
 DO $seed$
 DECLARE
-  owner_a uuid := 'a0000000-0000-0000-0000-000000000001';
-  owner_b uuid := 'b0000000-0000-0000-0000-000000000001';
+  owner_a uuid := :'owner_a_id';
+  owner_b uuid := :'owner_b_id';
   team_a uuid := 'a0000000-0000-0000-0000-000000000002';
   team_b uuid := 'b0000000-0000-0000-0000-000000000002';
   pitcher_a uuid := 'a0000000-0000-0000-0000-000000000003';
@@ -87,7 +104,7 @@ END $seed$;
 
 -- ── Part 1: direct table access as team A's authenticated owner ─────────
 SET LOCAL role = 'authenticated';
-SELECT set_config('request.jwt.claims', json_build_object('sub', 'a0000000-0000-0000-0000-000000000001')::text, true);
+SELECT set_config('request.jwt.claims', json_build_object('sub', :'owner_a_id')::text, true);
 
 DO $check$
 BEGIN

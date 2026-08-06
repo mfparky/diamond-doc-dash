@@ -8,11 +8,18 @@
 -- Column shapes below are reverse-engineered from src/integrations/supabase/types.ts,
 -- the generated client types that mirror the live schema, cross-checked against
 -- every migration that already references these tables by name.
+--
+-- teams.owner_id's REFERENCES auth.users(id) was missing from the original
+-- version of this file (discovered live during Phase 6, when seeding a fake
+-- owner_id in the isolation test hit a real FK violation production
+-- actually enforces) — added for accuracy. Still a no-op on production
+-- either way, since CREATE TABLE IF NOT EXISTS never touches an existing
+-- table's constraints.
 
 CREATE TABLE IF NOT EXISTS public.teams (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL,
-  owner_id uuid NOT NULL,
+  owner_id uuid NOT NULL REFERENCES auth.users(id),
   join_code text NOT NULL DEFAULT substr(md5(random()::text), 1, 6),
   design_system text,
   achievement_from date,
