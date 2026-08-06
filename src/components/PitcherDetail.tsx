@@ -86,14 +86,8 @@ export function PitcherDetail({ pitcher, onBack, onUpdateOuting, onDeleteOuting,
     let cancelled = false;
     (async () => {
       const [{ data: aData }, { data: cData }] = await Promise.all([
-        supabase
-          .from('workout_assignments')
-          .select('id, frequency, created_at, expires_at')
-          .eq('pitcher_id', pitcher.id),
-        supabase
-          .from('workout_completions')
-          .select('assignment_id, week_start, day_of_week')
-          .eq('pitcher_id', pitcher.id),
+        supabase.rpc('get_public_pitcher_workout_assignments', { p_pitcher_id: pitcher.id }),
+        supabase.rpc('get_public_pitcher_workout_completions', { p_pitcher_id: pitcher.id }),
       ]);
       if (cancelled) return;
       setEffortAssignments(

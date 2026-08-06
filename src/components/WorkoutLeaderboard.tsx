@@ -162,27 +162,37 @@ export function WorkoutLeaderboard({ pitchers, initialFrom, initialTo, maxEntrie
 
         // Single query covering the selected period + both trend weeks
         const allWeekStarts = [...new Set([...weekStarts, thisWeekStart, lastWeekStart])];
+        const pitcherIdSet = new Set(pitchers.map((p) => p.id));
+        const teamId = pitchers.find((p) => p.teamId)?.teamId ?? null;
+        const userId = pitchers.find((p) => p.userId)?.userId ?? null;
 
-        const { data: completions, error: completionsError } = await supabase
-          .from('workout_completions')
-          .select('pitcher_id, week_start, assignment_id, created_at')
-          .in('pitcher_id', pitchers.map((p) => p.id))
-          .in('week_start', allWeekStarts);
+        const [completionsRes, assignmentsRes] = await Promise.all([
+          teamId
+            ? supabase.rpc('get_public_team_workout_completions', { p_team_id: teamId })
+            : userId
+            ? supabase.rpc('get_public_user_workout_completions', { p_user_id: userId })
+            : Promise.resolve({ data: [], error: null }),
+          teamId
+            ? supabase.rpc('get_public_team_workout_assignments', { p_team_id: teamId })
+            : userId
+            ? supabase.rpc('get_public_user_workout_assignments', { p_user_id: userId })
+            : Promise.resolve({ data: [], error: null }),
+        ]);
 
-        if (completionsError) throw completionsError;
+        if (completionsRes.error) throw completionsRes.error;
+        if (assignmentsRes.error) throw assignmentsRes.error;
+
+        const completions = (completionsRes.data || []).filter(
+          (c) => pitcherIdSet.has(c.pitcher_id) && allWeekStarts.includes(c.week_start)
+        );
 
         // Enforce window cutoff: completions logged AFTER the window's end-of-week
         // don't count toward the leaderboard, even if attributed to an in-window week.
         // This freezes standings the moment the window closes.
         const windowCutoffMs = endOfWeek(dateRange.to, { weekStartsOn: 1 }).getTime();
 
-        // Fetch assignment counts + double-points flag per pitcher
-        const { data: assignments, error: assignmentsError } = await supabase
-          .from('workout_assignments')
-          .select('id, pitcher_id, double_points, expires_at')
-          .in('pitcher_id', pitchers.map((p) => p.id));
-
-        if (assignmentsError) throw assignmentsError;
+        // Assignment counts + double-points flag per pitcher, filtered to this leaderboard's roster
+        const assignments = (assignmentsRes.data || []).filter((a) => pitcherIdSet.has(a.pitcher_id));
 
         // Count only ACTIVE (non-expired) assignments per pitcher,
         // but keep weights for ALL assignments so completed expired workouts still tally.

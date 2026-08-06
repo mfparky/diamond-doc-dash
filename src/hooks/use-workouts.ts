@@ -71,11 +71,7 @@ export function useWorkouts(pitcherId?: string) {
   // Fetch assignments for a pitcher
   const fetchAssignments = useCallback(async (id: string) => {
     try {
-      const { data, error } = await supabase
-        .from('workout_assignments')
-        .select('*')
-        .eq('pitcher_id', id)
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.rpc('get_public_pitcher_workout_assignments', { p_pitcher_id: id });
 
       if (error) throw error;
 
@@ -91,7 +87,7 @@ export function useWorkouts(pitcherId?: string) {
         isCatchUp: (row as any).is_catch_up ?? false,
         doublePoints: (row as any).double_points ?? false,
         createdAt: row.created_at,
-      }));
+      })).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
       setAssignments(mapped);
       return mapped;
@@ -106,24 +102,22 @@ export function useWorkouts(pitcherId?: string) {
     const weekStart = weekStartOverride ?? getCurrentWeekStart();
 
     try {
-      const { data, error } = await supabase
-        .from('workout_completions')
-        .select('*')
-        .eq('pitcher_id', id)
-        .eq('week_start', weekStart);
+      const { data, error } = await supabase.rpc('get_public_pitcher_workout_completions', { p_pitcher_id: id });
 
       if (error) throw error;
 
-      const mapped: WorkoutCompletion[] = (data || []).map((row) => ({
-        id: row.id,
-        assignmentId: row.assignment_id,
-        pitcherId: row.pitcher_id,
-        weekStart: row.week_start,
-        dayOfWeek: row.day_of_week,
-        notes: row.notes,
-        photoUrl: (row as any).photo_url ?? null,
-        createdAt: row.created_at,
-      }));
+      const mapped: WorkoutCompletion[] = (data || [])
+        .filter((row) => row.week_start === weekStart)
+        .map((row) => ({
+          id: row.id,
+          assignmentId: row.assignment_id,
+          pitcherId: row.pitcher_id,
+          weekStart: row.week_start,
+          dayOfWeek: row.day_of_week,
+          notes: row.notes,
+          photoUrl: (row as any).photo_url ?? null,
+          createdAt: row.created_at,
+        }));
 
       setCompletions(mapped);
       return mapped;
@@ -294,39 +288,34 @@ export function useWorkouts(pitcherId?: string) {
     try {
       if (existing) {
         // Remove completion
-        const { error } = await supabase
-          .from('workout_completions')
-          .delete()
-          .eq('id', existing.id);
+        const { error } = await supabase.rpc('unmark_workout_complete', { p_completion_id: existing.id });
 
         if (error) throw error;
 
         setCompletions((prev) => prev.filter((c) => c.id !== existing.id));
       } else {
         // Add completion
-        const { data, error } = await supabase
-          .from('workout_completions')
-          .insert({
-            assignment_id: assignmentId,
-            pitcher_id: pitcherId,
-            week_start: weekStart,
-            day_of_week: dayOfWeek,
-            notes: notes || null,
-          })
-          .select()
-          .single();
+        const { data, error } = await supabase.rpc('mark_workout_complete', {
+          p_assignment_id: assignmentId,
+          p_pitcher_id: pitcherId,
+          p_week_start: weekStart,
+          p_day_of_week: dayOfWeek,
+          p_notes: notes || null,
+        });
 
         if (error) throw error;
+        const row = data?.[0];
+        if (!row) throw new Error('No completion row returned');
 
         const newCompletion: WorkoutCompletion = {
-          id: data.id,
-          assignmentId: data.assignment_id,
-          pitcherId: data.pitcher_id,
-          weekStart: data.week_start,
-          dayOfWeek: data.day_of_week,
-          notes: data.notes,
-          photoUrl: (data as any).photo_url ?? null,
-          createdAt: data.created_at,
+          id: row.id,
+          assignmentId: row.assignment_id,
+          pitcherId: row.pitcher_id,
+          weekStart: row.week_start,
+          dayOfWeek: row.day_of_week,
+          notes: row.notes,
+          photoUrl: (row as any).photo_url ?? null,
+          createdAt: row.created_at,
         };
 
         setCompletions((prev) => [...prev, newCompletion]);
@@ -344,10 +333,9 @@ export function useWorkouts(pitcherId?: string) {
     notes: string
   ): Promise<boolean> => {
     try {
-      const { error } = await supabase
-        .from('workout_completions')
-        .update({ notes })
-        .eq('id', completionId);
+      const { error } = await supabase.rpc('update_workout_completion_notes', {
+        p_completion_id: completionId, p_notes: notes,
+      });
 
       if (error) throw error;
 
@@ -446,10 +434,9 @@ export function useWorkouts(pitcherId?: string) {
     photoUrl: string | null
   ): Promise<boolean> => {
     try {
-      const { error } = await supabase
-        .from('workout_completions')
-        .update({ photo_url: photoUrl } as any)
-        .eq('id', completionId);
+      const { error } = await supabase.rpc('update_workout_completion_photo', {
+        p_completion_id: completionId, p_photo_url: photoUrl,
+      });
 
       if (error) throw error;
 

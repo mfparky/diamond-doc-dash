@@ -87,21 +87,16 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
 
   // Fetch total workout completions for the season (parent mode)
   useEffect(() => {
-    if (!parentMode) return;
-    // pitcherId is populated on outings whose pitcher was resolved (Phase 2's
-    // pitcher_uuid) — avoids a separate name-based pitchers lookup entirely.
-    const ids = [...new Set(outings.map(o => o.pitcherId).filter((id): id is string => !!id))];
-    if (ids.length === 0) return;
+    if (!parentMode || (!teamId && !userId)) return;
 
     async function fetchWorkoutCount() {
       try {
-        const { count, error } = await supabase
-          .from('workout_completions')
-          .select('*', { count: 'exact', head: true })
-          .in('pitcher_id', ids);
+        const { data, error } = teamId
+          ? await supabase.rpc('get_public_team_workout_completions', { p_team_id: teamId })
+          : await supabase.rpc('get_public_user_workout_completions', { p_user_id: userId! });
 
-        if (!error && count !== null) {
-          setTotalWorkoutsCompleted(count);
+        if (!error) {
+          setTotalWorkoutsCompleted((data || []).length);
         }
       } catch (err) {
         console.error('Error fetching workout count:', err);
@@ -114,7 +109,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
     }
 
     fetchWorkoutCount();
-  }, [parentMode, outings, toast]);
+  }, [parentMode, teamId, userId, toast]);
 
   // Fetch team pitchers and leaderboard dates for parent mode
   useEffect(() => {
@@ -199,13 +194,14 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const ids = pitchers!.map((p) => p.id);
         const [countRes, settingsRes] = await Promise.all([
-          supabase.from('workout_completions').select('*', { count: 'exact', head: true }).in('pitcher_id', ids),
+          coachTeamId
+            ? supabase.rpc('get_public_team_workout_completions', { p_team_id: coachTeamId })
+            : supabase.rpc('get_public_user_workout_completions', { p_user_id: user.id }),
           supabase.from('dashboard_settings').select('leaderboard_from, leaderboard_to').eq('user_id', user.id).maybeSingle(),
         ]);
 
-        if (!countRes.error && countRes.count !== null) setCoachWorkoutCount(countRes.count);
+        if (!countRes.error) setCoachWorkoutCount((countRes.data || []).length);
 
         if (settingsRes.data) {
           const { leaderboard_from, leaderboard_to } = settingsRes.data;
@@ -225,7 +221,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
     }
 
     fetchCoachWorkoutData();
-  }, [parentMode, pitchers, toast]);
+  }, [parentMode, pitchers, coachTeamId, toast]);
 
   useEffect(() => {
     if (parentMode || !coachTeamId) return;

@@ -82,12 +82,8 @@ export function AccountabilityDialog({
   useEffect(() => {
     if (!open) return;
     (async () => {
-      const { count } = await supabase
-        .from('workout_completions')
-        .select('*', { count: 'exact', head: true })
-        .eq('pitcher_id', pitcherId)
-        .not('photo_url', 'is', null);
-      if (count !== null) setGalleryPhotoCount(count);
+      const { data } = await supabase.rpc('get_public_pitcher_workout_completions', { p_pitcher_id: pitcherId });
+      setGalleryPhotoCount((data || []).filter((c) => c.photo_url).length);
     })();
   }, [open, pitcherId]);
 
@@ -107,19 +103,19 @@ export function AccountabilityDialog({
         // Resolve leaderboard window: prefer team-level, then user-level
         let from: string | null = null;
         let to: string | null = null;
-        if ((pitcherRow as any).team_id) {
-          const { data: teamRows } = await supabase.rpc('get_public_team_info', { p_team_id: (pitcherRow as any).team_id });
+        if (pitcherRow.team_id) {
+          const { data: teamRows } = await supabase.rpc('get_public_team_info', { p_team_id: pitcherRow.team_id });
           const team = teamRows?.[0];
           from = team?.leaderboard_from ?? null;
           to = team?.leaderboard_to ?? null;
-        } else if ((pitcherRow as any).user_id) {
+        } else if (pitcherRow.user_id) {
           const { data: ds } = await supabase
-            .from('dashboard_settings' as any)
+            .from('dashboard_settings')
             .select('leaderboard_from, leaderboard_to')
-            .eq('user_id', (pitcherRow as any).user_id)
+            .eq('user_id', pitcherRow.user_id)
             .maybeSingle();
-          from = (ds as any)?.leaderboard_from ?? null;
-          to = (ds as any)?.leaderboard_to ?? null;
+          from = ds?.leaderboard_from ?? null;
+          to = ds?.leaderboard_to ?? null;
         }
 
         // Default to current month if nothing set
@@ -139,8 +135,9 @@ export function AccountabilityDialog({
 
         // Get all team pitcher ids
         let teammateIds: string[] = [pitcherId];
-        if ((pitcherRow as any).team_id) {
-          const { data: roster } = await supabase.rpc('get_public_team_pitchers', { p_team_id: (pitcherRow as any).team_id });
+        const teamId = pitcherRow.team_id;
+        if (teamId) {
+          const { data: roster } = await supabase.rpc('get_public_team_pitchers', { p_team_id: teamId });
           teammateIds = (roster || []).map((r) => r.id);
         }
 
@@ -150,17 +147,18 @@ export function AccountabilityDialog({
           return;
         }
 
-        const { data: completions } = await supabase
-          .from('workout_completions')
-          .select('pitcher_id, week_start, assignment_id')
-          .in('pitcher_id', teammateIds)
-          .in('week_start', weekStarts.length > 0 ? weekStarts : ['1970-01-01']);
-
-        // Get double-points assignment ids so they count as 2
-        const { data: dpAssignments } = await supabase
-          .from('workout_assignments')
-          .select('id, double_points')
-          .in('pitcher_id', teammateIds);
+        const weekSet = new Set(weekStarts.length > 0 ? weekStarts : ['1970-01-01']);
+        const [completionsRes, assignmentsRes] = teamId
+          ? await Promise.all([
+              supabase.rpc('get_public_team_workout_completions', { p_team_id: teamId }),
+              supabase.rpc('get_public_team_workout_assignments', { p_team_id: teamId }),
+            ])
+          : await Promise.all([
+              supabase.rpc('get_public_pitcher_workout_completions', { p_pitcher_id: pitcherId }),
+              supabase.rpc('get_public_pitcher_workout_assignments', { p_pitcher_id: pitcherId }),
+            ]);
+        const completions = (completionsRes.data || []).filter((c) => weekSet.has(c.week_start));
+        const dpAssignments = assignmentsRes.data || [];
         const weightById: Record<string, number> = {};
         (dpAssignments || []).forEach((a: any) => { weightById[a.id] = a.double_points ? 2 : 1; });
 
@@ -300,17 +298,15 @@ export function AccountabilityDialog({
           return;
         }
 
-        const { data } = await supabase
-          .from('workout_completions')
-          .select('id')
-          .eq('assignment_id', editingNotes.assignmentId)
-          .eq('pitcher_id', pitcherId)
-          .eq('day_of_week', editingNotes.dayOfWeek)
-          .eq('week_start', activeWeekStart)
-          .maybeSingle();
+        const { data } = await supabase.rpc('get_public_pitcher_workout_completions', { p_pitcher_id: pitcherId });
+        const match = (data || []).find((c) =>
+          c.assignment_id === editingNotes.assignmentId &&
+          c.day_of_week === editingNotes.dayOfWeek &&
+          c.week_start === activeWeekStart
+        );
 
-        if (data?.id) {
-          await onUpdatePhoto(data.id, url);
+        if (match?.id) {
+          await onUpdatePhoto(match.id, url);
         }
       } else {
         await onUpdatePhoto(completion.id, url);

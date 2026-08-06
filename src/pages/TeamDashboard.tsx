@@ -8,11 +8,14 @@ import hawksLogo from '@/assets/hawks-logo.png';
 import { CombinedDashboard } from '@/components/CombinedDashboard';
 import { PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { useDesignSystem } from '@/contexts/DesignSystemContext';
 
 export default function TeamDashboard() {
   const { teamId } = useParams<{ teamId: string }>();
   const navigate = useNavigate();
+  const { setSystem } = useDesignSystem();
   const [teamName, setTeamName] = useState('Team');
+  const [teamLogoUrl, setTeamLogoUrl] = useState<string | null>(null);
   const [outings, setOutings] = useState<Outing[]>([]);
   const [pitcherPitchTypes, setPitcherPitchTypes] = useState<Record<string, PitchTypeConfig>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -47,6 +50,8 @@ export default function TeamDashboard() {
 
         if (!cancelled) {
           setTeamName(teamData?.name || 'Team');
+          setTeamLogoUrl(teamData?.logo_url ?? null);
+          setSystem(teamData?.design_system || 'default');
         }
 
         if (!pitchersData || pitchersData.length === 0) {
@@ -104,7 +109,7 @@ export default function TeamDashboard() {
 
     fetchTeamData();
     return () => { cancelled = true; };
-  }, [teamId]);
+  }, [teamId, setSystem]);
 
   if (isLoading) {
     return (
@@ -137,7 +142,7 @@ export default function TeamDashboard() {
             >
               <ArrowLeft className="w-4 h-4 text-foreground" />
             </button>
-            <img src={hawksLogo} alt="Team" className="w-10 h-10 object-contain shrink-0" />
+            <img src={teamLogoUrl ?? hawksLogo} alt="Team" className="w-10 h-10 object-contain shrink-0" />
             <div className="min-w-0">
               <h1 className="font-display text-xl font-bold text-foreground truncate">{teamName}</h1>
               <p className="text-xs text-muted-foreground">{new Date().getFullYear()} Season Dashboard</p>

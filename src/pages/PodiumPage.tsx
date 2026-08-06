@@ -7,6 +7,7 @@ import { WorkoutGallery } from "@/components/WorkoutGallery";
 import { usePageMeta } from "@/hooks/use-page-meta";
 import confetti from "canvas-confetti";
 import podiumShareImage from "@/assets/podium-share.jpg";
+import { useDesignSystem } from "@/contexts/DesignSystemContext";
 
 interface Entry {
   pitcherId: string;
@@ -23,6 +24,7 @@ export default function PodiumPage() {
   const [pitcherIds, setPitcherIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [windowLabel, setWindowLabel] = useState("");
+  const { setSystem } = useDesignSystem();
 
   usePageMeta({
     title: `${teamName} | Workout Podium`,
@@ -35,10 +37,11 @@ export default function PodiumPage() {
     let cancelled = false;
 
     async function load() {
-      const { data: teamRows } = await (supabase.rpc as any)("get_public_team_info", { p_team_id: teamId! });
+      const { data: teamRows } = await supabase.rpc("get_public_team_info", { p_team_id: teamId! });
       const team = teamRows?.[0];
       if (!team || cancelled) return;
       setTeamName(team.name);
+      setSystem(team.design_system || 'default');
 
       const now = new Date();
       const from = team.leaderboard_from
@@ -49,7 +52,7 @@ export default function PodiumPage() {
         : endOfWeek(now, { weekStartsOn: 1 });
       setWindowLabel(`${format(from, "MMM d")} – ${format(to, "MMM d, yyyy")}`);
 
-      const { data: pitchers } = await (supabase.rpc as any)("get_public_team_pitchers", { p_team_id: teamId! });
+      const { data: pitchers } = await supabase.rpc("get_public_team_pitchers", { p_team_id: teamId! });
       if (!pitchers || cancelled) return;
 
       const ids = pitchers.map((p) => p.id);
@@ -68,16 +71,8 @@ export default function PodiumPage() {
       );
       const cutoffMs = endOfWeek(to, { weekStartsOn: 1 }).getTime();
 
-      const { data: completions } = await supabase
-        .from("workout_completions")
-        .select("pitcher_id, week_start, assignment_id, created_at")
-        .in("pitcher_id", ids)
-        .in("week_start", weekStarts);
-
-      const { data: assignments } = await supabase
-        .from("workout_assignments")
-        .select("id, double_points")
-        .in("pitcher_id", ids);
+      const { data: completions } = await supabase.rpc("get_public_team_workout_completions", { p_team_id: teamId! });
+      const { data: assignments } = await supabase.rpc("get_public_team_workout_assignments", { p_team_id: teamId! });
 
       const weight: Record<string, number> = {};
       (assignments || []).forEach((a: any) => {
@@ -116,7 +111,7 @@ export default function PodiumPage() {
     return () => {
       cancelled = true;
     };
-  }, [teamId]);
+  }, [teamId, setSystem]);
 
   // Fire confetti once entries are loaded
   useEffect(() => {

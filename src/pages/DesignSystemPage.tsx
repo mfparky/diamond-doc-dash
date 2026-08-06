@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Users, BarChart3, TrendingUp, Target, Gauge, Calendar, Share2, Check, X, Sun, Moon, Paintbrush, RotateCcw, Lock } from 'lucide-react';
+import { ArrowLeft, Plus, Users, BarChart3, TrendingUp, Target, Gauge, Calendar, Share2, Check, X, Sun, Moon, Paintbrush, RotateCcw, Lock, Upload } from 'lucide-react';
 import { useDesignSystem, DESIGN_SYSTEMS } from '@/contexts/DesignSystemContext';
 import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/integrations/supabase/client';
@@ -944,6 +944,9 @@ export default function DesignSystemPage() {
   const { activeSystemId, mode, setMode, setSystem, resetToDefault, systems } = useDesignSystem();
   const { user } = useAuth();
   const [teamId, setTeamId] = useState<string | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement | null>(null);
 
   // Local preview mode (synced with global mode initially)
   const [darkMode, setDarkMode] = useState(mode === 'dark');
@@ -965,7 +968,46 @@ export default function DesignSystemPage() {
       });
   }, [user]);
 
+  // Fetch the team's current logo for display once teamId resolves
+  useEffect(() => {
+    if (!teamId) return;
+    supabase.rpc('get_public_team_info', { p_team_id: teamId }).then(({ data }) => {
+      setLogoUrl(data?.[0]?.logo_url ?? null);
+    });
+  }, [teamId]);
+
   const isCoach = !!user && !!teamId;
+
+  const handleLogoUpload = async (file: File) => {
+    if (!teamId) return;
+    setUploadingLogo(true);
+    try {
+      const ext = file.name.split('.').pop() || 'png';
+      const path = `${teamId}/logo.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('team-logos')
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from('team-logos').getPublicUrl(path);
+      // Cache-bust so the new logo shows immediately instead of a stale cached image.
+      const bustedUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+      const { error: updateError } = await supabase
+        .from('teams')
+        .update({ logo_url: bustedUrl })
+        .eq('id', teamId);
+      if (updateError) throw updateError;
+
+      setLogoUrl(bustedUrl);
+      toast.success('Team logo updated.');
+    } catch (err) {
+      toast.error('Could not upload logo.');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
 
   // Map preview theme keys to design system IDs
   const themeKeyToSystemId: Record<ThemeKey, string> = {
@@ -1102,6 +1144,42 @@ export default function DesignSystemPage() {
           {darkMode ? <Moon size={13} /> : <Sun size={13} />}
           {darkMode ? 'Dark' : 'Light'}
         </button>
+
+        {isCoach && (
+          <>
+            <div style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
+            <input
+              ref={logoInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/svg+xml"
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleLogoUpload(file);
+                e.target.value = '';
+              }}
+            />
+            <button
+              onClick={() => logoInputRef.current?.click()}
+              disabled={uploadingLogo}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                padding: '6px 12px', borderRadius: '6px', flexShrink: 0,
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.10)',
+                color: 'rgba(255,255,255,0.6)',
+                fontSize: '12px', fontWeight: 600,
+                cursor: uploadingLogo ? 'default' : 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              {logoUrl && (
+                <img src={logoUrl} alt="" style={{ width: 16, height: 16, objectFit: 'contain', borderRadius: 3 }} />
+              )}
+              <Upload size={13} />
+              {uploadingLogo ? 'Uploading…' : 'Team logo'}
+            </button>
+          </>
+        )}
       </div>
 
       <DesignShowcase t={t} />

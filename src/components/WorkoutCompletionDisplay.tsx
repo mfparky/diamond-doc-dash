@@ -57,19 +57,13 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
 
       try {
         const [assignmentsRes, completionsRes] = await Promise.all([
-          supabase
-            .from('workout_assignments')
-            .select('id, title, description, frequency, attachment_url, expires_at')
-            .eq('pitcher_id', pitcherId),
-          supabase
-            .from('workout_completions')
-            .select('id, assignment_id, day_of_week, notes, photo_url, created_at')
-            .eq('pitcher_id', pitcherId)
-            .eq('week_start', weekStart),
+          supabase.rpc('get_public_pitcher_workout_assignments', { p_pitcher_id: pitcherId }),
+          supabase.rpc('get_public_pitcher_workout_completions', { p_pitcher_id: pitcherId }),
         ]);
 
         if (assignmentsRes.error) throw assignmentsRes.error;
         if (completionsRes.error) throw completionsRes.error;
+        const weekCompletions = (completionsRes.data || []).filter((c) => c.week_start === weekStart);
 
         setAssignments(
           (assignmentsRes.data || []).map((a) => ({
@@ -83,7 +77,7 @@ export function WorkoutCompletionDisplay({ pitcherId }: WorkoutCompletionDisplay
         );
 
         setCompletions(
-          (completionsRes.data || []).map((c) => ({
+          weekCompletions.map((c) => ({
             id: c.id,
             assignmentId: c.assignment_id,
             dayOfWeek: c.day_of_week,

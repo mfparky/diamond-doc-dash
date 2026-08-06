@@ -525,6 +525,7 @@ export type Database = {
           join_code: string
           leaderboard_from: string | null
           leaderboard_to: string | null
+          logo_url: string | null
           name: string
           owner_id: string
           updated_at: string
@@ -538,6 +539,7 @@ export type Database = {
           join_code?: string
           leaderboard_from?: string | null
           leaderboard_to?: string | null
+          logo_url?: string | null
           name: string
           owner_id: string
           updated_at?: string
@@ -551,6 +553,7 @@ export type Database = {
           join_code?: string
           leaderboard_from?: string | null
           leaderboard_to?: string | null
+          logo_url?: string | null
           name?: string
           owner_id?: string
           updated_at?: string
@@ -752,6 +755,115 @@ export type Database = {
       is_team_owner: {
         Args: { _team_id: string; _user_id: string }
         Returns: boolean
+      }
+      get_public_team_info: {
+        Args: { p_team_id: string }
+        Returns: {
+          id: string
+          name: string
+          design_system: string | null
+          logo_url: string | null
+          leaderboard_from: string | null
+          leaderboard_to: string | null
+          achievement_from: string | null
+          achievement_to: string | null
+        }[]
+      }
+      get_public_team_pitchers: {
+        Args: { p_team_id: string }
+        Returns: Database["public"]["Tables"]["pitchers"]["Row"][]
+      }
+      get_public_pitcher: {
+        Args: { p_pitcher_id: string }
+        Returns: Database["public"]["Tables"]["pitchers"]["Row"][]
+      }
+      get_public_user_pitchers: {
+        Args: { p_user_id: string }
+        Returns: Database["public"]["Tables"]["pitchers"]["Row"][]
+      }
+      get_public_team_outings: {
+        Args: { p_team_id: string }
+        Returns: Database["public"]["Tables"]["outings"]["Row"][]
+      }
+      get_public_user_outings: {
+        Args: { p_user_id: string }
+        Returns: Database["public"]["Tables"]["outings"]["Row"][]
+      }
+      get_public_pitcher_outings: {
+        Args: { p_pitcher_id: string }
+        Returns: Database["public"]["Tables"]["outings"]["Row"][]
+      }
+      get_public_pitcher_pitch_locations: {
+        Args: { p_pitcher_id: string }
+        Returns: Database["public"]["Tables"]["pitch_locations"]["Row"][]
+      }
+      get_public_team_pitch_locations: {
+        Args: { p_team_id: string; p_start: string; p_end: string }
+        Returns: Database["public"]["Tables"]["pitch_locations"]["Row"][]
+      }
+      get_public_user_pitch_locations: {
+        Args: { p_user_id: string; p_start: string; p_end: string }
+        Returns: Database["public"]["Tables"]["pitch_locations"]["Row"][]
+      }
+      create_team: {
+        Args: { p_team_name: string }
+        Returns: string
+      }
+      join_team_by_code: {
+        Args: { p_code: string }
+        Returns: string
+      }
+      remove_team_member: {
+        Args: { p_member_row_id: string }
+        Returns: undefined
+      }
+      get_my_team_memberships: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          team_id: string
+          team_name: string
+          role: string
+        }[]
+      }
+      get_public_pitcher_workout_assignments: {
+        Args: { p_pitcher_id: string }
+        Returns: Database["public"]["Tables"]["workout_assignments"]["Row"][]
+      }
+      get_public_team_workout_assignments: {
+        Args: { p_team_id: string }
+        Returns: Database["public"]["Tables"]["workout_assignments"]["Row"][]
+      }
+      get_public_pitcher_workout_completions: {
+        Args: { p_pitcher_id: string }
+        Returns: Database["public"]["Tables"]["workout_completions"]["Row"][]
+      }
+      get_public_team_workout_completions: {
+        Args: { p_team_id: string }
+        Returns: Database["public"]["Tables"]["workout_completions"]["Row"][]
+      }
+      get_public_user_workout_assignments: {
+        Args: { p_user_id: string }
+        Returns: Database["public"]["Tables"]["workout_assignments"]["Row"][]
+      }
+      get_public_user_workout_completions: {
+        Args: { p_user_id: string }
+        Returns: Database["public"]["Tables"]["workout_completions"]["Row"][]
+      }
+      mark_workout_complete: {
+        Args: { p_assignment_id: string; p_pitcher_id: string; p_week_start: string; p_day_of_week: number; p_notes: string | null }
+        Returns: Database["public"]["Tables"]["workout_completions"]["Row"][]
+      }
+      unmark_workout_complete: {
+        Args: { p_completion_id: string }
+        Returns: undefined
+      }
+      update_workout_completion_notes: {
+        Args: { p_completion_id: string; p_notes: string }
+        Returns: undefined
+      }
+      update_workout_completion_photo: {
+        Args: { p_completion_id: string; p_photo_url: string | null }
+        Returns: undefined
       }
     }
     Enums: {
