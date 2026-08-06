@@ -108,8 +108,6 @@ BEGIN
   INSERT INTO public.workout_completions (id, assignment_id, pitcher_id, week_start, day_of_week) VALUES
     (completion_a, assignment_a, pitcher_a, date_trunc('week', current_date)::date, 0),
     (completion_b, assignment_b, pitcher_b, date_trunc('week', current_date)::date, 0);
-
-  RAISE NOTICE 'DEBUG: pitcher_a=% pitcher_b=% completion_a=% completion_b=%', pitcher_a, pitcher_b, completion_a, completion_b;
 END $seed$;
 
 -- ── Part 1: direct table access as team A's authenticated owner ─────────
@@ -267,9 +265,6 @@ DECLARE
   bogus_result record;
   threw boolean := false;
 BEGIN
-  RAISE NOTICE 'DEBUG: workout_completions row count at start of Part 4 = %',
-    (SELECT count(*) FROM public.workout_completions);
-
   -- mark_workout_complete with team A's pitcher but team B's assignment must be rejected.
   BEGIN
     SELECT * INTO bogus_result FROM public.mark_workout_complete(
@@ -280,17 +275,12 @@ BEGIN
     threw := false;
   EXCEPTION WHEN OTHERS THEN
     threw := true;
-    RAISE NOTICE 'DEBUG: mark_workout_complete raised: %', SQLERRM;
   END;
-  RAISE NOTICE 'DEBUG: workout_completions row count after mark attempt = %',
-    (SELECT count(*) FROM public.workout_completions);
   IF NOT threw THEN
     RAISE EXCEPTION 'FAIL: mark_workout_complete accepted team A pitcher against team B assignment';
   END IF;
 
   -- unmark_workout_complete with team A's pitcher but team B's completion id must delete nothing.
-  RAISE NOTICE 'DEBUG: completion_b.pitcher_id before unmark = %',
-    (SELECT pitcher_id FROM public.workout_completions WHERE id = 'b0000000-0000-0000-0000-000000000006');
   PERFORM public.unmark_workout_complete(
     'b0000000-0000-0000-0000-000000000006'::uuid, -- team B's completion
     'a0000000-0000-0000-0000-000000000003'::uuid  -- team A's pitcher
