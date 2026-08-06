@@ -94,8 +94,8 @@ BEGIN
     (pitcher_b, 'Same Name', team_b, 120);
 
   INSERT INTO public.outings (id, pitcher_id, pitcher_uuid, pitcher_name, team_id, date, event_type, pitch_count) VALUES
-    (outing_a, pitcher_a::text, pitcher_a, 'Same Name', team_a, current_date, 'bullpen', 10),
-    (outing_b, pitcher_b::text, pitcher_b, 'Same Name', team_b, current_date, 'bullpen', 10);
+    (outing_a, pitcher_a::text, pitcher_a, 'Same Name', team_a, current_date, 'Bullpen', 10),
+    (outing_b, pitcher_b::text, pitcher_b, 'Same Name', team_b, current_date, 'Bullpen', 10);
 
   INSERT INTO public.pitch_locations (outing_id, pitcher_id, pitch_number, pitch_type, x_location, y_location) VALUES
     (outing_a, pitcher_a::text, 1, 1, 0, 0),
