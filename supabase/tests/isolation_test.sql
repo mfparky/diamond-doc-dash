@@ -256,6 +256,9 @@ DECLARE
   bogus_result record;
   threw boolean := false;
 BEGIN
+  RAISE NOTICE 'DEBUG: workout_completions row count at start of Part 4 = %',
+    (SELECT count(*) FROM public.workout_completions);
+
   -- mark_workout_complete with team A's pitcher but team B's assignment must be rejected.
   BEGIN
     SELECT * INTO bogus_result FROM public.mark_workout_complete(
@@ -266,7 +269,10 @@ BEGIN
     threw := false;
   EXCEPTION WHEN OTHERS THEN
     threw := true;
+    RAISE NOTICE 'DEBUG: mark_workout_complete raised: %', SQLERRM;
   END;
+  RAISE NOTICE 'DEBUG: workout_completions row count after mark attempt = %',
+    (SELECT count(*) FROM public.workout_completions);
   IF NOT threw THEN
     RAISE EXCEPTION 'FAIL: mark_workout_complete accepted team A pitcher against team B assignment';
   END IF;
