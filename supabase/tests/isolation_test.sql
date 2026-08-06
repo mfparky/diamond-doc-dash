@@ -57,11 +57,19 @@
 
 BEGIN;
 
+-- psql does not expand :'var' substitutions inside dollar-quoted ($$) bodies
+-- (it treats that content as an opaque literal, since function/procedure
+-- bodies often contain literal colons of their own). Route the two real
+-- user ids through a session setting instead, readable via current_setting()
+-- from inside the DO block below.
+SELECT set_config('isolation_test.owner_a_id', :'owner_a_id', true);
+SELECT set_config('isolation_test.owner_b_id', :'owner_b_id', true);
+
 -- ── Seed two teams with a same-named pitcher on each ────────────────────
 DO $seed$
 DECLARE
-  owner_a uuid := :'owner_a_id';
-  owner_b uuid := :'owner_b_id';
+  owner_a uuid := current_setting('isolation_test.owner_a_id')::uuid;
+  owner_b uuid := current_setting('isolation_test.owner_b_id')::uuid;
   team_a uuid := 'a0000000-0000-0000-0000-000000000002';
   team_b uuid := 'b0000000-0000-0000-0000-000000000002';
   pitcher_a uuid := 'a0000000-0000-0000-0000-000000000003';
