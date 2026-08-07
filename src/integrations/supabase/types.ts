@@ -177,8 +177,8 @@ export type Database = {
           notes: string | null
           pitch_count: number
           pitcher_id: string
-          pitcher_uuid: string | null
           pitcher_name: string
+          pitcher_uuid: string | null
           strikes: number | null
           team_id: string | null
           user_id: string | null
@@ -202,8 +202,8 @@ export type Database = {
           notes?: string | null
           pitch_count: number
           pitcher_id: string
-          pitcher_uuid?: string | null
           pitcher_name: string
+          pitcher_uuid?: string | null
           strikes?: number | null
           team_id?: string | null
           user_id?: string | null
@@ -227,8 +227,8 @@ export type Database = {
           notes?: string | null
           pitch_count?: number
           pitcher_id?: string
-          pitcher_uuid?: string | null
           pitcher_name?: string
+          pitcher_uuid?: string | null
           strikes?: number | null
           team_id?: string | null
           user_id?: string | null
@@ -242,17 +242,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "outings_team_id_fkey"
-            columns: ["team_id"]
-            isOneToOne: false
-            referencedRelation: "teams"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "outings_pitcher_uuid_fkey"
             columns: ["pitcher_uuid"]
             isOneToOne: false
             referencedRelation: "pitchers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outings_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
@@ -748,6 +748,397 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_team: { Args: { p_team_name: string }; Returns: string }
+      get_my_team_memberships: {
+        Args: never
+        Returns: {
+          role: string
+          team_id: string
+          team_name: string
+        }[]
+      }
+      get_public_pitcher: {
+        Args: { p_pitcher_id: string }
+        Returns: {
+          baseball_iq_rating: string | null
+          coachability_rating: string | null
+          created_at: string
+          effort_rating: string | null
+          high_impact_arm: boolean
+          id: string
+          max_weekly_pitches: number
+          name: string
+          pitch_types: Json | null
+          team_id: string | null
+          updated_at: string
+          user_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "pitchers"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_public_pitcher_outings: {
+        Args: { p_pitcher_id: string }
+        Returns: {
+          coach_notes: string | null
+          created_at: string
+          date: string
+          event_type: string
+          focus: string | null
+          game_id: string | null
+          id: string
+          max_velocity: number | null
+          notes: string | null
+          pitch_count: number
+          pitcher_id: string
+          pitcher_name: string
+          pitcher_uuid: string | null
+          strikes: number | null
+          team_id: string | null
+          user_id: string | null
+          video_1_pitch_type: number | null
+          video_1_velocity: number | null
+          video_2_pitch_type: number | null
+          video_2_velocity: number | null
+          video_url: string | null
+          video_url_1: string | null
+          video_url_2: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "outings"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_public_pitcher_pitch_locations: {
+        Args: { p_pitcher_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          is_strike: boolean
+          outing_id: string
+          pitch_number: number
+          pitch_type: number
+          pitcher_id: string
+          team_id: string | null
+          user_id: string | null
+          x_location: number
+          y_location: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "pitch_locations"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_public_pitcher_workout_assignments: {
+        Args: { p_pitcher_id: string }
+        Returns: {
+          attachment_url: string | null
+          created_at: string
+          description: string | null
+          double_points: boolean
+          expires_at: string | null
+          frequency: number
+          id: string
+          is_catch_up: boolean
+          pitcher_id: string
+          requires_photo: boolean
+          team_id: string | null
+          title: string
+          updated_at: string
+          user_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "workout_assignments"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_public_pitcher_workout_completions: {
+        Args: { p_pitcher_id: string }
+        Returns: {
+          assignment_id: string
+          created_at: string
+          day_of_week: number
+          id: string
+          notes: string | null
+          photo_url: string | null
+          pitcher_id: string
+          week_start: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "workout_completions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_public_team_info: {
+        Args: { p_team_id: string }
+        Returns: {
+          achievement_from: string
+          achievement_to: string
+          design_system: string
+          id: string
+          leaderboard_from: string
+          leaderboard_to: string
+          logo_url: string
+          name: string
+        }[]
+      }
+      get_public_team_outings: {
+        Args: { p_team_id: string }
+        Returns: {
+          coach_notes: string | null
+          created_at: string
+          date: string
+          event_type: string
+          focus: string | null
+          game_id: string | null
+          id: string
+          max_velocity: number | null
+          notes: string | null
+          pitch_count: number
+          pitcher_id: string
+          pitcher_name: string
+          pitcher_uuid: string | null
+          strikes: number | null
+          team_id: string | null
+          user_id: string | null
+          video_1_pitch_type: number | null
+          video_1_velocity: number | null
+          video_2_pitch_type: number | null
+          video_2_velocity: number | null
+          video_url: string | null
+          video_url_1: string | null
+          video_url_2: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "outings"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_public_team_pitch_locations: {
+        Args: { p_end: string; p_start: string; p_team_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          is_strike: boolean
+          outing_id: string
+          pitch_number: number
+          pitch_type: number
+          pitcher_id: string
+          team_id: string | null
+          user_id: string | null
+          x_location: number
+          y_location: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "pitch_locations"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_public_team_pitchers: {
+        Args: { p_team_id: string }
+        Returns: {
+          baseball_iq_rating: string | null
+          coachability_rating: string | null
+          created_at: string
+          effort_rating: string | null
+          high_impact_arm: boolean
+          id: string
+          max_weekly_pitches: number
+          name: string
+          pitch_types: Json | null
+          team_id: string | null
+          updated_at: string
+          user_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "pitchers"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_public_team_workout_assignments: {
+        Args: { p_team_id: string }
+        Returns: {
+          attachment_url: string | null
+          created_at: string
+          description: string | null
+          double_points: boolean
+          expires_at: string | null
+          frequency: number
+          id: string
+          is_catch_up: boolean
+          pitcher_id: string
+          requires_photo: boolean
+          team_id: string | null
+          title: string
+          updated_at: string
+          user_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "workout_assignments"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_public_team_workout_completions: {
+        Args: { p_team_id: string }
+        Returns: {
+          assignment_id: string
+          created_at: string
+          day_of_week: number
+          id: string
+          notes: string | null
+          photo_url: string | null
+          pitcher_id: string
+          week_start: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "workout_completions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_public_user_outings: {
+        Args: { p_user_id: string }
+        Returns: {
+          coach_notes: string | null
+          created_at: string
+          date: string
+          event_type: string
+          focus: string | null
+          game_id: string | null
+          id: string
+          max_velocity: number | null
+          notes: string | null
+          pitch_count: number
+          pitcher_id: string
+          pitcher_name: string
+          pitcher_uuid: string | null
+          strikes: number | null
+          team_id: string | null
+          user_id: string | null
+          video_1_pitch_type: number | null
+          video_1_velocity: number | null
+          video_2_pitch_type: number | null
+          video_2_velocity: number | null
+          video_url: string | null
+          video_url_1: string | null
+          video_url_2: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "outings"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_public_user_pitch_locations: {
+        Args: { p_end: string; p_start: string; p_user_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          is_strike: boolean
+          outing_id: string
+          pitch_number: number
+          pitch_type: number
+          pitcher_id: string
+          team_id: string | null
+          user_id: string | null
+          x_location: number
+          y_location: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "pitch_locations"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_public_user_pitchers: {
+        Args: { p_user_id: string }
+        Returns: {
+          baseball_iq_rating: string | null
+          coachability_rating: string | null
+          created_at: string
+          effort_rating: string | null
+          high_impact_arm: boolean
+          id: string
+          max_weekly_pitches: number
+          name: string
+          pitch_types: Json | null
+          team_id: string | null
+          updated_at: string
+          user_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "pitchers"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_public_user_workout_assignments: {
+        Args: { p_user_id: string }
+        Returns: {
+          attachment_url: string | null
+          created_at: string
+          description: string | null
+          double_points: boolean
+          expires_at: string | null
+          frequency: number
+          id: string
+          is_catch_up: boolean
+          pitcher_id: string
+          requires_photo: boolean
+          team_id: string | null
+          title: string
+          updated_at: string
+          user_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "workout_assignments"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_public_user_workout_completions: {
+        Args: { p_user_id: string }
+        Returns: {
+          assignment_id: string
+          created_at: string
+          day_of_week: number
+          id: string
+          notes: string | null
+          photo_url: string | null
+          pitcher_id: string
+          week_start: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "workout_completions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       is_team_member: {
         Args: { _team_id: string; _user_id: string }
         Returns: boolean
@@ -756,113 +1147,50 @@ export type Database = {
         Args: { _team_id: string; _user_id: string }
         Returns: boolean
       }
-      get_public_team_info: {
-        Args: { p_team_id: string }
+      join_team_by_code: { Args: { p_code: string }; Returns: string }
+      mark_workout_complete: {
+        Args: {
+          p_assignment_id: string
+          p_day_of_week: number
+          p_notes: string
+          p_pitcher_id: string
+          p_week_start: string
+        }
         Returns: {
+          assignment_id: string
+          created_at: string
+          day_of_week: number
           id: string
-          name: string
-          design_system: string | null
-          logo_url: string | null
-          leaderboard_from: string | null
-          leaderboard_to: string | null
-          achievement_from: string | null
-          achievement_to: string | null
+          notes: string | null
+          photo_url: string | null
+          pitcher_id: string
+          week_start: string
         }[]
-      }
-      get_public_team_pitchers: {
-        Args: { p_team_id: string }
-        Returns: Database["public"]["Tables"]["pitchers"]["Row"][]
-      }
-      get_public_pitcher: {
-        Args: { p_pitcher_id: string }
-        Returns: Database["public"]["Tables"]["pitchers"]["Row"][]
-      }
-      get_public_user_pitchers: {
-        Args: { p_user_id: string }
-        Returns: Database["public"]["Tables"]["pitchers"]["Row"][]
-      }
-      get_public_team_outings: {
-        Args: { p_team_id: string }
-        Returns: Database["public"]["Tables"]["outings"]["Row"][]
-      }
-      get_public_user_outings: {
-        Args: { p_user_id: string }
-        Returns: Database["public"]["Tables"]["outings"]["Row"][]
-      }
-      get_public_pitcher_outings: {
-        Args: { p_pitcher_id: string }
-        Returns: Database["public"]["Tables"]["outings"]["Row"][]
-      }
-      get_public_pitcher_pitch_locations: {
-        Args: { p_pitcher_id: string }
-        Returns: Database["public"]["Tables"]["pitch_locations"]["Row"][]
-      }
-      get_public_team_pitch_locations: {
-        Args: { p_team_id: string; p_start: string; p_end: string }
-        Returns: Database["public"]["Tables"]["pitch_locations"]["Row"][]
-      }
-      get_public_user_pitch_locations: {
-        Args: { p_user_id: string; p_start: string; p_end: string }
-        Returns: Database["public"]["Tables"]["pitch_locations"]["Row"][]
-      }
-      create_team: {
-        Args: { p_team_name: string }
-        Returns: string
-      }
-      join_team_by_code: {
-        Args: { p_code: string }
-        Returns: string
+        SetofOptions: {
+          from: "*"
+          to: "workout_completions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       remove_team_member: {
         Args: { p_member_row_id: string }
         Returns: undefined
-      }
-      get_my_team_memberships: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          team_id: string
-          team_name: string
-          role: string
-        }[]
-      }
-      get_public_pitcher_workout_assignments: {
-        Args: { p_pitcher_id: string }
-        Returns: Database["public"]["Tables"]["workout_assignments"]["Row"][]
-      }
-      get_public_team_workout_assignments: {
-        Args: { p_team_id: string }
-        Returns: Database["public"]["Tables"]["workout_assignments"]["Row"][]
-      }
-      get_public_pitcher_workout_completions: {
-        Args: { p_pitcher_id: string }
-        Returns: Database["public"]["Tables"]["workout_completions"]["Row"][]
-      }
-      get_public_team_workout_completions: {
-        Args: { p_team_id: string }
-        Returns: Database["public"]["Tables"]["workout_completions"]["Row"][]
-      }
-      get_public_user_workout_assignments: {
-        Args: { p_user_id: string }
-        Returns: Database["public"]["Tables"]["workout_assignments"]["Row"][]
-      }
-      get_public_user_workout_completions: {
-        Args: { p_user_id: string }
-        Returns: Database["public"]["Tables"]["workout_completions"]["Row"][]
-      }
-      mark_workout_complete: {
-        Args: { p_assignment_id: string; p_pitcher_id: string; p_week_start: string; p_day_of_week: number; p_notes: string | null }
-        Returns: Database["public"]["Tables"]["workout_completions"]["Row"][]
       }
       unmark_workout_complete: {
         Args: { p_completion_id: string; p_pitcher_id: string }
         Returns: undefined
       }
       update_workout_completion_notes: {
-        Args: { p_completion_id: string; p_pitcher_id: string; p_notes: string }
+        Args: { p_completion_id: string; p_notes: string; p_pitcher_id: string }
         Returns: undefined
       }
       update_workout_completion_photo: {
-        Args: { p_completion_id: string; p_pitcher_id: string; p_photo_url: string | null }
+        Args: {
+          p_completion_id: string
+          p_photo_url: string
+          p_pitcher_id: string
+        }
         Returns: undefined
       }
     }
