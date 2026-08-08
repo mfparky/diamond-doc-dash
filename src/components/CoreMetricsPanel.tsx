@@ -14,36 +14,39 @@ interface CoreMetricsPanelProps {
   disabled?: boolean;
 }
 
+// Single-hue intensity scale (lightest → deepest green) instead of a
+// red-to-green traffic-light scale — a "needs work" band shouldn't read as
+// an alarm on a report card a parent is going to see.
 const BAND_STYLES: Record<MetricBand, { fillPct: number; bar: string; label: string; print: string }> = {
   'needs-work': {
     fillPct: 20,
-    bar: 'bg-red-500',
-    label: 'text-red-700 dark:text-red-300',
-    print: 'print:bg-red-400',
+    bar: 'bg-green-200',
+    label: 'text-green-700 dark:text-green-300',
+    print: 'print:bg-green-200',
   },
   developing: {
     fillPct: 40,
-    bar: 'bg-orange-500',
-    label: 'text-orange-700 dark:text-orange-300',
-    print: 'print:bg-orange-400',
+    bar: 'bg-green-300',
+    label: 'text-green-700 dark:text-green-300',
+    print: 'print:bg-green-300',
   },
   'on-target': {
     fillPct: 60,
-    bar: 'bg-yellow-500',
-    label: 'text-yellow-700 dark:text-yellow-300',
-    print: 'print:bg-yellow-400',
+    bar: 'bg-green-400',
+    label: 'text-green-700 dark:text-green-300',
+    print: 'print:bg-green-400',
   },
   strong: {
     fillPct: 80,
-    bar: 'bg-lime-500',
-    label: 'text-lime-700 dark:text-lime-300',
-    print: 'print:bg-lime-400',
+    bar: 'bg-green-500',
+    label: 'text-green-700 dark:text-green-300',
+    print: 'print:bg-green-500',
   },
   excelling: {
     fillPct: 100,
-    bar: 'bg-emerald-500',
+    bar: 'bg-emerald-600',
     label: 'text-emerald-700 dark:text-emerald-300',
-    print: 'print:bg-emerald-500',
+    print: 'print:bg-emerald-600',
   },
 };
 
