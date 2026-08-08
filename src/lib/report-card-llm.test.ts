@@ -109,4 +109,11 @@ describe('buildReportCardPromptPayload', () => {
     const { user } = buildReportCardPromptPayload({ ...baseInput, coreMetrics: [] });
     expect(user).toContain('No metric bands computed for this player.');
   });
+
+  it('instructs the model to write tryoutFocus as 2-3 short bullets from coach context and stats', () => {
+    const { system } = buildReportCardPromptPayload(baseInput);
+    expect(system).toContain('tryoutFocus');
+    expect(system).toContain('2-3 short bullet');
+    expect(system).toContain('coach context and the stats');
+  });
 });

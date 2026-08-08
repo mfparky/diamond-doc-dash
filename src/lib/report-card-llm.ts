@@ -36,6 +36,7 @@ export interface ReportCardDraft {
   summary: string;
   strengths: string;
   areas: string;
+  tryoutFocus: string;
 }
 
 // --- Prompt builder ---
@@ -77,10 +78,18 @@ export function buildReportCardPromptPayload(input: ReportCardInput): {
 - Ground every stat claim in the data provided — do not invent numbers.
 - Prefer strengths first. Frame areas to work on as opportunities, not deficits.
 - If a rating or stat is missing, do not mention it or fabricate a value.
-- Keep each section to 3-6 sentences.
+- Keep the summary/strengths/areas sections to 3-6 sentences each.
 - The player is called by first name.
+- For tryoutFocus: write 2-3 short bullet points, not paragraphs — each a
+  high-level area to focus on before fall tryouts (a specific skill, a
+  positioning/role consideration, an approach or mental-game adjustment),
+  drawn from BOTH the coach context and the stats/metric bands. Each bullet
+  is a short phrase (a few words), not a full sentence — the coach will
+  fill in specifics and detail by hand afterward, so give them a starting
+  point to expand on, not a finished thought. One bullet per line, each
+  starting with "• ".
 
-Fill in the three sections by calling the save_report_card tool.`;
+Fill in all four sections by calling the save_report_card tool.`;
 
   const user = `Here is the data for this report card. Weave it into the narrative but do not repeat it as a table.
 
@@ -162,15 +171,19 @@ export async function generateReportCardDraft(input: ReportCardInput): Promise<R
       // tool arguments come back as a parsed object — no text-parsing risk.
       tools: [{
         name: 'save_report_card',
-        description: 'Save the three narrative sections of the report card.',
+        description: 'Save the narrative sections of the report card.',
         input_schema: {
           type: 'object',
           properties: {
             summary: { type: 'string', description: 'Overall summary paragraph, 3-6 sentences.' },
             strengths: { type: 'string', description: 'Strengths paragraph, 3-6 sentences.' },
             areas: { type: 'string', description: 'Areas to work on paragraph, framed as opportunities, 3-6 sentences.' },
+            tryoutFocus: {
+              type: 'string',
+              description: '2-3 short bullet points (one per line, each starting with "• "), each a high-level area to focus on before fall tryouts based on both coach context and stats. Short phrases, not full sentences — the coach will add detail by hand.',
+            },
           },
-          required: ['summary', 'strengths', 'areas'],
+          required: ['summary', 'strengths', 'areas', 'tryoutFocus'],
         },
       }],
       tool_choice: { type: 'tool', name: 'save_report_card' },
@@ -194,6 +207,7 @@ export async function generateReportCardDraft(input: ReportCardInput): Promise<R
         summary: asDraft.summary.trim(),
         strengths: asDraft.strengths.trim(),
         areas: asDraft.areas.trim(),
+        tryoutFocus: typeof asDraft.tryoutFocus === 'string' ? asDraft.tryoutFocus.trim() : '',
       };
     }
   }
@@ -290,6 +304,7 @@ function extractJsonPayload(text: string): ReportCardDraft | null {
       summary: parsed.summary.trim(),
       strengths: parsed.strengths.trim(),
       areas: parsed.areas.trim(),
+      tryoutFocus: typeof parsed.tryoutFocus === 'string' ? parsed.tryoutFocus.trim() : '',
     };
   } catch {
     return null;
