@@ -233,6 +233,7 @@ export default function ReportCardPage() {
       setSummary(draft.summary);
       setStrengths(draft.strengths);
       setAreas(draft.areas);
+      setTryoutFocus(draft.tryoutFocus);
       toast({ title: 'Draft ready', description: 'Review and edit the sections before saving.' });
     } catch (e) {
       const msg = e instanceof ReportCardLLMError ? e.message : 'Could not generate the draft. Try again.';
