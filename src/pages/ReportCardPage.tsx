@@ -38,7 +38,7 @@ function friendlyDate(iso: string): string {
 // Fixed, non-editable — every printed report card shows identical wording so
 // no parent can read favoritism into a difference in phrasing between players.
 const TRYOUT_PREAMBLE =
-  "No roster spots are held for next season. Every player will be evaluated at fall tryouts, and the team will be built based on positional needs, hitting, and pitching — not on returning-player status. Every spot on the roster is open.";
+  "Every player will be evaluated at fall tryouts, and the team will be built based on positional needs, hitting, and pitching — not on returning-player status. Every spot on the roster is open.";
 
 export default function ReportCardPage() {
   const { toast } = useToast();
