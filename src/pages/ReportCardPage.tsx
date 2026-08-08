@@ -40,6 +40,17 @@ function friendlyDate(iso: string): string {
 const TRYOUT_PREAMBLE =
   "Every player will be evaluated at fall tryouts, and the team will be built based on positional needs, hitting, and pitching — not on returning-player status. Every spot on the roster is open.";
 
+// Hard character caps — keep the printed card on one page. Also the source
+// of truth for the AI draft: a generated field landing AT or OVER its
+// textarea's native maxLength blocks further typing (backspace still works,
+// which is why that bug looks like "can't type, only delete") until the
+// coach deletes below the cap, so generated text is truncated to these same
+// numbers before it ever reaches the form.
+const MAX_SUMMARY_LENGTH = 200;
+const MAX_STRENGTHS_LENGTH = 300;
+const MAX_AREAS_LENGTH = 300;
+const MAX_TRYOUT_FOCUS_LENGTH = 300;
+
 export default function ReportCardPage() {
   const { toast } = useToast();
   const [search, setSearch] = useSearchParams();
@@ -187,10 +198,15 @@ export default function ReportCardPage() {
         coachContext: context,
       };
       const draft = await generateReportCardDraft(input);
-      setSummary(draft.summary);
-      setStrengths(draft.strengths);
-      setAreas(draft.areas);
-      setTryoutFocus(draft.tryoutFocus);
+      // Guaranteed backstop regardless of how well the model followed the
+      // prompt's character targets — a field landing at/over its textarea's
+      // maxLength blocks further typing until the coach deletes below the
+      // cap (backspace still works, which is why that bug looks like
+      // "can't type, only delete").
+      setSummary(draft.summary.slice(0, MAX_SUMMARY_LENGTH));
+      setStrengths(draft.strengths.slice(0, MAX_STRENGTHS_LENGTH));
+      setAreas(draft.areas.slice(0, MAX_AREAS_LENGTH));
+      setTryoutFocus(draft.tryoutFocus.slice(0, MAX_TRYOUT_FOCUS_LENGTH));
       toast({ title: "Draft ready", description: "Review and edit the sections before saving." });
     } catch (e) {
       const msg = e instanceof ReportCardLLMError ? e.message : "Could not generate the draft. Try again.";
@@ -361,7 +377,7 @@ export default function ReportCardPage() {
                   value={summary}
                   onChange={setSummary}
                   placeholder="A short paragraph capturing the whole player. Generate a draft or write from scratch."
-                  maxLength={200}
+                  maxLength={MAX_SUMMARY_LENGTH}
                   rows={4}
                 />
                 <ReportSection
@@ -369,7 +385,7 @@ export default function ReportCardPage() {
                   value={strengths}
                   onChange={setStrengths}
                   placeholder="Where the player is producing. Ground each claim in specific stats or coach observations."
-                  maxLength={300}
+                  maxLength={MAX_STRENGTHS_LENGTH}
                   rows={5}
                 />
                 <ReportSection
@@ -377,7 +393,7 @@ export default function ReportCardPage() {
                   value={areas}
                   onChange={setAreas}
                   placeholder="Growth opportunities framed as next steps, not deficits."
-                  maxLength={300}
+                  maxLength={MAX_AREAS_LENGTH}
                   rows={5}
                 />
                 <ReportSection
@@ -386,7 +402,7 @@ export default function ReportCardPage() {
                   value={tryoutFocus}
                   onChange={setTryoutFocus}
                   placeholder="What should this player work on before fall tryouts to compete for a spot?"
-                  maxLength={300}
+                  maxLength={MAX_TRYOUT_FOCUS_LENGTH}
                   rows={5}
                 />
               </div>
