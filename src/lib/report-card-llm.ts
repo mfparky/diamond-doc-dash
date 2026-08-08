@@ -81,13 +81,21 @@ export function buildReportCardPromptPayload(input: ReportCardInput): {
 - Keep the summary/strengths/areas sections to 3-6 sentences each.
 - The player is called by first name.
 - For tryoutFocus: write 2-3 short bullet points, not paragraphs — each a
-  high-level area to focus on before fall tryouts (a specific skill, a
-  positioning/role consideration, an approach or mental-game adjustment),
-  drawn from BOTH the coach context and the stats/metric bands. Each bullet
-  is a short phrase (a few words), not a full sentence — the coach will
-  fill in specifics and detail by hand afterward, so give them a starting
-  point to expand on, not a finished thought. One bullet per line, each
-  starting with "• ".
+  fundamental SKILL or MECHANIC a coach evaluates at a tryout: hitting
+  mechanics (swing path, plate discipline, bat speed), fielding fundamentals
+  (footwork, first-step quickness, glove work, throwing accuracy/arm
+  strength), pitching mechanics (arm slot, delivery consistency, command,
+  secondary-pitch development), or baserunning/athleticism (speed, agility,
+  instincts). Use BOTH the stats/metric bands and the coach context to
+  decide WHICH skill area to flag (e.g. a low fielding percentage points at
+  glove work or footwork, not at "fewer errors"; something the coach
+  mentioned about confidence or a position change points at the matching
+  skill/mental-game area), but phrase the bullet as the skill/technique
+  itself, not as a stat outcome to improve and not as a reference to any
+  specific past game or outing. Each bullet is a short phrase (a few
+  words), not a full sentence — the coach will fill in specifics and detail
+  by hand afterward, so give them a starting point to expand on, not a
+  finished thought. One bullet per line, each starting with "• ".
 
 Fill in all four sections by calling the save_report_card tool.`;
 
@@ -180,7 +188,7 @@ export async function generateReportCardDraft(input: ReportCardInput): Promise<R
             areas: { type: 'string', description: 'Areas to work on paragraph, framed as opportunities, 3-6 sentences.' },
             tryoutFocus: {
               type: 'string',
-              description: '2-3 short bullet points (one per line, each starting with "• "), each a high-level area to focus on before fall tryouts based on both coach context and stats. Short phrases, not full sentences — the coach will add detail by hand.',
+              description: '2-3 short bullet points (one per line, each starting with "• "), each a fundamental skill/mechanic a coach evaluates at tryouts (hitting mechanics, fielding fundamentals, pitching mechanics, or athleticism) — not a stat outcome to improve and not a reference to a specific past game. Short phrases, not full sentences — the coach will add detail by hand.',
             },
           },
           required: ['summary', 'strengths', 'areas', 'tryoutFocus'],
