@@ -90,13 +90,17 @@ export function calculatePitcherStats(pitcher: Pitcher, allOutings: Outing[]): P
         .filter((o) => o.date === lastOuting)
         .reduce((sum, o) => sum + o.pitchCount, 0)
     : 0;
-  const notes = sortedOutings.find(o => o.eventType !== 'Live ABs' && !!o.notes)?.notes || '';
-
-  // Get the most recent focus (find the most recent outing that has a focus set)
-  const mostRecentFocus = sortedOutings.find(o => o.focus)?.focus;
-
-  // Get the most recent coach notes (find the most recent outing that has coach notes)
-  const mostRecentCoachNotes = sortedOutings.find(o => o.coachNotes)?.coachNotes;
+  // notes/focus/coachNotes must reflect the actual most recent outing, not
+  // whichever past outing happens to have something written in that field —
+  // these are coach-inputted per outing, so if the coach didn't write a note
+  // on their latest outing, the field should show blank, not silently fall
+  // back to an older outing's note (e.g. a tournament from weeks ago).
+  // Live ABs outings are excluded because their `notes` field holds
+  // structured AB-tracking data, not freeform coach text.
+  const mostRecentRelevantOuting = sortedOutings.find(o => o.eventType !== 'Live ABs');
+  const notes = mostRecentRelevantOuting?.notes || '';
+  const mostRecentFocus = mostRecentRelevantOuting?.focus;
+  const mostRecentCoachNotes = mostRecentRelevantOuting?.coachNotes;
 
   // Calculate rest status based on arm care rules
   const restStatus = calculateRestStatus(lastOuting, lastPitchCount);
