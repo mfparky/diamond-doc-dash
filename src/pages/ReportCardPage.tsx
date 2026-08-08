@@ -46,10 +46,10 @@ const TRYOUT_PREAMBLE =
 // which is why that bug looks like "can't type, only delete") until the
 // coach deletes below the cap, so generated text is truncated to these same
 // numbers before it ever reaches the form.
-const MAX_SUMMARY_LENGTH = 200;
-const MAX_STRENGTHS_LENGTH = 300;
-const MAX_AREAS_LENGTH = 300;
-const MAX_TRYOUT_FOCUS_LENGTH = 300;
+const MAX_SUMMARY_LENGTH = 400;
+const MAX_STRENGTHS_LENGTH = 600;
+const MAX_AREAS_LENGTH = 400;
+const MAX_TRYOUT_FOCUS_LENGTH = 600;
 
 export default function ReportCardPage() {
   const { toast } = useToast();

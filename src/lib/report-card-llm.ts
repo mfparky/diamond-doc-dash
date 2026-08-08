@@ -81,10 +81,10 @@ export function buildReportCardPromptPayload(input: ReportCardInput): {
 - The player is called by first name.
 - HARD CHARACTER LIMITS (the report card form cannot accept text longer than
   these — stay comfortably under, do not write up to the limit and risk
-  going over): summary ≤ 180 characters, strengths ≤ 270 characters,
-  areas ≤ 270 characters. That's roughly 2-3 short sentences per section,
-  not 3-6 — prioritize the single most important, specific point over
-  covering everything.
+  going over): summary ≤ 360 characters, strengths ≤ 540 characters,
+  areas ≤ 360 characters. That's roughly 3-5 sentences for summary/areas
+  and 4-6 for strengths — specific and concrete, not padded just to fill
+  the space.
 - For tryoutFocus: write 2-3 short bullet points, not paragraphs — each a
   fundamental SKILL or MECHANIC a coach evaluates at a tryout: hitting
   mechanics (swing path, plate discipline, bat speed), fielding fundamentals
@@ -102,7 +102,7 @@ export function buildReportCardPromptPayload(input: ReportCardInput): {
   by hand afterward, so give them a starting point to expand on, not a
   finished thought. One bullet per line, each starting with "• ". The whole
   tryoutFocus field (all bullets combined, including the line breaks) must
-  be ≤ 270 characters — stay comfortably under.
+  be ≤ 540 characters — stay comfortably under.
 
 Fill in all four sections by calling the save_report_card tool.`;
 
@@ -190,12 +190,12 @@ export async function generateReportCardDraft(input: ReportCardInput): Promise<R
         input_schema: {
           type: 'object',
           properties: {
-            summary: { type: 'string', description: 'Overall summary, 2-3 short sentences. HARD LIMIT: 180 characters, stay comfortably under.' },
-            strengths: { type: 'string', description: 'Strengths, 2-3 short sentences. HARD LIMIT: 270 characters, stay comfortably under.' },
-            areas: { type: 'string', description: 'Areas to work on, framed as opportunities, 2-3 short sentences. HARD LIMIT: 270 characters, stay comfortably under.' },
+            summary: { type: 'string', description: 'Overall summary, 3-5 sentences. HARD LIMIT: 360 characters, stay comfortably under.' },
+            strengths: { type: 'string', description: 'Strengths, 4-6 sentences. HARD LIMIT: 540 characters, stay comfortably under.' },
+            areas: { type: 'string', description: 'Areas to work on, framed as opportunities, 3-5 sentences. HARD LIMIT: 360 characters, stay comfortably under.' },
             tryoutFocus: {
               type: 'string',
-              description: '2-3 short bullet points (one per line, each starting with "• "), each a fundamental skill/mechanic a coach evaluates at tryouts (hitting mechanics, fielding fundamentals, pitching mechanics, or athleticism) — not a stat outcome to improve and not a reference to a specific past game. Short phrases, not full sentences — the coach will add detail by hand. HARD LIMIT: 270 characters total, stay comfortably under.',
+              description: '2-3 short bullet points (one per line, each starting with "• "), each a fundamental skill/mechanic a coach evaluates at tryouts (hitting mechanics, fielding fundamentals, pitching mechanics, or athleticism) — not a stat outcome to improve and not a reference to a specific past game. Short phrases, not full sentences — the coach will add detail by hand. HARD LIMIT: 540 characters total, stay comfortably under.',
             },
           },
           required: ['summary', 'strengths', 'areas', 'tryoutFocus'],
