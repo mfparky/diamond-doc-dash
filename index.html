@@ -38,15 +38,17 @@
 
           if (!isModuleAsset) return;
 
-          var key = 'arm-stats:entry-asset-reload';
-          if (!sessionStorage.getItem(key)) {
-            sessionStorage.setItem(key, '1');
+          var key = 'arm-stats:entry-asset-reload-at';
+          var last = Number(sessionStorage.getItem(key) || 0);
+          if (!last || Date.now() - last > 15000) {
+            sessionStorage.setItem(key, String(Date.now()));
             window.location.reload();
           }
         },
         true,
       );
     </script>
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
