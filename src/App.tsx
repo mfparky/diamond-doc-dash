@@ -17,23 +17,30 @@ import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
-// Auto-reload once if a lazy chunk fails (typically after a redeploy
-// invalidated the chunk hashes the current page is still referencing).
+// Auto-reload if a lazy chunk fails (typically after a redeploy invalidated the
+// chunk hashes the current page still references). The guard is time-based so a
+// later, unrelated failure can still recover instead of showing a blank screen.
+const CHUNK_RELOAD_KEY = "lovable:chunk-reload-at";
+const CHUNK_RELOAD_WINDOW_MS = 15_000;
+
 function lazyWithReload<T extends ComponentType<any>>(
   factory: () => Promise<{ default: T }>
 ) {
   return lazy(() =>
     factory().catch((err) => {
-      const key = "lovable:chunk-reload";
-      if (typeof window !== "undefined" && !sessionStorage.getItem(key)) {
-        sessionStorage.setItem(key, "1");
-        window.location.reload();
-        return new Promise<{ default: T }>(() => {});
+      if (typeof window !== "undefined") {
+        const last = Number(sessionStorage.getItem(CHUNK_RELOAD_KEY) || 0);
+        if (!last || Date.now() - last > CHUNK_RELOAD_WINDOW_MS) {
+          sessionStorage.setItem(CHUNK_RELOAD_KEY, String(Date.now()));
+          window.location.reload();
+          return new Promise<{ default: T }>(() => {});
+        }
       }
       throw err;
     })
   );
 }
+
 
 // Secondary routes are split out so the primary coach flow loads fast.
 const PlayerDashboard = lazyWithReload(() => import("./pages/PlayerDashboard"));
