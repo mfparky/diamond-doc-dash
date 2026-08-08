@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -82,20 +82,13 @@ export default function ReportCardPage() {
   const [published, setPublished] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
-  const [autosaveStatus, setAutosaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
   // Hydrate the form from whichever card was just loaded. When the coach
   // switches players and the new player has no saved card (card === null),
   // this resets the form to blank instead of leaving the previous player's
   // text sitting there — which would otherwise get saved under the new
   // player's id on the next Save click.
-  //
-  // skipNextAutosaveRef guards against the autosave effect below firing
-  // immediately after this hydration (it depends on the same fields this
-  // effect just set) — that would just re-save what was already loaded.
-  const skipNextAutosaveRef = useRef(true);
   useEffect(() => {
-    skipNextAutosaveRef.current = true;
     setContext(card?.coachContext ?? '');
     setSummary(card?.summary ?? '');
     setStrengths(card?.strengths ?? '');
@@ -108,9 +101,7 @@ export default function ReportCardPage() {
     setPublished(card?.published ?? false);
   }, [card, playerId]);
 
-  // Builds the same payload handleSave sends, minus `published` (autosave
-  // should never silently flip a card live/offline — that stays an explicit
-  // Save-button action via the publish switch + handleSave).
+  // Shared payload builder for the Save button.
   const buildDraftPatch = useCallback(() => ({
     coachContext: context,
     summary,
@@ -123,45 +114,6 @@ export default function ReportCardPage() {
     positionSupport2: positionSupport2 || null,
     tryoutFocus,
   }), [context, summary, strengths, areas, latestSnapshot, adjustments, positionPrimary, positionSupport1, positionSupport2, tryoutFocus]);
-
-  // Debounced autosave — a coach losing typed-but-unsaved report card
-  // content to an unexpected reload/tab switch is real, repeated data loss
-  // (not hypothetical), so this can't rely solely on the explicit Save
-  // button. Fires ~2s after the coach stops typing/adjusting anything.
-  useEffect(() => {
-    if (!player || isLoading) return;
-    if (skipNextAutosaveRef.current) {
-      skipNextAutosaveRef.current = false;
-      return;
-    }
-    const timer = window.setTimeout(async () => {
-      setAutosaveStatus('saving');
-      const ok = await save(buildDraftPatch());
-      setAutosaveStatus(ok ? 'saved' : 'error');
-    }, 2000);
-    return () => window.clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [context, summary, strengths, areas, adjustments, positionPrimary, positionSupport1, positionSupport2, tryoutFocus]);
-
-  // Immediate (non-debounced) flush the moment the tab is backgrounded or
-  // the page is about to unload — covers the exact failure mode of "typed
-  // something, then switched tabs/apps before the 2s debounce fired."
-  useEffect(() => {
-    if (!player) return;
-    const flush = () => {
-      if (document.visibilityState !== 'hidden') return;
-      // Fire-and-forget: the page may already be tearing down, so we can't
-      // reliably await this, but issuing the request before visibility
-      // change gives the browser a chance to complete it in the background.
-      void save(buildDraftPatch());
-    };
-    document.addEventListener('visibilitychange', flush);
-    window.addEventListener('pagehide', flush);
-    return () => {
-      document.removeEventListener('visibilitychange', flush);
-      window.removeEventListener('pagehide', flush);
-    };
-  }, [player, save, buildDraftPatch]);
 
   // Team-wide inputs feed the percentile pool. Latest snapshot per pitcher.
   const teamMetricInputs = useMemo<CoreMetricInput[]>(() => {
@@ -248,7 +200,6 @@ export default function ReportCardPage() {
     const ok = await save({ ...buildDraftPatch(), published });
     if (ok) {
       setSavedFlash(true);
-      setAutosaveStatus('idle');
       setSearch({ playerId, start, end }, { replace: true });
       window.setTimeout(() => setSavedFlash(false), 1800);
     }
@@ -469,17 +420,6 @@ export default function ReportCardPage() {
 
               {/* Footer actions — hidden in print */}
               <div className="flex flex-wrap items-center gap-2 justify-end print:hidden">
-                {!savedFlash && autosaveStatus === 'saving' && (
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Loader2 className="w-3 h-3 animate-spin" /> Saving draft…
-                  </span>
-                )}
-                {!savedFlash && autosaveStatus === 'saved' && (
-                  <span className="text-xs text-muted-foreground">Draft autosaved</span>
-                )}
-                {!savedFlash && autosaveStatus === 'error' && (
-                  <span className="text-xs text-destructive">Autosave failed — click Save</span>
-                )}
                 <Button variant="outline" onClick={handlePrint} disabled={!summary && !strengths && !areas && !tryoutFocus}>
                   <FileDown className="w-4 h-4 mr-2" />
                   Download PDF
