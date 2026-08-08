@@ -1,53 +1,44 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Wand2, Save, FileDown, CheckCircle2, AlertTriangle, Loader2, Radio } from 'lucide-react';
-import hawksLogo from '@/assets/hawks-logo.png';
-import { usePitchers } from '@/hooks/use-pitchers';
-import { useAllStatSnapshots } from '@/hooks/use-stat-snapshots';
-import { useReportCard } from '@/hooks/use-report-card';
-import {
-  generateReportCardDraft,
-  ReportCardLLMError,
-  type ReportCardInput,
-} from '@/lib/report-card-llm';
-import { useToast } from '@/hooks/use-toast';
-import { getStoredApiKey } from '@/lib/scan-form';
-import { CoreMetricsPanel } from '@/components/CoreMetricsPanel';
-import {
-  bandLabel,
-  clampAdjustment,
-  computeCoreMetrics,
-  type CoreMetricInput,
-} from '@/lib/report-card-metrics';
-import { FIELD_POSITIONS, positionLabel } from '@/lib/field-positions';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { ArrowLeft, Wand2, Save, FileDown, CheckCircle2, AlertTriangle, Loader2, Radio } from "lucide-react";
+import hawksLogo from "@/assets/hawks-logo.png";
+import { usePitchers } from "@/hooks/use-pitchers";
+import { useAllStatSnapshots } from "@/hooks/use-stat-snapshots";
+import { useReportCard } from "@/hooks/use-report-card";
+import { generateReportCardDraft, ReportCardLLMError, type ReportCardInput } from "@/lib/report-card-llm";
+import { useToast } from "@/hooks/use-toast";
+import { getStoredApiKey } from "@/lib/scan-form";
+import { CoreMetricsPanel } from "@/components/CoreMetricsPanel";
+import { bandLabel, clampAdjustment, computeCoreMetrics, type CoreMetricInput } from "@/lib/report-card-metrics";
+import { FIELD_POSITIONS, positionLabel } from "@/lib/field-positions";
 
 function todayIso(): string {
   const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function isoDaysAgo(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() - days);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function friendlyDate(iso: string): string {
-  if (!iso) return '';
-  const d = new Date(iso + 'T12:00:00');
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  if (!iso) return "";
+  const d = new Date(iso + "T12:00:00");
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
 // Fixed, non-editable — every printed report card shows identical wording so
 // no parent can read favoritism into a difference in phrasing between players.
 const TRYOUT_PREAMBLE =
-  'No roster spots are held for next season. Every player will be evaluated at fall tryouts, and the team will be built based on positional needs, hitting, and pitching — not on returning-player status. Every spot on the roster is open.';
+  "No roster spots are held for next season. Every player will be evaluated at fall tryouts, and the team will be built based on positional needs, hitting, and pitching — not on returning-player status. Every spot on the roster is open.";
 
 export default function ReportCardPage() {
   const { toast } = useToast();
@@ -57,32 +48,32 @@ export default function ReportCardPage() {
   const pitcherIds = useMemo(() => pitchers.map((p) => p.id), [pitchers]);
   const { byPitcher, isLoading: snapshotsLoading } = useAllStatSnapshots(pitcherIds);
 
-  const playerId = search.get('playerId') ?? '';
-  const initialStart = search.get('start') ?? isoDaysAgo(60);
-  const initialEnd = search.get('end') ?? todayIso();
+  const playerId = search.get("playerId") ?? "";
+  const initialStart = search.get("start") ?? isoDaysAgo(60);
+  const initialEnd = search.get("end") ?? todayIso();
   const [start, setStart] = useState(initialStart);
   const [end, setEnd] = useState(initialEnd);
 
   const player = useMemo(() => pitchers.find((p) => p.id === playerId), [pitchers, playerId]);
-  const snapshots = useMemo(() => (playerId ? byPitcher.get(playerId) ?? [] : []), [byPitcher, playerId]);
+  const snapshots = useMemo(() => (playerId ? (byPitcher.get(playerId) ?? []) : []), [byPitcher, playerId]);
   const latestSnapshot = snapshots[0];
   const previousSnapshot = snapshots[1];
 
   const { card, isLoading: cardLoading, save } = useReportCard(playerId || undefined, start, end);
 
-  const [context, setContext] = useState('');
-  const [summary, setSummary] = useState('');
-  const [strengths, setStrengths] = useState('');
-  const [areas, setAreas] = useState('');
+  const [context, setContext] = useState("");
+  const [summary, setSummary] = useState("");
+  const [strengths, setStrengths] = useState("");
+  const [areas, setAreas] = useState("");
   const [adjustments, setAdjustments] = useState<Record<string, number>>({});
-  const [positionPrimary, setPositionPrimary] = useState('');
-  const [positionSupport1, setPositionSupport1] = useState('');
-  const [positionSupport2, setPositionSupport2] = useState('');
-  const [tryoutFocus, setTryoutFocus] = useState('');
+  const [positionPrimary, setPositionPrimary] = useState("");
+  const [positionSupport1, setPositionSupport1] = useState("");
+  const [positionSupport2, setPositionSupport2] = useState("");
+  const [tryoutFocus, setTryoutFocus] = useState("");
   const [published, setPublished] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
-  const [autosaveStatus, setAutosaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [autosaveStatus, setAutosaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   // Hydrate the form from whichever card was just loaded. When the coach
   // switches players and the new player has no saved card (card === null),
@@ -96,33 +87,47 @@ export default function ReportCardPage() {
   const skipNextAutosaveRef = useRef(true);
   useEffect(() => {
     skipNextAutosaveRef.current = true;
-    setContext(card?.coachContext ?? '');
-    setSummary(card?.summary ?? '');
-    setStrengths(card?.strengths ?? '');
-    setAreas(card?.areas ?? '');
+    setContext(card?.coachContext ?? "");
+    setSummary(card?.summary ?? "");
+    setStrengths(card?.strengths ?? "");
+    setAreas(card?.areas ?? "");
     setAdjustments(card?.metricAdjustments ?? {});
-    setPositionPrimary(card?.positionPrimary ?? '');
-    setPositionSupport1(card?.positionSupport1 ?? '');
-    setPositionSupport2(card?.positionSupport2 ?? '');
-    setTryoutFocus(card?.tryoutFocus ?? '');
+    setPositionPrimary(card?.positionPrimary ?? "");
+    setPositionSupport1(card?.positionSupport1 ?? "");
+    setPositionSupport2(card?.positionSupport2 ?? "");
+    setTryoutFocus(card?.tryoutFocus ?? "");
     setPublished(card?.published ?? false);
   }, [card, playerId]);
 
   // Builds the same payload handleSave sends, minus `published` (autosave
   // should never silently flip a card live/offline — that stays an explicit
   // Save-button action via the publish switch + handleSave).
-  const buildDraftPatch = useCallback(() => ({
-    coachContext: context,
-    summary,
-    strengths,
-    areas,
-    snapshotId: latestSnapshot?.id ?? null,
-    metricAdjustments: adjustments,
-    positionPrimary: positionPrimary || null,
-    positionSupport1: positionSupport1 || null,
-    positionSupport2: positionSupport2 || null,
-    tryoutFocus,
-  }), [context, summary, strengths, areas, latestSnapshot, adjustments, positionPrimary, positionSupport1, positionSupport2, tryoutFocus]);
+  const buildDraftPatch = useCallback(
+    () => ({
+      coachContext: context,
+      summary,
+      strengths,
+      areas,
+      snapshotId: latestSnapshot?.id ?? null,
+      metricAdjustments: adjustments,
+      positionPrimary: positionPrimary || null,
+      positionSupport1: positionSupport1 || null,
+      positionSupport2: positionSupport2 || null,
+      tryoutFocus,
+    }),
+    [
+      context,
+      summary,
+      strengths,
+      areas,
+      latestSnapshot,
+      adjustments,
+      positionPrimary,
+      positionSupport1,
+      positionSupport2,
+      tryoutFocus,
+    ],
+  );
 
   // Debounced autosave — a coach losing typed-but-unsaved report card
   // content to an unexpected reload/tab switch is real, repeated data loss
@@ -135,13 +140,23 @@ export default function ReportCardPage() {
       return;
     }
     const timer = window.setTimeout(async () => {
-      setAutosaveStatus('saving');
+      setAutosaveStatus("saving");
       const ok = await save(buildDraftPatch());
-      setAutosaveStatus(ok ? 'saved' : 'error');
+      setAutosaveStatus(ok ? "saved" : "error");
     }, 2000);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [context, summary, strengths, areas, adjustments, positionPrimary, positionSupport1, positionSupport2, tryoutFocus]);
+  }, [
+    context,
+    summary,
+    strengths,
+    areas,
+    adjustments,
+    positionPrimary,
+    positionSupport1,
+    positionSupport2,
+    tryoutFocus,
+  ]);
 
   // Immediate (non-debounced) flush the moment the tab is backgrounded or
   // the page is about to unload — covers the exact failure mode of "typed
@@ -149,17 +164,17 @@ export default function ReportCardPage() {
   useEffect(() => {
     if (!player) return;
     const flush = () => {
-      if (document.visibilityState !== 'hidden') return;
+      if (document.visibilityState !== "hidden") return;
       // Fire-and-forget: the page may already be tearing down, so we can't
       // reliably await this, but issuing the request before visibility
       // change gives the browser a chance to complete it in the background.
       void save(buildDraftPatch());
     };
-    document.addEventListener('visibilitychange', flush);
-    window.addEventListener('pagehide', flush);
+    document.addEventListener("visibilitychange", flush);
+    window.addEventListener("pagehide", flush);
     return () => {
-      document.removeEventListener('visibilitychange', flush);
-      window.removeEventListener('pagehide', flush);
+      document.removeEventListener("visibilitychange", flush);
+      window.removeEventListener("pagehide", flush);
     };
   }, [player, save, buildDraftPatch]);
 
@@ -199,9 +214,9 @@ export default function ReportCardPage() {
     if (!player) return;
     if (!hasApiKey) {
       toast({
-        title: 'Anthropic API key needed',
-        description: 'Set one from the paper-form scanner. Coaches BYOK for AI drafts.',
-        variant: 'destructive',
+        title: "Anthropic API key needed",
+        description: "Set one from the paper-form scanner. Coaches BYOK for AI drafts.",
+        variant: "destructive",
       });
       return;
     }
@@ -234,10 +249,10 @@ export default function ReportCardPage() {
       setStrengths(draft.strengths);
       setAreas(draft.areas);
       setTryoutFocus(draft.tryoutFocus);
-      toast({ title: 'Draft ready', description: 'Review and edit the sections before saving.' });
+      toast({ title: "Draft ready", description: "Review and edit the sections before saving." });
     } catch (e) {
-      const msg = e instanceof ReportCardLLMError ? e.message : 'Could not generate the draft. Try again.';
-      toast({ title: 'Draft failed', description: msg, variant: 'destructive' });
+      const msg = e instanceof ReportCardLLMError ? e.message : "Could not generate the draft. Try again.";
+      toast({ title: "Draft failed", description: msg, variant: "destructive" });
     } finally {
       setGenerating(false);
     }
@@ -248,7 +263,7 @@ export default function ReportCardPage() {
     const ok = await save({ ...buildDraftPatch(), published });
     if (ok) {
       setSavedFlash(true);
-      setAutosaveStatus('idle');
+      setAutosaveStatus("idle");
       setSearch({ playerId, start, end }, { replace: true });
       window.setTimeout(() => setSavedFlash(false), 1800);
     }
@@ -281,7 +296,9 @@ export default function ReportCardPage() {
           <CardContent className="p-4 space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1">
-                <Label htmlFor="rc-player" className="text-xs uppercase tracking-wider text-muted-foreground">Player</Label>
+                <Label htmlFor="rc-player" className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Player
+                </Label>
                 <select
                   id="rc-player"
                   className="w-full h-9 rounded-md border border-border/60 bg-background px-2 text-sm"
@@ -290,16 +307,22 @@ export default function ReportCardPage() {
                 >
                   <option value="">Pick a player…</option>
                   {pitchers.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
                   ))}
                 </select>
               </div>
               <div className="space-y-1">
-                <Label htmlFor="rc-start" className="text-xs uppercase tracking-wider text-muted-foreground">Period start</Label>
+                <Label htmlFor="rc-start" className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Period start
+                </Label>
                 <Input id="rc-start" type="date" value={start} onChange={(e) => setStart(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="rc-end" className="text-xs uppercase tracking-wider text-muted-foreground">Period end</Label>
+                <Label htmlFor="rc-end" className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Period end
+                </Label>
                 <Input id="rc-end" type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
               </div>
             </div>
@@ -308,8 +331,8 @@ export default function ReportCardPage() {
               <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 flex items-start gap-2 text-sm">
                 <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
                 <p className="text-amber-800 dark:text-amber-200">
-                  No Anthropic API key configured. Set one from the paper-form scanner to enable
-                  AI-drafted narratives. You can still write and save the sections by hand.
+                  No Anthropic API key configured. Set one from the paper-form scanner to enable AI-drafted narratives.
+                  You can still write and save the sections by hand.
                 </p>
               </div>
             )}
@@ -337,8 +360,8 @@ export default function ReportCardPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="font-display text-base">Coach context</CardTitle>
                 <p className="text-xs text-muted-foreground">
-                  What do you want the draft to weave in? Anecdotes, specific games, growth
-                  moments, focus areas — anything the stats can't tell.
+                  What do you want the draft to weave in? Anecdotes, specific games, growth moments, focus areas —
+                  anything the stats can't tell.
                 </p>
               </CardHeader>
               <CardContent>
@@ -351,7 +374,11 @@ export default function ReportCardPage() {
                 />
                 <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-end">
                   <Button onClick={handleGenerate} disabled={generating || !hasApiKey}>
-                    {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wand2 className="w-4 h-4 mr-2" />}
+                    {generating ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Wand2 className="w-4 h-4 mr-2" />
+                    )}
                     Generate draft
                   </Button>
                 </div>
@@ -368,16 +395,15 @@ export default function ReportCardPage() {
                   <div className="rc-header-text">
                     <p className="rc-eyebrow">Newmarket Hawks · Player Report Card</p>
                     <h2 className="rc-player-name">{player.name}</h2>
-                    <p className="rc-period">{friendlyDate(start)} — {friendlyDate(end)}</p>
+                    <p className="rc-period">
+                      {friendlyDate(start)} — {friendlyDate(end)}
+                    </p>
                   </div>
                 </div>
               </div>
 
               <div className="rc-metrics-slot space-y-4 print:space-y-2">
-                <CoreMetricsPanel
-                  metrics={coreMetrics}
-                  onAdjust={handleAdjustMetric}
-                />
+                <CoreMetricsPanel metrics={coreMetrics} onAdjust={handleAdjustMetric} />
                 <PositionOfFocus
                   primary={positionPrimary}
                   support1={positionSupport1}
@@ -429,20 +455,21 @@ export default function ReportCardPage() {
               <div className="print:hidden rounded-lg border border-border/60 bg-secondary/30 p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-lg shrink-0 ${published ? 'bg-success/10' : 'bg-muted'}`}>
-                      <Radio className={`w-4 h-4 ${published ? 'text-success' : 'text-muted-foreground'}`} />
+                    <div className={`p-2 rounded-lg shrink-0 ${published ? "bg-success/10" : "bg-muted"}`}>
+                      <Radio className={`w-4 h-4 ${published ? "text-success" : "text-muted-foreground"}`} />
                     </div>
                     <div>
                       <Label htmlFor="rc-publish" className="text-sm font-medium text-foreground cursor-pointer">
                         Publish to {player.name}'s dashboard
                       </Label>
                       <p className="text-xs text-muted-foreground mt-0.5 max-w-md">
-                        When on and saved, this report card appears on {player.name}'s public dashboard —
-                        and only theirs. Off by default; turn off any time to pull it back down.
+                        When on and saved, this report card appears on {player.name}'s public dashboard — and only
+                        theirs. Off by default; turn off any time to pull it back down.
                       </p>
                       {card?.published && (
                         <p className="text-xs text-success mt-1 font-medium">
-                          Live now{card.publishedAt ? ` · last published ${friendlyDate(card.publishedAt.slice(0, 10))}` : ''}
+                          Live now
+                          {card.publishedAt ? ` · last published ${friendlyDate(card.publishedAt.slice(0, 10))}` : ""}
                         </p>
                       )}
                       {!card?.published && published && (
@@ -469,24 +496,28 @@ export default function ReportCardPage() {
 
               {/* Footer actions — hidden in print */}
               <div className="flex flex-wrap items-center gap-2 justify-end print:hidden">
-                {!savedFlash && autosaveStatus === 'saving' && (
+                {!savedFlash && autosaveStatus === "saving" && (
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <Loader2 className="w-3 h-3 animate-spin" /> Saving draft…
                   </span>
                 )}
-                {!savedFlash && autosaveStatus === 'saved' && (
+                {!savedFlash && autosaveStatus === "saved" && (
                   <span className="text-xs text-muted-foreground">Draft autosaved</span>
                 )}
-                {!savedFlash && autosaveStatus === 'error' && (
+                {!savedFlash && autosaveStatus === "error" && (
                   <span className="text-xs text-destructive">Autosave failed — click Save</span>
                 )}
-                <Button variant="outline" onClick={handlePrint} disabled={!summary && !strengths && !areas && !tryoutFocus}>
+                <Button
+                  variant="outline"
+                  onClick={handlePrint}
+                  disabled={!summary && !strengths && !areas && !tryoutFocus}
+                >
                   <FileDown className="w-4 h-4 mr-2" />
                   Download PDF
                 </Button>
                 <Button onClick={handleSave} disabled={!summary && !strengths && !areas && !tryoutFocus}>
                   {savedFlash ? <CheckCircle2 className="w-4 h-4 mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                  {savedFlash ? 'Saved' : 'Save report card'}
+                  {savedFlash ? "Saved" : "Save report card"}
                 </Button>
               </div>
             </div>
@@ -696,10 +727,10 @@ function PositionOfFocus({
   const hasAny = !!(primary || support1 || support2);
 
   return (
-    <Card className={`glass-card print:shadow-none print:border-none ${hasAny ? '' : 'print:hidden'}`}>
+    <Card className={`glass-card print:shadow-none print:border-none ${hasAny ? "" : "print:hidden"}`}>
       <CardHeader className="pb-2 print:pb-1">
         <CardTitle className="font-display text-base uppercase tracking-wider text-muted-foreground print:text-foreground">
-          Position of focus
+          Positions of focus
         </CardTitle>
         <p className="text-xs text-muted-foreground print:hidden">
           Pick a primary position and up to two supporting positions to show on the printout.
@@ -709,7 +740,9 @@ function PositionOfFocus({
         {/* On-screen pickers — hidden in print. */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 print:hidden">
           <div className="space-y-1">
-            <Label htmlFor="rc-pos-primary" className="text-xs text-muted-foreground">Primary</Label>
+            <Label htmlFor="rc-pos-primary" className="text-xs text-muted-foreground">
+              Primary
+            </Label>
             <select
               id="rc-pos-primary"
               className="w-full h-9 rounded-md border border-border/60 bg-background px-2 text-sm"
@@ -718,12 +751,16 @@ function PositionOfFocus({
             >
               <option value="">None</option>
               {FIELD_POSITIONS.filter((p) => p.value !== support1 && p.value !== support2).map((p) => (
-                <option key={p.value} value={p.value}>{p.label}</option>
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
               ))}
             </select>
           </div>
           <div className="space-y-1">
-            <Label htmlFor="rc-pos-support1" className="text-xs text-muted-foreground">Support 1</Label>
+            <Label htmlFor="rc-pos-support1" className="text-xs text-muted-foreground">
+              Support 1
+            </Label>
             <select
               id="rc-pos-support1"
               className="w-full h-9 rounded-md border border-border/60 bg-background px-2 text-sm"
@@ -732,12 +769,16 @@ function PositionOfFocus({
             >
               <option value="">None</option>
               {FIELD_POSITIONS.filter((p) => p.value !== primary && p.value !== support2).map((p) => (
-                <option key={p.value} value={p.value}>{p.label}</option>
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
               ))}
             </select>
           </div>
           <div className="space-y-1">
-            <Label htmlFor="rc-pos-support2" className="text-xs text-muted-foreground">Support 2</Label>
+            <Label htmlFor="rc-pos-support2" className="text-xs text-muted-foreground">
+              Support 2
+            </Label>
             <select
               id="rc-pos-support2"
               className="w-full h-9 rounded-md border border-border/60 bg-background px-2 text-sm"
@@ -746,7 +787,9 @@ function PositionOfFocus({
             >
               <option value="">None</option>
               {FIELD_POSITIONS.filter((p) => p.value !== primary && p.value !== support1).map((p) => (
-                <option key={p.value} value={p.value}>{p.label}</option>
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
               ))}
             </select>
           </div>
@@ -755,9 +798,21 @@ function PositionOfFocus({
         {/* Print-only mirror. */}
         {hasAny && (
           <div className="hidden print:flex print:flex-wrap print:gap-x-4 rc-print-copy">
-            {primary && <span><strong>Primary:</strong> {positionLabel(primary)}</span>}
-            {support1 && <span><strong>Support:</strong> {positionLabel(support1)}</span>}
-            {support2 && <span><strong>Support:</strong> {positionLabel(support2)}</span>}
+            {primary && (
+              <span>
+                <strong>Primary:</strong> {positionLabel(primary)}
+              </span>
+            )}
+            {support1 && (
+              <span>
+                <strong>Support:</strong> {positionLabel(support1)}
+              </span>
+            )}
+            {support2 && (
+              <span>
+                <strong>Support:</strong> {positionLabel(support2)}
+              </span>
+            )}
           </div>
         )}
       </CardContent>
@@ -814,9 +869,7 @@ function ReportSection({
         {/* Print-only mirror. Textareas don't auto-grow in print so we
             render the value as a flowing paragraph block instead — this
             guarantees the full copy shows up in the exported PDF. */}
-        <div className="hidden print:block rc-print-copy whitespace-pre-wrap">
-          {value}
-        </div>
+        <div className="hidden print:block rc-print-copy whitespace-pre-wrap">{value}</div>
       </CardContent>
     </Card>
   );
