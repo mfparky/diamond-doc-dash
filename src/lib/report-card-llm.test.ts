@@ -118,4 +118,14 @@ describe('buildReportCardPromptPayload', () => {
     expect(system).toContain('not as a reference to any');
     expect(system).toContain('game or outing');
   });
+
+  it('gives the model hard character limits matching the form fields, so a generated field can never land at/over its textarea maxLength', () => {
+    const { system } = buildReportCardPromptPayload(baseInput);
+    expect(system).toContain('HARD CHARACTER LIMITS');
+    expect(system).toContain('summary ≤ 180 characters');
+    expect(system).toContain('strengths ≤ 270 characters');
+    expect(system).toContain('areas ≤ 270 characters');
+    expect(system).toContain('tryoutFocus field');
+    expect(system).toContain('be ≤ 270 characters');
+  });
 });
