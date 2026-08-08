@@ -110,10 +110,12 @@ describe('buildReportCardPromptPayload', () => {
     expect(user).toContain('No metric bands computed for this player.');
   });
 
-  it('instructs the model to write tryoutFocus as 2-3 short bullets from coach context and stats', () => {
+  it('instructs the model to write tryoutFocus as 2-3 short skill-development bullets, not game references', () => {
     const { system } = buildReportCardPromptPayload(baseInput);
     expect(system).toContain('tryoutFocus');
     expect(system).toContain('2-3 short bullet');
-    expect(system).toContain('coach context and the stats');
+    expect(system).toContain('stats/metric bands and the coach context');
+    expect(system).toContain('not as a reference to any');
+    expect(system).toContain('game or outing');
   });
 });
