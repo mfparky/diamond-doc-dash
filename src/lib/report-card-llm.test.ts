@@ -135,4 +135,14 @@ describe('buildReportCardPromptPayload', () => {
     expect(system).toContain('NOT a paragraph');
     expect(system).toContain('opportunity, not a deficit');
   });
+
+  it('draws a clear line between areas (in-season/game) and tryoutFocus (skill/mechanics), forbidding overlap', () => {
+    const { system } = buildReportCardPromptPayload(baseInput);
+    expect(system).toContain('must cover');
+    expect(system).toContain('DIFFERENT ground');
+    expect(system).toContain('never repeat or rephrase the same point in both');
+    expect(system).toContain('areas is IN-SEASON and GAME-SPECIFIC');
+    expect(system).toContain('tryoutFocus is');
+    expect(system).toContain('SKILL-DEVELOPMENT and MECHANICS');
+  });
 });
