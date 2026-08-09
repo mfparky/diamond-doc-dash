@@ -86,25 +86,24 @@ export function buildReportCardPromptPayload(input: ReportCardInput): {
 - summary: 3-5 sentences, specific and concrete, not padded just to fill
   the space.
 - strengths: 4-6 sentences, same standard — specific and concrete.
-- areas and tryoutFocus are BOTH short bullet lists but must cover
-  DIFFERENT ground — never repeat or rephrase the same point in both.
-  areas is IN-SEASON and GAME-SPECIFIC: what this player needs to
-  sharpen to compete well through the rest of THIS season and into
-  playoffs (situational hitting/pitching, pitch selection, in-game
-  decision-making, base running reads, execution under pressure) —
-  grounded in this season's stats/performance trends. tryoutFocus is
-  SKILL-DEVELOPMENT and MECHANICS: fundamentals a coach specifically
-  evaluates in a tryout setting (see below), independent of this
-  season's game situations. If a stat or coach note plausibly supports
-  either framing, put it in whichever section it fits best and leave it
-  out of the other.
-- For areas: write 2-3 short, pointed bullet points, NOT a paragraph.
-  Each bullet names one specific in-season/game opportunity in a few
-  words (e.g. "• Two-strike approach", "• First-step reads with runners
-  on") — not a hedged, padded-out sentence explaining it. Still framed
-  as an opportunity, not a deficit, but say it plainly and move on; the
-  coach will add detail by hand. One bullet per line, each starting
-  with "• ".
+- areas and tryoutFocus must cover DIFFERENT ground — never repeat or
+  rephrase the same point in both. areas is IN-SEASON and
+  GAME-SPECIFIC: what this player needs to sharpen to compete well
+  through the rest of THIS season and into playoffs (situational
+  hitting/pitching, pitch selection, in-game decision-making, base
+  running reads, execution under pressure) — grounded in this season's
+  stats/performance trends. tryoutFocus is SKILL-DEVELOPMENT and
+  MECHANICS: fundamentals a coach specifically evaluates in a tryout
+  setting (see below), independent of this season's game situations.
+  If a stat or coach note plausibly supports either framing, put it in
+  whichever section it fits best and leave it out of the other.
+- For areas: write a paragraph, same structure and length as strengths
+  (4-6 sentences, specific and concrete, not padded). Each distinct
+  topic gets covered ONCE, as a single cohesive piece of feedback —
+  e.g. if hitting needs work, write one clear point about hitting that
+  says what to work on and why, don't scatter 2-3 separate mentions of
+  hitting across the paragraph padding it out. Still framed as an
+  opportunity, not a deficit.
 - For tryoutFocus: write 2-3 short bullet points, not paragraphs — each a
   fundamental SKILL or MECHANIC a coach evaluates at a tryout: hitting
   mechanics (swing path, plate discipline, bat speed), fielding fundamentals
@@ -212,7 +211,7 @@ export async function generateReportCardDraft(input: ReportCardInput): Promise<R
           properties: {
             summary: { type: 'string', description: 'Overall summary, 3-5 sentences. HARD LIMIT: 360 characters, stay comfortably under.' },
             strengths: { type: 'string', description: 'Strengths, 4-6 sentences. HARD LIMIT: 540 characters, stay comfortably under.' },
-            areas: { type: 'string', description: '2-3 short, pointed bullet points (one per line, each starting with "• "), each an in-season/game-specific opportunity (situational play, execution, decision-making — not mechanics/fundamentals, that\'s tryoutFocus) in a few words — not full sentences, not a paragraph. Framed as an opportunity, not a deficit. Must not repeat any point made in tryoutFocus. HARD LIMIT: 360 characters, stay comfortably under.' },
+            areas: { type: 'string', description: 'Areas to work on paragraph, 4-6 sentences (same structure as strengths), in-season/game-specific (situational play, execution, decision-making — not mechanics/fundamentals, that\'s tryoutFocus). Each distinct topic covered once, as a single cohesive point — do not scatter multiple mentions of the same topic (e.g. hitting) across the paragraph. Framed as an opportunity, not a deficit. Must not repeat any point made in tryoutFocus. HARD LIMIT: 360 characters, stay comfortably under.' },
             tryoutFocus: {
               type: 'string',
               description: '2-3 short bullet points (one per line, each starting with "• "), each a fundamental skill/mechanic a coach evaluates at tryouts (hitting mechanics, fielding fundamentals, pitching mechanics, or athleticism — not in-season/game situations, that\'s areas) — not a stat outcome to improve and not a reference to a specific past game. Short phrases, not full sentences — the coach will add detail by hand. Must not repeat any point made in areas. HARD LIMIT: 540 characters total, stay comfortably under.',
