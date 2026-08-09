@@ -82,9 +82,16 @@ export function buildReportCardPromptPayload(input: ReportCardInput): {
 - HARD CHARACTER LIMITS (the report card form cannot accept text longer than
   these — stay comfortably under, do not write up to the limit and risk
   going over): summary ≤ 360 characters, strengths ≤ 540 characters,
-  areas ≤ 360 characters. That's roughly 3-5 sentences for summary/areas
-  and 4-6 for strengths — specific and concrete, not padded just to fill
+  areas ≤ 360 characters, tryoutFocus ≤ 540 characters.
+- summary: 3-5 sentences, specific and concrete, not padded just to fill
   the space.
+- strengths: 4-6 sentences, same standard — specific and concrete.
+- For areas: write 2-3 short, pointed bullet points, NOT a paragraph.
+  Each bullet names one specific growth opportunity in a few words (e.g.
+  "• Two-strike approach", "• First-step reads in the field") — not a
+  hedged, padded-out sentence explaining it. Still framed as an
+  opportunity, not a deficit, but say it plainly and move on; the coach
+  will add detail by hand. One bullet per line, each starting with "• ".
 - For tryoutFocus: write 2-3 short bullet points, not paragraphs — each a
   fundamental SKILL or MECHANIC a coach evaluates at a tryout: hitting
   mechanics (swing path, plate discipline, bat speed), fielding fundamentals
@@ -192,7 +199,7 @@ export async function generateReportCardDraft(input: ReportCardInput): Promise<R
           properties: {
             summary: { type: 'string', description: 'Overall summary, 3-5 sentences. HARD LIMIT: 360 characters, stay comfortably under.' },
             strengths: { type: 'string', description: 'Strengths, 4-6 sentences. HARD LIMIT: 540 characters, stay comfortably under.' },
-            areas: { type: 'string', description: 'Areas to work on, framed as opportunities, 3-5 sentences. HARD LIMIT: 360 characters, stay comfortably under.' },
+            areas: { type: 'string', description: '2-3 short, pointed bullet points (one per line, each starting with "• "), each one specific growth opportunity in a few words — not full sentences, not a paragraph. Framed as an opportunity, not a deficit. HARD LIMIT: 360 characters, stay comfortably under.' },
             tryoutFocus: {
               type: 'string',
               description: '2-3 short bullet points (one per line, each starting with "• "), each a fundamental skill/mechanic a coach evaluates at tryouts (hitting mechanics, fielding fundamentals, pitching mechanics, or athleticism) — not a stat outcome to improve and not a reference to a specific past game. Short phrases, not full sentences — the coach will add detail by hand. HARD LIMIT: 540 characters total, stay comfortably under.',

@@ -128,4 +128,11 @@ describe('buildReportCardPromptPayload', () => {
     expect(system).toContain('tryoutFocus field');
     expect(system).toContain('be ≤ 540 characters');
   });
+
+  it('instructs the model to write areas as 2-3 pointed bullets, not a paragraph', () => {
+    const { system } = buildReportCardPromptPayload(baseInput);
+    expect(system).toContain('For areas: write 2-3 short, pointed bullet points');
+    expect(system).toContain('NOT a paragraph');
+    expect(system).toContain('opportunity, not a deficit');
+  });
 });
