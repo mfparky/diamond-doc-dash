@@ -98,7 +98,7 @@ function AppRoutes() {
   const { user, loading } = useAuth();
   const { isScorekeeper, loading: roleLoading } = useUserRole();
   const { memberships, activeTeamId, loading: membershipsLoading, refetch: refetchMemberships, setActiveTeamId } = useTeamMemberships();
-  const { setSystem } = useDesignSystem();
+  const { setSystem, setAccentColor } = useDesignSystem();
 
   // Apply the active team's branding whenever it changes — replaces the
   // old unscoped "grab whatever team is first" fetch in DesignSystemContext.
@@ -109,9 +109,10 @@ function AppRoutes() {
       if (cancelled) return;
       const team = data?.[0];
       setSystem(team?.design_system || 'athlete');
+      setAccentColor(team?.brand_color ?? null);
     });
     return () => { cancelled = true; };
-  }, [activeTeamId, setSystem]);
+  }, [activeTeamId, setSystem, setAccentColor]);
 
   if (loading || (user && (roleLoading || membershipsLoading))) {
     return <RouteFallback />;

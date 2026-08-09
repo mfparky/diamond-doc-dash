@@ -5,6 +5,8 @@ import { useDesignSystem } from '@/contexts/DesignSystemContext';
 import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { extractDominantColorFromImage } from '@/lib/logo-color-extraction';
+import { isValidHexColor, normalizeHex } from '@/lib/color-utils';
 
 // ─── Theme Definition ─────────────────────────────────────────────────────────
 //
@@ -667,12 +669,15 @@ function DesignShowcase({ t }: { t: Theme }) {
 // ─── Page Shell ────────────────────────────────────────────────────────────────
 
 export default function DesignSystemPage() {
-  const { activeSystemId, mode, setMode, setSystem } = useDesignSystem();
+  const { activeSystemId, mode, setMode, setSystem, setAccentColor } = useDesignSystem();
   const { user } = useAuth();
   const [teamId, setTeamId] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const logoInputRef = useRef<HTMLInputElement | null>(null);
+  // Team's saved brand color plus any unsaved pick — null means "use Athlete's stock volt green".
+  const [brandColor, setBrandColor] = useState<string | null>(null);
+  const [pickedColor, setPickedColor] = useState<string | null>(null);
 
   // Local preview mode (synced with global mode initially)
   const [darkMode, setDarkMode] = useState(mode === 'dark');
@@ -693,11 +698,14 @@ export default function DesignSystemPage() {
       });
   }, [user]);
 
-  // Fetch the team's current logo for display once teamId resolves
+  // Fetch the team's current logo + brand color for display once teamId resolves
   useEffect(() => {
     if (!teamId) return;
     supabase.rpc('get_public_team_info', { p_team_id: teamId }).then(({ data }) => {
-      setLogoUrl(data?.[0]?.logo_url ?? null);
+      const team = data?.[0] as { logo_url?: string | null; brand_color?: string | null } | undefined;
+      setLogoUrl(team?.logo_url ?? null);
+      setBrandColor(team?.brand_color ?? null);
+      setPickedColor(team?.brand_color ?? null);
     });
   }, [teamId]);
 
@@ -727,6 +735,12 @@ export default function DesignSystemPage() {
 
       setLogoUrl(bustedUrl);
       toast.success('Team logo updated.');
+
+      const suggested = await extractDominantColorFromImage(file);
+      if (suggested) {
+        setPickedColor(suggested);
+        toast.info('Suggested a brand color from your logo — adjust it if needed, then Apply.');
+      }
     } catch (err) {
       toast.error('Could not upload logo.');
     } finally {
@@ -742,9 +756,20 @@ export default function DesignSystemPage() {
       return;
     }
     await setSystem('athlete', teamId!);
-    // Also apply the current preview mode globally
+    // Also apply the current preview mode + brand color globally
     setMode(darkMode ? 'dark' : 'light');
+    const colorToSave = pickedColor && isValidHexColor(pickedColor) ? normalizeHex(pickedColor) : null;
+    await setAccentColor(colorToSave, teamId!);
+    setBrandColor(colorToSave);
     toast.success(`Athlete applied globally (${darkMode ? 'dark' : 'light'} mode).`);
+  };
+
+  const handleResetColor = async () => {
+    if (!isCoach) return;
+    setPickedColor(null);
+    setBrandColor(null);
+    await setAccentColor(null, teamId!);
+    toast.success('Reverted to Athlete’s default volt green.');
   };
 
   return (
@@ -839,6 +864,44 @@ export default function DesignSystemPage() {
               <Upload size={13} />
               {uploadingLogo ? 'Uploading…' : 'Team logo'}
             </button>
+
+            <label
+              title="Team brand color"
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                padding: '4px 10px', borderRadius: '6px', flexShrink: 0,
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.10)',
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                type="color"
+                value={pickedColor && isValidHexColor(pickedColor) ? normalizeHex(pickedColor) : '#c6f135'}
+                onChange={(e) => setPickedColor(e.target.value)}
+                style={{
+                  width: 20, height: 20, padding: 0, border: 'none',
+                  borderRadius: '4px', background: 'none', cursor: 'pointer',
+                }}
+              />
+              <span style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>
+                Brand color
+              </span>
+            </label>
+
+            {(brandColor || pickedColor) && (
+              <button
+                onClick={handleResetColor}
+                style={{
+                  padding: '6px 10px', borderRadius: '6px', flexShrink: 0,
+                  background: 'transparent', border: '1px solid rgba(255,255,255,0.10)',
+                  color: 'rgba(255,255,255,0.45)',
+                  fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                Use default
+              </button>
+            )}
           </>
         )}
       </div>

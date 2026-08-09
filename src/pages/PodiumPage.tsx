@@ -24,7 +24,7 @@ export default function PodiumPage() {
   const [pitcherIds, setPitcherIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [windowLabel, setWindowLabel] = useState("");
-  const { setSystem } = useDesignSystem();
+  const { setSystem, setAccentColor } = useDesignSystem();
 
   usePageMeta({
     title: `${teamName} | Workout Podium`,
@@ -42,6 +42,7 @@ export default function PodiumPage() {
       if (!team || cancelled) return;
       setTeamName(team.name);
       setSystem(team.design_system || 'athlete');
+      setAccentColor(team.brand_color ?? null);
 
       const now = new Date();
       const from = team.leaderboard_from
@@ -111,7 +112,7 @@ export default function PodiumPage() {
     return () => {
       cancelled = true;
     };
-  }, [teamId, setSystem]);
+  }, [teamId, setSystem, setAccentColor]);
 
   // Fire confetti once entries are loaded
   useEffect(() => {
