@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Copy } from 'lucide-react';
 
 interface Props {
   open: boolean;
@@ -27,6 +27,7 @@ export function ManageScorekeepersDialog({ open, onOpenChange }: Props) {
   const [members, setMembers] = useState<Member[]>([]);
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
+  const [joinCode, setJoinCode] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open || !user) return;
@@ -41,8 +42,16 @@ export function ManageScorekeepersDialog({ open, onOpenChange }: Props) {
       if (!tm) return;
       setTeamId(tm.team_id);
       await loadMembers(tm.team_id);
+      const { data: code } = await supabase.rpc('get_own_team_join_code', { p_team_id: tm.team_id });
+      setJoinCode(code ?? null);
     })();
   }, [open, user]);
+
+  async function copyJoinCode() {
+    if (!joinCode) return;
+    await navigator.clipboard.writeText(joinCode);
+    toast({ title: 'Join code copied' });
+  }
 
   async function loadMembers(tid: string) {
     const { data } = await supabase
@@ -114,6 +123,21 @@ export function ManageScorekeepersDialog({ open, onOpenChange }: Props) {
         </DialogHeader>
 
         <div className="space-y-4">
+          {joinCode && (
+            <div className="space-y-2">
+              <Label>Your team's join code</Label>
+              <div className="flex gap-2">
+                <Input value={joinCode} readOnly className="font-mono" />
+                <Button variant="outline" size="icon" onClick={copyJoinCode} aria-label="Copy join code">
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Share this with a co-coach — they enter it under "Create or join a team" to get full coach access instantly.
+              </p>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="sk-email">Add by email</Label>
             <div className="flex gap-2">
