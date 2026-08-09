@@ -51,7 +51,7 @@ export default function TeamDashboard() {
         if (!cancelled) {
           setTeamName(teamData?.name || 'Team');
           setTeamLogoUrl(teamData?.logo_url ?? null);
-          setSystem(teamData?.design_system || 'default');
+          setSystem(teamData?.design_system || 'athlete');
         }
 
         if (!pitchersData || pitchersData.length === 0) {

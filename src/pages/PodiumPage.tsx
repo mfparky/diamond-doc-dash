@@ -41,7 +41,7 @@ export default function PodiumPage() {
       const team = teamRows?.[0];
       if (!team || cancelled) return;
       setTeamName(team.name);
-      setSystem(team.design_system || 'default');
+      setSystem(team.design_system || 'athlete');
 
       const now = new Date();
       const from = team.leaderboard_from

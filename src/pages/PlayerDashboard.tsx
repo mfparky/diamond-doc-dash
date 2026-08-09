@@ -237,7 +237,7 @@ export default function PlayerDashboard() {
                   if (teamData.leaderboard_from) setTeamLeaderboardStart(new Date(teamData.leaderboard_from + 'T00:00:00'));
                   if (teamData.leaderboard_to) setTeamLeaderboardEnd(new Date(teamData.leaderboard_to + 'T00:00:00'));
                   setTeamLogoUrl(teamData.logo_url ?? null);
-                  setSystem(teamData.design_system || 'default');
+                  setSystem(teamData.design_system || 'athlete');
                 }
               });
           } else if (pitcherData.user_id) {
