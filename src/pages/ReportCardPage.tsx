@@ -48,7 +48,7 @@ const TRYOUT_PREAMBLE =
 // numbers before it ever reaches the form.
 const MAX_SUMMARY_LENGTH = 400;
 const MAX_STRENGTHS_LENGTH = 600;
-const MAX_AREAS_LENGTH = 400;
+const MAX_AREAS_LENGTH = 600;
 const MAX_TRYOUT_FOCUS_LENGTH = 600;
 
 export default function ReportCardPage() {
