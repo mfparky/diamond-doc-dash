@@ -519,6 +519,7 @@ export type Database = {
         Row: {
           achievement_from: string | null
           achievement_to: string | null
+          brand_color: string | null
           created_at: string
           design_system: string | null
           id: string
@@ -533,6 +534,7 @@ export type Database = {
         Insert: {
           achievement_from?: string | null
           achievement_to?: string | null
+          brand_color?: string | null
           created_at?: string
           design_system?: string | null
           id?: string
@@ -547,6 +549,7 @@ export type Database = {
         Update: {
           achievement_from?: string | null
           achievement_to?: string | null
+          brand_color?: string | null
           created_at?: string
           design_system?: string | null
           id?: string
@@ -885,6 +888,7 @@ export type Database = {
         Returns: {
           achievement_from: string
           achievement_to: string
+          brand_color: string
           design_system: string
           id: string
           leaderboard_from: string

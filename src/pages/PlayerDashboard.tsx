@@ -59,7 +59,7 @@ export default function PlayerDashboard() {
   const [selectedVideoOuting, setSelectedVideoOuting] = useState<Outing | null>(null);
   const [showAccountability, setShowAccountability] = useState(false);
   const { fetchPublicPitchLocationsForPitcher } = usePitchLocations();
-  const { setSystem } = useDesignSystem();
+  const { setSystem, setAccentColor } = useDesignSystem();
   const [teamLogoUrl, setTeamLogoUrl] = useState<string | null>(null);
   const [allPitchLocations, setAllPitchLocations] = useState<PitchLocation[]>([]);
   const { filterByWindow: localFilterByWindow } = useAchievementWindow();
@@ -238,6 +238,7 @@ export default function PlayerDashboard() {
                   if (teamData.leaderboard_to) setTeamLeaderboardEnd(new Date(teamData.leaderboard_to + 'T00:00:00'));
                   setTeamLogoUrl(teamData.logo_url ?? null);
                   setSystem(teamData.design_system || 'athlete');
+                  setAccentColor(teamData.brand_color ?? null);
                 }
               });
           } else if (pitcherData.user_id) {
@@ -336,7 +337,7 @@ export default function PlayerDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [playerId, fetchPublicPitchLocationsForPitcher, setSystem]);
+  }, [playerId, fetchPublicPitchLocationsForPitcher, setSystem, setAccentColor]);
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';

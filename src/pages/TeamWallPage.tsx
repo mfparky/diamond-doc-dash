@@ -11,7 +11,7 @@ import { useDesignSystem } from '@/contexts/DesignSystemContext';
 export default function TeamWallPage() {
   const { teamId } = useParams<{ teamId: string }>();
   const navigate = useNavigate();
-  const { setSystem } = useDesignSystem();
+  const { setSystem, setAccentColor } = useDesignSystem();
   const [teamName, setTeamName] = useState('Team');
   const [pitcherIds, setPitcherIds] = useState<string[]>([]);
 
@@ -31,11 +31,12 @@ export default function TeamWallPage() {
       if (team) {
         setTeamName(team.name);
         setSystem(team.design_system || 'athlete');
+        setAccentColor(team.brand_color ?? null);
       }
       if (pitchers) setPitcherIds(pitchers.map((p) => p.id));
     }
     load();
-  }, [teamId, setSystem]);
+  }, [teamId, setSystem, setAccentColor]);
 
   return (
     <div className="min-h-screen bg-background">

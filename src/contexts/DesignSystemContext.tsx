@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getContrastTextColor, isValidHexColor, normalizeHex } from '@/lib/color-utils';
 
 // ─── Hex → HSL conversion ──────────────────────────────────────────────────────
 
@@ -95,8 +96,20 @@ export const DESIGN_SYSTEMS: DesignSystemTheme[] = [ATHLETE_THEME];
 
 // ─── Apply / Clear Theme ────────────────────────────────────────────────────────
 
-function applyThemeToDOM(system: DesignSystemTheme, mode: 'light' | 'dark') {
-  const v = mode === 'dark' ? system.dark : system.light;
+function applyThemeToDOM(system: DesignSystemTheme, mode: 'light' | 'dark', accentOverride?: string | null) {
+  const baseVariant = mode === 'dark' ? system.dark : system.light;
+  // A team's custom brand color only ever swaps the accent — background,
+  // surface, text, and status (Ready/Caution/Rest) colors always come from
+  // the base Athlete variant, so those stay consistent across every team
+  // regardless of branding.
+  const v: ThemeVariant = accentOverride && isValidHexColor(accentOverride)
+    ? {
+        ...baseVariant,
+        accent: normalizeHex(accentOverride),
+        accentBg: normalizeHex(accentOverride),
+        accentText: getContrastTextColor(accentOverride),
+      }
+    : baseVariant;
   const root = document.documentElement;
 
   if (v.isDark) {
@@ -173,6 +186,10 @@ interface DesignSystemContextValue {
   resetToDefault: (teamId?: string) => Promise<void>;
   systems: DesignSystemTheme[];
   loading: boolean;
+  /** Team's custom accent color (hex), or null to use Athlete's default volt green. */
+  accentColor: string | null;
+  /** Applies an accent color override; pass null to reset to Athlete's default. Persists to teams.brand_color when teamId is given, same pattern as setSystem. */
+  setAccentColor: (hex: string | null, teamId?: string) => Promise<void>;
 }
 
 const DesignSystemContext = createContext<DesignSystemContextValue | null>(null);
@@ -187,6 +204,7 @@ export function DesignSystemProvider({ children }: { children: React.ReactNode }
     const saved = localStorage.getItem('ds-mode');
     return (saved === 'light' || saved === 'dark') ? saved : 'dark';
   });
+  const [accentColor, setAccentColorState] = useState<string | null>(null);
   // No team is known yet at mount — callers apply a specific team's theme
   // once they've resolved which team they're for (see setSystem below,
   // called without a teamId to apply-without-persisting). Starts "not
@@ -195,16 +213,27 @@ export function DesignSystemProvider({ children }: { children: React.ReactNode }
 
   const activeSystem = DESIGN_SYSTEMS.find(s => s.id === activeId) || DESIGN_SYSTEMS[0];
 
-  // Apply theme to DOM whenever system or mode changes. Always explicit now
-  // — there's no more "clear to CSS baseline" fallback state, since Athlete
-  // IS the baseline.
+  // Apply theme to DOM whenever system, mode, or the team's accent color
+  // override changes. Always explicit now — there's no more "clear to CSS
+  // baseline" fallback state, since Athlete IS the baseline.
   useEffect(() => {
-    applyThemeToDOM(activeSystem, mode);
-  }, [activeId, activeSystem, mode]);
+    applyThemeToDOM(activeSystem, mode, accentColor);
+  }, [activeId, activeSystem, mode, accentColor]);
 
   const setMode = useCallback((newMode: 'light' | 'dark') => {
     setModeState(newMode);
     localStorage.setItem('ds-mode', newMode);
+  }, []);
+
+  const setAccentColor = useCallback(async (hex: string | null, teamId?: string) => {
+    setAccentColorState(hex);
+
+    if (teamId) {
+      await supabase
+        .from('teams')
+        .update({ brand_color: hex })
+        .eq('id', teamId);
+    }
   }, []);
 
   const toggleMode = useCallback(() => {
@@ -244,6 +273,8 @@ export function DesignSystemProvider({ children }: { children: React.ReactNode }
       resetToDefault,
       systems: DESIGN_SYSTEMS,
       loading,
+      accentColor,
+      setAccentColor,
     }}>
       {children}
     </DesignSystemContext.Provider>

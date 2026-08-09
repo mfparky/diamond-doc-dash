@@ -13,7 +13,7 @@ import { useDesignSystem } from '@/contexts/DesignSystemContext';
 export default function TeamDashboard() {
   const { teamId } = useParams<{ teamId: string }>();
   const navigate = useNavigate();
-  const { setSystem } = useDesignSystem();
+  const { setSystem, setAccentColor } = useDesignSystem();
   const [teamName, setTeamName] = useState('Team');
   const [teamLogoUrl, setTeamLogoUrl] = useState<string | null>(null);
   const [outings, setOutings] = useState<Outing[]>([]);
@@ -52,6 +52,7 @@ export default function TeamDashboard() {
           setTeamName(teamData?.name || 'Team');
           setTeamLogoUrl(teamData?.logo_url ?? null);
           setSystem(teamData?.design_system || 'athlete');
+          setAccentColor(teamData?.brand_color ?? null);
         }
 
         if (!pitchersData || pitchersData.length === 0) {
@@ -109,7 +110,7 @@ export default function TeamDashboard() {
 
     fetchTeamData();
     return () => { cancelled = true; };
-  }, [teamId, setSystem]);
+  }, [teamId, setSystem, setAccentColor]);
 
   if (isLoading) {
     return (
