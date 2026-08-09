@@ -1,0 +1,5 @@
+-- Manual rollback for 20260810090000_get_own_team_join_code.sql
+-- Not run automatically (this file is .sql.txt, not .sql, so the migration
+-- runner skips it) — apply by hand via psql if this needs to be undone.
+
+DROP FUNCTION IF EXISTS public.get_own_team_join_code(uuid);

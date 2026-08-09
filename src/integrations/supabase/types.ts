@@ -760,6 +760,7 @@ export type Database = {
           team_name: string
         }[]
       }
+      get_own_team_join_code: { Args: { p_team_id: string }; Returns: string }
       get_public_pitcher: {
         Args: { p_pitcher_id: string }
         Returns: {
