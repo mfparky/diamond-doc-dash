@@ -108,7 +108,7 @@ function AppRoutes() {
     supabase.rpc('get_public_team_info', { p_team_id: activeTeamId }).then(({ data }) => {
       if (cancelled) return;
       const team = data?.[0];
-      setSystem(team?.design_system || 'default');
+      setSystem(team?.design_system || 'athlete');
     });
     return () => { cancelled = true; };
   }, [activeTeamId, setSystem]);

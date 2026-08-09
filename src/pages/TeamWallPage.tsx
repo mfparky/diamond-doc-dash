@@ -30,7 +30,7 @@ export default function TeamWallPage() {
       const team = teamRows?.[0];
       if (team) {
         setTeamName(team.name);
-        setSystem(team.design_system || 'default');
+        setSystem(team.design_system || 'athlete');
       }
       if (pitchers) setPitcherIds(pitchers.map((p) => p.id));
     }
