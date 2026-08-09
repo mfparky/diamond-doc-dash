@@ -129,20 +129,23 @@ describe('buildReportCardPromptPayload', () => {
     expect(system).toContain('be ≤ 540 characters');
   });
 
-  it('instructs the model to write areas as 2-3 pointed bullets, not a paragraph', () => {
+  it('instructs the model to write areas as a paragraph (same as strengths), consolidating each topic into one point', () => {
     const { system } = buildReportCardPromptPayload(baseInput);
-    expect(system).toContain('For areas: write 2-3 short, pointed bullet points');
-    expect(system).toContain('NOT a paragraph');
+    expect(system).toContain('For areas: write a paragraph, same structure and length as strengths');
+    expect(system).toContain('Each distinct');
+    expect(system).toContain('topic gets covered ONCE');
+    expect(system).toContain("don't scatter 2-3 separate mentions");
     expect(system).toContain('opportunity, not a deficit');
   });
 
   it('draws a clear line between areas (in-season/game) and tryoutFocus (skill/mechanics), forbidding overlap', () => {
     const { system } = buildReportCardPromptPayload(baseInput);
-    expect(system).toContain('must cover');
-    expect(system).toContain('DIFFERENT ground');
-    expect(system).toContain('never repeat or rephrase the same point in both');
-    expect(system).toContain('areas is IN-SEASON and GAME-SPECIFIC');
-    expect(system).toContain('tryoutFocus is');
-    expect(system).toContain('SKILL-DEVELOPMENT and MECHANICS');
+    expect(system).toContain('must cover DIFFERENT ground');
+    expect(system).toContain('never repeat or');
+    expect(system).toContain('rephrase the same point in both');
+    expect(system).toContain('areas is IN-SEASON and');
+    expect(system).toContain('GAME-SPECIFIC');
+    expect(system).toContain('tryoutFocus is SKILL-DEVELOPMENT and');
+    expect(system).toContain('MECHANICS');
   });
 });
