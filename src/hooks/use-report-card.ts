@@ -57,6 +57,32 @@ function normalizeAdjustments(raw: unknown): Record<string, number> {
   return out;
 }
 
+const REPORT_CARD_COLUMNS =
+  'id, pitcher_id, period_start, period_end, coach_context, narrative_summary, narrative_strengths, narrative_areas, snapshot_id, metric_adjustments, position_primary, position_support_1, position_support_2, tryout_focus, published, published_at, updated_at';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapReportCardRow(data: any): ReportCardRecord {
+  return {
+    id: data.id,
+    pitcherId: data.pitcher_id,
+    periodStart: data.period_start,
+    periodEnd: data.period_end,
+    coachContext: data.coach_context ?? '',
+    summary: data.narrative_summary ?? '',
+    strengths: data.narrative_strengths ?? '',
+    areas: data.narrative_areas ?? '',
+    snapshotId: data.snapshot_id,
+    metricAdjustments: normalizeAdjustments(data.metric_adjustments),
+    positionPrimary: data.position_primary ?? null,
+    positionSupport1: data.position_support_1 ?? null,
+    positionSupport2: data.position_support_2 ?? null,
+    tryoutFocus: data.tryout_focus ?? '',
+    published: data.published ?? false,
+    publishedAt: data.published_at ?? null,
+    updatedAt: data.updated_at,
+  };
+}
+
 /**
  * Coach-owned report card keyed by (pitcher_id, period_start). Upserts on save
  * so the coach can iterate through drafts + edits without creating dupes.
@@ -87,35 +113,13 @@ export function useReportCard(pitcherId: string | undefined, periodStart: string
       }
       const { data, error } = await db
         .from('report_cards')
-        .select('id, pitcher_id, period_start, period_end, coach_context, narrative_summary, narrative_strengths, narrative_areas, snapshot_id, metric_adjustments, position_primary, position_support_1, position_support_2, tryout_focus, published, published_at, updated_at')
+        .select(REPORT_CARD_COLUMNS)
         .eq('user_id', user.id)
         .eq('pitcher_id', pitcherId)
         .eq('period_start', periodStart)
         .maybeSingle();
       if (error) throw error;
-      if (data) {
-        setCard({
-          id: data.id,
-          pitcherId: data.pitcher_id,
-          periodStart: data.period_start,
-          periodEnd: data.period_end,
-          coachContext: data.coach_context ?? '',
-          summary: data.narrative_summary ?? '',
-          strengths: data.narrative_strengths ?? '',
-          areas: data.narrative_areas ?? '',
-          snapshotId: data.snapshot_id,
-          metricAdjustments: normalizeAdjustments(data.metric_adjustments),
-          positionPrimary: data.position_primary ?? null,
-          positionSupport1: data.position_support_1 ?? null,
-          positionSupport2: data.position_support_2 ?? null,
-          tryoutFocus: data.tryout_focus ?? '',
-          published: data.published ?? false,
-          publishedAt: data.published_at ?? null,
-          updatedAt: data.updated_at,
-        });
-      } else {
-        setCard(null);
-      }
+      setCard(data ? mapReportCardRow(data) : null);
     } catch (e) {
       console.error('Error loading report card:', e);
       toast({
@@ -191,4 +195,70 @@ export function useReportCard(pitcherId: string | undefined, periodStart: string
   }, [fetchCard]);
 
   return { card, isLoading, save, refetch: fetchCard };
+}
+
+interface UseLatestReportCardsResult {
+  /** Each pitcher's single most-recently-updated saved card, if any. */
+  cardsByPitcher: Map<string, ReportCardRecord>;
+  isLoading: boolean;
+}
+
+/**
+ * Bulk fetch for the "print all" review — one round-trip, then keep only
+ * the newest saved card per pitcher (a pitcher can have several across
+ * different review periods). Pitchers with no saved card are simply absent
+ * from the map rather than surfaced as an error.
+ */
+export function useLatestReportCards(pitcherIds: string[]): UseLatestReportCardsResult {
+  const [cardsByPitcher, setCardsByPitcher] = useState<Map<string, ReportCardRecord>>(new Map());
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  // Stable key so the effect doesn't churn on every render of a new array
+  // reference holding the same ids.
+  const key = pitcherIds.slice().sort().join(',');
+
+  const fetchCards = useCallback(async () => {
+    if (pitcherIds.length === 0) {
+      setCardsByPitcher(new Map());
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setCardsByPitcher(new Map());
+        return;
+      }
+      const { data, error } = await db
+        .from('report_cards')
+        .select(REPORT_CARD_COLUMNS)
+        .eq('user_id', user.id)
+        .in('pitcher_id', pitcherIds)
+        .order('updated_at', { ascending: false });
+      if (error) throw error;
+      const latest = new Map<string, ReportCardRecord>();
+      for (const row of data ?? []) {
+        // Sorted newest-first, so the first row seen per pitcher is the latest.
+        if (!latest.has(row.pitcher_id)) latest.set(row.pitcher_id, mapReportCardRow(row));
+      }
+      setCardsByPitcher(latest);
+    } catch (e) {
+      console.error('Error loading report cards:', e);
+      toast({
+        title: 'Could not load report cards',
+        description: 'Refresh and try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, toast]);
+
+  useEffect(() => {
+    fetchCards();
+  }, [fetchCards]);
+
+  return { cardsByPitcher, isLoading };
 }

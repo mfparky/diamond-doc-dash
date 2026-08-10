@@ -58,6 +58,7 @@ const GamesPage = lazyWithReload(() => import("./pages/GamesPage"));
 const RankingsPage = lazyWithReload(() => import("./pages/RankingsPage"));
 const LineupPage = lazyWithReload(() => import("./pages/LineupPage"));
 const ReportCardPage = lazyWithReload(() => import("./pages/ReportCardPage"));
+const PrintAllReportCardsPage = lazyWithReload(() => import("./pages/PrintAllReportCardsPage"));
 const PitchingPlannerPage = lazyWithReload(() => import("./pages/PitchingPlannerPage"));
 const BullpenChartPage = lazyWithReload(() => import("./pages/BullpenChartPage"));
 const GameChartPage = lazyWithReload(() => import("./pages/GameChartPage"));
@@ -164,6 +165,7 @@ function AppRoutes() {
           <Route path="/rankings" element={rankingsGate(<RankingsPage />)} />
           <Route path="/lineup" element={gate(<LineupPage />)} />
           <Route path="/report-card" element={gate(<ReportCardPage />)} />
+          <Route path="/report-card/print-all" element={gate(<PrintAllReportCardsPage />)} />
           <Route path="/planner" element={gate(<PitchingPlannerPage />)} />
           {/* Legacy redirect: old tournament route now points at the planner. */}
           <Route path="/tournament" element={gate(<PitchingPlannerPage />)} />
