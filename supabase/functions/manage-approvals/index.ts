@@ -6,6 +6,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Mirrors PLATFORM_ADMIN_EMAILS in src/lib/admin-access.ts — this function
+// runs in Deno, outside the Vite build, so it can't import that file
+// directly. Keep both lists in sync by hand.
+const ADMIN_EMAILS = new Set<string>(['hawkscoachmatt@gmail.com']);
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -26,17 +31,10 @@ serve(async (req) => {
       });
     }
 
-    const { data: ownerMembership, error: ownerError } = await supabase
-      .from('team_members')
-      .select('id')
-      .eq('user_id', caller.id)
-      .eq('role', 'owner')
-      .maybeSingle();
+    const callerEmail = caller.email?.trim().toLowerCase() ?? '';
 
-    if (ownerError) throw ownerError;
-
-    if (!ownerMembership) {
-      return new Response(JSON.stringify({ error: 'Team owner access required' }), {
+    if (!ADMIN_EMAILS.has(callerEmail)) {
+      return new Response(JSON.stringify({ error: 'Admin access required' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

@@ -13,6 +13,7 @@ import { RosterManagementDialog } from '@/components/RosterManagementDialog';
 import { PaperFormScanner } from '@/components/PaperFormScanner';
 import { ManageScorekeepersDialog } from '@/components/ManageScorekeepersDialog';
 import { CreateOrJoinTeamDialog } from '@/components/CreateOrJoinTeamDialog';
+import { PendingApprovalsDialog } from '@/components/PendingApprovalsDialog';
 import { useTeamMemberships } from '@/hooks/use-team-memberships';
 import { StatUploadDialog } from '@/components/StatUploadDialog';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -21,7 +22,8 @@ import { MoreSheet, type MoreSheetItem } from '@/components/MoreSheet';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { useDashboardSettings } from '@/hooks/use-dashboard-settings';
 import { useIsRankingsAdmin } from '@/hooks/use-rankings-admin';
-import { Settings, Camera, Printer, ClipboardList, MoreHorizontal, ShieldCheck, ScanLine, Gamepad2, ListChecks, Users, FileSpreadsheet, SlidersHorizontal, Trophy, ListOrdered, FileText, CalendarClock } from 'lucide-react';
+import { useIsPlatformAdmin } from '@/hooks/use-platform-admin';
+import { Settings, Camera, Printer, ClipboardList, MoreHorizontal, ShieldCheck, ScanLine, Gamepad2, ListChecks, Users, UserCheck, FileSpreadsheet, SlidersHorizontal, Trophy, ListOrdered, FileText, CalendarClock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { getDaysRestNeeded } from '@/types/pitcher';
@@ -51,12 +53,14 @@ const Index = () => {
   const [showFormScanner, setShowFormScanner] = useState(false);
   const [showScorekeepers, setShowScorekeepers] = useState(false);
   const [showCreateOrJoinTeam, setShowCreateOrJoinTeam] = useState(false);
+  const [showPendingApprovals, setShowPendingApprovals] = useState(false);
   const { refetch: refetchMemberships, setActiveTeamId } = useTeamMemberships();
   const [showMoreSheet, setShowMoreSheet] = useState(false);
   const [showStatUpload, setShowStatUpload] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const { settings: dashboardSettings } = useDashboardSettings();
   const { isAdmin: isRankingsAdmin } = useIsRankingsAdmin();
+  const { isAdmin: isPlatformAdmin } = useIsPlatformAdmin();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -106,6 +110,18 @@ const Index = () => {
       onSelect: () => setShowCreateOrJoinTeam(true),
       group: 'Team Setup & Planning',
     },
+    ...(isPlatformAdmin
+      ? [
+          {
+            id: 'pending-approvals',
+            label: 'Pending approvals',
+            description: 'Approve or reject new coach signups',
+            icon: <UserCheck className="w-5 h-5" />,
+            onSelect: () => setShowPendingApprovals(true),
+            group: 'Team Setup & Planning',
+          } satisfies MoreSheetItem,
+        ]
+      : []),
     {
       id: 'lineup',
       label: 'Lineup planner',
@@ -521,6 +537,10 @@ const Index = () => {
           setActiveTeamId(teamId);
         }}
       />
+
+      {isPlatformAdmin && (
+        <PendingApprovalsDialog open={showPendingApprovals} onOpenChange={setShowPendingApprovals} />
+      )}
     </div>
   );
 };
