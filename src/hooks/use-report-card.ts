@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { clampAdjustment } from '@/lib/report-card-metrics';
@@ -92,6 +92,13 @@ export function useReportCard(pitcherId: string | undefined, periodStart: string
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+  // Tracks which pitcher we've already tried the "fall back to latest card"
+  // resolution for, so it only fires once per player pick — not on every
+  // manual edit to the period fields. Without that guard, deliberately
+  // typing a new period to start a fresh card for an already-reviewed
+  // player would immediately snap back to the old one.
+  const fallbackResolvedForRef = useRef<string | null>(null);
+
   const fetchCard = useCallback(async () => {
     if (!pitcherId || !periodStart || !periodEnd) {
       // No player picked yet — clear any previous player's card so the UI
@@ -111,15 +118,45 @@ export function useReportCard(pitcherId: string | undefined, periodStart: string
         setCard(null);
         return;
       }
-      const { data, error } = await db
+      const { data: exact, error: exactError } = await db
         .from('report_cards')
         .select(REPORT_CARD_COLUMNS)
         .eq('user_id', user.id)
         .eq('pitcher_id', pitcherId)
         .eq('period_start', periodStart)
         .maybeSingle();
-      if (error) throw error;
-      setCard(data ? mapReportCardRow(data) : null);
+      if (exactError) throw exactError;
+
+      if (exact) {
+        fallbackResolvedForRef.current = pitcherId;
+        setCard(mapReportCardRow(exact));
+        return;
+      }
+
+      // No card for this exact period. The default period shown is "60
+      // days before today," a value that shifts daily — so a card saved
+      // under any other date range silently fails to match and the editor
+      // looks blank even though the card exists. The first time we look at
+      // a given player, fall back to their most recently saved card of any
+      // period (mirrors the "print all" view, which never had this bug
+      // since it never filtered by exact period to begin with).
+      if (fallbackResolvedForRef.current !== pitcherId) {
+        fallbackResolvedForRef.current = pitcherId;
+        const { data: latest, error: latestError } = await db
+          .from('report_cards')
+          .select(REPORT_CARD_COLUMNS)
+          .eq('user_id', user.id)
+          .eq('pitcher_id', pitcherId)
+          .order('updated_at', { ascending: false })
+          .limit(1);
+        if (latestError) throw latestError;
+        if (latest && latest.length > 0) {
+          setCard(mapReportCardRow(latest[0]));
+          return;
+        }
+      }
+
+      setCard(null);
     } catch (e) {
       console.error('Error loading report card:', e);
       toast({

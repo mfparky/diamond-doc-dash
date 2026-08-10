@@ -102,6 +102,15 @@ export default function ReportCardPage() {
     setPositionSupport2(card?.positionSupport2 ?? "");
     setTryoutFocus(card?.tryoutFocus ?? "");
     setPublished(card?.published ?? false);
+    // The hook can load a card from a different period than what's showing
+    // here (its "latest card, any period" fallback for a freshly-picked
+    // player) — keep the date pickers in sync with whatever actually
+    // loaded so they don't show a mismatched range, and so the next Save
+    // upserts into this same row instead of drifting into a new one.
+    if (card) {
+      setStart(card.periodStart);
+      setEnd(card.periodEnd);
+    }
   }, [card, playerId]);
 
   // Shared payload builder for the Save button.
