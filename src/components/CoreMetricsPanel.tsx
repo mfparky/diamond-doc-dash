@@ -107,12 +107,12 @@ function MetricRow({
   return (
     <div className="space-y-1">
       <div className="flex items-baseline gap-2">
-        <span className="text-sm font-medium text-foreground">{metric.def.label}</span>
+        <span className="rc-metric-label text-sm font-medium text-foreground">{metric.def.label}</span>
         <span className="text-xs text-muted-foreground">
           {formatValue(metric.rawValue, metric.def.key)}
         </span>
         <span
-          className={`ml-auto text-xs font-semibold ${style?.label ?? 'text-muted-foreground'} print:text-foreground`}
+          className={`rc-metric-label ml-auto text-xs font-semibold ${style?.label ?? 'text-muted-foreground'}`}
         >
           {bandLabel(metric.band)}
           {nudged && (
