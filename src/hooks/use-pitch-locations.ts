@@ -137,7 +137,7 @@ export function usePitchLocations() {
     setIsLoading(true);
     try {
       const validation = validatePitchLocations(locations);
-      if (!validation.success) {
+      if ('error' in validation) {
         toast({
           title: 'Invalid pitch data',
           description: validation.error,
@@ -145,6 +145,7 @@ export function usePitchLocations() {
         });
         return false;
       }
+
 
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
