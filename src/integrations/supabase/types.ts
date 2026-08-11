@@ -1144,12 +1144,31 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_published_report_card: {
+        Args: { p_pitcher_id: string }
+        Returns: {
+          id: string
+          narrative_areas: string
+          narrative_strengths: string
+          narrative_summary: string
+          period_end: string
+          period_start: string
+          position_primary: string
+          position_support_1: string
+          position_support_2: string
+          tryout_focus: string
+        }[]
+      }
       is_team_member: {
         Args: { _team_id: string; _user_id: string }
         Returns: boolean
       }
       is_team_owner: {
         Args: { _team_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_valid_workout_upload_path: {
+        Args: { _name: string }
         Returns: boolean
       }
       join_team_by_code: { Args: { p_code: string }; Returns: string }
