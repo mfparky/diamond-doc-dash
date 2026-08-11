@@ -118,26 +118,22 @@ export default function PlayerDashboard() {
     return () => { cancelled = true; };
   }, [playerId, completions.length]);
 
-  // Coach-published report card for THIS player only — scoped by playerId from
-  // the URL and by the published=true RLS policy, same isolation model as the
-  // rest of this page. Never fetches or renders any other player's card.
+  // Coach-published report card for THIS player only — fetched through a
+  // scoped security-definer RPC so nobody can enumerate every published card.
   useEffect(() => {
     if (!playerId) return;
     let cancelled = false;
     (async () => {
-      const { data, error } = await (supabase as any)
-        .from('report_cards')
-        .select('id, period_start, period_end, narrative_summary, narrative_strengths, narrative_areas, tryout_focus, position_primary, position_support_1, position_support_2')
-        .eq('pitcher_id', playerId)
-        .eq('published', true)
-        .order('period_end', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data: rows, error } = await (supabase.rpc as any)('get_published_report_card', {
+        p_pitcher_id: playerId,
+      });
       if (cancelled) return;
       if (error) {
-        console.warn('Published report card failed to load:', error);
+        logger.warn('Published report card failed to load:', error);
         return;
       }
+      const data = Array.isArray(rows) ? rows[0] : rows;
+
       if (data) {
         setPublishedReportCard({
           id: data.id,
