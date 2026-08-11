@@ -134,6 +134,16 @@ export function usePitchLocations() {
   ): Promise<boolean> => {
     setIsLoading(true);
     try {
+      const validation = validatePitchLocations(locations);
+      if (!validation.success) {
+        toast({
+          title: 'Invalid pitch data',
+          description: validation.error,
+          variant: 'destructive',
+        });
+        return false;
+      }
+
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -144,6 +154,7 @@ export function usePitchLocations() {
         });
         return false;
       }
+
 
       const insertData = locations.map((loc) => ({
         outing_id: outingId,
