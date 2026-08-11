@@ -174,6 +174,11 @@ export function ReportCardPrintStyles() {
         .rc-metrics-slot .space-y-3 > * + * { margin-top: 5pt !important; }
         .rc-metrics-slot .text-sm { font-size: 8.5pt !important; }
         .rc-metrics-slot .text-xs { font-size: 7.5pt !important; }
+        /* Metric names + band labels ("On Target", etc.) otherwise follow
+           the live --foreground CSS var, which is white in dark mode (the
+           app's default) — invisible on the forced-white printed page.
+           Force them dark like every other bit of print copy. */
+        .rc-metric-label { color: #111 !important; }
 
         /* --- Print-only branded footer --- */
         .rc-footer {
