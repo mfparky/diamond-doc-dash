@@ -356,7 +356,7 @@ export function useWorkouts(pitcherId?: string) {
       logger.error('Error toggling workout completion:', error);
       return false;
     }
-  }, [completions, selectedWeekStart]);
+  }, [completions, selectedWeekStart, toast]);
 
   // Update completion notes
   const updateCompletionNotes = useCallback(async (
@@ -364,7 +364,13 @@ export function useWorkouts(pitcherId?: string) {
     notes: string
   ): Promise<boolean> => {
     if (!pitcherId) return false;
+    const noteCheck = validateWorkoutCompletion({ dayOfWeek: 0, notes });
+    if ('error' in noteCheck) {
+      toast({ title: 'Invalid note', description: noteCheck.error, variant: 'destructive' });
+      return false;
+    }
     try {
+
       const { error } = await supabase.rpc('update_workout_completion_notes', {
         p_completion_id: completionId, p_pitcher_id: pitcherId, p_notes: notes,
       });
