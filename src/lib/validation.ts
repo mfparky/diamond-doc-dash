@@ -102,3 +102,34 @@ export function validatePitcher(data: unknown): ValidationSuccess<PitcherInput> 
   }
   return { success: false, error: result.error.errors[0]?.message || 'Validation failed' };
 }
+
+export function validatePitchLocations(
+  data: unknown[],
+): ValidationSuccess<PitchLocationInput[]> | ValidationFailure {
+  const result = z.array(pitchLocationSchema).min(1, 'No pitches to save').safeParse(data);
+  if (result.success) {
+    return { success: true, data: result.data };
+  }
+  return { success: false, error: result.error.errors[0]?.message || 'Invalid pitch data' };
+}
+
+export function validateWorkoutAssignment(
+  data: unknown,
+): ValidationSuccess<WorkoutAssignmentInput> | ValidationFailure {
+  const result = workoutAssignmentSchema.safeParse(data);
+  if (result.success) {
+    return { success: true, data: result.data };
+  }
+  return { success: false, error: result.error.errors[0]?.message || 'Validation failed' };
+}
+
+export function validateWorkoutCompletion(
+  data: unknown,
+): ValidationSuccess<WorkoutCompletionInput> | ValidationFailure {
+  const result = workoutCompletionSchema.safeParse(data);
+  if (result.success) {
+    return { success: true, data: result.data };
+  }
+  return { success: false, error: result.error.errors[0]?.message || 'Validation failed' };
+}
+
