@@ -51,9 +51,36 @@ export const outingSchema = z.object({
     .or(z.literal('')),
 });
 
+// Pitch location validation schema — one charted pitch
+export const pitchLocationSchema = z.object({
+  pitchNumber: z.number().int('Must be a whole number').min(1).max(300),
+  pitchType: z.number().int('Must be a whole number').min(1).max(10),
+  xLocation: z.number().finite().min(-10).max(10),
+  yLocation: z.number().finite().min(-10).max(10),
+  isStrike: z.boolean(),
+});
+
+// Workout assignment validation schema
+export const workoutAssignmentSchema = z.object({
+  title: z.string().trim().min(1, 'Title is required').max(200, 'Title must be less than 200 characters'),
+  description: z.string().max(2000, 'Description must be less than 2000 characters').nullable().optional(),
+  frequency: z.number().int('Must be a whole number').min(1).max(7).optional(),
+  attachmentUrl: z.string().url('Please enter a valid URL').max(1000).nullable().optional().or(z.literal('')),
+});
+
+// Workout completion note validation schema
+export const workoutCompletionSchema = z.object({
+  dayOfWeek: z.number().int('Must be a whole number').min(0).max(6),
+  notes: z.string().max(1000, 'Notes must be less than 1000 characters').nullable().optional(),
+});
+
 // Type exports
 export type PitcherInput = z.infer<typeof pitcherSchema>;
 export type OutingInput = z.infer<typeof outingSchema>;
+export type PitchLocationInput = z.infer<typeof pitchLocationSchema>;
+export type WorkoutAssignmentInput = z.infer<typeof workoutAssignmentSchema>;
+export type WorkoutCompletionInput = z.infer<typeof workoutCompletionSchema>;
+
 
 // Validation result types
 type ValidationSuccess<T> = { success: true; data: T };
