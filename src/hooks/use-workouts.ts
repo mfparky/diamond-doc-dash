@@ -142,7 +142,23 @@ export function useWorkouts(pitcherId?: string) {
     doublePoints?: boolean,
   ): Promise<WorkoutAssignment | null> => {
     try {
+      const validation = validateWorkoutAssignment({
+        title,
+        description: description ?? null,
+        frequency: frequency ?? 7,
+        attachmentUrl: attachmentUrl || null,
+      });
+      if ('error' in validation) {
+        toast({
+          title: 'Invalid workout',
+          description: validation.error,
+          variant: 'destructive',
+        });
+        return null;
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
+
 
       const { data, error } = await supabase
         .from('workout_assignments')
