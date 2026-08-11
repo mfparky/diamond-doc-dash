@@ -296,7 +296,17 @@ export function useWorkouts(pitcherId?: string) {
     dayOfWeek: number,
     notes?: string
   ): Promise<boolean> => {
+    const completionCheck = validateWorkoutCompletion({ dayOfWeek, notes: notes ?? null });
+    if ('error' in completionCheck) {
+      toast({
+        title: 'Invalid entry',
+        description: completionCheck.error,
+        variant: 'destructive',
+      });
+      return false;
+    }
     const weekStart = selectedWeekStart;
+
 
     // Check if already completed in the active week
     const existing = completions.find(
