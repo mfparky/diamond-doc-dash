@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
+
 import { Pitcher, Outing, getDaysRestNeeded, calculateRestStatus } from '@/types/pitcher';
 import { calculatePitcherStats } from '@/lib/pitcher-data';
 import { StatusBadge } from '@/components/StatusBadge';
