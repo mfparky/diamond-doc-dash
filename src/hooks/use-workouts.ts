@@ -3,6 +3,8 @@ import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { startOfWeek, format, addDays } from 'date-fns';
+import { validateWorkoutAssignment, validateWorkoutCompletion } from '@/lib/validation';
+
 
 export interface WorkoutAssignment {
   id: string;
