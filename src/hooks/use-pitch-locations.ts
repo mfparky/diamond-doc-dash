@@ -4,6 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { PitchLocation, PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
 import { useTeamMemberships } from '@/hooks/use-team-memberships';
+import { validatePitchLocations } from '@/lib/validation';
+
 
 export function usePitchLocations() {
   const [isLoading, setIsLoading] = useState(false);
