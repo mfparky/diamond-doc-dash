@@ -7,9 +7,10 @@
 -- players' stats get uploaded — a report card should reflect what the
 -- coach actually reviewed and published, not a moving target.
 --
--- No new RLS policy needed: the existing "Public can read published
--- report cards" policy (USING (published = true)) already covers every
--- column on a published row, this one included.
+-- Plain column add — no RLS/RPC change here. The public read path for
+-- report_cards is get_published_report_card() (20260811154350), which
+-- needs its own return-shape update to expose this column; see
+-- 20260814190000_published_report_card_metrics_snapshot.sql.
 
 ALTER TABLE public.report_cards
   ADD COLUMN IF NOT EXISTS core_metrics_snapshot jsonb;

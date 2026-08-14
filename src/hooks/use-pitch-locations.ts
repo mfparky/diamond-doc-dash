@@ -4,6 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { PitchLocation, PitchTypeConfig, DEFAULT_PITCH_TYPES } from '@/types/pitch-location';
 import { useTeamMemberships } from '@/hooks/use-team-memberships';
+import { validatePitchLocations } from '@/lib/validation';
+
 
 export function usePitchLocations() {
   const [isLoading, setIsLoading] = useState(false);
@@ -134,6 +136,17 @@ export function usePitchLocations() {
   ): Promise<boolean> => {
     setIsLoading(true);
     try {
+      const validation = validatePitchLocations(locations);
+      if ('error' in validation) {
+        toast({
+          title: 'Invalid pitch data',
+          description: validation.error,
+          variant: 'destructive',
+        });
+        return false;
+      }
+
+
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -144,6 +157,7 @@ export function usePitchLocations() {
         });
         return false;
       }
+
 
       const insertData = locations.map((loc) => ({
         outing_id: outingId,

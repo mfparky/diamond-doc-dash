@@ -3,6 +3,8 @@ import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { startOfWeek, format, addDays } from 'date-fns';
+import { validateWorkoutAssignment, validateWorkoutCompletion } from '@/lib/validation';
+
 
 export interface WorkoutAssignment {
   id: string;
@@ -140,7 +142,23 @@ export function useWorkouts(pitcherId?: string) {
     doublePoints?: boolean,
   ): Promise<WorkoutAssignment | null> => {
     try {
+      const validation = validateWorkoutAssignment({
+        title,
+        description: description ?? null,
+        frequency: frequency ?? 7,
+        attachmentUrl: attachmentUrl || null,
+      });
+      if ('error' in validation) {
+        toast({
+          title: 'Invalid workout',
+          description: validation.error,
+          variant: 'destructive',
+        });
+        return null;
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
+
 
       const { data, error } = await supabase
         .from('workout_assignments')
@@ -278,7 +296,17 @@ export function useWorkouts(pitcherId?: string) {
     dayOfWeek: number,
     notes?: string
   ): Promise<boolean> => {
+    const completionCheck = validateWorkoutCompletion({ dayOfWeek, notes: notes ?? null });
+    if ('error' in completionCheck) {
+      toast({
+        title: 'Invalid entry',
+        description: completionCheck.error,
+        variant: 'destructive',
+      });
+      return false;
+    }
     const weekStart = selectedWeekStart;
+
 
     // Check if already completed in the active week
     const existing = completions.find(
@@ -328,7 +356,7 @@ export function useWorkouts(pitcherId?: string) {
       logger.error('Error toggling workout completion:', error);
       return false;
     }
-  }, [completions, selectedWeekStart]);
+  }, [completions, selectedWeekStart, toast]);
 
   // Update completion notes
   const updateCompletionNotes = useCallback(async (
@@ -336,7 +364,13 @@ export function useWorkouts(pitcherId?: string) {
     notes: string
   ): Promise<boolean> => {
     if (!pitcherId) return false;
+    const noteCheck = validateWorkoutCompletion({ dayOfWeek: 0, notes });
+    if ('error' in noteCheck) {
+      toast({ title: 'Invalid note', description: noteCheck.error, variant: 'destructive' });
+      return false;
+    }
     try {
+
       const { error } = await supabase.rpc('update_workout_completion_notes', {
         p_completion_id: completionId, p_pitcher_id: pitcherId, p_notes: notes,
       });

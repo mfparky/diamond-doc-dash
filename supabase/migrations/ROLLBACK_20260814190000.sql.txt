@@ -1,0 +1,37 @@
+-- Manual rollback for 20260814190000_published_report_card_metrics_snapshot.sql
+-- Not run automatically (this file is .sql.txt, not .sql, so the migration
+-- runner skips it) — apply by hand via psql if this needs to be undone.
+-- Restores get_published_report_card to its prior 10-column shape (from
+-- 20260811154350), without core_metrics_snapshot.
+
+DROP FUNCTION IF EXISTS public.get_published_report_card(uuid);
+
+CREATE OR REPLACE FUNCTION public.get_published_report_card(p_pitcher_id uuid)
+RETURNS TABLE (
+  id uuid,
+  period_start date,
+  period_end date,
+  narrative_summary text,
+  narrative_strengths text,
+  narrative_areas text,
+  tryout_focus text,
+  position_primary text,
+  position_support_1 text,
+  position_support_2 text
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT rc.id, rc.period_start, rc.period_end,
+         rc.narrative_summary, rc.narrative_strengths, rc.narrative_areas,
+         rc.tryout_focus, rc.position_primary, rc.position_support_1, rc.position_support_2
+  FROM public.report_cards rc
+  WHERE rc.pitcher_id = p_pitcher_id
+    AND rc.published = true
+  ORDER BY rc.period_end DESC
+  LIMIT 1;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_published_report_card(uuid) TO anon, authenticated;
