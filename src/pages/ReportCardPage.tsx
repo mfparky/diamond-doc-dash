@@ -113,34 +113,6 @@ export default function ReportCardPage() {
     }
   }, [card, playerId]);
 
-  // Shared payload builder for the Save button.
-  const buildDraftPatch = useCallback(
-    () => ({
-      coachContext: context,
-      summary,
-      strengths,
-      areas,
-      snapshotId: latestSnapshot?.id ?? null,
-      metricAdjustments: adjustments,
-      positionPrimary: positionPrimary || null,
-      positionSupport1: positionSupport1 || null,
-      positionSupport2: positionSupport2 || null,
-      tryoutFocus,
-    }),
-    [
-      context,
-      summary,
-      strengths,
-      areas,
-      latestSnapshot,
-      adjustments,
-      positionPrimary,
-      positionSupport1,
-      positionSupport2,
-      tryoutFocus,
-    ],
-  );
-
   // Team-wide inputs feed the percentile pool. Latest snapshot per pitcher.
   const teamMetricInputs = useMemo<CoreMetricInput[]>(() => {
     return pitchers.map((p) => ({
@@ -160,6 +132,40 @@ export default function ReportCardPage() {
       adjustments,
     });
   }, [playerId, teamMetricInputs, adjustments]);
+
+  // Shared payload builder for the Save button.
+  const buildDraftPatch = useCallback(
+    () => ({
+      coachContext: context,
+      summary,
+      strengths,
+      areas,
+      snapshotId: latestSnapshot?.id ?? null,
+      metricAdjustments: adjustments,
+      positionPrimary: positionPrimary || null,
+      positionSupport1: positionSupport1 || null,
+      positionSupport2: positionSupport2 || null,
+      tryoutFocus,
+      // Point-in-time label+band snapshot for the public dashboard's
+      // written overview — see buildMetricsOverview in report-card-metrics.
+      coreMetricsSnapshot: coreMetrics
+        .filter((m) => m.band !== null)
+        .map((m) => ({ label: m.def.label, band: m.band as NonNullable<typeof m.band> })),
+    }),
+    [
+      context,
+      summary,
+      strengths,
+      areas,
+      latestSnapshot,
+      adjustments,
+      positionPrimary,
+      positionSupport1,
+      positionSupport2,
+      tryoutFocus,
+      coreMetrics,
+    ],
+  );
 
   const handleAdjustMetric = (key: string, next: number) => {
     setAdjustments((prev) => {

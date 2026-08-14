@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   bandLabel,
+  buildMetricsOverview,
   clampAdjustment,
   computeCoreMetrics,
   normalizeToPercentile,
@@ -152,5 +153,49 @@ describe('bandLabel', () => {
     expect(bandLabel('on-target')).toBe('On target');
     expect(bandLabel('excelling')).toBe('Excelling');
     expect(bandLabel(null)).toBe('No data');
+  });
+});
+
+describe('buildMetricsOverview', () => {
+  it('returns null for an empty snapshot', () => {
+    expect(buildMetricsOverview([])).toBeNull();
+  });
+
+  it('writes a strengths-only sentence, singular', () => {
+    expect(buildMetricsOverview([{ label: 'Command', band: 'strong' }])).toBe(
+      'Command stands out as a particular strength this period.',
+    );
+  });
+
+  it('writes a strengths-only sentence, plural, joining excelling and strong together', () => {
+    expect(
+      buildMetricsOverview([
+        { label: 'Command', band: 'strong' },
+        { label: 'Effort', band: 'excelling' },
+      ]),
+    ).toBe('Command and Effort stand out as particular strengths this period.');
+  });
+
+  it('covers all three tiers in strengths → on-target → growth order regardless of input order', () => {
+    const result = buildMetricsOverview([
+      { label: 'Situational Hitting', band: 'developing' },
+      { label: 'ERA', band: 'on-target' },
+      { label: 'Command', band: 'strong' },
+    ]);
+    expect(result).toBe(
+      'Command stands out as a particular strength this period. ERA is right on track. Situational Hitting is the next area of growth.',
+    );
+  });
+
+  it('pluralizes the growth clause for multiple metrics', () => {
+    const result = buildMetricsOverview([
+      { label: 'Situational Hitting', band: 'developing' },
+      { label: 'Baseball IQ', band: 'needs-work' },
+    ]);
+    expect(result).toBe('Situational Hitting and Baseball IQ are the next areas of growth.');
+  });
+
+  it('handles a single on-target metric', () => {
+    expect(buildMetricsOverview([{ label: 'ERA', band: 'on-target' }])).toBe('ERA is right on track.');
   });
 });

@@ -1,0 +1,6 @@
+-- Manual rollback for 20260814090000_report_cards_metrics_snapshot.sql
+-- Not run automatically (this file is .sql.txt, not .sql, so the migration
+-- runner skips it) — apply by hand via psql if this needs to be undone.
+
+ALTER TABLE public.report_cards
+  DROP COLUMN IF EXISTS core_metrics_snapshot;
