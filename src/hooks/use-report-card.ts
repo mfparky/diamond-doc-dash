@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { clampAdjustment } from '@/lib/report-card-metrics';
+import { clampAdjustment, type CoreMetricSnapshotEntry, type MetricBand } from '@/lib/report-card-metrics';
+
+const VALID_BANDS: readonly MetricBand[] = ['needs-work', 'developing', 'on-target', 'strong', 'excelling'];
 
 // `report_cards` isn't in the generated Supabase types yet — cast to bypass.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -29,11 +31,17 @@ export interface ReportCardRecord {
   published: boolean;
   publishedAt: string | null;
   updatedAt: string;
+  /** Point-in-time label+band snapshot, captured at save time — powers the
+   *  written metrics overview on the public dashboard without exposing
+   *  team-wide comparative data there. Empty until a coach with computed
+   *  metrics available saves. */
+  coreMetricsSnapshot: CoreMetricSnapshotEntry[];
 }
 
 type ReportCardPatch = Partial<Pick<ReportCardRecord,
   'coachContext' | 'summary' | 'strengths' | 'areas' | 'snapshotId' | 'metricAdjustments'
-  | 'positionPrimary' | 'positionSupport1' | 'positionSupport2' | 'tryoutFocus' | 'published'>>;
+  | 'positionPrimary' | 'positionSupport1' | 'positionSupport2' | 'tryoutFocus' | 'published'
+  | 'coreMetricsSnapshot'>>;
 
 interface UseReportCardResult {
   card: ReportCardRecord | null;
@@ -57,8 +65,27 @@ function normalizeAdjustments(raw: unknown): Record<string, number> {
   return out;
 }
 
+/**
+ * Defensively parse the JSONB metrics snapshot — drops anything not shaped
+ * like a real entry so a hand-edited row can't blow up the UI. Exported so
+ * any other reader of this column (e.g. the public PlayerDashboard) parses
+ * it the same defensive way instead of trusting the JSONB shape directly.
+ */
+export function normalizeMetricsSnapshot(raw: unknown): CoreMetricSnapshotEntry[] {
+  if (!Array.isArray(raw)) return [];
+  const out: CoreMetricSnapshotEntry[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') continue;
+    const { label, band } = entry as Record<string, unknown>;
+    if (typeof label !== 'string' || !label) continue;
+    if (typeof band !== 'string' || !VALID_BANDS.includes(band as MetricBand)) continue;
+    out.push({ label, band: band as MetricBand });
+  }
+  return out;
+}
+
 const REPORT_CARD_COLUMNS =
-  'id, pitcher_id, period_start, period_end, coach_context, narrative_summary, narrative_strengths, narrative_areas, snapshot_id, metric_adjustments, position_primary, position_support_1, position_support_2, tryout_focus, published, published_at, updated_at';
+  'id, pitcher_id, period_start, period_end, coach_context, narrative_summary, narrative_strengths, narrative_areas, snapshot_id, metric_adjustments, position_primary, position_support_1, position_support_2, tryout_focus, published, published_at, updated_at, core_metrics_snapshot';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapReportCardRow(data: any): ReportCardRecord {
@@ -80,6 +107,7 @@ function mapReportCardRow(data: any): ReportCardRecord {
     published: data.published ?? false,
     publishedAt: data.published_at ?? null,
     updatedAt: data.updated_at,
+    coreMetricsSnapshot: normalizeMetricsSnapshot(data.core_metrics_snapshot),
   };
 }
 
@@ -208,6 +236,7 @@ export function useReportCard(pitcherId: string | undefined, periodStart: string
               position_support_2: 'positionSupport2' in patch ? patch.positionSupport2 : card?.positionSupport2 ?? null,
               published: nextPublished,
               published_at: nextPublishedAt,
+              core_metrics_snapshot: patch.coreMetricsSnapshot ?? card?.coreMetricsSnapshot ?? [],
             },
             { onConflict: 'user_id,pitcher_id,period_start' },
           );

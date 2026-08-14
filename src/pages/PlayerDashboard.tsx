@@ -25,8 +25,10 @@ import { ProgressReportCard } from '@/components/ProgressReportCard';
 import { generateReport } from '@/lib/generate-report';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { TrendingUp, Target, Crosshair, Gauge, Calendar, Video, Shield, ArrowLeft, ArrowRight, Play, MessageSquare, ClipboardCheck, Share2, Copy, Check, Download, Star, Users, Camera, Trophy, FileText } from 'lucide-react';
+import { TrendingUp, Target, Crosshair, Gauge, Calendar, Video, Shield, ArrowLeft, ArrowRight, Play, MessageSquare, ClipboardCheck, Share2, Copy, Check, Download, Star, Users, Camera, Trophy, FileText, Sparkles } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { normalizeMetricsSnapshot } from '@/hooks/use-report-card';
+import { buildMetricsOverview } from '@/lib/report-card-metrics';
 import hawksLogo from '@/assets/hawks-logo.png';
 import { useDesignSystem } from '@/contexts/DesignSystemContext';
 import { LiveAbsSummary } from '@/components/LiveAbsSummary';
@@ -46,6 +48,7 @@ interface PublishedReportCard {
   positionPrimary: string | null;
   positionSupport1: string | null;
   positionSupport2: string | null;
+  metricsOverview: string | null;
 }
 
 export default function PlayerDashboard() {
@@ -127,7 +130,7 @@ export default function PlayerDashboard() {
     (async () => {
       const { data, error } = await (supabase as any)
         .from('report_cards')
-        .select('id, period_start, period_end, narrative_summary, narrative_strengths, narrative_areas, tryout_focus, position_primary, position_support_1, position_support_2')
+        .select('id, period_start, period_end, narrative_summary, narrative_strengths, narrative_areas, tryout_focus, position_primary, position_support_1, position_support_2, core_metrics_snapshot')
         .eq('pitcher_id', playerId)
         .eq('published', true)
         .order('period_end', { ascending: false })
@@ -150,6 +153,7 @@ export default function PlayerDashboard() {
           positionPrimary: data.position_primary ?? null,
           positionSupport1: data.position_support_1 ?? null,
           positionSupport2: data.position_support_2 ?? null,
+          metricsOverview: buildMetricsOverview(normalizeMetricsSnapshot(data.core_metrics_snapshot)),
         });
       } else {
         setPublishedReportCard(null);
@@ -630,16 +634,25 @@ export default function PlayerDashboard() {
             published one for this exact player. Nothing here is ever fetched
             or shown for any other pitcher_id. */}
         {publishedReportCard && (
-          <Card className="glass-card border-accent/30 bg-accent/5">
-            <CardContent className="p-4 space-y-4">
-              <div>
-                <h2 className="font-display text-lg font-bold text-foreground flex items-center gap-2">
+          <Card className="glass-card border-accent/30 overflow-hidden">
+            {/* Echoes the printed report card's brand band, so this reads as
+                the same official document rather than a generic app card. */}
+            <div
+              className="h-1.5"
+              style={{ background: 'linear-gradient(90deg, #ef4444 0%, #f59e0b 33%, #84cc16 66%, #10b981 100%)' }}
+              aria-hidden
+            />
+            <CardContent className="p-5 space-y-5">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-accent/15 flex items-center justify-center shrink-0">
                   <FileText className="w-5 h-5 text-accent" />
-                  Coach Report Card
-                </h2>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {formatDate(publishedReportCard.periodStart)} – {formatDate(publishedReportCard.periodEnd)}
-                </p>
+                </div>
+                <div className="min-w-0">
+                  <h2 className="font-display text-lg font-bold text-foreground">Coach Report Card</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {formatDate(publishedReportCard.periodStart)} – {formatDate(publishedReportCard.periodEnd)}
+                  </p>
+                </div>
               </div>
 
               {(publishedReportCard.positionPrimary || publishedReportCard.positionSupport1 || publishedReportCard.positionSupport2) && (
@@ -657,30 +670,42 @@ export default function PlayerDashboard() {
                 </div>
               )}
 
-              {publishedReportCard.summary && (
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Summary</p>
-                  <p className="text-sm text-foreground mt-1">{publishedReportCard.summary}</p>
+              {publishedReportCard.metricsOverview && (
+                <div className="rounded-lg border border-accent/20 bg-accent/5 p-3.5 flex gap-2.5">
+                  <Sparkles className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-accent">This Period at a Glance</p>
+                    <p className="text-sm text-foreground mt-1 leading-relaxed">{publishedReportCard.metricsOverview}</p>
+                  </div>
                 </div>
               )}
-              {publishedReportCard.strengths && (
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Strengths</p>
-                  <p className="text-sm text-foreground mt-1">{publishedReportCard.strengths}</p>
-                </div>
-              )}
-              {publishedReportCard.areas && (
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Areas to Work On</p>
-                  <p className="text-sm text-foreground mt-1">{publishedReportCard.areas}</p>
-                </div>
-              )}
-              {publishedReportCard.tryoutFocus && (
-                <div className="border-t border-border/30 pt-3">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Focus for Fall Tryouts</p>
-                  <p className="text-sm text-foreground mt-1">{publishedReportCard.tryoutFocus}</p>
-                </div>
-              )}
+
+              <div className="divide-y divide-border/30">
+                {publishedReportCard.summary && (
+                  <div className="py-3.5 first:pt-0 last:pb-0">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Summary</p>
+                    <p className="text-sm text-foreground mt-1.5 leading-relaxed">{publishedReportCard.summary}</p>
+                  </div>
+                )}
+                {publishedReportCard.strengths && (
+                  <div className="py-3.5 first:pt-0 last:pb-0">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Strengths</p>
+                    <p className="text-sm text-foreground mt-1.5 leading-relaxed">{publishedReportCard.strengths}</p>
+                  </div>
+                )}
+                {publishedReportCard.areas && (
+                  <div className="py-3.5 first:pt-0 last:pb-0">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Areas to Work On</p>
+                    <p className="text-sm text-foreground mt-1.5 leading-relaxed">{publishedReportCard.areas}</p>
+                  </div>
+                )}
+                {publishedReportCard.tryoutFocus && (
+                  <div className="py-3.5 first:pt-0 last:pb-0">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Focus for Fall Tryouts</p>
+                    <p className="text-sm text-foreground mt-1.5 leading-relaxed">{publishedReportCard.tryoutFocus}</p>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         )}

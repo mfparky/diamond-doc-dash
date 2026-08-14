@@ -239,3 +239,51 @@ export function bandLabel(band: MetricBand | null): string {
     case 'excelling': return 'Excelling';
   }
 }
+
+/** What a saved report card stores about its metrics — just enough to
+ *  write an overview later without re-exposing team-wide comparative data
+ *  (raw values/percentiles) to the public dashboard. */
+export interface CoreMetricSnapshotEntry {
+  label: string;
+  band: MetricBand;
+}
+
+/** "A" / "A and B" / "A, B and C" — the project's TS lib target predates Intl.ListFormat. */
+function joinNaturally(items: string[]): string {
+  if (items.length <= 1) return items[0] ?? '';
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+}
+
+/**
+ * Deterministic, non-LLM written overview for the parent-facing dashboard —
+ * built straight from a saved report card's core-metrics snapshot, so it
+ * never needs an API key and never drifts from what the coach actually
+ * published (recomputing live would require exposing the whole team's
+ * stats to a public page, and the result could silently change later as
+ * other players' stats get uploaded). Framed the same way as the rest of
+ * the report card: strengths first, growth areas as next steps.
+ */
+export function buildMetricsOverview(snapshot: CoreMetricSnapshotEntry[]): string | null {
+  const standout = snapshot.filter((m) => m.band === 'excelling' || m.band === 'strong').map((m) => m.label);
+  const onTarget = snapshot.filter((m) => m.band === 'on-target').map((m) => m.label);
+  const growing = snapshot.filter((m) => m.band === 'developing' || m.band === 'needs-work').map((m) => m.label);
+
+  const sentences: string[] = [];
+  if (standout.length > 0) {
+    const noun = standout.length === 1 ? 'a particular strength' : 'particular strengths';
+    const verb = standout.length === 1 ? 'stands' : 'stand';
+    sentences.push(`${joinNaturally(standout)} ${verb} out as ${noun} this period.`);
+  }
+  if (onTarget.length > 0) {
+    const verb = onTarget.length === 1 ? 'is' : 'are';
+    sentences.push(`${joinNaturally(onTarget)} ${verb} right on track.`);
+  }
+  if (growing.length > 0) {
+    const verb = growing.length === 1 ? 'is' : 'are';
+    const noun = growing.length === 1 ? 'area' : 'areas';
+    sentences.push(`${joinNaturally(growing)} ${verb} the next ${noun} of growth.`);
+  }
+
+  return sentences.length > 0 ? sentences.join(' ') : null;
+}
