@@ -116,7 +116,9 @@ function MetricRow({
         >
           {bandLabel(metric.band)}
           {nudged && (
-            <span className="ml-1 text-muted-foreground">
+            // Coach-facing only — a parent reading the printed card doesn't
+            // need to know a band was manually nudged, just where it landed.
+            <span className="ml-1 text-muted-foreground print:hidden">
               (coach {metric.adjustment > 0 ? '+' : ''}{metric.adjustment})
             </span>
           )}
