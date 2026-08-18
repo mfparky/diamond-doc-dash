@@ -21,7 +21,8 @@ import NotFound from "./pages/NotFound";
 // chunk hashes the current page still references). The guard is time-based so a
 // later, unrelated failure can still recover instead of showing a blank screen.
 const CHUNK_RELOAD_KEY = "lovable:chunk-reload-at";
-const CHUNK_RELOAD_WINDOW_MS = 15_000;
+const CHUNK_RELOAD_WINDOW_MS = 60_000;
+const NO_RELOAD_KEY = "arm-stats:no-reload";
 
 function lazyWithReload<T extends ComponentType<any>>(
   factory: () => Promise<{ default: T }>
@@ -29,8 +30,13 @@ function lazyWithReload<T extends ComponentType<any>>(
   return lazy(() =>
     factory().catch((err) => {
       if (typeof window !== "undefined") {
+        // Don't reload while backgrounded or while a live session is in
+        // progress — that reads as "the app refreshed itself" and loses input.
+        const blocked =
+          document.visibilityState !== "visible" ||
+          sessionStorage.getItem(NO_RELOAD_KEY) === "1";
         const last = Number(sessionStorage.getItem(CHUNK_RELOAD_KEY) || 0);
-        if (!last || Date.now() - last > CHUNK_RELOAD_WINDOW_MS) {
+        if (!blocked && (!last || Date.now() - last > CHUNK_RELOAD_WINDOW_MS)) {
           sessionStorage.setItem(CHUNK_RELOAD_KEY, String(Date.now()));
           window.location.reload();
           return new Promise<{ default: T }>(() => {});
@@ -40,6 +46,7 @@ function lazyWithReload<T extends ComponentType<any>>(
     })
   );
 }
+
 
 
 // Secondary routes are split out so the primary coach flow loads fast.
