@@ -135,6 +135,13 @@ function restIsRisky(status?: RestStatus): boolean {
 export default function GameModePage() {
   usePageMeta({ title: 'Game Mode | Arm Stats', description: 'Live pitch-by-pitch counter for games.' });
 
+  // Block the app's stale-chunk auto-reload while the counter is open so
+  // backgrounding the phone (or a flaky asset fetch) can't wipe live entry.
+  useEffect(() => {
+    sessionStorage.setItem('arm-stats:no-reload', '1');
+    return () => { sessionStorage.removeItem('arm-stats:no-reload'); };
+  }, []);
+
   // Lock viewport zoom so iOS auto-zoom on input focus can't push UI past the viewport.
   useEffect(() => {
     const meta = document.querySelector('meta[name="viewport"]');
@@ -143,6 +150,7 @@ export default function GameModePage() {
     meta.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover');
     return () => { meta.setAttribute('content', original); };
   }, []);
+
 
   const { gameId: paramGameId } = useParams<{ gameId?: string }>();
   const navigate = useNavigate();
