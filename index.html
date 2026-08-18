@@ -38,9 +38,15 @@
 
           if (!isModuleAsset) return;
 
+          // Never yank the page out from under live data entry, and never
+          // reload while the tab is backgrounded (that's what made the app
+          // appear to refresh every time you came back to it).
+          if (document.visibilityState !== 'visible') return;
+          if (sessionStorage.getItem('arm-stats:no-reload') === '1') return;
+
           var key = 'arm-stats:entry-asset-reload-at';
           var last = Number(sessionStorage.getItem(key) || 0);
-          if (!last || Date.now() - last > 15000) {
+          if (!last || Date.now() - last > 60000) {
             sessionStorage.setItem(key, String(Date.now()));
             window.location.reload();
           }
@@ -48,6 +54,7 @@
         true,
       );
     </script>
+
 
     <script type="module" src="/src/main.tsx"></script>
   </body>
