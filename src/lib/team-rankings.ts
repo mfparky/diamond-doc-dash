@@ -79,7 +79,7 @@ export interface RankingOptions {
 }
 
 /** Default participation threshold — coaches can override per-call later. */
-export const DEFAULT_PITCHING_PARTICIPATION_FLOOR = 15;
+export const DEFAULT_PITCHING_PARTICIPATION_FLOOR = 12;
 
 /**
  * Default runs-per-win for VORP → WAR conversion. This is the commonly-cited
@@ -534,7 +534,7 @@ export function buildRankings(
     // WEIGHT in the pitching/fielding blend (so a real glove can actually
     // show through instead of being drowned out by a tiny, unreliable
     // pitching sample that still carries its full authored weight). A kid
-    // who throws 15+ IP (the default floor) is completely unaffected either way.
+    // who throws 12+ IP (the default floor) is completely unaffected either way.
     // The FIELDING half (FPCT etc.) is scored and weighted completely
     // independently and is never touched by pitching participation — it
     // used to be, because the old code multiplied the whole blended defense
