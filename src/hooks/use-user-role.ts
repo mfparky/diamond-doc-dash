@@ -10,13 +10,14 @@ export type { TeamRole };
  */
 export function useUserRole() {
   const { user, loading: authLoading } = useAuth();
+  const userId = user?.id ?? null;
   const [role, setRole] = useState<TeamRole | null>(null);
   const [teamId, setTeamId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) {
+    if (!userId) {
       setRole(null);
       setTeamId(null);
       setLoading(false);
@@ -24,14 +25,14 @@ export function useUserRole() {
     }
     let cancelled = false;
     (async () => {
-      const primary = await getPrimaryMembership(user.id);
+      const primary = await getPrimaryMembership(userId);
       if (cancelled) return;
       setRole(primary?.role ?? null);
       setTeamId(primary?.teamId ?? null);
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [user, authLoading]);
+  }, [userId, authLoading]);
 
   return { role, teamId, loading: authLoading || loading, isScorekeeper: role === 'scorekeeper' };
 }

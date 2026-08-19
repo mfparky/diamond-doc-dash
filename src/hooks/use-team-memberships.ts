@@ -40,12 +40,13 @@ function writeStoredActiveTeamId(teamId: string | null) {
  */
 export function useTeamMemberships() {
   const { user, loading: authLoading } = useAuth();
+  const userId = user?.id ?? null;
   const [memberships, setMemberships] = useState<TeamMembership[]>([]);
   const [activeTeamId, setActiveTeamIdState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refetch = useCallback(async () => {
-    if (!user) {
+    if (!userId) {
       setMemberships([]);
       setActiveTeamIdState(null);
       setLoading(false);
@@ -77,7 +78,7 @@ export function useTeamMemberships() {
     });
 
     setLoading(false);
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => {
     if (authLoading) return;

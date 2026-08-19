@@ -51,7 +51,7 @@ import {
 import { cn } from '@/lib/utils';
 
 const MIN_PA = 10; // hard sample-size floor; documented in the UI
-const MIN_IP_FLOOR = 5; // pitching-participation floor; matches DEFAULT_PITCHING_PARTICIPATION_FLOOR
+const MIN_IP_FLOOR = 15; // pitching-participation floor; regresses small samples toward team average
 
 type RatingDimension = 'effort' | 'coachability' | 'baseball_iq';
 type ChartView = 'bar' | 'quadrant' | 'tier' | 'radar';
@@ -106,6 +106,7 @@ export default function RankingsPage() {
     () => ({
       reefMode,
       minPlateAppearances: MIN_PA,
+      pitchingParticipationFloor: MIN_IP_FLOOR,
       filter,
       bucketWeights: levers.bucketWeights,
       metricEnabled: levers.metricEnabled,

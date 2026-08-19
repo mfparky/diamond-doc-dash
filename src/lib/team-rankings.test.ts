@@ -626,11 +626,11 @@ describe('buildWeightingBreakdown', () => {
     expect(total).toBeCloseTo(1, 6);
   });
 
-  it('bucket shares are 40/50/10 (Off/Def/Intangibles) — pitching-weighted', () => {
+  it('bucket shares are 40/40/20 (Off/Def/Intangibles)', () => {
     const { bucketShares } = buildWeightingBreakdown();
     expect(bucketShares.offense).toBeCloseTo(0.40, 6);
-    expect(bucketShares.defense).toBeCloseTo(0.50, 6);
-    expect(bucketShares.intangibles).toBeCloseTo(0.10, 6);
+    expect(bucketShares.defense).toBeCloseTo(0.40, 6);
+    expect(bucketShares.intangibles).toBeCloseTo(0.20, 6);
   });
 
   it('OPS share of bucket is greater than R or RBI', () => {
