@@ -291,7 +291,7 @@ const METRICS: MetricConfig[] = [
   // opt-in: on a 10-15 IP sample a single blow-up inning (often defense-driven)
   // can define a whole season line.
   { key: 'pit_era', label: 'ERA', description: 'Earned run average', narration: 'limiting earned runs', higherIsBetter: false, bucket: 'defense', weight: 2.5, defaultEnabled: false },
-  { key: 'pit_whip', label: 'WHIP', description: 'Walks + hits per inning pitched', narration: 'limiting baserunners', higherIsBetter: false, bucket: 'defense', weight: 3.5 },
+  { key: 'pit_whip', label: 'WHIP', description: 'Walks + hits per inning pitched', narration: 'limiting baserunners', higherIsBetter: false, bucket: 'defense', weight: 2 },
   { key: 'pit_k_pct_bf', label: 'K/BF', description: 'Strikeouts per batter faced — lightly weighted at this age, it depends heavily on opposing hitters', narration: 'punching out hitters', higherIsBetter: true, bucket: 'defense', weight: 0.5 },
   // Opponent batting average against. GameChanger exports this as 'BAA'
   // (→ pit_baa); derive checks a few common header spellings so it picks up
