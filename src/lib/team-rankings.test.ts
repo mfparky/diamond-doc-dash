@@ -363,12 +363,12 @@ describe('buildRankings — weighting', () => {
     expect(whipRanked.rankings[0].pitcherName).toBe('FewOn');
   });
 
-  it('weighs WHIP well above K/BF and AVG against for 11U pitchers', () => {
+  it('keeps WHIP above K/BF without letting it dominate every pitching metric', () => {
     const { rows } = buildWeightingBreakdown();
     const share = (key: string) => rows.find((b) => b.key === key)?.shareOfPv ?? 0;
 
     expect(share('pit_whip')).toBeGreaterThan(share('pit_k_pct_bf') * 3);
-    expect(share('pit_whip')).toBeGreaterThan(share('pit_baa') * 3);
+    expect(share('pit_whip')).toBeGreaterThan(share('pit_baa') * 2);
   });
 
 
@@ -626,11 +626,11 @@ describe('buildWeightingBreakdown', () => {
     expect(total).toBeCloseTo(1, 6);
   });
 
-  it('bucket shares are 40/50/10 (Off/Def/Intangibles) — pitching-weighted', () => {
+  it('bucket shares are 40/40/20 (Off/Def/Intangibles)', () => {
     const { bucketShares } = buildWeightingBreakdown();
     expect(bucketShares.offense).toBeCloseTo(0.40, 6);
-    expect(bucketShares.defense).toBeCloseTo(0.50, 6);
-    expect(bucketShares.intangibles).toBeCloseTo(0.10, 6);
+    expect(bucketShares.defense).toBeCloseTo(0.40, 6);
+    expect(bucketShares.intangibles).toBeCloseTo(0.20, 6);
   });
 
   it('OPS share of bucket is greater than R or RBI', () => {

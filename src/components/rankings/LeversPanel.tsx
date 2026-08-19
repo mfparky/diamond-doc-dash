@@ -61,7 +61,7 @@ export interface LeverState {
 }
 
 export const DEFAULT_LEVER_STATE: LeverState = {
-  bucketWeights: { offense: 0.45, defense: 0.45, intangibles: 0.10, ipVolume: 0 },
+  bucketWeights: { offense: 0.40, defense: 0.40, intangibles: 0.20, ipVolume: 0 },
   metricEnabled: {
     bat_2outrbi: false,
     bat_slg: false,
@@ -102,7 +102,7 @@ const DEFENSE_JUGGERNAUT_METRIC_WEIGHTS: Record<string, number> = {
 const PRESETS: Array<{ name: string; description: string; state: LeverState }> = [
   {
     name: 'Balanced',
-    description: 'Even Off/Def split, intangibles small modifier',
+    description: 'Even Off/Def split with meaningful coach-rated intangibles',
     state: DEFAULT_LEVER_STATE,
   },
   {
