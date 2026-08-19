@@ -120,20 +120,35 @@ export default function RankingsPage() {
     replacementOffenseRate, replacementEra, runsPerWin,
   } = useMemo(() => buildRankings(inputs, rankingOpts), [inputs, rankingOpts]);
 
-  // Swap simulator: sum the VORP/WAR of every checked player. Since VORP is
-  // literally "value over a replacement-level player," swapping a selected
-  // player out for a replacement-level one costs exactly their VORP —
-  // runs scored drops by their offense VORP, runs allowed rises by their
-  // pitching VORP (they were preventing that many runs above replacement),
-  // and win value drops by their WAR.
+  // Swap simulator: one clear question — "if we replaced these players with a
+  // replacement-level player, how does the team change?" VORP is literally
+  // value over replacement, so the answer is just the sum of what they add:
+  //   runsScoredLost   = offense VORP  (runs we stop scoring)
+  //   runsAllowedAdded = pitching VORP (runs we start allowing)
+  //   winsLost         = WAR           (wins we give up)
+  // All three are reported as positive "cost of the swap" numbers so the
+  // direction never flips on the reader.
   const swapSummary = useMemo(() => {
     const all = [...rankings, ...excluded];
     const selected = all.filter((r) => swapSelection.has(r.pitcherId));
-    const runsScoredImpact = -selected.reduce((sum, r) => sum + (r.vorpOffense ?? 0), 0);
-    const runsAllowedImpact = selected.reduce((sum, r) => sum + (r.vorpPitching ?? 0), 0);
-    const winsImpact = -selected.reduce((sum, r) => sum + (r.war ?? 0), 0);
-    return { players: selected, runsScoredImpact, runsAllowedImpact, winsImpact };
+    const rows = selected.map((r) => ({
+      pitcherId: r.pitcherId,
+      pitcherName: r.pitcherName,
+      runsScoredLost: r.vorpOffense ?? 0,
+      runsAllowedAdded: r.vorpPitching ?? 0,
+      winsLost: r.war ?? 0,
+    }));
+    const sum = (key: 'runsScoredLost' | 'runsAllowedAdded' | 'winsLost') =>
+      rows.reduce((acc, row) => acc + row[key], 0);
+    return {
+      players: selected,
+      rows,
+      runsScoredLost: sum('runsScoredLost'),
+      runsAllowedAdded: sum('runsAllowedAdded'),
+      winsLost: sum('winsLost'),
+    };
   }, [rankings, excluded, swapSelection]);
+
 
   // Compute previous ranks for trend deltas. Only meaningful when at least
   // one pitcher has a second snapshot to fuel a previous ranking.
@@ -463,8 +478,8 @@ export default function RankingsPage() {
               </CardContent>
             </Card>
 
-            {/* Swap simulator — VORP/WAR impact of swapping checked players
-                for a replacement-level player (the belowReef average). */}
+            {/* Swap simulator — "what does the team lose if these players are
+                replaced by a replacement-level player?" All numbers are costs. */}
             <Card className="glass-card border-primary/20">
               <CardHeader className="pb-2">
                 <CardTitle className="font-display text-lg flex items-center gap-2">
@@ -472,17 +487,16 @@ export default function RankingsPage() {
                   Swap Simulator
                 </CardTitle>
                 <p className="text-xs text-muted-foreground">
-                  Check players above to project the impact of swapping them for a replacement-level
-                  player — the average of everyone currently below the reef line. Runs are estimated
-                  from (R+RBI)/PA vs. that baseline for offense, and ERA × IP for pitching; wins convert
-                  runs at {runsPerWin} runs/win, the standard sabermetric reference point (not calibrated
-                  to this league — treat WAR as a rough estimate).
+                  Answers one question: <span className="text-foreground font-medium">if the checked
+                  players were replaced by a replacement-level player, what would the team lose?</span>{' '}
+                  Replacement level = the average of everyone below the reef line. Every number below is
+                  a cost — bigger means the player is harder to replace.
                 </p>
               </CardHeader>
               <CardContent>
                 {swapSummary.players.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-2">
-                    No players selected. Check the Swap column above to build a projection.
+                    Check the Swap column above to add players.
                   </p>
                 ) : (
                   <div className="space-y-4">
@@ -507,32 +521,61 @@ export default function RankingsPage() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <SwapImpactTile
-                        label="Runs Scored"
-                        value={swapSummary.runsScoredImpact}
-                        goodDirection="positive"
+                        label="Runs we'd stop scoring"
+                        value={swapSummary.runsScoredLost}
+                        hint="From bat: (R+RBI)/PA vs. replacement"
                       />
                       <SwapImpactTile
-                        label="Runs Allowed"
-                        value={swapSummary.runsAllowedImpact}
-                        goodDirection="negative"
+                        label="Runs we'd start allowing"
+                        value={swapSummary.runsAllowedAdded}
+                        hint="From arm: ERA × IP vs. replacement"
                       />
                       <SwapImpactTile
-                        label="Wins"
-                        value={swapSummary.winsImpact}
-                        goodDirection="positive"
+                        label="Wins we'd give up"
+                        value={swapSummary.winsLost}
                         decimals={2}
+                        hint={`Runs converted at ${runsPerWin} runs/win`}
+                        emphasis
                       />
                     </div>
+
+                    {swapSummary.rows.length > 1 && (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                              <th className="text-left font-medium py-1">Player</th>
+                              <th className="text-right font-medium py-1">Runs scored lost</th>
+                              <th className="text-right font-medium py-1">Runs allowed added</th>
+                              <th className="text-right font-medium py-1">Wins lost</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {swapSummary.rows.map((row) => (
+                              <tr key={row.pitcherId} className="border-t border-border/40">
+                                <td className="py-1.5">{row.pitcherName}</td>
+                                <td className="py-1.5 text-right tabular-nums">{row.runsScoredLost.toFixed(1)}</td>
+                                <td className="py-1.5 text-right tabular-nums">{row.runsAllowedAdded.toFixed(1)}</td>
+                                <td className="py-1.5 text-right tabular-nums">{row.winsLost.toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
                     <p className="text-[11px] text-muted-foreground">
-                      Negative Runs Scored / positive Runs Allowed / negative Wins all mean the swap makes
-                      the team worse — reading top to bottom, that's the expected direction when swapping
-                      out your good players. Reef mode and metric levers above change the reef pool this
-                      baseline is drawn from.
+                      A cost of 0 means the player is performing at replacement level — swapping them out
+                      changes nothing. Negative means replacement level is currently the better option.
+                      Wins are a rough estimate (standard {runsPerWin} runs/win, not calibrated to this
+                      league); the reef mode and levers above change which players form the replacement
+                      baseline.
                     </p>
                   </div>
                 )}
               </CardContent>
             </Card>
+
 
             {/* Legend — collapsible to keep the page lean */}
             <Card className="glass-card">
@@ -635,31 +678,43 @@ function LegendBlock({
 function SwapImpactTile({
   label,
   value,
-  goodDirection,
+  hint,
   decimals = 1,
+  emphasis = false,
 }: {
   label: string;
   value: number;
-  goodDirection: 'positive' | 'negative';
+  hint?: string;
   decimals?: number;
+  emphasis?: boolean;
 }) {
-  const isGood = goodDirection === 'positive' ? value > 0 : value < 0;
-  const isBad = goodDirection === 'positive' ? value < 0 : value > 0;
-  const colorClass = isGood
-    ? 'text-emerald-600 dark:text-emerald-400'
-    : isBad
+  // Every tile is a "cost of the swap": larger positive = more the team loses.
+  const colorClass =
+    value > 0.05
       ? 'text-red-600 dark:text-red-400'
-      : 'text-muted-foreground';
-  const sign = value > 0 ? '+' : '';
+      : value < -0.05
+        ? 'text-emerald-600 dark:text-emerald-400'
+        : 'text-muted-foreground';
   return (
-    <div className="rounded-lg border border-border/50 p-3 text-center">
+    <div
+      className={cn(
+        'rounded-lg border p-3 text-center',
+        emphasis ? 'border-primary/40 bg-primary/5' : 'border-border/50',
+      )}
+    >
       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
       <p className={cn('text-xl font-bold tabular-nums', colorClass)}>
-        {sign}{value.toFixed(decimals)}
+        {Math.abs(value).toFixed(decimals)}
       </p>
+      <p className={cn('text-[10px] font-medium', colorClass)}>
+        {value > 0.05 ? 'worse without them' : value < -0.05 ? 'better without them' : 'no change'}
+      </p>
+      {hint && <p className="text-[10px] text-muted-foreground mt-0.5">{hint}</p>}
+
     </div>
   );
 }
+
 
 /** Small ↑N / ↓N pill next to a player name. Null = no baseline (single upload). */
 function RankChangeBadge({ change }: { change: number | null }) {
