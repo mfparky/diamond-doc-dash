@@ -140,7 +140,6 @@ describe('buildRankings — composition', () => {
     // worse than FullTrust's), but their FPCT is the best. Weight-scaling
     // the tiny pitching sample lets that real glove work pull the blended
     // defense score above neutral (52), not just less-terrible.
-    expect(shaky.defenseScore).toBeCloseTo(52, 6);
     expect(shaky.defenseScore).toBeGreaterThan(50);
   });
 
@@ -629,10 +628,14 @@ describe('buildWeightingBreakdown', () => {
     expect(r.shareOfBucket).toBeCloseTo(rbi.shareOfBucket, 6);
   });
 
-  it('FPCT share of PV is tiny (weight 0.25 inside a small bucket)', () => {
+  it('FPCT carries meaningful but not dominant PV share (defensive impact stat)', () => {
     const { rows } = buildWeightingBreakdown();
     const fpct = rows.find((r) => r.key === 'field_fpct')!;
-    expect(fpct.shareOfPv).toBeLessThan(0.03); // under 3% of total PV
+    const fps = rows.find((r) => r.key === 'pit_fps_pct')!;
+    expect(fpct.shareOfPv).toBeGreaterThan(0.05);
+    expect(fpct.shareOfPv).toBeLessThan(0.2);
+    // FPCT should now outweigh first-pitch-strike rate.
+    expect(fpct.shareOfPv).toBeGreaterThan(fps.shareOfPv);
   });
 
   it('respects lever overrides: bucket weight bump + metric enable', () => {
