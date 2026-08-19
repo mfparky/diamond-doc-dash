@@ -345,17 +345,32 @@ describe('buildRankings — weighting', () => {
     expect(rankings[0].pitcherName).toBe('StrongArm');
   });
 
-  it('ignores ERA/WHIP by default — too punitive on a small youth IP sample', () => {
+  it('ignores ERA by default but counts WHIP — WHIP is the fair outcome stat at this age', () => {
     const inputs: RankingInput[] = [
-      // Blow-up ERA/WHIP, but a clean glove — should NOT be penalized
-      // when ERA/WHIP are left at their app default (off).
-      { pitcherId: 'a', pitcherName: 'RoughOuting', latest: { pit_era: 12.0, pit_whip: 3.5, field_fpct: 0.95 } },
-      { pitcherId: 'b', pitcherName: 'SameGlove', latest: { pit_era: 1.0, pit_whip: 0.7, field_fpct: 0.95 } },
+      { pitcherId: 'a', pitcherName: 'RoughOuting', latest: { pit_era: 12.0, field_fpct: 0.95 } },
+      { pitcherId: 'b', pitcherName: 'SameGlove', latest: { pit_era: 1.0, field_fpct: 0.95 } },
     ];
-    // No metricEnabled override — exercises the real app default.
+    // No metricEnabled override — exercises the real app default (ERA off).
     const { rankings } = buildRankings(inputs, { reefMode: '25', pitchingParticipationFloor: 0 });
     expect(rankings[0].playerValue).toBeCloseTo(rankings[1].playerValue, 6);
+
+    // WHIP is on by default, so it does separate two otherwise-equal players.
+    const whipInputs: RankingInput[] = [
+      { pitcherId: 'a', pitcherName: 'ManyOn', latest: { pit_whip: 3.5, field_fpct: 0.95 } },
+      { pitcherId: 'b', pitcherName: 'FewOn', latest: { pit_whip: 0.7, field_fpct: 0.95 } },
+    ];
+    const whipRanked = buildRankings(whipInputs, { reefMode: '25', pitchingParticipationFloor: 0 });
+    expect(whipRanked.rankings[0].pitcherName).toBe('FewOn');
   });
+
+  it('weighs WHIP well above K/BF and AVG against for 11U pitchers', () => {
+    const { rows } = buildWeightingBreakdown();
+    const share = (key: string) => rows.find((b) => b.key === key)?.shareOfPv ?? 0;
+
+    expect(share('pit_whip')).toBeGreaterThan(share('pit_k_pct_bf') * 3);
+    expect(share('pit_whip')).toBeGreaterThan(share('pit_baa') * 3);
+  });
+
 
   it('weighs AVG a bit more than QAB% on offense', () => {
     const inputs: RankingInput[] = [
