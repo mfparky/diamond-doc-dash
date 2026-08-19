@@ -366,21 +366,20 @@ export function LeversPanel({ open, onOpenChange, levers, onChange }: LeversPane
               }}
             />
             <MetricToggle
-              id="lever-era-whip"
-              label="ERA & WHIP"
-              description="Off by default — on a short youth-season IP sample, one blow-up outing can swing these hard. Turn on if your staff has deeper innings."
-              checked={levers.metricEnabled.pit_era}
-              onChange={(v) => {
-                onChange({
-                  ...levers,
-                  metricEnabled: {
-                    ...levers.metricEnabled,
-                    pit_era: v,
-                    pit_whip: v,
-                  },
-                });
-              }}
+              id="lever-whip"
+              label="WHIP"
+              description="On by default — baserunners allowed per inning is the fairest outcome stat for a developing pitcher."
+              checked={levers.metricEnabled.pit_whip}
+              onChange={(v) => setMetric('pit_whip', v)}
             />
+            <MetricToggle
+              id="lever-era"
+              label="ERA"
+              description="Off by default — on a short youth-season IP sample, one blow-up inning can swing ERA hard. Turn on if your staff has deeper innings."
+              checked={levers.metricEnabled.pit_era}
+              onChange={(v) => setMetric('pit_era', v)}
+            />
+
             <MetricToggle
               id="lever-effort"
               label="Effort rating"
