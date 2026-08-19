@@ -364,8 +364,9 @@ describe('buildRankings — weighting', () => {
   });
 
   it('weighs WHIP well above K/BF and AVG against for 11U pitchers', () => {
-    const breakdown = buildWeightingBreakdown({ reefMode: '25' });
-    const share = (key: string) => breakdown.find((b) => b.key === key)?.pvShare ?? 0;
+    const { rows } = buildWeightingBreakdown();
+    const share = (key: string) => rows.find((b) => b.key === key)?.shareOfPv ?? 0;
+
     expect(share('pit_whip')).toBeGreaterThan(share('pit_k_pct_bf') * 3);
     expect(share('pit_whip')).toBeGreaterThan(share('pit_baa') * 3);
   });
