@@ -678,31 +678,40 @@ function LegendBlock({
 function SwapImpactTile({
   label,
   value,
-  goodDirection,
+  hint,
   decimals = 1,
+  emphasis = false,
 }: {
   label: string;
   value: number;
-  goodDirection: 'positive' | 'negative';
+  hint?: string;
   decimals?: number;
+  emphasis?: boolean;
 }) {
-  const isGood = goodDirection === 'positive' ? value > 0 : value < 0;
-  const isBad = goodDirection === 'positive' ? value < 0 : value > 0;
-  const colorClass = isGood
-    ? 'text-emerald-600 dark:text-emerald-400'
-    : isBad
+  // Every tile is a "cost of the swap": larger positive = more the team loses.
+  const colorClass =
+    value > 0.05
       ? 'text-red-600 dark:text-red-400'
-      : 'text-muted-foreground';
-  const sign = value > 0 ? '+' : '';
+      : value < -0.05
+        ? 'text-emerald-600 dark:text-emerald-400'
+        : 'text-muted-foreground';
   return (
-    <div className="rounded-lg border border-border/50 p-3 text-center">
+    <div
+      className={cn(
+        'rounded-lg border p-3 text-center',
+        emphasis ? 'border-primary/40 bg-primary/5' : 'border-border/50',
+      )}
+    >
       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
       <p className={cn('text-xl font-bold tabular-nums', colorClass)}>
-        {sign}{value.toFixed(decimals)}
+        {value > 0 ? '−' : value < 0 ? '+' : ''}
+        {Math.abs(value).toFixed(decimals)}
       </p>
+      {hint && <p className="text-[10px] text-muted-foreground mt-0.5">{hint}</p>}
     </div>
   );
 }
+
 
 /** Small ↑N / ↓N pill next to a player name. Null = no baseline (single upload). */
 function RankChangeBadge({ change }: { change: number | null }) {
