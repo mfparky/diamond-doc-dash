@@ -120,20 +120,35 @@ export default function RankingsPage() {
     replacementOffenseRate, replacementEra, runsPerWin,
   } = useMemo(() => buildRankings(inputs, rankingOpts), [inputs, rankingOpts]);
 
-  // Swap simulator: sum the VORP/WAR of every checked player. Since VORP is
-  // literally "value over a replacement-level player," swapping a selected
-  // player out for a replacement-level one costs exactly their VORP —
-  // runs scored drops by their offense VORP, runs allowed rises by their
-  // pitching VORP (they were preventing that many runs above replacement),
-  // and win value drops by their WAR.
+  // Swap simulator: one clear question — "if we replaced these players with a
+  // replacement-level player, how does the team change?" VORP is literally
+  // value over replacement, so the answer is just the sum of what they add:
+  //   runsScoredLost   = offense VORP  (runs we stop scoring)
+  //   runsAllowedAdded = pitching VORP (runs we start allowing)
+  //   winsLost         = WAR           (wins we give up)
+  // All three are reported as positive "cost of the swap" numbers so the
+  // direction never flips on the reader.
   const swapSummary = useMemo(() => {
     const all = [...rankings, ...excluded];
     const selected = all.filter((r) => swapSelection.has(r.pitcherId));
-    const runsScoredImpact = -selected.reduce((sum, r) => sum + (r.vorpOffense ?? 0), 0);
-    const runsAllowedImpact = selected.reduce((sum, r) => sum + (r.vorpPitching ?? 0), 0);
-    const winsImpact = -selected.reduce((sum, r) => sum + (r.war ?? 0), 0);
-    return { players: selected, runsScoredImpact, runsAllowedImpact, winsImpact };
+    const rows = selected.map((r) => ({
+      pitcherId: r.pitcherId,
+      pitcherName: r.pitcherName,
+      runsScoredLost: r.vorpOffense ?? 0,
+      runsAllowedAdded: r.vorpPitching ?? 0,
+      winsLost: r.war ?? 0,
+    }));
+    const sum = (key: 'runsScoredLost' | 'runsAllowedAdded' | 'winsLost') =>
+      rows.reduce((acc, row) => acc + row[key], 0);
+    return {
+      players: selected,
+      rows,
+      runsScoredLost: sum('runsScoredLost'),
+      runsAllowedAdded: sum('runsAllowedAdded'),
+      winsLost: sum('winsLost'),
+    };
   }, [rankings, excluded, swapSelection]);
+
 
   // Compute previous ranks for trend deltas. Only meaningful when at least
   // one pitcher has a second snapshot to fuel a previous ranking.
