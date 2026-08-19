@@ -292,7 +292,7 @@ const METRICS: MetricConfig[] = [
   // can define a whole season line.
   { key: 'pit_era', label: 'ERA', description: 'Earned run average', narration: 'limiting earned runs', higherIsBetter: false, bucket: 'defense', weight: 2.5, defaultEnabled: false },
   { key: 'pit_whip', label: 'WHIP', description: 'Walks + hits per inning pitched', narration: 'limiting baserunners', higherIsBetter: false, bucket: 'defense', weight: 2 },
-  { key: 'pit_k_pct_bf', label: 'K/BF', description: 'Strikeouts per batter faced — lightly weighted at this age, it depends heavily on opposing hitters', narration: 'punching out hitters', higherIsBetter: true, bucket: 'defense', weight: 0.5 },
+  { key: 'pit_k_pct_bf', label: 'K/BF', description: 'Strikeouts per batter faced — lightly weighted at this age, it depends heavily on opposing hitters', narration: 'punching out hitters', higherIsBetter: true, bucket: 'defense', weight: 0.25 },
   // Opponent batting average against. GameChanger exports this as 'BAA'
   // (→ pit_baa); derive checks a few common header spellings so it picks up
   // whatever the CSV calls it. Lower is better, but down-weighted at this age
@@ -317,12 +317,12 @@ const METRICS: MetricConfig[] = [
   // FPS% down-weighted: getting ahead matters, but it's a process stat that
   // overlaps heavily with Strike %.
   { key: 'pit_fps_pct', label: 'FPS%', description: 'First-pitch strike percentage', narration: 'getting ahead in the count', higherIsBetter: true, bucket: 'defense', weight: 0.35 },
-  { key: 'pit_s_pct', label: 'Strike %', description: 'Pitches thrown for strikes', narration: 'pounding the strike zone', higherIsBetter: true, bucket: 'defense', weight: 0.75 },
+  { key: 'pit_s_pct', label: 'Strike %', description: 'Pitches thrown for strikes', narration: 'pounding the strike zone', higherIsBetter: true, bucket: 'defense', weight: 0.5 },
   // Defense (fielding) — FPCT now carries real weight since clean glove work
   // is a direct defensive-impact stat. Counting stats (TC/PO/A/DP) stay opt-in
   // via presets like "Defensive Juggernaut" so a big-inning catcher isn't
   // penalized against a light-duty corner outfielder by default.
-  { key: 'field_fpct', label: 'FPCT', description: 'Fielding percentage', narration: 'fielding cleanly when the ball comes', higherIsBetter: true, bucket: 'defense', weight: 1.5 },
+  { key: 'field_fpct', label: 'FPCT', description: 'Fielding percentage', narration: 'fielding cleanly when the ball comes', higherIsBetter: true, bucket: 'defense', weight: 2.5 },
 
   { key: 'field_tc', label: 'TC', description: 'Total chances — volume of balls handled', narration: 'handling a high volume of chances', higherIsBetter: true, bucket: 'defense', weight: 0 },
   { key: 'field_po', label: 'PO', description: 'Putouts', narration: 'recording putouts', higherIsBetter: true, bucket: 'defense', weight: 0 },
