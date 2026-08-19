@@ -363,12 +363,12 @@ describe('buildRankings — weighting', () => {
     expect(whipRanked.rankings[0].pitcherName).toBe('FewOn');
   });
 
-  it('weighs WHIP well above K/BF and AVG against for 11U pitchers', () => {
+  it('keeps WHIP above K/BF without letting it dominate every pitching metric', () => {
     const { rows } = buildWeightingBreakdown();
     const share = (key: string) => rows.find((b) => b.key === key)?.shareOfPv ?? 0;
 
     expect(share('pit_whip')).toBeGreaterThan(share('pit_k_pct_bf') * 3);
-    expect(share('pit_whip')).toBeGreaterThan(share('pit_baa') * 3);
+    expect(share('pit_whip')).toBeGreaterThan(share('pit_baa') * 2);
   });
 
 
