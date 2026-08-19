@@ -478,8 +478,8 @@ export default function RankingsPage() {
               </CardContent>
             </Card>
 
-            {/* Swap simulator — VORP/WAR impact of swapping checked players
-                for a replacement-level player (the belowReef average). */}
+            {/* Swap simulator — "what does the team lose if these players are
+                replaced by a replacement-level player?" All numbers are costs. */}
             <Card className="glass-card border-primary/20">
               <CardHeader className="pb-2">
                 <CardTitle className="font-display text-lg flex items-center gap-2">
@@ -487,17 +487,16 @@ export default function RankingsPage() {
                   Swap Simulator
                 </CardTitle>
                 <p className="text-xs text-muted-foreground">
-                  Check players above to project the impact of swapping them for a replacement-level
-                  player — the average of everyone currently below the reef line. Runs are estimated
-                  from (R+RBI)/PA vs. that baseline for offense, and ERA × IP for pitching; wins convert
-                  runs at {runsPerWin} runs/win, the standard sabermetric reference point (not calibrated
-                  to this league — treat WAR as a rough estimate).
+                  Answers one question: <span className="text-foreground font-medium">if the checked
+                  players were replaced by a replacement-level player, what would the team lose?</span>{' '}
+                  Replacement level = the average of everyone below the reef line. Every number below is
+                  a cost — bigger means the player is harder to replace.
                 </p>
               </CardHeader>
               <CardContent>
                 {swapSummary.players.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-2">
-                    No players selected. Check the Swap column above to build a projection.
+                    Check the Swap column above to add players.
                   </p>
                 ) : (
                   <div className="space-y-4">
@@ -522,32 +521,61 @@ export default function RankingsPage() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <SwapImpactTile
-                        label="Runs Scored"
-                        value={swapSummary.runsScoredImpact}
-                        goodDirection="positive"
+                        label="Runs we'd stop scoring"
+                        value={swapSummary.runsScoredLost}
+                        hint="From bat: (R+RBI)/PA vs. replacement"
                       />
                       <SwapImpactTile
-                        label="Runs Allowed"
-                        value={swapSummary.runsAllowedImpact}
-                        goodDirection="negative"
+                        label="Runs we'd start allowing"
+                        value={swapSummary.runsAllowedAdded}
+                        hint="From arm: ERA × IP vs. replacement"
                       />
                       <SwapImpactTile
-                        label="Wins"
-                        value={swapSummary.winsImpact}
-                        goodDirection="positive"
+                        label="Wins we'd give up"
+                        value={swapSummary.winsLost}
                         decimals={2}
+                        hint={`Runs converted at ${runsPerWin} runs/win`}
+                        emphasis
                       />
                     </div>
+
+                    {swapSummary.rows.length > 1 && (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                              <th className="text-left font-medium py-1">Player</th>
+                              <th className="text-right font-medium py-1">Runs scored lost</th>
+                              <th className="text-right font-medium py-1">Runs allowed added</th>
+                              <th className="text-right font-medium py-1">Wins lost</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {swapSummary.rows.map((row) => (
+                              <tr key={row.pitcherId} className="border-t border-border/40">
+                                <td className="py-1.5">{row.pitcherName}</td>
+                                <td className="py-1.5 text-right tabular-nums">{row.runsScoredLost.toFixed(1)}</td>
+                                <td className="py-1.5 text-right tabular-nums">{row.runsAllowedAdded.toFixed(1)}</td>
+                                <td className="py-1.5 text-right tabular-nums">{row.winsLost.toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
                     <p className="text-[11px] text-muted-foreground">
-                      Negative Runs Scored / positive Runs Allowed / negative Wins all mean the swap makes
-                      the team worse — reading top to bottom, that's the expected direction when swapping
-                      out your good players. Reef mode and metric levers above change the reef pool this
-                      baseline is drawn from.
+                      A cost of 0 means the player is performing at replacement level — swapping them out
+                      changes nothing. Negative means replacement level is currently the better option.
+                      Wins are a rough estimate (standard {runsPerWin} runs/win, not calibrated to this
+                      league); the reef mode and levers above change which players form the replacement
+                      baseline.
                     </p>
                   </div>
                 )}
               </CardContent>
             </Card>
+
 
             {/* Legend — collapsible to keep the page lean */}
             <Card className="glass-card">
