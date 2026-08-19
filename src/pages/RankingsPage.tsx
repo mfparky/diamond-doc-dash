@@ -704,10 +704,13 @@ function SwapImpactTile({
     >
       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
       <p className={cn('text-xl font-bold tabular-nums', colorClass)}>
-        {value > 0 ? '−' : value < 0 ? '+' : ''}
         {Math.abs(value).toFixed(decimals)}
       </p>
+      <p className={cn('text-[10px] font-medium', colorClass)}>
+        {value > 0.05 ? 'worse without them' : value < -0.05 ? 'better without them' : 'no change'}
+      </p>
       {hint && <p className="text-[10px] text-muted-foreground mt-0.5">{hint}</p>}
+
     </div>
   );
 }
