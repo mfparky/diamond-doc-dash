@@ -283,25 +283,29 @@ const METRICS: MetricConfig[] = [
   // first-pitch strike %). All are rate stats, so they reward quality
   // regardless of innings volume; the participation floor below still scales
   // the whole bucket down for kids who barely pitch.
-  // Off by default: on a 10-15 IP youth-season sample, ERA/WHIP swing hard
-  // off one bad inning (a single blow-up outing can be someone's whole
-  // season line) — too punitive for the volume these kids actually throw.
-  // Coach can flip them back on via the Levers panel for a team with
-  // deeper innings.
+  // At 11U, strikeout rate and opponent average say more about the hitters in
+  // the box than about the pitcher's development, so both are heavily
+  // down-weighted. WHIP (baserunners allowed per inning) is the fairest
+  // outcome stat for a learning pitcher — walks and hits are things he can
+  // control — so it carries the most weight and is on by default. ERA stays
+  // opt-in: on a 10-15 IP sample a single blow-up inning (often defense-driven)
+  // can define a whole season line.
   { key: 'pit_era', label: 'ERA', description: 'Earned run average', narration: 'limiting earned runs', higherIsBetter: false, bucket: 'defense', weight: 2.5, defaultEnabled: false },
-  { key: 'pit_whip', label: 'WHIP', description: 'Walks + hits per inning pitched', narration: 'limiting baserunners', higherIsBetter: false, bucket: 'defense', weight: 2.5, defaultEnabled: false },
-  { key: 'pit_k_pct_bf', label: 'K/BF', description: 'Strikeouts per batter faced', narration: 'punching out hitters', higherIsBetter: true, bucket: 'defense', weight: 2 },
+  { key: 'pit_whip', label: 'WHIP', description: 'Walks + hits per inning pitched', narration: 'limiting baserunners', higherIsBetter: false, bucket: 'defense', weight: 3.5 },
+  { key: 'pit_k_pct_bf', label: 'K/BF', description: 'Strikeouts per batter faced — lightly weighted at this age, it depends heavily on opposing hitters', narration: 'punching out hitters', higherIsBetter: true, bucket: 'defense', weight: 0.5 },
   // Opponent batting average against. GameChanger exports this as 'BAA'
   // (→ pit_baa); derive checks a few common header spellings so it picks up
-  // whatever the CSV calls it. Lower is better.
+  // whatever the CSV calls it. Lower is better, but down-weighted at this age
+  // because balls in play are largely decided by the defense behind him.
   {
     key: 'pit_baa',
     label: 'AVG against',
-    description: 'Opponent batting average against this pitcher — lower is better',
+    description: 'Opponent batting average against this pitcher — lower is better, lightly weighted at this age',
     narration: 'holding hitters to a low average',
     higherIsBetter: false,
     bucket: 'defense',
-    weight: 2,
+    weight: 0.75,
+
     derive: (stats) => {
       for (const k of ['pit_baa', 'pit_oba', 'pit_avg', 'pit_ba_against']) {
         const v = readNumRaw(stats, k);
