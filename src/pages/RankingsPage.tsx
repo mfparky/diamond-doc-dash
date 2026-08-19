@@ -51,7 +51,7 @@ import {
 import { cn } from '@/lib/utils';
 
 const MIN_PA = 10; // hard sample-size floor; documented in the UI
-const MIN_IP_FLOOR = 12; // pitching-participation floor; regresses small samples toward team average
+const MIN_IP_FLOOR = 13; // pitching-participation floor; regresses small samples toward team average
 
 type RatingDimension = 'effort' | 'coachability' | 'baseball_iq';
 type ChartView = 'bar' | 'quadrant' | 'tier' | 'radar';
