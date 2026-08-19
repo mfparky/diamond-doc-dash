@@ -88,15 +88,15 @@ const DEFENSE_JUGGERNAUT_METRIC_WEIGHTS: Record<string, number> = {
   pit_baa: 0,
   pit_fps_pct: 0,
   pit_s_pct: 0,
-  // Reward range and involvement — assists (bat-in-play conversions) lead,
-  // then raw chances handled. FPCT / errors are down-weighted so a rangy
-  // infielder who touches everything isn't punished for the occasional miss.
+  // Reward range and involvement — clean glove work (FPCT) leads, then
+  // assists (bat-in-play conversions) and raw chances handled.
+  field_fpct: 4,
   field_a: 5,
   field_tc: 2,
   field_dp: 1,
   field_po: 0.5,
-  field_fpct: 0.25,
   field_e: 0.25,
+
 };
 
 const PRESETS: Array<{ name: string; description: string; state: LeverState }> = [
