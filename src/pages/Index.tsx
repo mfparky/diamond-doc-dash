@@ -42,7 +42,7 @@ type TimeView = '7day' | 'alltime';
 
 const Index = () => {
   const { outings, isLoading: outingsLoading, addOuting, updateOuting, deleteOuting, refetch: refetchOutings } = useOutings();
-  const { pitchers: rosterPitchers, isLoading: pitchersLoading, addPitcher, updatePitcher, deletePitcher, refetch: refetchPitchers } = usePitchers();
+  const { pitchers: rosterPitchers, isLoading: pitchersLoading, addPitcher, updatePitcher, deletePitcher, archivePitcher, reactivatePitcher, startNewSeason, fetchArchivedPitchers, refetch: refetchPitchers } = usePitchers();
   const { addPitchLocations } = usePitchLocations();
   const [activeTab, setActiveTab] = useState<'players' | 'team'>('players');
   const [timeView, setTimeView] = useState<TimeView>('7day');
@@ -497,6 +497,10 @@ const Index = () => {
         onAddPitcher={addPitcher}
         onUpdatePitcher={updatePitcher}
         onDeletePitcher={deletePitcher}
+        onArchivePitcher={archivePitcher}
+        onReactivatePitcher={reactivatePitcher}
+        onStartNewSeason={startNewSeason}
+        fetchArchivedPitchers={fetchArchivedPitchers}
       />
 
       {/* Paper Form Scanner */}

@@ -1,0 +1,20 @@
+-- Manual rollback for 20260916120000_pitchers_active_flag.sql
+-- Not run automatically (this file is .sql.txt, not .sql, so the migration
+-- runner skips it) — apply by hand via psql if this needs to be undone.
+
+CREATE OR REPLACE FUNCTION public.get_public_team_pitchers(p_team_id uuid)
+RETURNS SETOF public.pitchers
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT * FROM public.pitchers WHERE team_id = p_team_id;
+$$;
+
+CREATE OR REPLACE FUNCTION public.get_public_user_pitchers(p_user_id uuid)
+RETURNS SETOF public.pitchers
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT * FROM public.pitchers WHERE user_id = p_user_id AND team_id IS NULL;
+$$;
+
+ALTER TABLE public.pitchers
+  DROP COLUMN IF EXISTS active;

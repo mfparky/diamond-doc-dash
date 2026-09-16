@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Pencil, Trash2, Plus, Check, X, Sun, Moon, ChevronRight, ArrowLeft, Users, Palette, ClipboardCheck, Trophy, CalendarIcon, Copy, Camera } from 'lucide-react';
+import { Pencil, Trash2, Plus, Check, X, Sun, Moon, ChevronRight, ArrowLeft, Users, Palette, ClipboardCheck, Trophy, CalendarIcon, Copy, Camera, Archive, ArchiveRestore, CalendarClock } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useShowWorkoutLeaderboard } from '@/hooks/use-team-dashboard-prefs';
 import { format } from 'date-fns';
@@ -37,6 +37,13 @@ interface RosterManagementDialogProps {
   onAddPitcher: (name: string, maxWeeklyPitches: number) => Promise<PitcherRecord | null>;
   onUpdatePitcher: (id: string, updates: { name?: string; maxWeeklyPitches?: number }) => Promise<boolean>;
   onDeletePitcher: (id: string) => Promise<boolean>;
+  /** Season-safe removal: drops off the active roster and team-wide public
+   *  views, but keeps the pitcher's history and public /player/:id link. */
+  onArchivePitcher: (id: string) => Promise<boolean>;
+  onReactivatePitcher: (id: string) => Promise<boolean>;
+  /** Archives the whole current active roster in one action. */
+  onStartNewSeason: () => Promise<boolean>;
+  fetchArchivedPitchers: () => Promise<PitcherRecord[]>;
 }
 
 type SettingsView = 'menu' | 'roster' | 'workouts';
@@ -48,6 +55,10 @@ export function RosterManagementDialog({
   onAddPitcher,
   onUpdatePitcher,
   onDeletePitcher,
+  onArchivePitcher,
+  onReactivatePitcher,
+  onStartNewSeason,
+  fetchArchivedPitchers,
 }: RosterManagementDialogProps) {
   const [view, setView] = useState<SettingsView>('menu');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -57,6 +68,11 @@ export function RosterManagementDialog({
   const [newMaxPitches, setNewMaxPitches] = useState(120);
   const [isAdding, setIsAdding] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [archiveConfirmId, setArchiveConfirmId] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [archivedPitchers, setArchivedPitchers] = useState<PitcherRecord[]>([]);
+  const [archivedLoading, setArchivedLoading] = useState(false);
+  const [newSeasonConfirmOpen, setNewSeasonConfirmOpen] = useState(false);
   const { mode, toggleMode } = useDesignSystem();
   const isDark = mode === 'dark';
   const [showWorkoutLeaderboard, setShowWorkoutLeaderboard] = useShowWorkoutLeaderboard();
@@ -504,6 +520,36 @@ export function RosterManagementDialog({
     setDeleteConfirmId(null);
   };
 
+  const loadArchivedPitchers = useCallback(async () => {
+    setArchivedLoading(true);
+    setArchivedPitchers(await fetchArchivedPitchers());
+    setArchivedLoading(false);
+  }, [fetchArchivedPitchers]);
+
+  const handleToggleArchived = () => {
+    const next = !showArchived;
+    setShowArchived(next);
+    if (next) loadArchivedPitchers();
+  };
+
+  const handleConfirmArchive = async () => {
+    if (!archiveConfirmId) return;
+    const ok = await onArchivePitcher(archiveConfirmId);
+    setArchiveConfirmId(null);
+    if (ok && showArchived) await loadArchivedPitchers();
+  };
+
+  const handleReactivate = async (id: string) => {
+    const ok = await onReactivatePitcher(id);
+    if (ok) setArchivedPitchers((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  const handleConfirmStartNewSeason = async () => {
+    await onStartNewSeason();
+    setNewSeasonConfirmOpen(false);
+    if (showArchived) await loadArchivedPitchers();
+  };
+
   const handleAchievementDateChange = async (date: Date | undefined) => {
     setAchievementStartDate(date);
     if (date) {
@@ -576,6 +622,7 @@ export function RosterManagementDialog({
   };
 
   const pitcherToDelete = pitchers.find(p => p.id === deleteConfirmId);
+  const pitcherToArchive = pitchers.find(p => p.id === archiveConfirmId);
 
   return (
     <>
@@ -784,12 +831,23 @@ export function RosterManagementDialog({
                   >
                     <ArrowLeft className="w-4 h-4" />
                   </Button>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <DialogTitle className="font-display">Manage Roster</DialogTitle>
                     <DialogDescription>
                       Add, edit, or remove pitchers.
                     </DialogDescription>
                   </div>
+                  {pitchers.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setNewSeasonConfirmOpen(true)}
+                      className="shrink-0"
+                    >
+                      <CalendarClock className="w-3.5 h-3.5 mr-1.5" />
+                      New Season
+                    </Button>
+                  )}
                 </div>
               </DialogHeader>
 
@@ -835,6 +893,16 @@ export function RosterManagementDialog({
                         </div>
                         <Button size="icon" variant="ghost" onClick={() => handleStartEdit(pitcher)} className="h-8 w-8">
                           <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => setArchiveConfirmId(pitcher.id)}
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          aria-label={`Archive ${pitcher.name}`}
+                          title="Archive for a new season — keeps their history and public link"
+                        >
+                          <Archive className="w-4 h-4" />
                         </Button>
                         <Button size="icon" variant="ghost" onClick={() => setDeleteConfirmId(pitcher.id)} className="h-8 w-8 text-status-danger hover:text-status-danger">
                           <Trash2 className="w-4 h-4" />
@@ -882,6 +950,44 @@ export function RosterManagementDialog({
                     Add Pitcher
                   </Button>
                 )}
+
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={handleToggleArchived}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground w-full"
+                  >
+                    <ChevronRight className={cn('w-3.5 h-3.5 transition-transform', showArchived && 'rotate-90')} />
+                    Archived players
+                  </button>
+
+                  {showArchived && (
+                    <div className="mt-2 space-y-2">
+                      {archivedLoading ? (
+                        <p className="text-xs text-muted-foreground px-3">Loading…</p>
+                      ) : archivedPitchers.length === 0 ? (
+                        <p className="text-xs text-muted-foreground px-3">No archived players yet.</p>
+                      ) : (
+                        archivedPitchers.map((pitcher) => (
+                          <div
+                            key={pitcher.id}
+                            className="flex items-center gap-2 p-3 rounded-lg bg-secondary/25 border border-border/30"
+                          >
+                            <p className="flex-1 text-sm text-muted-foreground">{pitcher.name}</p>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleReactivate(pitcher.id)}
+                            >
+                              <ArchiveRestore className="w-3.5 h-3.5 mr-1.5" />
+                              Reactivate
+                            </Button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </>
           ) : (
@@ -996,16 +1102,56 @@ export function RosterManagementDialog({
       <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove Pitcher</AlertDialogTitle>
+            <AlertDialogTitle>Delete Pitcher Permanently</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove <strong>{pitcherToDelete?.name}</strong> from the roster? 
-              This will not delete their outing history.
+              This permanently deletes <strong>{pitcherToDelete?.name}</strong> along with their saved stats and
+              report cards, and breaks any public link a parent has saved for them. This cannot be undone.
+              To just remove them from this season's active roster without losing anything, use Archive instead.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmDelete} className="bg-status-danger hover:bg-status-danger/90">
-              Remove
+              Delete Permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!archiveConfirmId} onOpenChange={(open) => !open && setArchiveConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive Pitcher</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{pitcherToArchive?.name}</strong> will drop off the active roster and team pages, but nothing
+              is deleted — their full history stays intact and their public dashboard link keeps working exactly as
+              before. Reactivate them anytime from Archived players.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmArchive}>
+              Archive
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={newSeasonConfirmOpen} onOpenChange={setNewSeasonConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Start New Season</AlertDialogTitle>
+            <AlertDialogDescription>
+              Archives all {pitchers.length} player{pitchers.length === 1 ? '' : 's'} currently on the active roster
+              in one go — a clean slate to build this season's roster from. Nothing is deleted: every player's
+              history and public link keep working, and you can reactivate returners individually from Archived
+              players right after.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmStartNewSeason}>
+              Start New Season
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

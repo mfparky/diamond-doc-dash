@@ -136,14 +136,15 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
             coachabilityRating: p.coachability_rating === 'minus' || p.coachability_rating === 'even' || p.coachability_rating === 'plus' ? p.coachability_rating : null,
             baseballIqRating: p.baseball_iq_rating === 'minus' || p.baseball_iq_rating === 'even' || p.baseball_iq_rating === 'plus' ? p.baseball_iq_rating : null,
             highImpactArm: p.high_impact_arm ?? false,
+            active: p.active ?? true,
           })));
-        } else {
           // Fallback: pitchers predate team_id — look them up by name from outings
           const pitcherNames = [...new Set(outings.map(o => o.pitcherName))];
           if (pitcherNames.length > 0) {
             const { data: fallbackPitchers } = await supabase
               .from('pitchers')
               .select('*')
+              .eq('active', true)
               .in('name', pitcherNames);
 
             if (fallbackPitchers && fallbackPitchers.length > 0) {
@@ -160,6 +161,7 @@ export function CombinedDashboard({ outings, pitcherPitchTypes, parentMode = fal
                   coachabilityRating: p.coachability_rating === 'minus' || p.coachability_rating === 'even' || p.coachability_rating === 'plus' ? p.coachability_rating : null,
                   baseballIqRating: p.baseball_iq_rating === 'minus' || p.baseball_iq_rating === 'even' || p.baseball_iq_rating === 'plus' ? p.baseball_iq_rating : null,
                   highImpactArm: p.high_impact_arm ?? false,
+                  active: p.active ?? true,
               })));
             }
           }

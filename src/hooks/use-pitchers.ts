@@ -22,11 +22,34 @@ export interface PitcherRecord {
   baseballIqRating: CoachRating;
   /** Coach override: trust this arm's pitching sample at full weight regardless of IP. */
   highImpactArm: boolean;
+  /** False once archived off the active roster (e.g. at season rollover).
+   *  usePitchers() only ever returns active=true rows — this is here so
+   *  the same PitcherRecord shape covers the archived list too. */
+  active: boolean;
 }
 
 function toCoachRating(value: string | null | undefined): CoachRating {
   if (value === 'minus' || value === 'even' || value === 'plus') return value;
   return null;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapPitcherRow(row: any): PitcherRecord {
+  return {
+    id: row.id,
+    name: row.name,
+    maxWeeklyPitches: row.max_weekly_pitches,
+    pitchTypes: row.pitch_types as PitchTypeConfig | null,
+    teamId: row.team_id ?? null,
+    userId: row.user_id ?? null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    effortRating: toCoachRating(row.effort_rating),
+    coachabilityRating: toCoachRating(row.coachability_rating),
+    baseballIqRating: toCoachRating(row.baseball_iq_rating),
+    highImpactArm: row.high_impact_arm ?? false,
+    active: row.active ?? true,
+  };
 }
 
 export function usePitchers() {
@@ -35,32 +58,20 @@ export function usePitchers() {
   const { toast } = useToast();
   const { activeTeamId } = useTeamMemberships();
 
-  // Fetch pitchers from Supabase
+  // Fetch pitchers from Supabase. Active roster only — archived players
+  // (past-season, kept for their history and public link) live outside
+  // this hook; RosterManagementDialog fetches them separately on demand.
   const fetchPitchers = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('pitchers')
         .select('*')
+        .eq('active', true)
         .order('name', { ascending: true });
 
       if (error) throw error;
 
-      const mappedPitchers: PitcherRecord[] = (data || []).map((row) => ({
-        id: row.id,
-        name: row.name,
-        maxWeeklyPitches: row.max_weekly_pitches,
-        pitchTypes: row.pitch_types as PitchTypeConfig | null,
-        teamId: row.team_id ?? null,
-        userId: row.user_id ?? null,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
-        effortRating: toCoachRating(row.effort_rating),
-        coachabilityRating: toCoachRating(row.coachability_rating),
-        baseballIqRating: toCoachRating(row.baseball_iq_rating),
-        highImpactArm: (row as any).high_impact_arm ?? false,
-      }));
-
-      setPitchers(mappedPitchers);
+      setPitchers((data || []).map(mapPitcherRow));
     } catch (error) {
       logger.error('Error fetching pitchers:', error);
       toast({
@@ -115,20 +126,7 @@ export function usePitchers() {
 
       if (error) throw error;
 
-      const newPitcher: PitcherRecord = {
-        id: data.id,
-        name: data.name,
-        maxWeeklyPitches: data.max_weekly_pitches,
-        pitchTypes: data.pitch_types as PitchTypeConfig | null,
-        teamId: data.team_id ?? null,
-        userId: data.user_id ?? null,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-        effortRating: toCoachRating(data.effort_rating),
-        coachabilityRating: toCoachRating(data.coachability_rating),
-        baseballIqRating: toCoachRating(data.baseball_iq_rating),
-        highImpactArm: (data as any).high_impact_arm ?? false,
-      };
+      const newPitcher: PitcherRecord = mapPitcherRow(data);
 
       setPitchers((prev) => [...prev, newPitcher].sort((a, b) => a.name.localeCompare(b.name)));
       toast({
@@ -213,6 +211,114 @@ export function usePitchers() {
     }
   }, [toast]);
 
+  // Archive: soft-remove from the active roster for a season rollover.
+  // Unlike delete, this touches nothing else — history, stats, report
+  // cards, and the player's public /player/:id link all keep working.
+  const archivePitcher = useCallback(async (id: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('pitchers')
+        .update({ active: false })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setPitchers((prev) => prev.filter((p) => p.id !== id));
+      toast({
+        title: 'Pitcher archived',
+        description: 'Removed from the active roster. Reactivate anytime from Archived players.',
+      });
+      return true;
+    } catch (error) {
+      logger.error('Error archiving pitcher:', error);
+      toast({
+        title: 'Could not archive pitcher',
+        description: 'Try again.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  }, [toast]);
+
+  // Bring an archived player back onto the active roster.
+  const reactivatePitcher = useCallback(async (id: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('pitchers')
+        .update({ active: true })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      await fetchPitchers();
+      toast({ title: 'Pitcher reactivated', description: 'Back on the active roster.' });
+      return true;
+    } catch (error) {
+      logger.error('Error reactivating pitcher:', error);
+      toast({
+        title: 'Could not reactivate pitcher',
+        description: 'Try again.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  }, [toast, fetchPitchers]);
+
+  // "Roll to a new season" — archives the whole current active roster in
+  // one action. Nothing is deleted; each player can be reactivated
+  // individually afterward and their history/public link are untouched.
+  const startNewSeason = useCallback(async (): Promise<boolean> => {
+    const ids = pitchers.map((p) => p.id);
+    if (ids.length === 0) return true;
+    try {
+      const { error } = await supabase
+        .from('pitchers')
+        .update({ active: false })
+        .in('id', ids);
+
+      if (error) throw error;
+
+      setPitchers([]);
+      toast({
+        title: 'New season started',
+        description: `${ids.length} player${ids.length === 1 ? '' : 's'} archived. Reactivate returners anytime.`,
+      });
+      return true;
+    } catch (error) {
+      logger.error('Error starting new season:', error);
+      toast({
+        title: 'Could not start new season',
+        description: 'Try again.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  }, [pitchers, toast]);
+
+  // Archived players, fetched on demand only — most consumers of this hook
+  // never need them, so they live outside its own `pitchers` state.
+  const fetchArchivedPitchers = useCallback(async (): Promise<PitcherRecord[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('pitchers')
+        .select('*')
+        .eq('active', false)
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+
+      return (data || []).map(mapPitcherRow);
+    } catch (error) {
+      logger.error('Error fetching archived pitchers:', error);
+      toast({
+        title: 'Could not load archived players',
+        description: 'Try again.',
+        variant: 'destructive',
+      });
+      return [];
+    }
+  }, [toast]);
+
   // Set a single coach-rating dimension on a pitcher. Optimistic update with
   // rollback on error so the rankings UI feels instant.
   const setCoachRating = useCallback(
@@ -294,6 +400,10 @@ export function usePitchers() {
     addPitcher,
     updatePitcher,
     deletePitcher,
+    archivePitcher,
+    reactivatePitcher,
+    startNewSeason,
+    fetchArchivedPitchers,
     setCoachRating,
     setHighImpactArm,
     refetch: fetchPitchers,
