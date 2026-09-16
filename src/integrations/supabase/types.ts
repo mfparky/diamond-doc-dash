@@ -351,6 +351,7 @@ export type Database = {
       }
       pitchers: {
         Row: {
+          active: boolean
           baseball_iq_rating: string | null
           coachability_rating: string | null
           created_at: string
@@ -365,6 +366,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          active?: boolean
           baseball_iq_rating?: string | null
           coachability_rating?: string | null
           created_at?: string
@@ -379,6 +381,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          active?: boolean
           baseball_iq_rating?: string | null
           coachability_rating?: string | null
           created_at?: string
@@ -764,6 +767,7 @@ export type Database = {
       get_public_pitcher: {
         Args: { p_pitcher_id: string }
         Returns: {
+          active: boolean
           baseball_iq_rating: string | null
           coachability_rating: string | null
           created_at: string
@@ -957,6 +961,7 @@ export type Database = {
       get_public_team_pitchers: {
         Args: { p_team_id: string }
         Returns: {
+          active: boolean
           baseball_iq_rating: string | null
           coachability_rating: string | null
           created_at: string
@@ -1080,6 +1085,7 @@ export type Database = {
       get_public_user_pitchers: {
         Args: { p_user_id: string }
         Returns: {
+          active: boolean
           baseball_iq_rating: string | null
           coachability_rating: string | null
           created_at: string
